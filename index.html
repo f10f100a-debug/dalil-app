@@ -390,7 +390,7 @@
     <section class="screen" id="screen-places">
       <div class="search-row">
         <input class="search-box" id="placeSearch" placeholder="ابحث في الأماكن المحفوظة…">
-        <button class="btn btn-primary" style="width:auto; padding:11px 16px;" id="addPlaceBtn">+</button>
+        <button class="btn btn-primary" style="width:auto; padding:11px 16px;" id="addPlaceBtn">📍</button>
       </div>
       <div class="chips" id="filterChips">
         <div class="chip active" data-cat="all">الكل</div>
@@ -1401,27 +1401,7 @@ const sourcePlaces = car
   <button type="button" onclick="goCar()" style="padding:12px;border:0;border-radius:12px;font-weight:700">📍 العودة للسيارة</button>
 </div>
 
-<script>
-function saveCar(){
-  navigator.geolocation.getCurrentPosition(p=>{
-    localStorage.setItem('dalil_car',JSON.stringify({
-      lat:p.coords.latitude,
-      lng:p.coords.longitude
-    }));
-    alert('تم حفظ موقع السيارة ✅');
-localStorage.setItem('dalil_car_name','🚙 السيارة');
-  },()=>alert('تعذر تحديد الموقع'));
-}
 
-function goCar(){
-  const p=JSON.parse(localStorage.getItem('dalil_car')||'null');
-  if(!p){ alert('احفظ موقع السيارة أولاً'); return; }
-function goCar(){
-  const p=JSON.parse(localStorage.getItem('dalil_car')||'null');
-  if(!p){ alert('احفظ موقع السيارة أولاً'); return; }
-  window.location.href = `https://maps.apple.com/?ll=${p.lat},${p.lng}&q=السيارة`;
-}
-</script>
 <!-- DALIL_FINAL_FIX_START -->
 <script>
 (function(){
@@ -1572,195 +1552,7 @@ document.addEventListener('click',function(e){
 })();
 </script>
 <!-- DALIL_FINAL_FIX_END -->
-<!-- DALIL_PASTE_ICON_FIX_START -->
-<script>
-(function(){
-  function text(el){
-    return ((el && (el.innerText || el.textContent)) || '').replace(/\s+/g,' ').trim();
-  }
 
-  function visible(el){
-    var r=el.getBoundingClientRect();
-    return r.width>0 && r.height>0;
-  }
 
-  function setValue(el,val){
-    if(!el) return;
-    el.value=val;
-    el.dispatchEvent(new Event('input',{bubbles:true}));
-    el.dispatchEvent(new Event('change',{bubbles:true}));
-  }
-
-  function parseCoords(raw){
-    var s=(raw||'').replace(/\u060C/g,',').trim();
-    var nums=(s.match(/[-+]?\d+(?:\.\d+)?/g)||[]).map(Number);
-
-    if(nums.length>=2 && Math.abs(nums[0])<=90 && Math.abs(nums[1])<=180){
-      return {lat:nums[0],lng:nums[1]};
-    }
-
-    var parts=s.match(/[^NSEW]*[NSEW]/gi);
-    if(parts && parts.length>=2){
-      var lat=null,lng=null;
-      parts.forEach(function(part){
-        var h=(part.match(/[NSEW]/i)||[])[0];
-        var n=(part.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
-        if(!h || !n.length) return;
-
-        var v=n[0]+(n[1]||0)/60+(n[2]||0)/3600;
-        if(/[SW]/i.test(h)) v=-v;
-        if(/[NS]/i.test(h)) lat=v;
-        if(/[EW]/i.test(h)) lng=v;
-      });
-
-      if(lat!==null && lng!==null) return {lat:lat,lng:lng};
-    }
-
-    return null;
-  }
-
-  function pasteCoords(btn){
-    var raw=prompt('\u0627\u0644\u0635\u0642 \u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u0647\u0646\u0627');
-    if(raw===null) return;
-
-    var p=parseCoords(raw);
-    if(!p){
-      alert('\u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629 \u063a\u064a\u0631 \u0645\u0642\u0631\u0648\u0621\u0629');
-      return;
-    }
-
-    var scope=btn.closest('[role="dialog"],.modal,.sheet,.card,.panel') || document;
-    var inputs=Array.from(scope.querySelectorAll('input')).filter(visible);
-
-    var lat=inputs.find(function(i){
-      return /lat|latitude/i.test((i.id||'')+' '+(i.name||''));
-    });
-
-    var lng=inputs.find(function(i){
-      return /lng|lon|longitude/i.test((i.id||'')+' '+(i.name||''));
-    });
-
-    if(!lat || !lng){
-      var numeric=inputs.filter(function(i){
-        return i.type==='number' || i.inputMode==='decimal';
-      });
-
-      if(numeric.length>=2){
-        lat=numeric[numeric.length-2];
-        lng=numeric[numeric.length-1];
-      }
-    }
-
-    if(lat && lng){
-      setValue(lat,p.lat.toFixed(6));
-      setValue(lng,p.lng.toFixed(6));
-    }else{
-      alert(p.lat.toFixed(6)+', '+p.lng.toFixed(6));
-    }
-  }
-
-  document.addEventListener('click',function(e){
-    var b=e.target.closest('button,a');
-    if(!b) return;
-
-    var t=text(b);
-
-    if(t.indexOf('\u0644\u0635\u0642')!==-1 && t.indexOf('\u0625\u062d\u062f\u0627\u062b')!==-1){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      pasteCoords(b);
-    }
-  },true);
-
-  function fixIcon(){
-    var buttons=Array.from(document.querySelectorAll('button')).filter(visible);
-    var plus=buttons.find(function(b){ return text(b)==='+'; });
-
-    if(plus){
-      plus.textContent='\uD83D\uDCCD';
-      plus.title='\u062d\u0641\u0638 \u0645\u0648\u0642\u0639';
-      plus.setAttribute('aria-label','\u062d\u0641\u0638 \u0645\u0648\u0642\u0639');
-    }
-  }
-
-  fixIcon();
-  new MutationObserver(fixIcon).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
-<!-- DALIL_PASTE_ICON_FIX_END -->
-<script>
-(function(){
-
-function fixPlusIcon(){
-  const all = Array.from(document.querySelectorAll('button,a,div,span'));
-  const el = all.find(function(x){
-    const t=(x.textContent||'').trim();
-    const r=x.getBoundingClientRect();
-    return t==='+' && r.width>0 && r.height>0 && r.top<500;
-  });
-  if(el){
-    el.textContent='📍';
-    el.setAttribute('aria-label','حفظ موقع');
-    el.setAttribute('title','حفظ موقع');
-  }
-}
-
-function hookPaste(){
-  document.addEventListener('click',function(e){
-    let el=e.target;
-    for(let i=0;i<6 && el;i++,el=el.parentElement){
-      const t=(el.textContent||'').replace(/\s+/g,' ').trim();
-
-      if(t.includes('لصق') && t.includes('إحداثية')){
-        e.preventDefault();
-        e.stopImmediatePropagation();
-
-        const raw=prompt('الصق الإحداثية الكاملة هنا');
-        if(raw===null) return;
-
-        const nums=(raw.match(/[-+]?\d+(?:\.\d+)?/g)||[]).map(Number);
-
-        if(nums.length<2){
-          alert('لم أتمكن من قراءة الإحداثية');
-          return;
-        }
-
-        const inputs=Array.from(document.querySelectorAll('input')).filter(function(i){
-          const r=i.getBoundingClientRect();
-          return r.width>0 && r.height>0;
-        });
-
-        const numeric=inputs.filter(function(i){
-          return i.type==='number' || i.inputMode==='decimal';
-        });
-
-        if(numeric.length>=2){
-          const lat=numeric[numeric.length-2];
-          const lng=numeric[numeric.length-1];
-
-          lat.value=nums[0].toFixed(6);
-          lng.value=nums[1].toFixed(6);
-
-          lat.dispatchEvent(new Event('input',{bubbles:true}));
-          lng.dispatchEvent(new Event('input',{bubbles:true}));
-          lat.dispatchEvent(new Event('change',{bubbles:true}));
-          lng.dispatchEvent(new Event('change',{bubbles:true}));
-        }else{
-          alert(nums[0].toFixed(6)+', '+nums[1].toFixed(6));
-        }
-        return;
-      }
-    }
-  },true);
-}
-
-fixPlusIcon();
-hookPaste();
-
-new MutationObserver(fixPlusIcon).observe(document.body,{childList:true,subtree:true});
-setInterval(fixPlusIcon,1000);
-
-})();
-</script>
 </body>
 </html>
