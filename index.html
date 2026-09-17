@@ -224,6 +224,8 @@
   .th-name{font-weight:700; font-size:13.5px;}
   .th-date{font-size:11px; color:var(--text-faint);}
   .th-stats{display:flex; gap:14px; margin-top:6px; font-size:11.5px; color:var(--text-dim);}
+  .th-actions{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px;}
+  .th-actions .btn{padding:8px 4px; font-size:11px; min-width:0;}
 
   section-title, .section-title{
     display:block; font-size:13px; font-weight:800; color:var(--text-dim);
@@ -1504,14 +1506,15 @@
   }
 
   // ---------- retrace ----------
-  document.getElementById('retraceBtn').addEventListener('click', ()=>{
+  function startRetrace(){
     if(state.trackPoints.length < 2) return;
     state.retracing = true;
     state.retraceIdx = 0; // counted from the end backward
     document.getElementById('retraceCard').style.display = 'block';
     toast('اتّبع السهم للعودة من نفس المسار');
     updateRetrace();
-  });
+  }
+  document.getElementById('retraceBtn').addEventListener('click', startRetrace);
   document.getElementById('stopRetraceBtn').addEventListener('click', stopRetrace);
   function stopRetrace(){
     state.retracing = false;
@@ -1560,8 +1563,93 @@
       return `<div class="track-history-item">
         <div class="th-top"><div class="th-name">${escapeHtml(t.name)}</div><div class="th-date">${date}</div></div>
         <div class="th-stats"><span>📏 ${km} كم</span><span>⏱ ${durMin} د</span><span>📍 ${t.points.length} نقطة</span></div>
+        <div class="th-actions">
+          <button class="btn btn-ghost" data-track-view="${t.id}">🗺 عرض</button>
+          <button class="btn btn-sage" data-track-retrace="${t.id}">↩ عودة</button>
+          <button class="btn btn-ghost" data-track-gpx="${t.id}">📤 GPX</button>
+          <button class="btn btn-danger" data-track-delete="${t.id}">🗑 حذف</button>
+        </div>
       </div>`;
     }).join('');
+    list.querySelectorAll('[data-track-view]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackView);
+      if(track) loadSavedTrack(track);
+    }));
+    list.querySelectorAll('[data-track-retrace]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackRetrace);
+      if(!track || !loadSavedTrack(track)) return;
+      startRetrace();
+      document.querySelector('.tab[data-screen="compass"]').click();
+    }));
+    list.querySelectorAll('[data-track-gpx]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackGpx);
+      if(track) shareTrackGpx(track);
+    }));
+    list.querySelectorAll('[data-track-delete]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackDelete);
+      if(!track || !confirm(`حذف «${track.name}» من الجولات المحفوظة؟`)) return;
+      state.tracks = state.tracks.filter(t=>t.id!==track.id);
+      save();
+      renderTrackHistory();
+      toast('تم حذف الجولة');
+    }));
+  }
+
+  function loadSavedTrack(track){
+    if(state.tracking){
+      toast('أوقف التسجيل الحالي أولًا');
+      return false;
+    }
+    if(!track || !Array.isArray(track.points) || track.points.length < 2){
+      toast('هذا المسار لا يحتوي نقاطًا كافية');
+      return false;
+    }
+    stopRetrace();
+    state.trackPoints = track.points.map(p=>({lat:Number(p.lat), lng:Number(p.lng), t:p.t}));
+    state.trackStart = null;
+    document.getElementById('trkDist').textContent = ((Number(track.dist) || trackDistance(state.trackPoints))/1000).toFixed(2);
+    document.getElementById('trkTime').textContent = fmtDuration(Number(track.duration) || 0);
+    document.getElementById('trkAvg').textContent = track.duration ? (((Number(track.dist) || 0)/1000)/(track.duration/3600000)).toFixed(1) : '0.0';
+    document.getElementById('trkPts').textContent = state.trackPoints.length;
+    document.getElementById('trackGpsStatus').textContent = `🗺 عرض المسار المحفوظ: ${track.name}`;
+    document.getElementById('retraceBtn').disabled = false;
+    document.getElementById('clearTrackBtn').disabled = false;
+    drawTrackSvg();
+    syncTrackMap();
+    toast('تم عرض المسار على الخريطة');
+    return true;
+  }
+
+  function xmlEscape(value){
+    return String(value ?? '').replace(/[<>&'\"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
+  }
+
+  async function shareTrackGpx(track){
+    if(!track || !Array.isArray(track.points) || track.points.length < 2) return toast('لا توجد نقاط كافية للتصدير');
+    const segments = track.points.map(p=>{
+      const time = p.t ? `<time>${new Date(p.t).toISOString()}</time>` : '';
+      return `<trkpt lat="${Number(p.lat).toFixed(7)}" lon="${Number(p.lng).toFixed(7)}">${time}</trkpt>`;
+    }).join('');
+    const gpx = `<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Dalil" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${xmlEscape(track.name)}</name><trkseg>${segments}</trkseg></trk></gpx>`;
+    const safeName = String(track.name || 'dalil-track').replace(/[\\/:*?"<>|]+/g,'-');
+    const file = new File([gpx], `${safeName}.gpx`, {type:'application/gpx+xml'});
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({title:track.name, text:'مسار من تطبيق دليل', files:[file]});
+        return;
+      }catch(err){
+        if(err && err.name === 'AbortError') return;
+      }
+    }
+    const url = URL.createObjectURL(file);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    toast('تم تنزيل ملف GPX');
   }
 
   // ---------- settings ----------
