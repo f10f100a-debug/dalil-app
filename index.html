@@ -1422,5 +1422,155 @@ function goCar(){
   window.location.href = `https://maps.apple.com/?ll=${p.lat},${p.lng}&q=السيارة`;
 }
 </script>
+<!-- DALIL_FINAL_FIX_START -->
+<script>
+(function(){
+
+function dalilText(el){
+  return (el.innerText || el.textContent || '').replace(/\s+/g,' ').trim();
+}
+
+function visible(el){
+  const r=el.getBoundingClientRect();
+  return r.width>0 && r.height>0;
+}
+
+function setInput(i,v){
+  i.value=v;
+  i.dispatchEvent(new Event('input',{bubbles:true}));
+  i.dispatchEvent(new Event('change',{bubbles:true}));
+}
+
+function parseCoords(s){
+  s=(s||'').replace(/،/g,',').trim();
+
+  const parts=s.match(/[^NSEW]*[NSEW]/gi);
+  if(parts && parts.length>=2){
+    let lat=null,lng=null;
+
+    parts.forEach(function(part){
+      const h=(part.match(/[NSEW]/i)||[])[0];
+      const n=(part.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
+      if(!h || !n.length) return;
+
+      let v=n[0]+(n[1]||0)/60+(n[2]||0)/3600;
+      if(/[SW]/i.test(h)) v=-v;
+
+      if(/[NS]/i.test(h)) lat=v;
+      if(/[EW]/i.test(h)) lng=v;
+    });
+
+    if(lat!==null && lng!==null) return {lat:lat,lng:lng};
+  }
+
+  const nums=(s.match(/[-+]?\d+(?:\.\d+)?/g)||[]).map(Number);
+  if(nums.length>=2) return {lat:nums[0],lng:nums[1]};
+
+  return null;
+}
+
+async function pasteCoordinates(btn){
+  let text='';
+
+  try{
+    text=await navigator.clipboard.readText();
+  }catch(e){}
+
+  if(!text){
+    text=prompt('\u0627\u0644\u0635\u0642 \u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u0647\u0646\u0627') || '';
+  }
+
+  const p=parseCoords(text);
+
+  if(!p){
+    alert('\u0644\u0645 \u0623\u062a\u0645\u0643\u0646 \u0645\u0646 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629');
+    return;
+  }
+
+  const scope=btn.closest('[role="dialog"],.modal,.sheet,.bottom-sheet') || document;
+
+  let inputs=[...scope.querySelectorAll('input')].filter(visible);
+
+  let latI=inputs.find(i=>/lat|latitude/i.test((i.id||'')+' '+(i.name||'')));
+  let lngI=inputs.find(i=>/lng|lon|longitude/i.test((i.id||'')+' '+(i.name||'')));
+
+  if(!latI || !lngI){
+    const numeric=inputs.filter(i=>
+      i.type==='number' ||
+      i.inputMode==='decimal' ||
+      /^[-+]?\d/.test(i.value||'')
+    );
+
+    if(numeric.length>=2){
+      latI=numeric[numeric.length-2];
+      lngI=numeric[numeric.length-1];
+    }
+  }
+
+  if(latI && lngI){
+    setInput(latI,p.lat.toFixed(6));
+    setInput(lngI,p.lng.toFixed(6));
+  }else{
+    alert(p.lat.toFixed(6)+', '+p.lng.toFixed(6));
+  }
+}
+
+document.addEventListener('click',function(e){
+  const b=e.target.closest('button,a');
+  if(!b) return;
+
+  const t=dalilText(b);
+
+  if(t.includes('\u0627\u062d\u0641\u0638 \u0627\u0644\u0633\u064a\u0627\u0631\u0629')){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        localStorage.setItem('dalil_car',JSON.stringify({
+          lat:pos.coords.latitude,
+          lng:pos.coords.longitude,
+          time:Date.now()
+        }));
+
+        alert('\u062a\u0645 \u062d\u0641\u0638 \u0645\u0648\u0642\u0639 \u0627\u0644\u0633\u064a\u0627\u0631\u0629 \u2705');
+      },
+      function(){
+        alert('\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0648\u0642\u0639');
+      },
+      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
+    );
+    return;
+  }
+
+  if(t.includes('\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u0633\u064a\u0627\u0631\u0629')){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    const car=JSON.parse(localStorage.getItem('dalil_car')||'null');
+
+    if(!car){
+      alert('\u0627\u062d\u0641\u0638 \u0645\u0648\u0642\u0639 \u0627\u0644\u0633\u064a\u0627\u0631\u0629 \u0623\u0648\u0644\u0627\u064b');
+      return;
+    }
+
+    window.location.href=
+      'https://maps.apple.com/?saddr=Current%20Location&daddr='+
+      encodeURIComponent(car.lat+','+car.lng)+
+      '&dirflg=d';
+    return;
+  }
+
+  if(t.includes('\u0644\u0635\u0642') && t.includes('\u0625\u062d\u062f\u0627\u062b')){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    pasteCoordinates(b);
+  }
+
+},true);
+
+})();
+</script>
+<!-- DALIL_FINAL_FIX_END -->
 </body>
 </html>
