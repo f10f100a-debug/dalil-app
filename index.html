@@ -1411,7 +1411,7 @@ function saveCar(){
 function goCar(){
   const p=JSON.parse(localStorage.getItem('dalil_car')||'null');
   if(!p){ alert('احفظ موقع السيارة أولاً'); return; }
-location.href='https://maps.apple.com/?daddr='+p.lat+','+p.lng;
+location.href='maps://?daddr='+p.lat+','+p.lng+'&dirflg=d';
 }
 </script>
 </body>
