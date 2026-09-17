@@ -1071,7 +1071,11 @@
   function renderPlaces(){
     const list = document.getElementById('placesList');
     const q = document.getElementById('placeSearch').value.trim().toLowerCase();
-    let items = state.places.filter(p=>{
+    const car = JSON.parse(localStorage.getItem('dalil_car') || 'null');
+const sourcePlaces = car
+  ? [{name:'🚙 السيارة', cat:'car', lat:car.lat, lng:car.lng}, ...state.places]
+  : state.places;
+   let items = sourcePlaces.filter(p=>{
       if(state.activeCat !== 'all' && p.cat !== state.activeCat) return false;
       if(q && !p.name.toLowerCase().includes(q)) return false;
       return true;
