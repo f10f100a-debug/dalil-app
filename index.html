@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!--
  Dalil — Desert Compass
- Copyright © 2026 Abu Malik Allhaibi. All Rights Reserved.
+ Copyright © 2026 Abu Malik Allhaibi. All Rights Reserved. — Version 1.1
  دليل — بوصلة البر
  © 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة
 -->
@@ -427,6 +427,9 @@
         <button class="btn btn-ghost small" style="margin-top:10px;" id="stopRetraceBtn">إيقاف العودة الموجّهة</button>
       </div>
 
+      <div class="banner" id="trackGpsStatus" style="margin-top:12px;">
+        حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.
+      </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="trackToggleBtn">▶ بدء تسجيل المسار</button>
       </div>
@@ -463,7 +466,7 @@
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.0</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.1</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -492,9 +495,53 @@
         <div class="icon-pick" data-icon="⭐" data-cat="fav">⭐</div>
         <div class="icon-pick" data-icon="📍" data-cat="other">📍</div>
       </div>
+      <div class="field-label">نوع الإحداثية</div>
+      <div class="chips" id="coordInputType">
+        <div class="chip active" data-coord-input="dd">DD عشري</div>
+        <div class="chip" data-coord-input="ddm">DDM درجات ودقائق</div>
+        <div class="chip" data-coord-input="dms">DMS درجات/دقائق/ثوانٍ</div>
+      </div>
+
       <div class="field-label">إحداثيات النقطة</div>
-      <input class="text-input" id="manualCoordInput" placeholder="مثال: 24.774265, 46.738586 — أو الصق رابط خرائط جوجل" style="direction:ltr; text-align:left;" inputmode="decimal">
-      <div id="manualCoordFeedback" style="margin-top:8px; font-size:12px; color:var(--text-faint); line-height:1.7;">اكتب الإحداثيات يدويًا، أو الصقها كرابط خرائط جوجل</div>
+
+      <div id="coordFieldsDD">
+        <div class="btn-row">
+          <input class="text-input coord-part" id="ddLat" placeholder="خط العرض 27.7590" inputmode="decimal" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="ddLng" placeholder="خط الطول 41.6840" inputmode="decimal" style="direction:ltr;text-align:center;">
+        </div>
+      </div>
+
+      <div id="coordFieldsDDM" style="display:none;">
+        <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط العرض (شمال N)</div>
+        <div class="btn-row">
+          <input class="text-input coord-part" id="ddmLatDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="ddmLatMin" placeholder="دقيقة 45.555" inputmode="decimal" style="direction:ltr;text-align:center;">
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط الطول (شرق E)</div>
+        <div class="btn-row">
+          <input class="text-input coord-part" id="ddmLngDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="ddmLngMin" placeholder="دقيقة" inputmode="decimal" style="direction:ltr;text-align:center;">
+        </div>
+      </div>
+
+      <div id="coordFieldsDMS" style="display:none;">
+        <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط العرض (شمال N)</div>
+        <div class="btn-row">
+          <input class="text-input coord-part" id="dmsLatDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="dmsLatMin" placeholder="دقيقة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="dmsLatSec" placeholder="ثانية" inputmode="decimal" style="direction:ltr;text-align:center;">
+        </div>
+        <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط الطول (شرق E)</div>
+        <div class="btn-row">
+          <input class="text-input coord-part" id="dmsLngDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="dmsLngMin" placeholder="دقيقة" inputmode="numeric" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part" id="dmsLngSec" placeholder="ثانية" inputmode="decimal" style="direction:ltr;text-align:center;">
+        </div>
+      </div>
+
+      <button class="btn btn-ghost" id="pasteCoordIntoFieldsBtn" style="margin-top:10px;">📋 لصق إحداثية كاملة تلقائيًا</button>
+      <input id="manualCoordInput" type="hidden">
+      <div id="manualCoordFeedback" style="margin-top:8px; font-size:12px; color:var(--text-faint); line-height:1.7;">اختر نوع الإحداثية ثم أدخل خط العرض وخط الطول</div>
       <div class="btn-row" style="margin-top:18px;">
         <button class="btn btn-ghost" id="cancelSaveBtn">إلغاء</button>
         <button class="btn btn-primary" id="confirmSaveBtn">حفظ</button>
@@ -873,38 +920,103 @@
     return null;
   }
 
+  let coordInputMode = 'dd';
+
+  function num(id){ return parseFloat(document.getElementById(id).value); }
+  function validLatLng(lat,lng){ return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180; }
+
+  function coordsFromStructuredFields(){
+    let lat, lng;
+    if(coordInputMode === 'dd'){
+      lat = num('ddLat'); lng = num('ddLng');
+    } else if(coordInputMode === 'ddm'){
+      const a=num('ddmLatDeg'), b=num('ddmLatMin'), c=num('ddmLngDeg'), d=num('ddmLngMin');
+      if(![a,b,c,d].every(Number.isFinite) || b<0 || b>=60 || d<0 || d>=60) return null;
+      lat = a + b/60; lng = c + d/60;
+    } else {
+      const a=num('dmsLatDeg'), b=num('dmsLatMin'), c=num('dmsLatSec');
+      const d=num('dmsLngDeg'), e=num('dmsLngMin'), f=num('dmsLngSec');
+      if(![a,b,c,d,e,f].every(Number.isFinite) || b<0 || b>=60 || c<0 || c>=60 || e<0 || e>=60 || f<0 || f>=60) return null;
+      lat = a + b/60 + c/3600; lng = d + e/60 + f/3600;
+    }
+    return validLatLng(lat,lng) ? {lat,lng} : null;
+  }
+
+  function fillCoordFields(lat,lng,mode=coordInputMode){
+    if(!validLatLng(lat,lng)) return;
+    if(mode==='dd'){
+      document.getElementById('ddLat').value = lat.toFixed(6);
+      document.getElementById('ddLng').value = lng.toFixed(6);
+    } else if(mode==='ddm'){
+      const la=Math.abs(lat), lo=Math.abs(lng);
+      document.getElementById('ddmLatDeg').value=Math.floor(la);
+      document.getElementById('ddmLatMin').value=((la%1)*60).toFixed(5);
+      document.getElementById('ddmLngDeg').value=Math.floor(lo);
+      document.getElementById('ddmLngMin').value=((lo%1)*60).toFixed(5);
+    } else {
+      const la=Math.abs(lat), lo=Math.abs(lng), lad=Math.floor(la), lod=Math.floor(lo);
+      const lam=(la-lad)*60, lom=(lo-lod)*60, lami=Math.floor(lam), lomi=Math.floor(lom);
+      document.getElementById('dmsLatDeg').value=lad;
+      document.getElementById('dmsLatMin').value=lami;
+      document.getElementById('dmsLatSec').value=((lam-lami)*60).toFixed(2);
+      document.getElementById('dmsLngDeg').value=lod;
+      document.getElementById('dmsLngMin').value=lomi;
+      document.getElementById('dmsLngSec').value=((lom-lomi)*60).toFixed(2);
+    }
+  }
+
+  function setCoordMode(mode){
+    const current = coordsFromStructuredFields() || pendingCoords;
+    coordInputMode = mode;
+    document.querySelectorAll('[data-coord-input]').forEach(x=>x.classList.toggle('active',x.dataset.coordInput===mode));
+    document.getElementById('coordFieldsDD').style.display = mode==='dd' ? 'block':'none';
+    document.getElementById('coordFieldsDDM').style.display = mode==='ddm' ? 'block':'none';
+    document.getElementById('coordFieldsDMS').style.display = mode==='dms' ? 'block':'none';
+    if(current) fillCoordFields(current.lat,current.lng,mode);
+    updateManualCoordFeedback();
+  }
+
   function updateManualCoordFeedback(){
-    const text = document.getElementById('manualCoordInput').value;
-    const parsed = parseCoordsFromText(text);
+    const parsed = coordsFromStructuredFields();
     const fb = document.getElementById('manualCoordFeedback');
     const confirmBtn = document.getElementById('confirmSaveBtn');
     if(parsed){
       pendingCoords = parsed;
+      document.getElementById('manualCoordInput').value = `${parsed.lat},${parsed.lng}`;
       fb.innerHTML = '✅ إحداثيات صالحة: ' + formatCoords(parsed.lat, parsed.lng, state.coordFmt);
       fb.style.color = 'var(--sage)';
       confirmBtn.disabled = false;
     } else {
       pendingCoords = null;
       confirmBtn.disabled = true;
-      if(/maps\.app\.goo\.gl|goo\.gl\/maps/.test(text)){
-        fb.textContent = '⚠️ هذا رابط مختصر، لا يمكن فك تشفيره هنا. الصق الرابط الكامل أو اكتب الإحداثيات مباشرة.';
-        fb.style.color = 'var(--danger)';
-      } else if(text.trim()){
-        fb.textContent = '⚠️ لم يتم التعرف على إحداثيات صالحة. الصيغة المطلوبة: 24.774265, 46.738586';
-        fb.style.color = 'var(--danger)';
-      } else {
-        fb.textContent = 'اكتب الإحداثيات يدويًا، أو الصقها كرابط خرائط جوجل';
-        fb.style.color = 'var(--text-faint)';
-      }
+      fb.textContent = '⚠️ أكمل المربعات بقيم صحيحة. الدقائق والثواني يجب أن تكون أقل من 60.';
+      fb.style.color = 'var(--danger)';
     }
   }
-  document.getElementById('manualCoordInput').addEventListener('input', updateManualCoordFeedback);
+
+  document.querySelectorAll('[data-coord-input]').forEach(el=>el.addEventListener('click',()=>setCoordMode(el.dataset.coordInput)));
+  document.querySelectorAll('.coord-part').forEach(el=>el.addEventListener('input',updateManualCoordFeedback));
+
+  document.getElementById('pasteCoordIntoFieldsBtn').addEventListener('click', async ()=>{
+    try{
+      const t = await navigator.clipboard.readText();
+      const p = parseCoordsFromText(t);
+      if(!p) return toast('لم أتعرف على إحداثية كاملة في الحافظة');
+      setCoordMode('dd');
+      fillCoordFields(p.lat,p.lng,'dd');
+      updateManualCoordFeedback();
+      toast('تمت تعبئة الإحداثية');
+    }catch(e){ toast('تعذّر قراءة الحافظة — اسمح باللصق ثم حاول مجددًا'); }
+  });
 
   function openSaveSheet(lat, lng){
     document.getElementById('placeNameInput').value = '';
-    const input = document.getElementById('manualCoordInput');
-    input.value = (lat!=null && lng!=null) ? `${lat.toFixed(6)}, ${lng.toFixed(6)}` : '';
-    updateManualCoordFeedback();
+    document.querySelectorAll('.coord-part').forEach(el=>el.value='');
+    setCoordMode(state.coordFmt==='dms' ? 'dms' : state.coordFmt==='ddm' ? 'ddm' : 'dd');
+    if(lat!=null && lng!=null){
+      fillCoordFields(lat,lng,coordInputMode);
+      updateManualCoordFeedback();
+    }
     document.getElementById('saveOverlay').classList.add('show');
   }
   document.getElementById('saveHereBtn').addEventListener('click', ()=>{
@@ -1082,6 +1194,8 @@
       state.tracking = true;
       state.trackPoints = [{lat:state.pos.lat, lng:state.pos.lng, t:Date.now()}];
       state.trackStart = Date.now();
+      localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      document.getElementById('trackGpsStatus').textContent = '🔴 التسجيل نشط — يتم الحفظ التلقائي على هذا الجهاز.';
       document.getElementById('trackToggleBtn').textContent = '⏸ إيقاف التسجيل';
       document.getElementById('recPill').style.display = 'flex';
       document.getElementById('retraceBtn').disabled = true;
@@ -1105,6 +1219,8 @@
           createdAt: Date.now()
         });
         save();
+        localStorage.removeItem('dalil_track_draft');
+        document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ الجولة بنجاح في الجولات المحفوظة.';
         renderTrackHistory();
         toast('تم حفظ الجولة');
       }
@@ -1113,6 +1229,8 @@
 
   document.getElementById('clearTrackBtn').addEventListener('click', ()=>{
     state.trackPoints = [];
+    localStorage.removeItem('dalil_track_draft');
+    document.getElementById('trackGpsStatus').textContent = 'حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.';
     state.tracking = false;
     clearInterval(state.trackTimer);
     document.getElementById('trackToggleBtn').textContent = '▶ بدء تسجيل المسار';
@@ -1129,6 +1247,9 @@
     const d = last ? haversine(last.lat, last.lng, state.pos.lat, state.pos.lng) : 999;
     if(d > 8){ // avoid noisy duplicate points
       state.trackPoints.push({lat:state.pos.lat, lng:state.pos.lng, t:Date.now()});
+      localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      const acc = state.pos.accuracy != null ? Math.round(state.pos.accuracy) : null;
+      document.getElementById('trackGpsStatus').textContent = '🔴 التسجيل نشط — ' + state.trackPoints.length + ' نقطة' + (acc ? ' — دقة GPS ±' + acc + 'م' : '') + ' — حفظ تلقائي';
       drawTrackSvg();
     }
   }
