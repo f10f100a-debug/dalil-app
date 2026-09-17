@@ -236,7 +236,7 @@
     display:flex; padding:8px 6px calc(8px + env(safe-area-inset-bottom));
     z-index:20;
   }
-  .tab{
+  .tab{min-width:0;
     flex:1; background:none; border:none; font-family:inherit; color:var(--text-faint);
     display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px;
     cursor:pointer; font-size:10.5px; font-weight:700; border-radius:12px;
@@ -325,7 +325,12 @@
         هذا <b>نموذج أولي فعّال</b> لوحدتي <b>التوجيه</b> و<b>رسم المسار</b> من مواصفات التطبيق، يعمل مباشرة عبر متصفح جوالك باستخدام GPS والبوصلة. وحدات الطقس اللحظي والاتصال الصوتي والمحتوى المجتمعي تحتاج بنية تحتية خلفية وتطبيق جوال أصلي، وهي المرحلة التالية.
       </div>
 
-      <div class="compass-wrap">
+      
+      <div id="homeWeatherStrip" class="banner" style="padding:10px 13px;margin:0 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <div style="font-weight:900;">🌦️ <span id="homeWxCondition">الطقس</span></div>
+        <div style="font-weight:800;white-space:nowrap;"><span id="homeWxTemp">--°</span> · 💨 <span id="homeWxWind">--</span></div>
+      </div>
+<div class="compass-wrap">
         <div class="compass">
           <svg viewBox="0 0 260 260" id="compassSvg">
             <circle cx="130" cy="130" r="122" fill="var(--panel)" stroke="var(--line)" stroke-width="2"/>
@@ -443,7 +448,49 @@
     </section>
 
     <!-- ============ SETTINGS SCREEN ============ -->
-    <section class="screen" id="screen-settings">
+    
+    
+    <section class="screen" id="screen-map">
+      <div class="section-title">🗺️ خريطة البر</div>
+
+      <div class="banner" id="compactWeatherCard" style="padding:11px 13px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <div>
+            <div style="font-weight:900;">🌦️ <span id="wxCondition">حالة الجو</span> <span id="wxTemp" style="color:var(--accent);">--°</span></div>
+            <div id="weatherStatus" style="font-size:11.5px;color:var(--text-dim);margin-top:3px;">بانتظار تحديث الموقع…</div>
+          </div>
+          <button id="toggleWeatherDetails" class="btn" style="width:auto;padding:8px 11px;font-size:12px;">التفاصيل</button>
+        </div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;font-weight:800;">
+          <span>💨 <span id="wxWind">--</span> كم/س</span>
+          <span>🧭 <span id="wxDir">--</span></span>
+          <span>🌧️ <span id="wxRain">--</span> مم</span>
+        </div>
+        <div id="weatherDetails" style="display:none;margin-top:10px;padding-top:9px;border-top:1px solid var(--border);font-size:12px;line-height:1.9;">
+          <span>هبات: <b id="wxGust">--</b> كم/س</span> ·
+          <span>الرؤية: <b id="wxVis">--</b> كم</span> ·
+          <span>المحسوسة: <b id="wxFeels">--</b>°</span> ·
+          <span>الرطوبة: <b id="wxHumidity">--</b>%</span>
+          <button class="btn btn-primary" id="refreshWeatherBtn" style="margin-top:8px;">↻ تحديث الطقس</button>
+        </div>
+      </div>
+
+      <div style="position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border);background:#202522;height:64vh;min-height:470px;">
+        <iframe id="dalilMapFrame" src="map-test-single.html" title="خريطة البر"
+          style="display:block;width:100%;height:100%;border:0;background:#202522;"
+          allow="geolocation"></iframe>
+        <div style="position:absolute;left:10px;bottom:12px;display:flex;flex-direction:column;gap:7px;z-index:5;">
+          <button id="mapLocateBtn" aria-label="تمركز على موقعي" style="width:44px;height:44px;border:0;border-radius:13px;background:white;font-size:21px;box-shadow:0 2px 10px #0003;">📍</button>
+          <button id="mapNorthBtn" aria-label="اتجاه الشمال" style="width:44px;height:44px;border:0;border-radius:13px;background:white;font-size:21px;box-shadow:0 2px 10px #0003;">🧭</button>
+        </div>
+      </div>
+
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.6;margin:8px 3px 0;">
+        نسخة اختبار: نثبت الواجهة أولاً، ثم نربط المسارات والنقاط ومستويات الخريطة الكاملة.
+      </div>
+    </section>
+
+<section class="screen" id="screen-settings">
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
         <div class="perm-item">📍 <span style="flex:1">إذن الموقع الجغرافي</span> <span id="permLoc">—</span></div>
@@ -466,7 +513,7 @@
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.1</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.4</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -476,6 +523,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🥾</span>المسار</button>
+    <button class="tab" data-screen="map"><span class="ic">🗺️</span>الخريطة</button>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -669,7 +717,83 @@
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       if(tab.dataset.screen === 'places') renderPlaces();
       if(tab.dataset.screen === 'track') renderTrackHistory();
+      if(tab.dataset.screen === 'map' && state.pos) loadWeather();
     });
+  });
+
+
+  // ---------- weather for desert trips ----------
+  function windDirName(deg){
+    if(deg==null) return '--';
+    const names=['شمال','شمال شرقي','شرق','جنوب شرقي','جنوب','جنوب غربي','غرب','شمال غربي'];
+    return names[Math.round((((deg%360)+360)%360)/45)%8];
+  }
+  function weatherName(code){
+    if(code===0) return 'صحو';
+    if([1,2].includes(code)) return 'غائم جزئياً';
+    if(code===3) return 'غائم';
+    if([45,48].includes(code)) return 'ضباب';
+    if(code>=51 && code<=57) return 'رذاذ';
+    if(code>=61 && code<=67) return 'أمطار';
+    if(code>=80 && code<=82) return 'زخات مطر';
+    if(code>=95) return 'عواصف رعدية';
+    return 'حالة جوية';
+  }
+  async function loadWeather(){
+    const st=document.getElementById('weatherStatus');
+    if(!st) return;
+    if(!state.pos){ st.textContent='بانتظار تحديد GPS…'; return; }
+    st.textContent='جاري تحديث حالة الجو…';
+    try{
+      const {lat,lng}=state.pos;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&hourly=visibility,precipitation_probability&forecast_hours=1&timezone=auto`;
+      const r=await fetch(url);
+      if(!r.ok) throw new Error('weather');
+      const d=await r.json(), c=d.current||{};
+      document.getElementById('wxTemp').textContent=(c.temperature_2m ?? '--')+'°';
+      const cond=weatherName(c.weather_code);
+      const wc=document.getElementById('wxCondition'); if(wc) wc.textContent=cond;
+      const hwc=document.getElementById('homeWxCondition'); if(hwc) hwc.textContent=cond;
+      const hwt=document.getElementById('homeWxTemp'); if(hwt) hwt.textContent=(c.temperature_2m ?? '--')+'°';
+      document.getElementById('wxWind').textContent=c.wind_speed_10m ?? '--';
+      const hww=document.getElementById('homeWxWind'); if(hww) hww.textContent=(c.wind_speed_10m ?? '--')+' '+windDirName(c.wind_direction_10m);
+      document.getElementById('wxGust').textContent=c.wind_gusts_10m ?? '--';
+      document.getElementById('wxDir').textContent=windDirName(c.wind_direction_10m);
+      document.getElementById('wxRain').textContent=c.precipitation ?? '--';
+      const vis=d.hourly && d.hourly.visibility ? d.hourly.visibility[0] : null;
+      document.getElementById('wxVis').textContent=vis!=null ? (vis/1000).toFixed(1) : '--';
+      const feels=document.getElementById('wxFeels'); if(feels) feels.textContent=c.apparent_temperature ?? '--';
+      const hum=document.getElementById('wxHumidity'); if(hum) hum.textContent=c.relative_humidity_2m ?? '--';
+      const prob=d.hourly && d.hourly.precipitation_probability ? d.hourly.precipitation_probability[0] : null;
+      const gust=Number(c.wind_gusts_10m||0);
+      let alert='';
+      if(gust>=50) alert=' ⚠️ هبات رياح قوية.';
+      if(prob!=null && prob>=60) alert+=' 🌧️ احتمال هطول '+prob+'%.';
+      st.textContent=(alert ? alert.trim()+' — ' : '')+'آخر تحديث '+new Date().toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+      localStorage.setItem('dalil_last_weather',JSON.stringify({at:Date.now(),data:d}));
+    }catch(e){
+      st.textContent='تعذر تحديث الطقس الآن. تأكد من اتصال الإنترنت ثم أعد المحاولة.';
+    }
+  }
+  const wxBtn=document.getElementById('refreshWeatherBtn');
+  if(wxBtn) wxBtn.addEventListener('click',loadWeather);
+  const wxToggle=document.getElementById('toggleWeatherDetails');
+  if(wxToggle) wxToggle.addEventListener('click',()=>{
+    const d=document.getElementById('weatherDetails');
+    const open=d.style.display!=='none';
+    d.style.display=open?'none':'block';
+    wxToggle.textContent=open?'التفاصيل':'إخفاء';
+  });
+  const mapLocateBtn=document.getElementById('mapLocateBtn');
+  if(mapLocateBtn) mapLocateBtn.addEventListener('click',()=>{
+    const f=document.getElementById('dalilMapFrame');
+    try{ f.contentWindow.postMessage({type:'dalil-locate'},'*'); }catch(e){}
+    if(f) f.src='map-test-single.html?locate='+Date.now();
+  });
+  const mapNorthBtn=document.getElementById('mapNorthBtn');
+  if(mapNorthBtn) mapNorthBtn.addEventListener('click',()=>{
+    const f=document.getElementById('dalilMapFrame');
+    try{ f.contentWindow.postMessage({type:'dalil-north'},'*'); }catch(e){}
   });
 
   // ---------- onboarding & permissions ----------
