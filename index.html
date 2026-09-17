@@ -92,7 +92,7 @@
   .dot.live{background:var(--sage); box-shadow:0 0 0 3px rgba(127,164,135,.18);}
   .dot.bad{background:var(--danger);}
 
-  main{flex:1; overflow-y:auto; padding:6px 18px 100px;}
+  main{flex:1; overflow-y:auto; padding:6px 18px 150px;}
   .screen{display:none;}
   .screen.active{display:block; animation:fade .25s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
@@ -243,6 +243,24 @@
   }
   .tab .ic{font-size:19px;}
   .tab.active{color:var(--sand);}
+
+  .floating-tools{
+    position:fixed; left:50%; bottom:82px; transform:translateX(-50%);
+    width:calc(100% - 24px); max-width:456px; z-index:19;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    pointer-events:none;
+  }
+  .floating-tools > *{pointer-events:auto;}
+  .floating-actions{display:flex; gap:6px;}
+  .floating-btn{
+    min-height:42px; padding:9px 11px; border:1px solid var(--line); border-radius:12px;
+    background:var(--panel); color:var(--text); font-family:inherit; font-size:11px; font-weight:700;
+    text-decoration:none; box-shadow:var(--shadow); cursor:pointer;
+  }
+  .floating-map{
+    width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;
+    background:var(--sand); color:#1a1206; font-size:24px;
+  }
 
   /* modal */
   .overlay{
@@ -574,6 +592,14 @@
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <div class="floating-tools" aria-label="أدوات سريعة">
+    <a href="map.html" class="floating-btn floating-map" aria-label="فتح الخريطة" title="فتح الخريطة">&#128506;</a>
+    <div class="floating-actions">
+      <button type="button" id="saveCarBtn" class="floating-btn">🚙 احفظ السيارة</button>
+      <button type="button" id="goCarBtn" class="floating-btn">📍 العودة للسيارة</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -581,23 +607,39 @@
   "use strict";
 
   // ---------- state ----------
+  function readStoredJson(key, fallback){
+    try{
+      const value = JSON.parse(localStorage.getItem(key));
+      return value === null ? fallback : value;
+    }catch(e){
+      localStorage.removeItem(key);
+      return fallback;
+    }
+  }
+
+  const storedFmt = localStorage.getItem('dalil_fmt');
   const state = {
     pos: null,            // {lat,lng,alt,speed,accuracy}
     heading: null,        // degrees 0-360, 0 = true/compass north
     headingSource: null,  // 'compass' | 'gps' | null
-    coordFmt: localStorage.getItem('dalil_fmt') || 'dd',
-    places: JSON.parse(localStorage.getItem('dalil_places') || '[]'),
+    coordFmt: ['dd','dms','ddm'].includes(storedFmt) ? storedFmt : 'dd',
+    places: readStoredJson('dalil_places', []),
     activeCat: 'all',
     navTarget: null,       // place object being navigated to
     tracking: false,
     trackPoints: [],       // {lat,lng,t}
     trackStart: null,
     trackTimer: null,
-    tracks: JSON.parse(localStorage.getItem('dalil_tracks') || '[]'),
+    tracks: readStoredJson('dalil_tracks', []),
     retracing: false,
     retraceIdx: 0,
     pasteParsed: null,
   };
+  if(!Array.isArray(state.places)) state.places = [];
+  if(!Array.isArray(state.tracks)) state.tracks = [];
+
+  let geoWatchId = null;
+  let compassStarted = false;
 
   function save(){
     localStorage.setItem('dalil_places', JSON.stringify(state.places));
@@ -730,8 +772,9 @@
     if(!window.isSecureContext){
       showDiag('❌ الصفحة ليست ضمن اتصال آمن (HTTPS)، والمتصفحات تمنع الموقع والبوصلة بدونه.');
     }
+    if(geoWatchId !== null) return;
     try{
-      navigator.geolocation.watchPosition(onPosition, onPositionError, {
+      geoWatchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
         enableHighAccuracy:true, maximumAge:1000, timeout:15000
       });
     }catch(e){
@@ -777,6 +820,8 @@
   }
 
   function startCompass(){
+    if(compassStarted) return;
+    compassStarted = true;
     let gotEvent = false;
     function handleOrientation(e){
       let h = null;
@@ -894,6 +939,8 @@
       chip.classList.add('active');
       state.coordFmt = chip.dataset.fmtSet;
       save();
+      document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
+      renderCompassScreen();
     });
   });
 
@@ -910,12 +957,31 @@
 
   function parseCoordsFromText(text){
     if(!text) return null;
-    let m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-    if(!m) m = text.match(/[?&]q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-    if(!m) m = text.match(/(-?\d{1,3}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
-    if(m){
-      const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-      if(Math.abs(lat)<=90 && Math.abs(lng)<=180) return {lat, lng};
+    const normalized = String(text).replace(/،/g, ',').trim();
+    const hemispheres = normalized.match(/[^NSEW]*[NSEW]/gi);
+    if(hemispheres && hemispheres.length >= 2){
+      let lat = null, lng = null;
+      hemispheres.forEach(part=>{
+        const hemi = (part.match(/[NSEW]/i) || [])[0];
+        const nums = (part.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+        if(!hemi || !nums.length) return;
+        let value = nums[0] + (nums[1] || 0)/60 + (nums[2] || 0)/3600;
+        if(/[SW]/i.test(hemi)) value *= -1;
+        if(/[NS]/i.test(hemi)) lat = value;
+        else lng = value;
+      });
+      if(validLatLng(lat, lng)) return {lat, lng};
+    }
+    const patterns = [
+      /@(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)/,
+      /[?&](?:q|query|ll|daddr)=(-?\d{1,3}(?:\.\d+)?)(?:%2C|,)\s*(-?\d{1,3}(?:\.\d+)?)/i,
+      /(?:^|\s)(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)(?:\s|$)/
+    ];
+    for(const pattern of patterns){
+      const match = normalized.match(pattern);
+      if(!match) continue;
+      const lat = Number(match[1]), lng = Number(match[2]);
+      if(validLatLng(lat, lng)) return {lat, lng};
     }
     return null;
   }
@@ -1071,11 +1137,12 @@
   function renderPlaces(){
     const list = document.getElementById('placesList');
     const q = document.getElementById('placeSearch').value.trim().toLowerCase();
-    const car = JSON.parse(localStorage.getItem('dalil_car') || 'null');
-const sourcePlaces = car
-  ? [{name:'🚙 السيارة', cat:'car', lat:car.lat, lng:car.lng}, ...state.places]
-  : state.places;
-   let items = state.places.filter(p=>{
+    const car = readStoredJson('dalil_car', null);
+    const carPlace = car && validLatLng(Number(car.lat), Number(car.lng))
+      ? {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:Number(car.lat), lng:Number(car.lng), alt:null}
+      : null;
+    const sourcePlaces = carPlace ? [carPlace, ...state.places] : state.places;
+    let items = sourcePlaces.filter(p=>{
       if(state.activeCat !== 'all' && p.cat !== state.activeCat) return false;
       if(q && !p.name.toLowerCase().includes(q)) return false;
       return true;
@@ -1099,13 +1166,14 @@ const sourcePlaces = car
         </div>
         <div class="place-actions">
           <div class="icon-btn go" data-go="${p.id}">➜</div>
-          <div class="icon-btn" data-del="${p.id}">🗑</div>
+          ${p.id === '__car__' ? '' : `<div class="icon-btn" data-del="${p.id}">🗑</div>`}
         </div>
       </div>`;
     }).join('');
     list.querySelectorAll('[data-go]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
-        const place = state.places.find(p=>p.id===btn.dataset.go);
+        const place = items.find(p=>p.id===btn.dataset.go);
+        if(!place) return;
         state.navTarget = place;
         toast('جارٍ التوجّه إلى «'+place.name+'»');
         document.querySelector('.tab[data-screen="compass"]').click();
@@ -1119,7 +1187,7 @@ const sourcePlaces = car
       });
     });
   }
-  function escapeHtml(s){ return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   document.getElementById('cancelNavBtn').addEventListener('click', ()=>{
     state.navTarget = null;
@@ -1153,21 +1221,12 @@ const sourcePlaces = car
     const confirmBtn = document.getElementById('confirmPasteBtn');
     if(!text || !text.trim()){ resultEl.textContent=''; confirmBtn.style.display='none'; return; }
 
-    // pattern 1: @lat,lng  (google maps link)
-    let m = text.match(/@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-    // pattern 2: q=lat,lng or query=lat,lng
-    if(!m) m = text.match(/[?&]q=(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/);
-    // pattern 3: plain "lat, lng"
-    if(!m) m = text.match(/(-?\d{1,3}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/);
-
-    if(m){
-      const lat = parseFloat(m[1]), lng = parseFloat(m[2]);
-      if(Math.abs(lat)<=90 && Math.abs(lng)<=180){
-        state.pasteParsed = {lat, lng};
-        resultEl.innerHTML = `✅ تم اكتشاف موقع: <b style="color:var(--sand)">${formatCoords(lat,lng,state.coordFmt)}</b>`;
-        confirmBtn.style.display = 'flex';
-        return;
-      }
+    const parsed = parseCoordsFromText(text);
+    if(parsed){
+      state.pasteParsed = parsed;
+      resultEl.innerHTML = `✅ تم اكتشاف موقع: <b style="color:var(--sand)">${formatCoords(parsed.lat,parsed.lng,state.coordFmt)}</b>`;
+      confirmBtn.style.display = 'flex';
+      return;
     }
     if(/maps\.app\.goo\.gl|goo\.gl\/maps/.test(text)){
       resultEl.innerHTML = `⚠️ هذا رابط مختصر، لا يمكن فك تشفيره داخل هذا النموذج التجريبي. الصق الرابط الكامل (طويل) أو نص الإحداثيات مباشرة.`;
@@ -1187,9 +1246,10 @@ const sourcePlaces = car
   // ---------- track recording ----------
   function fmtDuration(ms){
     const s = Math.floor(ms/1000);
-    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const hh = Math.floor(s/3600);
+    const mm = String(Math.floor((s%3600)/60)).padStart(2,'0');
     const ss = String(s%60).padStart(2,'0');
-    return `${mm}:${ss}`;
+    return hh ? `${String(hh).padStart(2,'0')}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 
   document.getElementById('trackToggleBtn').addEventListener('click', ()=>{
@@ -1328,7 +1388,9 @@ const sourcePlaces = car
   document.getElementById('stopRetraceBtn').addEventListener('click', stopRetrace);
   function stopRetrace(){
     state.retracing = false;
+    if(state.navTarget && state.navTarget._retrace) state.navTarget = null;
     document.getElementById('retraceCard').style.display = 'none';
+    renderCompassScreen();
     drawTrackSvg();
   }
 
@@ -1385,8 +1447,38 @@ const sourcePlaces = car
     toast('تم مسح البيانات');
   });
 
+  // ---------- parked car ----------
+  document.getElementById('saveCarBtn').addEventListener('click', ()=>{
+    const storeCar = pos=>{
+      localStorage.setItem('dalil_car', JSON.stringify({lat:pos.lat, lng:pos.lng, time:Date.now()}));
+      renderPlaces();
+      toast('تم حفظ موقع السيارة ✅');
+    };
+    if(state.pos){
+      storeCar(state.pos);
+      return;
+    }
+    if(!navigator.geolocation) return toast('تحديد الموقع غير مدعوم في هذا المتصفح');
+    navigator.geolocation.getCurrentPosition(
+      p=>storeCar({lat:p.coords.latitude, lng:p.coords.longitude}),
+      ()=>toast('تعذّر تحديد موقع السيارة'),
+      {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+    );
+  });
+
+  document.getElementById('goCarBtn').addEventListener('click', ()=>{
+    const car = readStoredJson('dalil_car', null);
+    if(!car || !validLatLng(Number(car.lat), Number(car.lng))) return toast('احفظ موقع السيارة أولًا');
+    state.navTarget = {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:Number(car.lat), lng:Number(car.lng), alt:null};
+    document.querySelector('.tab[data-screen="compass"]').click();
+    renderCompassScreen();
+    toast('بدأ التوجيه إلى السيارة');
+  });
+
   // ---------- init ----------
   drawTrackSvg();
+  document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
+  document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.toggle('active', c.dataset.fmtSet===state.coordFmt));
   renderPlaces();
   renderTrackHistory();
   updateTrackStats();
@@ -1395,164 +1487,5 @@ const sourcePlaces = car
   if(navigator.geolocation) startGeoWatch();
 })();
 </script>
-<a href="map.html" style="position:fixed;left:18px;bottom:20px;z-index:99999;background:#d4a72c;color:#111;width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;text-decoration:none;box-shadow:0 4px 15px #0008">&#128506;</a>
-<div style="position:fixed;right:18px;bottom:110px;z-index:100000;display:flex;gap:8px">
-  <button type="button" onclick="saveCar()" style="padding:12px;border:0;border-radius:12px;font-weight:700">🚙 احفظ السيارة</button>
-  <button type="button" onclick="goCar()" style="padding:12px;border:0;border-radius:12px;font-weight:700">📍 العودة للسيارة</button>
-</div>
-
-
-<!-- DALIL_FINAL_FIX_START -->
-<script>
-(function(){
-
-function dalilText(el){
-  return (el.innerText || el.textContent || '').replace(/\s+/g,' ').trim();
-}
-
-function visible(el){
-  const r=el.getBoundingClientRect();
-  return r.width>0 && r.height>0;
-}
-
-function setInput(i,v){
-  i.value=v;
-  i.dispatchEvent(new Event('input',{bubbles:true}));
-  i.dispatchEvent(new Event('change',{bubbles:true}));
-}
-
-function parseCoords(s){
-  s=(s||'').replace(/،/g,',').trim();
-
-  const parts=s.match(/[^NSEW]*[NSEW]/gi);
-  if(parts && parts.length>=2){
-    let lat=null,lng=null;
-
-    parts.forEach(function(part){
-      const h=(part.match(/[NSEW]/i)||[])[0];
-      const n=(part.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
-      if(!h || !n.length) return;
-
-      let v=n[0]+(n[1]||0)/60+(n[2]||0)/3600;
-      if(/[SW]/i.test(h)) v=-v;
-
-      if(/[NS]/i.test(h)) lat=v;
-      if(/[EW]/i.test(h)) lng=v;
-    });
-
-    if(lat!==null && lng!==null) return {lat:lat,lng:lng};
-  }
-
-  const nums=(s.match(/[-+]?\d+(?:\.\d+)?/g)||[]).map(Number);
-  if(nums.length>=2) return {lat:nums[0],lng:nums[1]};
-
-  return null;
-}
-
-async function pasteCoordinates(btn){
-  let text='';
-
-  try{
-    text=await navigator.clipboard.readText();
-  }catch(e){}
-
-  if(!text){
-    text=prompt('\u0627\u0644\u0635\u0642 \u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u0647\u0646\u0627') || '';
-  }
-
-  const p=parseCoords(text);
-
-  if(!p){
-    alert('\u0644\u0645 \u0623\u062a\u0645\u0643\u0646 \u0645\u0646 \u0642\u0631\u0627\u0621\u0629 \u0627\u0644\u0625\u062d\u062f\u0627\u062b\u064a\u0629');
-    return;
-  }
-
-  const scope=btn.closest('[role="dialog"],.modal,.sheet,.bottom-sheet') || document;
-
-  let inputs=[...scope.querySelectorAll('input')].filter(visible);
-
-  let latI=inputs.find(i=>/lat|latitude/i.test((i.id||'')+' '+(i.name||'')));
-  let lngI=inputs.find(i=>/lng|lon|longitude/i.test((i.id||'')+' '+(i.name||'')));
-
-  if(!latI || !lngI){
-    const numeric=inputs.filter(i=>
-      i.type==='number' ||
-      i.inputMode==='decimal' ||
-      /^[-+]?\d/.test(i.value||'')
-    );
-
-    if(numeric.length>=2){
-      latI=numeric[numeric.length-2];
-      lngI=numeric[numeric.length-1];
-    }
-  }
-
-  if(latI && lngI){
-    setInput(latI,p.lat.toFixed(6));
-    setInput(lngI,p.lng.toFixed(6));
-  }else{
-    alert(p.lat.toFixed(6)+', '+p.lng.toFixed(6));
-  }
-}
-
-document.addEventListener('click',function(e){
-  const b=e.target.closest('button,a');
-  if(!b) return;
-
-  const t=dalilText(b);
-
-  if(t.includes('\u0627\u062d\u0641\u0638 \u0627\u0644\u0633\u064a\u0627\u0631\u0629')){
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    navigator.geolocation.getCurrentPosition(
-      function(pos){
-        localStorage.setItem('dalil_car',JSON.stringify({
-          lat:pos.coords.latitude,
-          lng:pos.coords.longitude,
-          time:Date.now()
-        }));
-
-        alert('\u062a\u0645 \u062d\u0641\u0638 \u0645\u0648\u0642\u0639 \u0627\u0644\u0633\u064a\u0627\u0631\u0629 \u2705');
-      },
-      function(){
-        alert('\u062a\u0639\u0630\u0631 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u0645\u0648\u0642\u0639');
-      },
-      {enableHighAccuracy:true,timeout:15000,maximumAge:0}
-    );
-    return;
-  }
-
-  if(t.includes('\u0627\u0644\u0639\u0648\u062f\u0629 \u0644\u0644\u0633\u064a\u0627\u0631\u0629')){
-    e.preventDefault();
-    e.stopImmediatePropagation();
-
-    const car=JSON.parse(localStorage.getItem('dalil_car')||'null');
-
-    if(!car){
-      alert('\u0627\u062d\u0641\u0638 \u0645\u0648\u0642\u0639 \u0627\u0644\u0633\u064a\u0627\u0631\u0629 \u0623\u0648\u0644\u0627\u064b');
-      return;
-    }
-
-    window.location.href=
-      'https://maps.apple.com/?saddr=Current%20Location&daddr='+
-      encodeURIComponent(car.lat+','+car.lng)+
-      '&dirflg=d';
-    return;
-  }
-
-  if(t.includes('\u0644\u0635\u0642') && t.includes('\u0625\u062d\u062f\u0627\u062b')){
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    pasteCoordinates(b);
-  }
-
-},true);
-
-})();
-</script>
-<!-- DALIL_FINAL_FIX_END -->
-
-
 </body>
 </html>
