@@ -10,10 +10,12 @@
 .ctrl{position:fixed;z-index:60;left:14px;bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px}
 button{width:52px;height:52px;border:0;border-radius:15px;background:#fff;color:#183129;font-size:25px;font-weight:900;box-shadow:0 2px 12px #0005}
 #gps{background:#e8b858;font-size:21px}.badge{position:fixed;z-index:55;right:14px;bottom:max(20px,env(safe-area-inset-bottom));background:#113329e8;color:#fff;padding:9px 12px;border-radius:12px;font-size:12px}
+body.embed .top,body.embed .back-to-dalil{display:none}
 </style></head><body><div id="map"><div id="layer"></div><div id="dot"></div></div>
 <div class="top"><div class="title">دليل — خريطة البر</div><div id="status" class="status">اضغط 📍 — اسحب الخريطة أو كبّر بإصبعين.</div></div>
 <div class="ctrl"><button id="plus">+</button><button id="minus">−</button><button id="gps">📍</button></div><div id="badge" class="badge">زوم 7</div>
 <script>
+if(new URLSearchParams(location.search).get('embed')==='1')document.body.classList.add('embed');
 const S=256,minZ=7,maxZ=10,ranges={7:[76,82,52,58],8:[152,164,104,116],9:[304,329,208,233],10:[608,659,416,466]};
 let z=7,cx=79*S,cy=55*S,gps=null,drag=false,last=null,pinch0=null;
 const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),status=document.querySelector('#status'),badge=document.querySelector('#badge');
@@ -29,4 +31,4 @@ function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].c
 map.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;last=[e.touches[0].clientX,e.touches[0].clientY]}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false}},{passive:false});
 map.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&drag){let x=e.touches[0].clientX,y=e.touches[0].clientY;cx-=x-last[0];cy-=y-last[1];last=[x,y];render()}else if(e.touches.length===2&&pinch0){let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
 map.addEventListener('touchend',()=>{drag=false;last=null;pinch0=null});window.addEventListener('resize',render);render();
-</script><a href="index.html" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>
+</script><a href="index.html" class="back-to-dalil" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>
