@@ -404,6 +404,7 @@
         <button class="btn btn-primary" id="saveHereBtn">📍 حفظ موقعي الحالي</button>
         <button class="btn btn-ghost" id="pasteBtn">📋 لصق موقع</button>
       </div>
+      <button class="btn btn-ghost" style="margin-top:8px;" id="shareCurrentBtn">📤 إرسال موقعي</button>
     </section>
 
     <!-- ============ PLACES SCREEN ============ -->
@@ -1179,11 +1180,18 @@
           <div class="place-meta"><span>${distTxt}</span><span>${brgTxt}</span></div>
         </div>
         <div class="place-actions">
+          <div class="icon-btn" data-share="${p.id}" title="مشاركة الموقع">📤</div>
           <div class="icon-btn go" data-go="${p.id}">➜</div>
           <div class="icon-btn" data-del="${p.id}">🗑</div>
         </div>
       </div>`;
     }).join('');
+    list.querySelectorAll('[data-share]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const place = items.find(p=>p.id===btn.dataset.share);
+        if(place) shareLocation(place);
+      });
+    });
     list.querySelectorAll('[data-go]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const place = items.find(p=>p.id===btn.dataset.go);
@@ -1212,6 +1220,36 @@
     });
   }
   function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  async function shareLocation(place){
+    if(!place || !validLatLng(Number(place.lat), Number(place.lng))){
+      toast('لا توجد إحداثية صالحة للمشاركة');
+      return;
+    }
+    const lat = Number(place.lat).toFixed(6);
+    const lng = Number(place.lng).toFixed(6);
+    const name = place.name || 'موقعي الحالي';
+    const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+    const text = `${name}\nالإحداثيات: ${lat}, ${lng}\n${mapUrl}`;
+    if(navigator.share){
+      try{
+        await navigator.share({title:name, text});
+        return;
+      }catch(err){
+        if(err && err.name === 'AbortError') return;
+      }
+    }
+    window.location.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+  }
+
+  document.getElementById('shareCurrentBtn').addEventListener('click', ()=>{
+    if(!state.pos){
+      toast('انتظر حتى يتم تحديد موقعك أولًا');
+      startGeoWatch();
+      return;
+    }
+    shareLocation({name:'موقعي الحالي', lat:state.pos.lat, lng:state.pos.lng});
+  });
 
   document.getElementById('cancelNavBtn').addEventListener('click', ()=>{
     state.navTarget = null;
