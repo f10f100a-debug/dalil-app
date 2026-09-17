@@ -1075,7 +1075,7 @@
 const sourcePlaces = car
   ? [{name:'🚙 السيارة', cat:'car', lat:car.lat, lng:car.lng}, ...state.places]
   : state.places;
-   let items = sourcePlaces.filter(p=>{
+   let items = state.places.filter(p=>{
       if(state.activeCat !== 'all' && p.cat !== state.activeCat) return false;
       if(q && !p.name.toLowerCase().includes(q)) return false;
       return true;
@@ -1688,5 +1688,79 @@ document.addEventListener('click',function(e){
 })();
 </script>
 <!-- DALIL_PASTE_ICON_FIX_END -->
+<script>
+(function(){
+
+function fixPlusIcon(){
+  const all = Array.from(document.querySelectorAll('button,a,div,span'));
+  const el = all.find(function(x){
+    const t=(x.textContent||'').trim();
+    const r=x.getBoundingClientRect();
+    return t==='+' && r.width>0 && r.height>0 && r.top<500;
+  });
+  if(el){
+    el.textContent='📍';
+    el.setAttribute('aria-label','حفظ موقع');
+    el.setAttribute('title','حفظ موقع');
+  }
+}
+
+function hookPaste(){
+  document.addEventListener('click',function(e){
+    let el=e.target;
+    for(let i=0;i<6 && el;i++,el=el.parentElement){
+      const t=(el.textContent||'').replace(/\s+/g,' ').trim();
+
+      if(t.includes('لصق') && t.includes('إحداثية')){
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const raw=prompt('الصق الإحداثية الكاملة هنا');
+        if(raw===null) return;
+
+        const nums=(raw.match(/[-+]?\d+(?:\.\d+)?/g)||[]).map(Number);
+
+        if(nums.length<2){
+          alert('لم أتمكن من قراءة الإحداثية');
+          return;
+        }
+
+        const inputs=Array.from(document.querySelectorAll('input')).filter(function(i){
+          const r=i.getBoundingClientRect();
+          return r.width>0 && r.height>0;
+        });
+
+        const numeric=inputs.filter(function(i){
+          return i.type==='number' || i.inputMode==='decimal';
+        });
+
+        if(numeric.length>=2){
+          const lat=numeric[numeric.length-2];
+          const lng=numeric[numeric.length-1];
+
+          lat.value=nums[0].toFixed(6);
+          lng.value=nums[1].toFixed(6);
+
+          lat.dispatchEvent(new Event('input',{bubbles:true}));
+          lng.dispatchEvent(new Event('input',{bubbles:true}));
+          lat.dispatchEvent(new Event('change',{bubbles:true}));
+          lng.dispatchEvent(new Event('change',{bubbles:true}));
+        }else{
+          alert(nums[0].toFixed(6)+', '+nums[1].toFixed(6));
+        }
+        return;
+      }
+    }
+  },true);
+}
+
+fixPlusIcon();
+hookPaste();
+
+new MutationObserver(fixPlusIcon).observe(document.body,{childList:true,subtree:true});
+setInterval(fixPlusIcon,1000);
+
+})();
+</script>
 </body>
 </html>
