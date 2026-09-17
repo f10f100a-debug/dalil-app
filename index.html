@@ -426,7 +426,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" src="map.html?embed=1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -824,6 +824,7 @@
     renderCompassScreen();
     if(state.tracking) recordTrackPoint();
     if(state.retracing) updateRetrace();
+    syncTrackMap();
   }
 
   function startCompass(){
@@ -1267,6 +1268,18 @@
   });
 
   // ---------- track recording ----------
+  function syncTrackMap(){
+    const frame = document.getElementById('trackMapFrame');
+    if(!frame || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({
+      type:'DALIL_TRACK_UPDATE',
+      position:state.pos ? {lat:state.pos.lat, lng:state.pos.lng, accuracy:state.pos.accuracy} : null,
+      points:state.trackPoints.map(p=>({lat:p.lat, lng:p.lng})),
+      tracking:state.tracking
+    }, location.origin);
+  }
+  document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
+
   function fmtDuration(ms){
     const s = Math.floor(ms/1000);
     const hh = Math.floor(s/3600);
@@ -1288,6 +1301,7 @@
       document.getElementById('retraceBtn').disabled = true;
       document.getElementById('clearTrackBtn').disabled = false;
       state.trackTimer = setInterval(updateTrackStats, 1000);
+      syncTrackMap();
       toast('بدأ تسجيل المسار');
     } else {
       state.tracking = false;
@@ -1311,6 +1325,7 @@
         renderTrackHistory();
         toast('تم حفظ الجولة');
       }
+      syncTrackMap();
     }
   });
 
@@ -1327,6 +1342,7 @@
     stopRetrace();
     drawTrackSvg();
     updateTrackStats();
+    syncTrackMap();
   });
 
   function recordTrackPoint(){
