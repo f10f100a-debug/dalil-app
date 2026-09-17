@@ -560,7 +560,11 @@
         </div>
       </div>
 
-      <button class="btn btn-ghost" id="pasteCoordIntoFieldsBtn" style="margin-top:10px;">📋 لصق إحداثية كاملة تلقائيًا</button>
+      <button class="btn btn-ghost" id="pasteCoordIntoFieldsBtn" style="margin-top:10px;">📋 لصق إحداثية كاملة</button>
+      <div id="coordPastePanel" style="display:none; margin-top:10px;">
+        <textarea class="text-input" id="coordPasteText" rows="2" placeholder="الصق الإحداثية هنا، مثال: 27.919616, 42.361908" style="direction:ltr; text-align:left;"></textarea>
+        <button class="btn btn-primary small" id="applyPastedCoordsBtn" style="margin-top:8px;">تم</button>
+      </div>
       <input id="manualCoordInput" type="hidden">
       <div id="manualCoordFeedback" style="margin-top:8px; font-size:12px; color:var(--text-faint); line-height:1.7;">اختر نوع الإحداثية ثم أدخل خط العرض وخط الطول</div>
       <div class="btn-row" style="margin-top:18px;">
@@ -1066,21 +1070,27 @@
   document.querySelectorAll('[data-coord-input]').forEach(el=>el.addEventListener('click',()=>setCoordMode(el.dataset.coordInput)));
   document.querySelectorAll('.coord-part').forEach(el=>el.addEventListener('input',updateManualCoordFeedback));
 
-  document.getElementById('pasteCoordIntoFieldsBtn').addEventListener('click', async ()=>{
-    try{
-      const t = await navigator.clipboard.readText();
-      const p = parseCoordsFromText(t);
-      if(!p) return toast('لم أتعرف على إحداثية كاملة في الحافظة');
-      setCoordMode('dd');
-      fillCoordFields(p.lat,p.lng,'dd');
-      updateManualCoordFeedback();
-      toast('تمت تعبئة الإحداثية');
-    }catch(e){ toast('تعذّر قراءة الحافظة — اسمح باللصق ثم حاول مجددًا'); }
+  document.getElementById('pasteCoordIntoFieldsBtn').addEventListener('click', ()=>{
+    const panel = document.getElementById('coordPastePanel');
+    panel.style.display = 'block';
+    document.getElementById('coordPasteText').focus();
+  });
+
+  document.getElementById('applyPastedCoordsBtn').addEventListener('click', ()=>{
+    const p = parseCoordsFromText(document.getElementById('coordPasteText').value);
+    if(!p) return toast('لم أتعرف على إحداثية صحيحة');
+    setCoordMode('dd');
+    fillCoordFields(p.lat,p.lng,'dd');
+    updateManualCoordFeedback();
+    document.getElementById('coordPastePanel').style.display = 'none';
+    toast('تمت تعبئة الإحداثية');
   });
 
   function openSaveSheet(lat, lng){
     document.getElementById('placeNameInput').value = '';
     document.querySelectorAll('.coord-part').forEach(el=>el.value='');
+    document.getElementById('coordPasteText').value = '';
+    document.getElementById('coordPastePanel').style.display = 'none';
     setCoordMode(state.coordFmt==='dms' ? 'dms' : state.coordFmt==='ddm' ? 'ddm' : 'dd');
     if(lat!=null && lng!=null){
       fillCoordFields(lat,lng,coordInputMode);
@@ -1169,7 +1179,7 @@
         </div>
         <div class="place-actions">
           <div class="icon-btn go" data-go="${p.id}">➜</div>
-          ${p.id === '__car__' ? '' : `<div class="icon-btn" data-del="${p.id}">🗑</div>`}
+          <div class="icon-btn" data-del="${p.id}">🗑</div>
         </div>
       </div>`;
     }).join('');
@@ -1185,6 +1195,16 @@
     });
     list.querySelectorAll('[data-del]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
+        if(btn.dataset.del === '__car__'){
+          localStorage.removeItem('dalil_car');
+          if(state.navTarget && state.navTarget.id === '__car__'){
+            state.navTarget = null;
+            renderCompassScreen();
+          }
+          toast('تم حذف موقع السيارة');
+          renderPlaces();
+          return;
+        }
         state.places = state.places.filter(p=>p.id!==btn.dataset.del);
         save(); renderPlaces();
       });
