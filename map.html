@@ -29,4 +29,4 @@ function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].c
 map.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;last=[e.touches[0].clientX,e.touches[0].clientY]}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false}},{passive:false});
 map.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&drag){let x=e.touches[0].clientX,y=e.touches[0].clientY;cx-=x-last[0];cy-=y-last[1];last=[x,y];render()}else if(e.touches.length===2&&pinch0){let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
 map.addEventListener('touchend',()=>{drag=false;last=null;pinch0=null});window.addEventListener('resize',render);render();
-</script></body></html>
+</script><a href="index.html" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>
