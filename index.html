@@ -405,6 +405,7 @@
         <button class="btn btn-ghost" id="pasteBtn">📋 لصق موقع</button>
       </div>
       <button class="btn btn-ghost" style="margin-top:8px;" id="shareCurrentBtn">📤 إرسال موقعي</button>
+      <button class="btn btn-primary" style="margin-top:8px;" id="openZelloBtn">🎙 فتح قناة الرحلة في Zello</button>
     </section>
 
     <!-- ============ PLACES SCREEN ============ -->
@@ -478,6 +479,16 @@
         <div class="chip active" data-fmt-set="dd">Decimal Degrees</div>
         <div class="chip" data-fmt-set="dms">DMS</div>
         <div class="chip" data-fmt-set="ddm">DDM</div>
+      </div>
+
+      <div class="section-title">قناة الرحلة في Zello</div>
+      <div class="banner" style="margin-bottom:8px;">
+        من داخل Zello افتح القناة، ثم اختر «مشاركة» و«نسخ الرابط»، والصقه هنا. يُحفظ الرابط على هذا الجهاز فقط.
+      </div>
+      <input class="search-box" style="width:100%; direction:ltr; text-align:left;" id="zelloLinkInput" inputmode="url" autocomplete="off" placeholder="https://zello.com/…">
+      <div class="btn-row">
+        <button class="btn btn-primary" id="saveZelloLinkBtn">حفظ رابط القناة</button>
+        <button class="btn btn-ghost" id="testZelloLinkBtn">فتح Zello</button>
       </div>
 
       <div class="section-title">البيانات المحلية</div>
@@ -1251,6 +1262,45 @@
     shareLocation({name:'موقعي الحالي', lat:state.pos.lat, lng:state.pos.lng});
   });
 
+  function getZelloLink(){
+    return (localStorage.getItem('dalil_zello_link') || '').trim();
+  }
+
+  function validZelloLink(value){
+    try{
+      const url = new URL(value);
+      return url.protocol === 'https:' || url.protocol === 'http:';
+    }catch(e){
+      return false;
+    }
+  }
+
+  function openZelloChannel(){
+    const link = getZelloLink();
+    if(!validZelloLink(link)){
+      document.querySelector('.tab[data-screen="settings"]').click();
+      document.getElementById('zelloLinkInput').focus();
+      toast('ألصق رابط دعوة قناة Zello أولًا');
+      return;
+    }
+    window.location.href = link;
+  }
+
+  document.getElementById('openZelloBtn').addEventListener('click', openZelloChannel);
+  document.getElementById('testZelloLinkBtn').addEventListener('click', openZelloChannel);
+  document.getElementById('zelloLinkInput').value = getZelloLink();
+  document.getElementById('saveZelloLinkBtn').addEventListener('click', ()=>{
+    const input = document.getElementById('zelloLinkInput');
+    const link = input.value.trim();
+    if(!validZelloLink(link)){
+      toast('ألصق رابط دعوة صحيحًا يبدأ بـ https://');
+      input.focus();
+      return;
+    }
+    localStorage.setItem('dalil_zello_link', link);
+    toast('تم حفظ رابط قناة Zello ✅');
+  });
+
   document.getElementById('cancelNavBtn').addEventListener('click', ()=>{
     state.navTarget = null;
     renderCompassScreen();
@@ -1519,6 +1569,8 @@
     if(!confirm('هل تريد مسح جميع الأماكن والجولات المحفوظة على هذا الجهاز؟')) return;
     localStorage.removeItem('dalil_places');
     localStorage.removeItem('dalil_tracks');
+    localStorage.removeItem('dalil_zello_link');
+    document.getElementById('zelloLinkInput').value = '';
     state.places = []; state.tracks = [];
     renderPlaces(); renderTrackHistory();
     toast('تم مسح البيانات');
