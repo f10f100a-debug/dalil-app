@@ -243,15 +243,15 @@
   .tab{
     flex:1; background:none; border:none; font-family:inherit; color:var(--text-faint);
     display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 2px;
-    cursor:pointer; font-size:10.5px; font-weight:700; border-radius:12px;
+    cursor:pointer; font-size:10.5px; font-weight:700; border-radius:12px; text-decoration:none;
   }
   .tab .ic{font-size:19px;}
   .tab.active{color:var(--sand);}
 
   .floating-tools{
-    position:fixed; left:50%; bottom:82px; transform:translateX(-50%);
+    position:fixed; left:50%; bottom:calc(82px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:calc(100% - 24px); max-width:456px; z-index:19;
-    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    display:flex; align-items:center; justify-content:center; gap:8px;
     pointer-events:none;
   }
   .floating-tools > *{pointer-events:auto;}
@@ -261,11 +261,6 @@
     background:var(--panel); color:var(--text); font-family:inherit; font-size:11px; font-weight:700;
     text-decoration:none; box-shadow:var(--shadow); cursor:pointer;
   }
-  .floating-map{
-    width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;
-    background:var(--sand); color:#1a1206; font-size:24px;
-  }
-
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -511,6 +506,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🥾</span>المسار</button>
+    <a class="tab" href="map.html"><span class="ic">🗺️</span>الخريطة</a>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -615,7 +611,6 @@
   <div class="toast" id="toast"></div>
 
   <div class="floating-tools" aria-label="أدوات سريعة">
-    <a href="map.html" class="floating-btn floating-map" aria-label="فتح الخريطة" title="فتح الخريطة">&#128506;</a>
     <div class="floating-actions">
       <button type="button" id="saveCarBtn" class="floating-btn">🚙 احفظ السيارة</button>
       <button type="button" id="goCarBtn" class="floating-btn">📍 العودة للسيارة</button>
@@ -724,7 +719,7 @@
   }
 
   // ---------- tabs ----------
-  document.querySelectorAll('.tab').forEach(tab=>{
+  document.querySelectorAll('.tab[data-screen]').forEach(tab=>{
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
