@@ -32,7 +32,7 @@ const query=new URLSearchParams(location.search);
 const isEmbedded=query.get('embed')==='1';
 if(isEmbedded)document.body.classList.add('embed');
 const S=256,minZ=7,maxZ=20,maxLocalZ=14,maxTileZ=10,maxOnlineTileZ=19,ranges={7:[76,82,52,58],8:[152,164,104,116],9:[304,329,208,233],10:[608,659,416,466]};
-let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationWatch=null,deviceHeading=0,mapMode=isEmbedded&&navigator.onLine?'online':'local';
+let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationWatch=null,deviceHeading=0,mapMode='local';
 const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),targetMarker=document.querySelector('#targetMarker'),trackOverlay=document.querySelector('#trackOverlay'),status=document.querySelector('#status'),badge=document.querySelector('#badge'),navCard=document.querySelector('#navCard'),navArrow=document.querySelector('#navArrow'),navName=document.querySelector('#navName'),navInfo=document.querySelector('#navInfo'),startNav=document.querySelector('#startNav'),stopNav=document.querySelector('#stopNav'),localMode=document.querySelector('#localMode'),onlineMode=document.querySelector('#onlineMode'),attribution=document.querySelector('#attribution');
 function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
 function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
