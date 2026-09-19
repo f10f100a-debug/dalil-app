@@ -6,25 +6,30 @@
 .tile{position:absolute;width:256px;height:256px;user-select:none;-webkit-user-drag:none}
 #trackOverlay{position:absolute;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
 #dot{position:absolute;display:none;width:18px;height:18px;border-radius:50%;background:#2688ff;border:3px solid #fff;box-shadow:0 0 0 7px #2688ff55;z-index:20;transform:translate(-50%,-50%)}
+#targetMarker{position:absolute;display:none;z-index:21;transform:translate(-50%,-100%);font-size:34px;filter:drop-shadow(0 3px 3px #0007)}
 .top{position:fixed;z-index:50;top:max(12px,env(safe-area-inset-top));right:12px;left:12px;background:#113329e8;color:#fff;border-radius:16px;padding:10px 12px}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .title{font-weight:900;font-size:18px}.status{font-size:12px;margin-top:5px;opacity:.9}
 .ctrl{position:fixed;z-index:60;left:14px;bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px}
 button{width:52px;height:52px;border:0;border-radius:15px;background:#fff;color:#183129;font-size:25px;font-weight:900;box-shadow:0 2px 12px #0005}
 #gps{background:#e8b858;font-size:21px}.badge{position:fixed;z-index:55;right:14px;bottom:max(20px,env(safe-area-inset-bottom));background:#113329e8;color:#fff;padding:9px 12px;border-radius:12px;font-size:12px}
+.google-link{width:auto;height:38px;padding:0 12px;border-radius:11px;font-size:12px;white-space:nowrap;background:#fff;color:#183129}
 body.embed .top,body.embed .back-to-dalil{display:none}
-</style></head><body><div id="map"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="dot"></div></div>
-<div class="top"><div class="title">دليل — خريطة البر</div><div id="status" class="status">اضغط 📍 — اسحب الخريطة أو كبّر بإصبعين.</div></div>
+</style></head><body><div id="map"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="dot"></div><div id="targetMarker">📍</div></div>
+<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><button id="openGoogle" class="google-link">قوقل ماب ↗</button></div><div id="status" class="status">اضغط 📍 — اسحب الخريطة أو كبّر بإصبعين.</div></div>
 <div class="ctrl"><button id="plus">+</button><button id="minus">−</button><button id="gps">📍</button></div><div id="badge" class="badge">زوم 7</div>
 <script>
-if(new URLSearchParams(location.search).get('embed')==='1')document.body.classList.add('embed');
+const query=new URLSearchParams(location.search);
+if(query.get('embed')==='1')document.body.classList.add('embed');
 const S=256,minZ=7,maxZ=14,maxTileZ=10,ranges={7:[76,82,52,58],8:[152,164,104,116],9:[304,329,208,233],10:[608,659,416,466]};
-let z=7,cx=79*S,cy=55*S,gps=null,drag=false,last=null,pinch0=null,trackPoints=[],embeddedCentered=false,lastTrackSignature='';
-const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),trackOverlay=document.querySelector('#trackOverlay'),status=document.querySelector('#status'),badge=document.querySelector('#badge');
+let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,trackPoints=[],embeddedCentered=false,lastTrackSignature='';
+const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),targetMarker=document.querySelector('#targetMarker'),trackOverlay=document.querySelector('#trackOverlay'),status=document.querySelector('#status'),badge=document.querySelector('#badge');
 function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
 function render(){layer.innerHTML='';let tz=Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=ranges[tz],vx0=cx-innerWidth/2-ts,vy0=cy-innerHeight/2-ts,vx1=cx+innerWidth/2+ts,vy1=cy+innerHeight/2+ts;
 for(let x=Math.max(r[0],Math.floor(vx0/ts));x<=Math.min(r[1],Math.floor(vx1/ts));x++)for(let y=Math.max(r[2],Math.floor(vy0/ts));y<=Math.min(r[3],Math.floor(vy1/ts));y++){let im=new Image();im.className='tile';im.src='tiles/'+tz+'/'+x+'/'+y+'.png';im.style.width=ts+'px';im.style.height=ts+'px';im.style.left=(x*ts+innerWidth/2-cx)+'px';im.style.top=(y*ts+innerHeight/2-cy)+'px';layer.appendChild(im)}
-badge.textContent='زوم '+z;drawTrack();drawDot()}
+badge.textContent='زوم '+z;drawTrack();drawDot();drawTarget()}
 function drawDot(){if(!gps){dot.style.display='none';return}let p=world(gps.lat,gps.lng);dot.style.display='block';dot.style.left=(p[0]+innerWidth/2-cx)+'px';dot.style.top=(p[1]+innerHeight/2-cy)+'px'}
+function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
 function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);if(!trackPoints.length){trackOverlay.innerHTML='';return}let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');let first=pts[0],lastPoint=pts[pts.length-1];trackOverlay.innerHTML=`<polyline points="${line}" fill="none" stroke="#e0a64f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6" fill="#c1553f" stroke="#fff" stroke-width="2"/>`}
 function zoomTo(n){n=Math.max(minZ,Math.min(maxZ,n));if(n===z)return;let s=2**(n-z);cx*=s;cy*=s;z=n;render()}
 function fitTrackClose(){
@@ -35,9 +40,13 @@ function fitTrackClose(){
 }
 plus.onclick=()=>zoomTo(z+1);minus.onclick=()=>zoomTo(z-1);
 document.querySelector('#gps').onclick=()=>{status.textContent='جاري تحديد الموقع…';navigator.geolocation.getCurrentPosition(p=>{gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};z=10;[cx,cy]=world(gps.lat,gps.lng);render();status.textContent=`${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)} — دقة ±${Math.round(gps.acc)}م`;},e=>status.textContent='تعذر GPS: '+e.message,{enableHighAccuracy:true,timeout:15000})};
+document.querySelector('#openGoogle').onclick=()=>{let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في قوقل ماب';return}if(!navigator.onLine){status.textContent='قوقل ماب يحتاج اتصالًا بالإنترنت';return}location.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(point.lat+','+point.lng)};
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;let pos=e.data.position,mode=e.data.mode||'view';if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng))gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy};trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');if((mode==='record'||mode==='retrace')&&gps){if(z<13)z=13;[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}else if(gps&&!embeddedCentered){z=13;[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}lastTrackSignature=signature;render()});
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
 map.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;last=[e.touches[0].clientX,e.touches[0].clientY]}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false}},{passive:false});
 map.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&drag){let x=e.touches[0].clientX,y=e.touches[0].clientY;cx-=x-last[0];cy-=y-last[1];last=[x,y];render()}else if(e.touches.length===2&&pinch0){let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
-map.addEventListener('touchend',()=>{drag=false;last=null;pinch0=null});window.addEventListener('resize',render);render();
+map.addEventListener('touchend',()=>{drag=false;last=null;pinch0=null});window.addEventListener('resize',render);
+const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
+if(Number.isFinite(queryLat)&&Number.isFinite(queryLng)&&Math.abs(queryLat)<=90&&Math.abs(queryLng)<=180){targetPoint={lat:queryLat,lng:queryLng};z=13;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+queryLat.toFixed(6)+', '+queryLng.toFixed(6);embeddedCentered=true}
+render();
 </script><a href="index.html" class="back-to-dalil" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>

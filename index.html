@@ -1236,12 +1236,20 @@
           <div class="place-meta"><span>${distTxt}</span><span>${brgTxt}</span></div>
         </div>
         <div class="place-actions">
+          <div class="icon-btn" data-map="${p.id}" title="عرض على الخريطة">🗺️</div>
           <div class="icon-btn" data-share="${p.id}" title="مشاركة الموقع">📤</div>
           <div class="icon-btn go" data-go="${p.id}">➜</div>
           <div class="icon-btn" data-del="${p.id}">🗑</div>
         </div>
       </div>`;
     }).join('');
+    list.querySelectorAll('[data-map]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const place=items.find(p=>p.id===btn.dataset.map);
+        if(!place) return;
+        location.href=`map.html?lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+      });
+    });
     list.querySelectorAll('[data-share]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const place = items.find(p=>p.id===btn.dataset.share);
