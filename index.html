@@ -134,6 +134,13 @@
     line-height:1.35; text-align:center;
   }
   .compass-target-name.show{display:block;}
+  .compass-activate-btn{
+    display:none; position:absolute; top:22px; left:0; z-index:4;
+    width:88px; min-height:38px; padding:6px; border:1px solid var(--line);
+    border-radius:12px; background:var(--panel); color:var(--text); font-family:inherit;
+    font-size:10px; font-weight:800; line-height:1.35; box-shadow:var(--shadow);
+  }
+  .compass-activate-btn.show{display:block;}
 
   .coord-card{
     background:var(--panel); border:1px solid var(--line); border-radius:16px;
@@ -457,6 +464,7 @@
           </div>
         </div>
         <div class="compass-target-name" id="compassTargetName"></div>
+        <button class="compass-activate-btn" id="activateCompassBtn">🧭 تشغيل<br>البوصلة</button>
         <button class="btn btn-primary compass-side-btn save" id="saveHereBtn">📍 حفظ<br>موقعي</button>
         <button class="btn btn-ghost compass-side-btn paste" id="pasteBtn">📋 لصق<br>موقع</button>
       </div>
@@ -870,6 +878,7 @@
     document.getElementById('onboard').style.display = 'none';
   });
   document.getElementById('reqPermBtn').addEventListener('click', requestPermissions);
+  document.getElementById('activateCompassBtn').addEventListener('click', requestPermissions);
 
   async function requestPermissions(){
     // geolocation
@@ -986,6 +995,7 @@
         gotEvent = true;
         state.heading = (h+360)%360;
         state.headingSource = 'compass';
+        document.getElementById('activateCompassBtn').classList.remove('show');
         renderCompassScreen();
       }
     }
@@ -2120,9 +2130,14 @@
 
   // try starting geolocation immediately in case permission already granted (won't show iOS compass prompt without gesture though)
   if(navigator.geolocation) startGeoWatch();
-  // When returning from the map, reconnect the orientation listeners immediately.
-  // On iOS this works when the user has already granted motion/orientation permission.
-  if(returningToCompass && 'DeviceOrientationEvent' in window) startCompass();
+  // iOS requires a fresh user gesture before exposing orientation events.
+  const compassNeedsTap = typeof DeviceOrientationEvent !== 'undefined' &&
+    typeof DeviceOrientationEvent.requestPermission === 'function';
+  if(returningToCompass && compassNeedsTap){
+    document.getElementById('activateCompassBtn').classList.add('show');
+  } else if(returningToCompass && 'DeviceOrientationEvent' in window){
+    startCompass();
+  }
 })();
 </script>
 </body>
