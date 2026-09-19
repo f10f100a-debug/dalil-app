@@ -1389,6 +1389,8 @@
       });
     });
   }
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
   function closeNavChoice(){
     document.getElementById('navChoiceOverlay').classList.remove('show');
   }
@@ -1413,8 +1415,6 @@
     closeNavChoice();
     openPlaceOnMap(place);
   });
-
-  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   async function shareLocation(place){
     if(!place || !validLatLng(Number(place.lat), Number(place.lng))){
