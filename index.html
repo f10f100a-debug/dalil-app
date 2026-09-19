@@ -1054,7 +1054,10 @@
   let coordInputMode = 'dd';
 
   function num(id){ return parseFloat(document.getElementById(id).value); }
-  function validLatLng(lat,lng){ return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180; }
+  function validLatLng(lat,lng){
+    return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180
+      && !(Math.abs(lat)<0.000001 && Math.abs(lng)<0.000001);
+  }
 
   function coordsFromStructuredFields(){
     let lat, lng;
@@ -1246,7 +1249,10 @@
     list.querySelectorAll('[data-map]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const place=items.find(p=>p.id===btn.dataset.map);
-        if(!place) return;
+        if(!place || !validLatLng(Number(place.lat), Number(place.lng))){
+          toast('إحداثية هذا المكان غير صالحة؛ احذفه واحفظه من جديد');
+          return;
+        }
         location.href=`map.html?lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
       });
     });

@@ -25,6 +25,8 @@ const S=256,minZ=7,maxZ=14,maxTileZ=10,ranges={7:[76,82,52,58],8:[152,164,104,11
 let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,trackPoints=[],embeddedCentered=false,lastTrackSignature='';
 const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),targetMarker=document.querySelector('#targetMarker'),trackOverlay=document.querySelector('#trackOverlay'),status=document.querySelector('#status'),badge=document.querySelector('#badge');
 function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
+function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
+function inOfflineCoverage(lat,lng){let p=world(lat,lng,maxTileZ),x=Math.floor(p[0]/S),y=Math.floor(p[1]/S),r=ranges[maxTileZ];return x>=r[0]&&x<=r[1]&&y>=r[2]&&y<=r[3]}
 function render(){layer.innerHTML='';let tz=Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=ranges[tz],vx0=cx-innerWidth/2-ts,vy0=cy-innerHeight/2-ts,vx1=cx+innerWidth/2+ts,vy1=cy+innerHeight/2+ts;
 for(let x=Math.max(r[0],Math.floor(vx0/ts));x<=Math.min(r[1],Math.floor(vx1/ts));x++)for(let y=Math.max(r[2],Math.floor(vy0/ts));y<=Math.min(r[3],Math.floor(vy1/ts));y++){let im=new Image();im.className='tile';im.src='tiles/'+tz+'/'+x+'/'+y+'.png';im.style.width=ts+'px';im.style.height=ts+'px';im.style.left=(x*ts+innerWidth/2-cx)+'px';im.style.top=(y*ts+innerHeight/2-cy)+'px';layer.appendChild(im)}
 badge.textContent='زوم '+z;drawTrack();drawDot();drawTarget()}
@@ -47,6 +49,10 @@ map.addEventListener('touchstart',e=>{if(e.touches.length===1){drag=true;last=[e
 map.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&drag){let x=e.touches[0].clientX,y=e.touches[0].clientY;cx-=x-last[0];cy-=y-last[1];last=[x,y];render()}else if(e.touches.length===2&&pinch0){let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
 map.addEventListener('touchend',()=>{drag=false;last=null;pinch0=null});window.addEventListener('resize',render);
 const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
-if(Number.isFinite(queryLat)&&Number.isFinite(queryLng)&&Math.abs(queryLat)<=90&&Math.abs(queryLng)<=180){targetPoint={lat:queryLat,lng:queryLng};z=13;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+queryLat.toFixed(6)+', '+queryLng.toFixed(6);embeddedCentered=true}
+if(validLatLng(queryLat,queryLng)){
+  targetPoint={lat:queryLat,lng:queryLng};
+  if(inOfflineCoverage(queryLat,queryLng)){z=13;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+queryLat.toFixed(6)+', '+queryLng.toFixed(6);embeddedCentered=true}
+  else status.textContent='⚠️ الموقع خارج نطاق خريطة البر المحفوظة — استخدم قوقل ماب لعرضه.';
+}else if(query.has('lat')||query.has('lng')) status.textContent='⚠️ إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
 render();
 </script><a href="index.html" class="back-to-dalil" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>
