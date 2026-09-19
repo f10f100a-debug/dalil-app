@@ -157,10 +157,17 @@
     margin-top:14px; background:linear-gradient(160deg, rgba(217,161,91,.14), transparent);
     border:1px solid rgba(217,161,91,.35); border-radius:16px; padding:14px 16px;
   }
-  .nav-target-card .row1{display:flex; justify-content:space-between; align-items:center;}
+  .nav-target-card .row1{display:flex; justify-content:center; align-items:center; text-align:center;}
   .nav-target-card .place-name{font-weight:800; font-size:15px;}
-  .nav-target-card .dist{font-size:22px; font-weight:900; color:var(--sand);}
-  .nav-target-card .sub-stats{display:flex; gap:14px; margin-top:8px; font-size:12px; color:var(--text-dim);}
+  .distance-focus{
+    margin-top:10px; padding:10px 12px; text-align:center; border-radius:14px;
+    background:rgba(217,161,91,.14); border:1px solid rgba(217,161,91,.32);
+  }
+  .distance-focus .distance-label{font-size:11px; font-weight:700; color:var(--text-dim);}
+  .nav-target-card .dist{font-size:38px; line-height:1.2; font-weight:900; color:var(--sand); margin-top:2px; direction:ltr;}
+  .distance-focus.near{background:rgba(127,164,135,.18); border-color:rgba(127,164,135,.55);}
+  .distance-focus.near .dist{color:var(--sage);}
+  .nav-target-card .sub-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:10px; font-size:12px; color:var(--text-dim);}
 
   /* saved places */
   .search-row{display:flex; gap:8px; margin-bottom:10px;}
@@ -404,7 +411,10 @@
             <div class="place-name" id="navTargetName">—</div>
             <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">جارٍ التوجيه إليها</div>
           </div>
-          <div class="dist" id="navTargetDist">—</div>
+        </div>
+        <div class="distance-focus" id="distanceFocus">
+          <div class="distance-label">المسافة المتبقية</div>
+          <div class="dist" id="navTargetDist" aria-live="polite">—</div>
         </div>
         <div class="sub-stats">
           <span>⏱ الوصول التقديري: <b id="navTargetEta">—</b></span>
@@ -956,6 +966,7 @@
       document.getElementById('navTargetName').textContent = state.navTarget.icon + ' ' + state.navTarget.name +
         (haveHeading ? '' : ' (السهم يشير للشمال الجغرافي مؤقتًا)');
       document.getElementById('navTargetDist').textContent = dist >= 1000 ? (dist/1000).toFixed(2)+' كم' : Math.round(dist)+' م';
+      document.getElementById('distanceFocus').classList.toggle('near',dist<20);
       const speedKmh = state.pos.speed ? state.pos.speed*3.6 : 4; // افتراض سرعة مشي إن لم تتوفر
       const etaMin = speedKmh > 0.5 ? Math.round((dist/1000)/speedKmh*60) : null;
       document.getElementById('navTargetEta').textContent = etaMin ? etaMin+' دقيقة' : '—';
