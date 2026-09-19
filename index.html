@@ -128,9 +128,10 @@
   .heading-badge .deg{font-size:34px; font-weight:900; line-height:1;}
   .heading-badge .card{font-size:12px; color:var(--text-dim); margin-top:4px; letter-spacing:1px;}
   .compass-target-name{
-    display:none; position:absolute; top:38px; right:32px;
-    max-width:115px; padding:4px 9px; border-radius:100px; white-space:nowrap;
-    background:rgba(217,161,91,.16); color:var(--sand); font-size:10.5px; font-weight:800;
+    display:none; position:absolute; top:22px; right:0; z-index:4;
+    width:88px; padding:6px 7px; border:1px solid rgba(217,161,91,.3); border-radius:12px;
+    background:var(--panel); color:var(--sand); font-size:10px; font-weight:800;
+    line-height:1.35; text-align:center;
   }
   .compass-target-name.show{display:block;}
 
@@ -454,8 +455,8 @@
             <div class="card" id="headingCard">—</div>
             <div id="headingSrc" style="font-size:9.5px; color:var(--text-faint); margin-top:3px; max-width:130px; line-height:1.5;">بانتظار بيانات الاتجاه…</div>
           </div>
-          <div class="compass-target-name" id="compassTargetName"></div>
         </div>
+        <div class="compass-target-name" id="compassTargetName"></div>
         <button class="btn btn-primary compass-side-btn save" id="saveHereBtn">📍 حفظ<br>موقعي</button>
         <button class="btn btn-ghost compass-side-btn paste" id="pasteBtn">📋 لصق<br>موقع</button>
       </div>
