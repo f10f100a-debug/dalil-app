@@ -128,8 +128,8 @@
   .heading-badge .deg{font-size:34px; font-weight:900; line-height:1;}
   .heading-badge .card{font-size:12px; color:var(--text-dim); margin-top:4px; letter-spacing:1px;}
   .compass-target-name{
-    display:none; position:absolute; left:50%; bottom:25px; transform:translateX(-50%);
-    max-width:150px; padding:4px 10px; border-radius:100px; white-space:nowrap;
+    display:none; position:absolute; top:38px; right:32px;
+    max-width:115px; padding:4px 9px; border-radius:100px; white-space:nowrap;
     background:rgba(217,161,91,.16); color:var(--sand); font-size:10.5px; font-weight:800;
   }
   .compass-target-name.show{display:block;}
@@ -865,6 +865,7 @@
   // ---------- onboarding & permissions ----------
   document.getElementById('onboardBtn').addEventListener('click', async ()=>{
     await requestPermissions();
+    localStorage.setItem('dalil_onboarded', '1');
     document.getElementById('onboard').style.display = 'none';
   });
   document.getElementById('reqPermBtn').addEventListener('click', requestPermissions);
@@ -2097,6 +2098,13 @@
   });
 
   // ---------- init ----------
+  const requestedScreen = new URLSearchParams(location.search).get('screen');
+  if(localStorage.getItem('dalil_onboarded') === '1' || requestedScreen === 'compass'){
+    document.getElementById('onboard').style.display = 'none';
+  }
+  if(requestedScreen === 'compass'){
+    document.querySelector('.tab[data-screen="compass"]').click();
+  }
   drawTrackSvg();
   document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
   document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.toggle('active', c.dataset.fmtSet===state.coordFmt));
