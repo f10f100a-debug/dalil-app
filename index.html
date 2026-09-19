@@ -165,6 +165,8 @@
   }
   .distance-focus .distance-label{font-size:11px; font-weight:700; color:var(--text-dim);}
   .nav-target-card .dist{font-size:38px; line-height:1.2; font-weight:900; color:var(--sand); margin-top:2px; direction:ltr;}
+  .distance-accuracy{font-size:11px; color:var(--text-dim); margin-top:3px;}
+  .distance-accuracy.uncertain{color:var(--danger); font-weight:700;}
   .distance-focus.near{background:rgba(127,164,135,.18); border-color:rgba(127,164,135,.55);}
   .distance-focus.near .dist{color:var(--sage);}
   .nav-target-card .sub-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:10px; font-size:12px; color:var(--text-dim);}
@@ -413,8 +415,9 @@
           </div>
         </div>
         <div class="distance-focus" id="distanceFocus">
-          <div class="distance-label">المسافة المتبقية</div>
+          <div class="distance-label">المسافة التقريبية المتبقية</div>
           <div class="dist" id="navTargetDist" aria-live="polite">—</div>
+          <div class="distance-accuracy" id="navTargetAccuracy">—</div>
         </div>
         <div class="sub-stats">
           <span>⏱ الوصول التقديري: <b id="navTargetEta">—</b></span>
@@ -428,6 +431,7 @@
         <button class="btn btn-ghost" id="pasteBtn">📋 لصق موقع</button>
       </div>
       <button class="btn btn-ghost" style="margin-top:8px;" id="shareCurrentBtn">📤 إرسال موقعي</button>
+      <button class="btn btn-danger" style="margin-top:8px;" id="emergencyBtn">🆘 إرسال موقع طوارئ</button>
       <button class="btn btn-primary" style="margin-top:8px;" id="openZelloBtn">🎙 فتح قناة الرحلة في Zello</button>
     </section>
 
@@ -966,7 +970,12 @@
       document.getElementById('navTargetName').textContent = state.navTarget.icon + ' ' + state.navTarget.name +
         (haveHeading ? '' : ' (السهم يشير للشمال الجغرافي مؤقتًا)');
       document.getElementById('navTargetDist').textContent = dist >= 1000 ? (dist/1000).toFixed(2)+' كم' : Math.round(dist)+' م';
-      document.getElementById('distanceFocus').classList.toggle('near',dist<20);
+      const accuracy=Number(state.pos.accuracy);
+      const accuracyEl=document.getElementById('navTargetAccuracy');
+      const uncertain=Number.isFinite(accuracy) && accuracy>dist;
+      accuracyEl.textContent=Number.isFinite(accuracy) ? 'دقة الموقع الحالية: ±'+Math.round(accuracy)+' م'+(uncertain?' — الموقع ضمن نطاق الدقة':'') : 'دقة الموقع غير متاحة';
+      accuracyEl.classList.toggle('uncertain',uncertain);
+      document.getElementById('distanceFocus').classList.toggle('near',dist<20&&(!Number.isFinite(accuracy)||accuracy<=20));
       const speedKmh = state.pos.speed ? state.pos.speed*3.6 : 4; // افتراض سرعة مشي إن لم تتوفر
       const etaMin = speedKmh > 0.5 ? Math.round((dist/1000)/speedKmh*60) : null;
       document.getElementById('navTargetEta').textContent = etaMin ? etaMin+' دقيقة' : '—';
@@ -1296,6 +1305,28 @@
       return;
     }
     shareLocation({name:'موقعي الحالي', lat:state.pos.lat, lng:state.pos.lng});
+  });
+
+  document.getElementById('emergencyBtn').addEventListener('click', async()=>{
+    if(!state.pos){
+      toast('انتظر حتى يتم تحديد موقعك أولًا');
+      startGeoWatch();
+      return;
+    }
+    if(!confirm('سيتم تجهيز رسالة طوارئ تتضمن موقعك الحالي. هل تريد المتابعة؟')) return;
+    const lat=Number(state.pos.lat).toFixed(6), lng=Number(state.pos.lng).toFixed(6);
+    const accuracy=Number.isFinite(Number(state.pos.accuracy)) ? Math.round(Number(state.pos.accuracy)) : null;
+    const mapUrl=`https://www.google.com/maps?q=${lat},${lng}`;
+    const text=`🆘 أحتاج مساعدة. هذا موقعي الحالي:\n${lat}, ${lng}${accuracy!==null?'\nدقة الموقع التقريبية: ±'+accuracy+' م':''}\n${mapUrl}`;
+    if(navigator.share){
+      try{
+        await navigator.share({title:'موقع طوارئ من دليل',text});
+        return;
+      }catch(err){
+        if(err&&err.name==='AbortError') return;
+      }
+    }
+    window.location.href=`https://wa.me/?text=${encodeURIComponent(text)}`;
   });
 
   function getZelloLink(){
