@@ -226,7 +226,7 @@
   }
   .rec-pill .rdot{width:7px;height:7px;border-radius:50%; background:var(--danger); animation:pulse 1.4s infinite;}
   .track-google-btn{
-    position:absolute; top:16px; left:16px; z-index:6; border:1px solid rgba(20,51,41,.18);
+    position:absolute; top:16px; left:50%; transform:translateX(-50%); z-index:6; border:1px solid rgba(20,51,41,.18);
     border-radius:10px; background:rgba(255,255,255,.94); color:#183129; padding:7px 10px;
     font:800 11px system-ui; box-shadow:0 2px 9px rgba(0,0,0,.18); cursor:pointer;
   }
@@ -1723,7 +1723,7 @@
   function renderTrackHistory(){
     const list = document.getElementById('trackHistory');
     if(state.tracks.length === 0){
-      list.innerHTML = `<div class="empty"><div class="big">🥾</div><div class="t">لا توجد جولات محفوظة بعد.</div></div>`;
+      list.innerHTML = `<div class="empty"><div class="big">🛣️</div><div class="t">لا توجد جولات محفوظة بعد.</div></div>`;
       return;
     }
     list.innerHTML = state.tracks.map(t=>{
