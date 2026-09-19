@@ -286,6 +286,42 @@
   .car-menu.show{display:grid;gap:6px;}
   .car-menu button{min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);font-family:inherit;font-size:11.5px;font-weight:800;text-align:right;cursor:pointer;}
   .car-menu .remove{color:var(--danger);}
+  .compass-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;}
+  .compass-actions .btn{padding:11px 8px;font-size:12px;min-width:0;}
+  .compass-actions .wide{grid-column:1/-1;}
+  @media (max-height:850px){
+    #app{min-height:100dvh;height:100dvh;}
+    .topbar{padding:8px 14px 5px;}
+    .brand .mark{width:30px;height:30px;font-size:16px;}
+    .brand .name{font-size:16px;}
+    main{padding:3px 14px calc(72px + env(safe-area-inset-bottom));}
+    #screen-compass .weather-card{padding:7px 10px;margin-bottom:5px;border-radius:13px;}
+    #screen-compass .weather-icon{font-size:23px;width:30px;}
+    #screen-compass .weather-title{font-size:12px;}
+    #screen-compass .weather-meta{font-size:10px;line-height:1.35;margin-top:1px;}
+    #screen-compass .compass-wrap{padding:0;}
+    #screen-compass .compass{width:min(218px,30dvh);height:min(218px,30dvh);}
+    #screen-compass .heading-badge .deg{font-size:28px;}
+    #screen-compass .coord-card{padding:8px 10px;margin-top:5px;border-radius:13px;}
+    #screen-compass .coord-value{font-size:16px;margin-top:5px!important;}
+    #screen-compass .stat-grid{margin-top:6px;gap:5px;}
+    #screen-compass .stat{padding:5px 4px;}
+    #screen-compass .stat .v{font-size:13px;}
+    #screen-compass .stat .l{font-size:9px;}
+    #screen-compass .nav-target-card{margin-top:6px;padding:7px 9px;}
+    #screen-compass .distance-focus{margin-top:5px;padding:5px 8px;}
+    #screen-compass .nav-target-card .dist{font-size:27px;}
+    #screen-compass .nav-target-card .sub-stats{margin-top:5px;font-size:10px;}
+    #screen-compass .nav-target-card .btn{margin-top:5px!important;padding:6px 9px;}
+    #screen-compass .compass-actions{gap:5px;margin-top:6px;}
+    #screen-compass .compass-actions .btn{padding:7px 5px;font-size:10.5px;border-radius:10px;}
+    .tabbar{padding:4px 4px calc(4px + env(safe-area-inset-bottom));}
+    .tab{gap:2px;padding:3px 2px;font-size:9.5px;}
+    .tab .ic{font-size:17px;}
+    .floating-tools{bottom:calc(60px + env(safe-area-inset-bottom));}
+    .car-fab{width:44px;height:44px;border-radius:14px;font-size:20px;}
+    .car-menu{bottom:51px;}
+  }
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -434,13 +470,13 @@
         <button class="btn btn-ghost small" style="margin-top:10px;" id="cancelNavBtn">إلغاء التوجيه</button>
       </div>
 
-      <div class="btn-row" style="margin-top:16px;">
+      <div class="compass-actions">
         <button class="btn btn-primary" id="saveHereBtn">📍 حفظ موقعي الحالي</button>
         <button class="btn btn-ghost" id="pasteBtn">📋 لصق موقع</button>
+        <button class="btn btn-ghost" id="shareCurrentBtn">📤 إرسال موقعي</button>
+        <button class="btn btn-danger" id="emergencyBtn">🆘 إرسال موقع طوارئ</button>
+        <button class="btn btn-primary wide" id="openZelloBtn">🎙 فتح قناة الرحلة في Zello</button>
       </div>
-      <button class="btn btn-ghost" style="margin-top:8px;" id="shareCurrentBtn">📤 إرسال موقعي</button>
-      <button class="btn btn-danger" style="margin-top:8px;" id="emergencyBtn">🆘 إرسال موقع طوارئ</button>
-      <button class="btn btn-primary" style="margin-top:8px;" id="openZelloBtn">🎙 فتح قناة الرحلة في Zello</button>
     </section>
 
     <!-- ============ PLACES SCREEN ============ -->
