@@ -275,16 +275,17 @@
   .floating-tools{
     position:fixed; left:50%; bottom:calc(82px + env(safe-area-inset-bottom)); transform:translateX(-50%);
     width:calc(100% - 24px); max-width:456px; z-index:19;
-    display:flex; align-items:center; justify-content:center; gap:8px;
+    display:flex; align-items:center; justify-content:flex-end; gap:8px;
     pointer-events:none;
   }
   .floating-tools > *{pointer-events:auto;}
-  .floating-actions{display:flex; gap:6px;}
-  .floating-btn{
-    min-height:42px; padding:9px 11px; border:1px solid var(--line); border-radius:12px;
-    background:var(--panel); color:var(--text); font-family:inherit; font-size:11px; font-weight:700;
-    text-decoration:none; box-shadow:var(--shadow); cursor:pointer;
-  }
+  .car-quick{position:relative;}
+  .car-fab{width:50px;height:50px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);font-size:23px;box-shadow:var(--shadow);cursor:pointer;}
+  .car-fab.has-car{background:var(--sand);color:#1a1206;border-color:var(--sand);}
+  .car-menu{display:none;position:absolute;right:0;bottom:58px;width:190px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);}
+  .car-menu.show{display:grid;gap:6px;}
+  .car-menu button{min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);font-family:inherit;font-size:11.5px;font-weight:800;text-align:right;cursor:pointer;}
+  .car-menu .remove{color:var(--danger);}
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -658,9 +659,13 @@
   <div class="toast" id="toast"></div>
 
   <div class="floating-tools" aria-label="أدوات سريعة">
-    <div class="floating-actions">
-      <button type="button" id="saveCarBtn" class="floating-btn">🚙 احفظ السيارة</button>
-      <button type="button" id="goCarBtn" class="floating-btn">📍 العودة للسيارة</button>
+    <div class="car-quick" id="carQuick">
+      <div class="car-menu" id="carMenu">
+        <button type="button" id="saveCarBtn">📍 حفظ موقع السيارة</button>
+        <button type="button" id="goCarBtn">🧭 العودة إلى السيارة</button>
+        <button type="button" id="removeCarBtn" class="remove">🗑 إزالة موقع السيارة</button>
+      </div>
+      <button type="button" id="carFab" class="car-fab" aria-label="خيارات السيارة" aria-expanded="false">🚙</button>
     </div>
   </div>
 </div>
@@ -1284,6 +1289,7 @@
       btn.addEventListener('click', ()=>{
         if(btn.dataset.del === '__car__'){
           localStorage.removeItem('dalil_car');
+          updateCarQuick();
           if(state.navTarget && state.navTarget.id === '__car__'){
             state.navTarget = null;
             renderCompassScreen();
@@ -1920,17 +1926,33 @@
     localStorage.removeItem('dalil_places');
     localStorage.removeItem('dalil_tracks');
     localStorage.removeItem('dalil_zello_link');
+    localStorage.removeItem('dalil_car');
     document.getElementById('zelloLinkInput').value = '';
     state.places = []; state.tracks = [];
+    if(state.navTarget && state.navTarget.id === '__car__') state.navTarget = null;
+    updateCarQuick();
     renderPlaces(); renderTrackHistory();
     toast('تم مسح البيانات');
   });
 
   // ---------- parked car ----------
+  const carFab = document.getElementById('carFab');
+  const carMenu = document.getElementById('carMenu');
+  function updateCarQuick(){
+    const car=readStoredJson('dalil_car',null);
+    const saved=car&&validLatLng(Number(car.lat),Number(car.lng));
+    carFab.classList.toggle('has-car',!!saved);
+    carFab.title=saved?'موقع السيارة محفوظ':'حفظ موقع السيارة';
+  }
+  function closeCarMenu(){carMenu.classList.remove('show');carFab.setAttribute('aria-expanded','false');}
+  carFab.addEventListener('click',e=>{e.stopPropagation();const open=carMenu.classList.toggle('show');carFab.setAttribute('aria-expanded',String(open));});
+  document.addEventListener('click',e=>{if(!document.getElementById('carQuick').contains(e.target))closeCarMenu();});
   document.getElementById('saveCarBtn').addEventListener('click', ()=>{
     const storeCar = pos=>{
       localStorage.setItem('dalil_car', JSON.stringify({lat:pos.lat, lng:pos.lng, time:Date.now()}));
       renderPlaces();
+      updateCarQuick();
+      closeCarMenu();
       toast('تم حفظ موقع السيارة ✅');
     };
     if(state.pos){
@@ -1948,10 +1970,19 @@
   document.getElementById('goCarBtn').addEventListener('click', ()=>{
     const car = readStoredJson('dalil_car', null);
     if(!car || !validLatLng(Number(car.lat), Number(car.lng))) return toast('احفظ موقع السيارة أولًا');
+    closeCarMenu();
     state.navTarget = {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:Number(car.lat), lng:Number(car.lng), alt:null};
     document.querySelector('.tab[data-screen="compass"]').click();
     renderCompassScreen();
     toast('بدأ التوجيه إلى السيارة');
+  });
+  document.getElementById('removeCarBtn').addEventListener('click', ()=>{
+    const car=readStoredJson('dalil_car',null);
+    if(!car){closeCarMenu();return toast('لا يوجد موقع سيارة محفوظ');}
+    localStorage.removeItem('dalil_car');
+    if(state.navTarget&&state.navTarget.id==='__car__')state.navTarget=null;
+    closeCarMenu();updateCarQuick();renderPlaces();renderCompassScreen();
+    toast('تمت إزالة موقع السيارة');
   });
 
   // ---------- init ----------
@@ -1959,6 +1990,7 @@
   document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
   document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.toggle('active', c.dataset.fmtSet===state.coordFmt));
   renderPlaces();
+  updateCarQuick();
   renderTrackHistory();
   updateTrackStats();
 
