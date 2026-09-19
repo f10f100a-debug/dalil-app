@@ -265,6 +265,11 @@
   .weather-meta{font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.6;}
   .weather-warning{display:none; margin-top:8px; padding:7px 9px; border-radius:9px; background:rgba(193,85,63,.14); color:var(--danger); font-size:11.5px; font-weight:700;}
   .weather-warning.show{display:block;}
+  .radar-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:10px;}
+  .radar-link{display:flex; align-items:center; gap:8px; min-height:48px; padding:9px 10px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2); color:var(--text); text-decoration:none; font-size:11.5px; font-weight:800;}
+  .radar-link .ri{font-size:20px; flex:0 0 auto;}
+  .radar-link.wide{grid-column:1/-1; background:rgba(217,161,91,.14); border-color:rgba(217,161,91,.35);}
+  .developer-credit{margin-top:12px; color:var(--text-faint); font-size:11px; font-weight:700;}
 
   section-title, .section-title{
     display:block; font-size:13px; font-weight:800; color:var(--text-dim);
@@ -432,6 +437,7 @@
             <div class="weather-title" id="weatherTitle">طقس اليوم — بانتظار تحديد الموقع</div>
             <div class="weather-meta" id="weatherMeta">ستظهر الحرارة والرياح بعد تفعيل GPS والاتصال بالإنترنت.</div>
           </div>
+          <button class="icon-btn" id="radarToolsBtn" title="الرادارات والخرائط الجوية">📡</button>
           <button class="icon-btn" id="refreshWeatherBtn" title="تحديث الطقس">↻</button>
         </div>
         <div class="weather-warning" id="weatherWarning"></div>
@@ -725,12 +731,32 @@
     </div>
   </div>
 
+  <!-- Weather radars and forecast models -->
+  <div class="overlay" id="radarOverlay">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h3>📡 الرادارات والخرائط الجوية</h3>
+      <div class="banner">تفتح الأدوات في صفحة خارجية، وتحتاج إلى اتصال بالإنترنت.</div>
+      <div class="radar-grid">
+        <a class="radar-link wide" id="springRadarLink" target="_blank" rel="noopener" href="https://browser.dataspace.copernicus.eu/?zoom=9&amp;lat=27.22692&amp;lng=42.20947&amp;themeId=DEFAULT-THEME&amp;visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&amp;datasetId=S2_L2A_CDAS&amp;fromTime=2026-09-19T00%3A00%3A00.000Z&amp;toTime=2026-09-19T23%3A59%3A59.999Z&amp;layerId=2_FALSE_COLOR&amp;demSource3D=%22MAPZEN%22&amp;cloudCoverage=30&amp;dateMode=SINGLE"><span class="ri">🌱</span><span>كشف مواقع الربيع</span></a>
+        <a class="radar-link wide" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="ri">🌧️</span><span>رادار الأمطار</span></a>
+        <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/ukmomodel2/"><span class="ri">🇬🇧</span><span>النموذج البريطاني</span></a>
+        <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/weathermaps-accessg/"><span class="ri">🇦🇺</span><span>النموذج الأسترالي</span></a>
+        <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/gfsmodel2/"><span class="ri">🇺🇸</span><span>النموذج الأمريكي</span></a>
+        <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/ncmrwfmodel/"><span class="ri">🇮🇳</span><span>النموذج الهندي</span></a>
+        <a class="radar-link wide" target="_blank" rel="noopener" href="https://earth.nullschool.net/#current/wind/surface/level/orthographic=-317.21,26.74,3000/loc=42.362,27.919"><span class="ri">💨</span><span>قياس سرعة الرياح</span></a>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:10px;" id="closeRadarBtn">إغلاق</button>
+    </div>
+  </div>
+
   <!-- onboarding -->
   <div class="onboard" id="onboard">
     <div class="mark">🧭</div>
     <h2>دليل — بوصلة البر</h2>
     <p>دليل — بوصلة البر. يحتاج التطبيق إذن الموقع والبوصلة ليعمل بشكل صحيح.</p>
     <button class="btn btn-primary" id="onboardBtn" style="max-width:260px;">🚀 ابدأ الاستخدام</button>
+    <div class="developer-credit">تطوير: فهد محمد اللهيبي</div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -1639,6 +1665,16 @@
     lastWeatherFetch=0;
     updateWeather(true);
   });
+  const radarOverlay=document.getElementById('radarOverlay');
+  const springRadarLink=document.getElementById('springRadarLink');
+  const saudiDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  const springRadarUrl=new URL(springRadarLink.href);
+  springRadarUrl.searchParams.set('fromTime',saudiDate+'T00:00:00.000Z');
+  springRadarUrl.searchParams.set('toTime',saudiDate+'T23:59:59.999Z');
+  springRadarLink.href=springRadarUrl.toString();
+  document.getElementById('radarToolsBtn').addEventListener('click',()=>radarOverlay.classList.add('show'));
+  document.getElementById('closeRadarBtn').addEventListener('click',()=>radarOverlay.classList.remove('show'));
+  radarOverlay.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>radarOverlay.classList.remove('show')));
 
   // ---------- track recording ----------
   function syncTrackMap(){
