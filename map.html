@@ -41,7 +41,12 @@ function fitTrackClose(){
   z=Math.max(11,target);let midLat=(minLat+maxLat)/2,midLng=(minLng+maxLng)/2;[cx,cy]=world(midLat,midLng);embeddedCentered=true;
 }
 plus.onclick=()=>zoomTo(z+1);minus.onclick=()=>zoomTo(z-1);
-document.querySelector('#gps').onclick=()=>{status.textContent='جاري تحديد الموقع…';navigator.geolocation.getCurrentPosition(p=>{gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};z=10;[cx,cy]=world(gps.lat,gps.lng);render();status.textContent=`${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)} — دقة ±${Math.round(gps.acc)}م`;},e=>status.textContent='تعذر GPS: '+e.message,{enableHighAccuracy:true,timeout:15000})};
+function locateUser(showError=true){
+  if(!navigator.geolocation){if(showError)status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  status.textContent='جاري تحديد الموقع…';
+  navigator.geolocation.getCurrentPosition(p=>{gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};z=10;[cx,cy]=world(gps.lat,gps.lng);render();status.textContent=`${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)} — دقة ±${Math.round(gps.acc)}م`;},e=>{if(showError)status.textContent='تعذر GPS: '+e.message;else status.textContent='اضغط 📍 لإظهار موقعك على الخريطة.'},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+document.querySelector('#gps').onclick=()=>locateUser(true);
 document.querySelector('#openGoogle').onclick=()=>{let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في قوقل ماب';return}if(!navigator.onLine){status.textContent='قوقل ماب يحتاج اتصالًا بالإنترنت';return}location.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(point.lat+','+point.lng)};
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;let pos=e.data.position,mode=e.data.mode||'view';if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng))gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy};trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');if((mode==='record'||mode==='retrace')&&gps){if(z<13)z=13;[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}else if(gps&&!embeddedCentered){z=13;[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}lastTrackSignature=signature;render()});
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
@@ -55,4 +60,5 @@ if(validLatLng(queryLat,queryLng)){
   else status.textContent='⚠️ الموقع خارج نطاق خريطة البر المحفوظة — استخدم قوقل ماب لعرضه.';
 }else if(query.has('lat')||query.has('lng')) status.textContent='⚠️ إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
 render();
+if(!targetPoint)locateUser(false);
 </script><a href="index.html" class="back-to-dalil" style="position:fixed;right:14px;top:120px;z-index:99999;background:#111;color:#fff;padding:10px 14px;border-radius:12px;text-decoration:none;font-weight:700;box-shadow:0 4px 14px #0008">← رجوع إلى دليل</a></body></html>
