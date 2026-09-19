@@ -226,6 +226,14 @@
   .th-stats{display:flex; gap:14px; margin-top:6px; font-size:11.5px; color:var(--text-dim);}
   .th-actions{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-top:10px;}
   .th-actions .btn{padding:8px 4px; font-size:11px; min-width:0;}
+  .weather-card{background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:12px 14px; margin-bottom:14px;}
+  .weather-main{display:flex; align-items:center; gap:10px;}
+  .weather-icon{font-size:28px; width:38px; text-align:center;}
+  .weather-info{flex:1; min-width:0;}
+  .weather-title{font-size:13.5px; font-weight:800;}
+  .weather-meta{font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.6;}
+  .weather-warning{display:none; margin-top:8px; padding:7px 9px; border-radius:9px; background:rgba(193,85,63,.14); color:var(--danger); font-size:11.5px; font-weight:700;}
+  .weather-warning.show{display:block;}
 
   section-title, .section-title{
     display:block; font-size:13px; font-weight:800; color:var(--text-dim);
@@ -338,8 +346,16 @@
 
     <!-- ============ COMPASS SCREEN ============ -->
     <section class="screen active" id="screen-compass">
-      <div class="banner">
-        هذا <b>نموذج أولي فعّال</b> لوحدتي <b>التوجيه</b> و<b>رسم المسار</b> من مواصفات التطبيق، يعمل مباشرة عبر متصفح جوالك باستخدام GPS والبوصلة. وحدات الطقس اللحظي والاتصال الصوتي والمحتوى المجتمعي تحتاج بنية تحتية خلفية وتطبيق جوال أصلي، وهي المرحلة التالية.
+      <div class="weather-card" id="weatherCard" aria-live="polite">
+        <div class="weather-main">
+          <div class="weather-icon" id="weatherIcon">⛅</div>
+          <div class="weather-info">
+            <div class="weather-title" id="weatherTitle">طقس اليوم — بانتظار تحديد الموقع</div>
+            <div class="weather-meta" id="weatherMeta">ستظهر الحرارة والرياح بعد تفعيل GPS والاتصال بالإنترنت.</div>
+          </div>
+          <button class="icon-btn" id="refreshWeatherBtn" title="تحديث الطقس">↻</button>
+        </div>
+        <div class="weather-warning" id="weatherWarning"></div>
       </div>
 
       <div class="compass-wrap">
@@ -459,6 +475,10 @@
       </div>
 
       <div class="section-title">جولات محفوظة</div>
+      <div class="btn-row" style="margin-bottom:10px;">
+        <button class="btn btn-primary" id="importGpxBtn">📥 استقبال مسار GPX</button>
+        <input type="file" id="importGpxInput" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden>
+      </div>
       <div id="trackHistory"></div>
     </section>
 
@@ -488,11 +508,16 @@
         <button class="btn btn-ghost" id="testZelloLinkBtn">فتح Zello</button>
       </div>
 
-      <div class="section-title">البيانات المحلية</div>
+      <div class="section-title">النسخة الاحتياطية والبيانات المحلية</div>
       <div class="banner">
-        جميع الأماكن والمسارات المحفوظة تُخزَّن على جهازك فقط داخل هذا المتصفح، ولا تُرسل لأي خادم خارجي في هذا النموذج التجريبي.
+        احفظ نسخة كاملة من جميع الأماكن والمسارات والسيارة والإعدادات، ويمكنك استعادتها لاحقًا على هذا الجهاز أو جهاز آخر.
       </div>
-      <button class="btn btn-danger" id="wipeBtn">مسح كل البيانات المحفوظة</button>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="exportBackupBtn">📤 حفظ نسخة كاملة</button>
+        <button class="btn btn-ghost" id="importBackupBtn">📥 استعادة نسخة</button>
+        <input type="file" id="importBackupInput" accept=".json,application/json" hidden>
+      </div>
+      <button class="btn btn-danger" style="margin-top:10px;" id="wipeBtn">مسح كل البيانات المحفوظة</button>
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
@@ -656,6 +681,8 @@
 
   let geoWatchId = null;
   let compassStarted = false;
+  let lastWeatherFetch = 0;
+  let lastWeatherPoint = null;
 
   function save(){
     localStorage.setItem('dalil_places', JSON.stringify(state.places));
@@ -831,6 +858,7 @@
       }
     }
     renderCompassScreen();
+    maybeUpdateWeather();
     if(state.tracking) recordTrackPoint();
     if(state.retracing) updateRetrace();
     syncTrackMap();
@@ -1352,6 +1380,81 @@
     toast('راجع الاسم ثم احفظ للتوجّه إليها');
   });
 
+  // ---------- daily weather ----------
+  function weatherDescription(code){
+    if(code===0) return ['☀️','صحو'];
+    if([1,2].includes(code)) return ['🌤️','غائم جزئيًا'];
+    if(code===3) return ['☁️','غائم'];
+    if([45,48].includes(code)) return ['🌫️','ضباب'];
+    if(code>=51 && code<=67) return ['🌧️','أمطار'];
+    if(code>=71 && code<=77) return ['🌨️','ثلوج'];
+    if(code>=80 && code<=82) return ['🌦️','زخات مطر'];
+    if(code>=95) return ['⛈️','عواصف رعدية'];
+    return ['⛅','طقس متغير'];
+  }
+  function windName(deg){
+    const dirs=['شمالية','شمالية شرقية','شرقية','جنوبية شرقية','جنوبية','جنوبية غربية','غربية','شمالية غربية'];
+    return dirs[Math.round((((Number(deg)||0)%360)+360)%360/45)%8];
+  }
+  function weatherWarningText(current,daily){
+    const warnings=[];
+    const gust=Number(current.wind_gusts_10m)||0, wind=Number(current.wind_speed_10m)||0;
+    const rain=Number(daily.precipitation_probability_max?.[0])||0;
+    const max=Number(daily.temperature_2m_max?.[0]), min=Number(daily.temperature_2m_min?.[0]);
+    const code=Number(current.weather_code);
+    if(gust>=50 || wind>=40) warnings.push('رياح قوية؛ تجنّب الأماكن المكشوفة وثبّت معدات الرحلة');
+    if(rain>=70 || code>=95) warnings.push('احتمال أمطار أو عواصف مرتفع');
+    if(Number.isFinite(max) && max>=43) warnings.push('حرارة مرتفعة؛ احمل ماءً كافيًا وتجنّب الإجهاد');
+    if(Number.isFinite(min) && min<=2) warnings.push('برودة شديدة متوقعة');
+    return warnings.join(' — ');
+  }
+  async function updateWeather(force=false){
+    if(!state.pos) return;
+    if(!force && Date.now()-lastWeatherFetch<15*60*1000) return;
+    lastWeatherFetch=Date.now();
+    lastWeatherPoint={lat:state.pos.lat,lng:state.pos.lng};
+    const title=document.getElementById('weatherTitle');
+    const meta=document.getElementById('weatherMeta');
+    const warning=document.getElementById('weatherWarning');
+    title.textContent='طقس اليوم — جارٍ التحديث…';
+    try{
+      const qs=new URLSearchParams({
+        latitude:state.pos.lat, longitude:state.pos.lng,
+        current:'temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        daily:'temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant',
+        timezone:'auto', forecast_days:'1'
+      });
+      const response=await fetch('https://api.open-meteo.com/v1/forecast?'+qs);
+      if(!response.ok) throw new Error('weather '+response.status);
+      const data=await response.json(), current=data.current||{}, daily=data.daily||{};
+      const desc=weatherDescription(Number(current.weather_code));
+      document.getElementById('weatherIcon').textContent=desc[0];
+      title.textContent='طقس اليوم: '+desc[1]+' — '+Math.round(Number(current.temperature_2m))+'°';
+      const high=Math.round(Number(daily.temperature_2m_max?.[0]));
+      const low=Math.round(Number(daily.temperature_2m_min?.[0]));
+      const wind=Math.round(Number(current.wind_speed_10m)||0);
+      const dir=windName(current.wind_direction_10m);
+      const rain=Math.round(Number(daily.precipitation_probability_max?.[0])||0);
+      meta.textContent='العظمى '+high+'° / الصغرى '+low+'° — الرياح '+dir+' '+wind+' كم/س — احتمال المطر '+rain+'%';
+      const warningText=weatherWarningText(current,daily);
+      warning.textContent=warningText ? '⚠️ '+warningText : '';
+      warning.classList.toggle('show',Boolean(warningText));
+    }catch(e){
+      title.textContent='تعذّر تحديث الطقس';
+      meta.textContent='تحقق من اتصال الإنترنت ثم اضغط زر التحديث.';
+      warning.classList.remove('show');
+    }
+  }
+  function maybeUpdateWeather(){
+    if(!state.pos) return;
+    const moved=!lastWeatherPoint || haversine(lastWeatherPoint.lat,lastWeatherPoint.lng,state.pos.lat,state.pos.lng)>10000;
+    if(moved || Date.now()-lastWeatherFetch>=15*60*1000) updateWeather();
+  }
+  document.getElementById('refreshWeatherBtn').addEventListener('click',()=>{
+    lastWeatherFetch=0;
+    updateWeather(true);
+  });
+
   // ---------- track recording ----------
   function syncTrackMap(){
     const frame = document.getElementById('trackMapFrame');
@@ -1360,7 +1463,8 @@
       type:'DALIL_TRACK_UPDATE',
       position:state.pos ? {lat:state.pos.lat, lng:state.pos.lng, accuracy:state.pos.accuracy} : null,
       points:state.trackPoints.map(p=>({lat:p.lat, lng:p.lng})),
-      tracking:state.tracking
+      tracking:state.tracking,
+      mode:state.retracing ? 'retrace' : (state.tracking ? 'record' : 'view')
     }, location.origin);
   }
   document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
@@ -1646,6 +1750,98 @@
     setTimeout(()=>URL.revokeObjectURL(url), 1000);
     toast('تم تنزيل ملف GPX');
   }
+
+  // ---------- GPX import ----------
+  document.getElementById('importGpxBtn').addEventListener('click',()=>document.getElementById('importGpxInput').click());
+  document.getElementById('importGpxInput').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];
+    e.target.value='';
+    if(!file) return;
+    try{
+      const xml=new DOMParser().parseFromString(await file.text(),'application/xml');
+      if(xml.querySelector('parsererror')) throw new Error('invalid xml');
+      let nodes=[...xml.getElementsByTagNameNS('*','trkpt')];
+      if(nodes.length<2) nodes=[...xml.getElementsByTagNameNS('*','rtept')];
+      if(nodes.length<2) nodes=[...xml.getElementsByTagNameNS('*','wpt')];
+      const points=nodes.map(n=>{
+        const lat=Number(n.getAttribute('lat')), lng=Number(n.getAttribute('lon'));
+        const timeNode=[...n.children].find(c=>c.localName==='time');
+        const parsedTime=timeNode ? Date.parse(timeNode.textContent) : NaN;
+        return {lat,lng,t:Number.isFinite(parsedTime)?parsedTime:undefined};
+      }).filter(p=>validLatLng(p.lat,p.lng));
+      if(points.length<2) throw new Error('few points');
+      const nameNode=[...xml.getElementsByTagNameNS('*','name')][0];
+      const firstTime=points.find(p=>p.t)?.t;
+      const lastTime=[...points].reverse().find(p=>p.t)?.t;
+      const track={
+        id:'gpx-'+Date.now().toString(36),
+        name:(nameNode?.textContent||file.name.replace(/\.gpx$/i,'')||'مسار مستلم').trim(),
+        points, dist:trackDistance(points),
+        duration:firstTime&&lastTime&&lastTime>=firstTime?lastTime-firstTime:0,
+        createdAt:Date.now(), imported:true
+      };
+      state.tracks.unshift(track);
+      save();
+      renderTrackHistory();
+      loadSavedTrack(track);
+      toast('تم استقبال المسار: '+points.length+' نقطة');
+    }catch(err){
+      toast('تعذّر قراءة الملف؛ اختر ملف GPX صحيحًا');
+    }
+  });
+
+  // ---------- complete backup ----------
+  function backupPayload(){
+    const data={};
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key && key.startsWith('dalil_')) data[key]=localStorage.getItem(key);
+    }
+    return {app:'Dalil',version:1,exportedAt:new Date().toISOString(),data};
+  }
+  function downloadFile(file){
+    const url=URL.createObjectURL(file), a=document.createElement('a');
+    a.href=url;
+    a.download=file.name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  }
+  document.getElementById('exportBackupBtn').addEventListener('click',async()=>{
+    save();
+    const date=new Date().toISOString().slice(0,10);
+    const file=new File([JSON.stringify(backupPayload(),null,2)],'dalil-backup-'+date+'.json',{type:'application/json'});
+    if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+      try{
+        await navigator.share({title:'نسخة دليل الاحتياطية',files:[file]});
+        return;
+      }catch(err){
+        if(err?.name==='AbortError') return;
+      }
+    }
+    downloadFile(file);
+    toast('تم حفظ النسخة الاحتياطية');
+  });
+  document.getElementById('importBackupBtn').addEventListener('click',()=>document.getElementById('importBackupInput').click());
+  document.getElementById('importBackupInput').addEventListener('change',async e=>{
+    const file=e.target.files?.[0];
+    e.target.value='';
+    if(!file) return;
+    try{
+      const backup=JSON.parse(await file.text());
+      if(backup?.app!=='Dalil'||!backup.data||typeof backup.data!=='object') throw new Error('invalid backup');
+      const entries=Object.entries(backup.data).filter(([key,value])=>key.startsWith('dalil_')&&typeof value==='string');
+      if(!entries.length) throw new Error('empty backup');
+      if(!confirm('استعادة النسخة ستستبدل محفوظات دليل الحالية. هل تريد المتابعة؟')) return;
+      [...Array(localStorage.length)].map((_,i)=>localStorage.key(i)).filter(k=>k?.startsWith('dalil_')).forEach(k=>localStorage.removeItem(k));
+      entries.forEach(([key,value])=>localStorage.setItem(key,value));
+      alert('تمت استعادة النسخة بنجاح. سيُعاد تحميل التطبيق الآن.');
+      location.reload();
+    }catch(err){
+      toast('ملف النسخة الاحتياطية غير صالح');
+    }
+  });
 
   // ---------- settings ----------
   document.getElementById('wipeBtn').addEventListener('click', ()=>{
