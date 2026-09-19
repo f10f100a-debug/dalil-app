@@ -462,7 +462,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260919-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260919-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
         <button class="track-google-btn" id="trackGoogleBtn">قوقل ماب ↗</button>
@@ -553,7 +553,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🛣️</span>المسار</button>
-    <a class="tab" href="map.html?v=20260919-4"><span class="ic">🗺️</span>الخريطة</a>
+    <a class="tab" href="map.html?v=20260919-6"><span class="ic">🗺️</span>الخريطة</a>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -1261,7 +1261,7 @@
           toast('إحداثية هذا المكان غير صالحة؛ احذفه واحفظه من جديد');
           return;
         }
-        location.href=`map.html?v=20260919-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+        location.href=`map.html?v=20260919-6&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
       });
     });
     list.querySelectorAll('[data-share]').forEach(btn=>{
