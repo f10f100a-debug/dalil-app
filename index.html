@@ -994,6 +994,9 @@
     // if no orientation event arrives at all within 4s, tell the user plainly instead of staying silent
     setTimeout(()=>{
       if(!gotEvent && state.headingSource !== 'gps'){
+        window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+        compassStarted = false;
         diagText('تشخيص البوصلة: لم يصل أي حدث من مستشعر اتجاه الجهاز خلال 4 ثوانٍ. جرّب تحريك الجوال على شكل رقم 8 بالهواء، أو تأكد أن إذن الحركة مفعّل من إعدادات الموقع بالمتصفح. بديل مؤقت: التطبيق سيستخدم اتجاه حركتك من GPS تلقائيًا إذا كنت تتحرك بسرعة كافية.');
         document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
       }
@@ -2100,7 +2103,8 @@
 
   // ---------- init ----------
   const requestedScreen = new URLSearchParams(location.search).get('screen');
-  if(localStorage.getItem('dalil_onboarded') === '1' || requestedScreen === 'compass'){
+  const returningToCompass = localStorage.getItem('dalil_onboarded') === '1' || requestedScreen === 'compass';
+  if(returningToCompass){
     document.getElementById('onboard').style.display = 'none';
   }
   if(requestedScreen === 'compass'){
@@ -2116,6 +2120,9 @@
 
   // try starting geolocation immediately in case permission already granted (won't show iOS compass prompt without gesture though)
   if(navigator.geolocation) startGeoWatch();
+  // When returning from the map, reconnect the orientation listeners immediately.
+  // On iOS this works when the user has already granted motion/orientation permission.
+  if(returningToCompass && 'DeviceOrientationEvent' in window) startCompass();
 })();
 </script>
 </body>
