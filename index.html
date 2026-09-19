@@ -161,6 +161,7 @@
   .btn-row{display:flex; gap:8px; margin-top:10px;}
   .btn-row .btn{width:auto; flex:1;}
   .btn.small{padding:9px 12px; font-size:12.5px; border-radius:10px;}
+  .btn.compass-side-btn{width:76px;}
 
   .nav-target-card{
     margin-top:14px; background:linear-gradient(160deg, rgba(217,161,91,.14), transparent);
@@ -331,7 +332,14 @@
     .car-menu{bottom:51px;}
   }
   @media (max-width:370px){
-    .compass-side-btn{width:62px;font-size:9px;}
+    .btn.compass-side-btn{width:62px;font-size:9px;}
+  }
+  @media (display-mode:standalone){
+    #screen-compass .compass{width:min(290px,39dvh);height:min(290px,39dvh);}
+    #screen-compass .compass-wrap{padding:5px 0 10px;}
+    #screen-compass .coord-card{padding:10px 12px;margin-top:8px;}
+    #screen-compass .compass-actions{margin-top:8px;gap:7px;}
+    #screen-compass .compass-actions .btn{padding:10px 6px;}
   }
   /* modal */
   .overlay{
