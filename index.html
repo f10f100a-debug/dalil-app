@@ -225,6 +225,11 @@
     border-radius:100px; display:flex; align-items:center; gap:6px;
   }
   .rec-pill .rdot{width:7px;height:7px;border-radius:50%; background:var(--danger); animation:pulse 1.4s infinite;}
+  .track-google-btn{
+    position:absolute; top:16px; left:16px; z-index:6; border:1px solid rgba(20,51,41,.18);
+    border-radius:10px; background:rgba(255,255,255,.94); color:#183129; padding:7px 10px;
+    font:800 11px system-ui; box-shadow:0 2px 9px rgba(0,0,0,.18); cursor:pointer;
+  }
   @keyframes pulse{0%,100%{opacity:1} 50%{opacity:.25}}
 
   .track-history-item{
@@ -460,6 +465,7 @@
         <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260919-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
+        <button class="track-google-btn" id="trackGoogleBtn">قوقل ماب ↗</button>
       </div>
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-top:12px;">
         <div class="stat"><div class="v" id="trkDist">0.0</div><div class="l">كم</div></div>
@@ -1526,6 +1532,13 @@
     }, location.origin);
   }
   document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
+  document.getElementById('trackGoogleBtn').addEventListener('click', ()=>{
+    if(!state.pos) return toast('بانتظار تحديد موقعك…');
+    if(!navigator.onLine) return toast('قوقل ماب يحتاج اتصالًا بالإنترنت');
+    if(state.tracking) toast('تنبيه: قد يتوقف تسجيل النقاط مؤقتًا عند مغادرة المتصفح');
+    const point=state.pos.lat+','+state.pos.lng;
+    window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(point), '_blank', 'noopener');
+  });
 
   function fmtDuration(ms){
     const s = Math.floor(ms/1000);
