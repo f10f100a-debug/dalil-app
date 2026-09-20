@@ -191,8 +191,8 @@
     display:none; align-items:center; gap:10px; margin:8px 0; padding:9px 10px;
     background:rgba(217,161,91,.14); border:1px solid rgba(217,161,91,.38); border-radius:13px;
   }
-  .nav-activation .hint{flex:1; font-size:11px; line-height:1.55; color:var(--text-dim);}
-  .nav-activation .btn{width:auto; flex:0 0 auto; padding:9px 11px; font-size:11.5px;}
+  .nav-activation .hint{flex:1; min-width:0; font-size:11px; line-height:1.55; color:var(--text-dim);}
+  .nav-activation .btn{width:auto; max-width:55%; flex:0 1 auto; padding:9px 11px; font-size:11.5px; line-height:1.45;}
 
   /* saved places */
   .search-row{display:flex; gap:8px; margin-bottom:10px;}
@@ -533,8 +533,8 @@
       </div>
 
       <div class="nav-activation" id="navActivation" role="status">
-        <div class="hint">اضغط مرة واحدة ليعمل اتجاه السهم والمسافة على iPhone.</div>
-        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل التوجيه</button>
+        <div class="hint">اضغط مرة واحدة لتشغيل البوصلة والموقع على iPhone.</div>
+        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل البوصلة والموقع</button>
       </div>
 
       <div class="compass-actions">
@@ -2396,6 +2396,14 @@
     window.setTimeout(()=>{
       if(!state.pos || state.heading === null) navActivation.style.display = 'flex';
     }, 1200);
+  }else if(permissionsWereReady){
+    // عند العودة من ChatGPT أو واتساب قد تبقى الأذونات محفوظة، لكن المستشعرات
+    // لا تبدأ تلقائيًا مثل النسخة المثبتة. أعد تشغيلها، ثم اطلب ضغطة فقط عند الحاجة.
+    startGeoWatch();
+    startCompass();
+    window.setTimeout(()=>{
+      if(!state.pos || state.heading === null) navActivation.style.display = 'flex';
+    }, 1800);
   }
   drawTrackSvg();
   document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
