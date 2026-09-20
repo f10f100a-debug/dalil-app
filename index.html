@@ -955,7 +955,6 @@
   const permissionsReadyKey = 'dalil_permissions_ready';
   let permissionsWereReady = false;
   try{ permissionsWereReady = localStorage.getItem(permissionsReadyKey) === '1'; }catch(e){}
-  if(permissionsWereReady) document.getElementById('onboard').style.display = 'none';
   onboardBtn.addEventListener('click', async ()=>{
     onboardPermissionNote.classList.remove('error');
     onboardPermissionNote.textContent = 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
@@ -1074,7 +1073,10 @@
   });
 
   function updateNavActivation(){
-    if(state.pos && state.heading !== null) navActivation.style.display = 'none';
+    if(state.pos && state.heading !== null){
+      navActivation.style.display = 'none';
+      if(permissionsWereReady) document.getElementById('onboard').style.display = 'none';
+    }
   }
 
   async function requestPermissions(forceGeoRestart=false, sourceButton=permissionSettingsBtn){
@@ -1123,6 +1125,7 @@
       }, 700);
     }
     if(locationGranted && compassGranted !== false){
+      permissionsWereReady = true;
       try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
     }
     return {compassGranted, locationGranted};
@@ -2392,19 +2395,12 @@
     state.navTarget = {id:'__map_point__', name:launchParams.get('navLabel')||'نقطة محددة على الخريطة', icon:'📍', cat:'map', lat:launchNavLat, lng:launchNavLng, alt:null};
   }
   if(requestedScreen === 'compass'){
-    // روابط الرجوع والتوجيه يجب أن تصل للبوصلة مباشرة، لا إلى شاشة البداية.
-    document.getElementById('onboard').style.display = 'none';
+    // روابط الرجوع والتوجيه تفتح تبويب البوصلة، مع إبقاء شاشة السماح عند الحاجة.
     document.querySelector('.tab[data-screen="compass"]').click();
-    // Safari لا يدعم Permissions API للموقع دائمًا، لذلك ابدأ GPS هنا مباشرة.
-    // مستشعر الحركة في iPhone قد يحتاج ضغطة صريحة؛ نظهر زرًا صغيرًا فقط إن لم تصل البيانات.
-    startGeoWatch();
-    startCompass();
-    window.setTimeout(()=>{
-      if(!state.pos || state.heading === null) navActivation.style.display = 'flex';
-    }, 1200);
-  }else if(permissionsWereReady){
-    // عند العودة من ChatGPT أو واتساب قد تبقى الأذونات محفوظة، لكن المستشعرات
-    // لا تبدأ تلقائيًا مثل النسخة المثبتة. أعد تشغيلها، ثم اطلب ضغطة فقط عند الحاجة.
+  }
+  if(permissionsWereReady){
+    // افحص الأذونات المحفوظة فعليًا قبل إخفاء شاشة البداية. إذا وصلت بيانات
+    // الموقع والاتجاه تختفي تلقائيًا، وإلا تبقى ضغطة «تفعيل» متاحة للمستخدم.
     startGeoWatch();
     startCompass();
     window.setTimeout(()=>{
