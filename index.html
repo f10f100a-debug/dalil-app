@@ -218,6 +218,7 @@
     width:34px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--panel-2);
     color:var(--text-dim); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px;
   }
+  .icon-btn.radar-btn{width:auto;padding:0 10px;gap:5px;font-size:11px;font-weight:800;white-space:nowrap;color:var(--text);}
   .icon-btn.go{background:var(--sand); color:#1a1206; border-color:var(--sand);}
 
   .empty{
@@ -357,6 +358,7 @@
   }
   @media (max-width:370px){
     .btn.compass-side-btn{width:62px;font-size:9px;}
+    .icon-btn.radar-btn{padding:0 7px;font-size:10px;}
   }
   @media (display-mode:standalone){
     #screen-compass .compass{width:min(290px,39dvh);height:min(290px,39dvh);}
@@ -456,7 +458,7 @@
             <div class="weather-title" id="weatherTitle">طقس اليوم — بانتظار تحديد الموقع</div>
             <div class="weather-meta" id="weatherMeta">ستظهر الحرارة والرياح بعد تفعيل GPS والاتصال بالإنترنت.</div>
           </div>
-          <button class="icon-btn" id="radarToolsBtn" title="الرادارات والخرائط الجوية">📡</button>
+          <button class="icon-btn radar-btn" id="radarToolsBtn" title="الرادارات والخرائط الجوية">🌦️ الرادارات</button>
           <button class="icon-btn" id="refreshWeatherBtn" title="تحديث الطقس">↻</button>
         </div>
         <div class="weather-warning" id="weatherWarning"></div>
