@@ -615,6 +615,16 @@
       </div>
       <button class="btn btn-primary" style="margin-top:10px;" id="reqPermBtn">تفعيل الأذونات</button>
 
+      <div class="section-title">تشخيص سريع</div>
+      <div class="banner" id="diagnosticsPanel" style="line-height:2.1;">
+        <div>📱 وضع التشغيل: <b id="diagMode">جارٍ الفحص…</b></div>
+        <div>🔒 الاتصال الآمن: <b id="diagSecure">—</b></div>
+        <div>📍 GPS: <b id="diagGps">بانتظار الإشارة…</b></div>
+        <div>🧭 البوصلة: <b id="diagCompass">بانتظار المستشعر…</b></div>
+        <div>🌐 الإنترنت: <b id="diagOnline">—</b></div>
+      </div>
+      <button class="btn btn-ghost" style="margin-top:8px;" id="refreshDiagnosticsBtn">🔄 تحديث التشخيص</button>
+
       <div class="section-title">صيغة الإحداثيات الافتراضية</div>
       <div class="chips">
         <div class="chip active" data-fmt-set="dd">Decimal Degrees</div>
@@ -872,6 +882,9 @@
   let compassFailureTimer = null;
   let lastWeatherFetch = 0;
   let lastWeatherPoint = null;
+  let lastPositionAt = 0;
+  let lastHeadingAt = 0;
+  let lastPositionError = '';
 
   function save(){
     try{
@@ -949,6 +962,7 @@
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       if(tab.dataset.screen === 'places') renderPlaces();
       if(tab.dataset.screen === 'track') renderTrackHistory();
+      if(tab.dataset.screen === 'settings') updateDiagnostics();
     });
   });
 
@@ -990,6 +1004,24 @@
   const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|WhatsApp|FBAN|FBAV|Instagram|GSA/.test(ua);
   const installOverlay = document.getElementById('installOverlay');
   const installUrl = location.origin + location.pathname + '?install=1';
+  function ageText(time){
+    if(!time) return 'لا يوجد تحديث';
+    const seconds=Math.max(0,Math.round((Date.now()-time)/1000));
+    return seconds<60 ? `منذ ${seconds} ث` : `منذ ${Math.floor(seconds/60)} د`;
+  }
+  function updateDiagnostics(){
+    const embedded=(()=>{try{return window.self!==window.top}catch(e){return true}})();
+    document.getElementById('diagMode').textContent=isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
+    document.getElementById('diagSecure').textContent=window.isSecureContext?'✅ HTTPS':'❌ غير آمن';
+    const accuracy=state.pos?.accuracy!=null?' — دقة ±'+Math.round(state.pos.accuracy)+'م':'';
+    document.getElementById('diagGps').textContent=state.pos?'✅ يعمل '+ageText(lastPositionAt)+accuracy:(lastPositionError||'⏳ لم تصل إشارة بعد');
+    const source=state.headingSource==='compass'?'مستشعر الجهاز':state.headingSource==='gps'?'اتجاه الحركة GPS':'';
+    document.getElementById('diagCompass').textContent=state.heading!==null?'✅ يعمل '+ageText(lastHeadingAt)+(source?' — '+source:''):(compassStarted?'⏳ بانتظار بيانات الاتجاه':'⚠️ غير مشغّل');
+    document.getElementById('diagOnline').textContent=navigator.onLine?'✅ متصل':'⚠️ أوفلاين';
+  }
+  document.getElementById('refreshDiagnosticsBtn').addEventListener('click',()=>{updateDiagnostics();toast('تم تحديث حالة الجهاز')});
+  window.addEventListener('online',updateDiagnostics);
+  window.addEventListener('offline',updateDiagnostics);
   function openInstallGuide(){
     document.getElementById('installBrowserAlert').classList.toggle('show', isIOS && !isSafari);
     document.getElementById('installDeviceText').textContent = isIOS
@@ -1214,12 +1246,16 @@
     document.getElementById('gpsDot').className = 'dot bad';
     const codes = {1:'رفض المستخدم/المتصفح إذن الموقع (PERMISSION_DENIED)', 2:'تعذّر تحديد الموقع من الجهاز (POSITION_UNAVAILABLE)', 3:'انتهت مهلة انتظار إشارة GPS (TIMEOUT)'};
     const detail = codes[err.code] || err.message || 'خطأ غير معروف';
+    lastPositionError='❌ '+detail;
     document.getElementById('gpsLabel').textContent = 'تعذّر تحديد الموقع';
     document.getElementById('permLoc').textContent = '❌ مرفوض/غير متاح';
     showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.' : ''));
+    updateDiagnostics();
   }
 
   function onPosition(p){
+    lastPositionAt=Date.now();
+    lastPositionError='';
     document.getElementById('permLoc').textContent = '✅ مفعّل';
     document.getElementById('gpsDot').className = 'dot live';
     document.getElementById('gpsLabel').textContent = 'إشارة GPS نشطة';
@@ -1233,6 +1269,7 @@
       if(state.headingSource !== 'compass'){
         state.heading = p.coords.heading;
         state.headingSource = 'gps';
+        lastHeadingAt=Date.now();
       }
     }
     renderCompassScreen();
@@ -1241,6 +1278,7 @@
     if(state.tracking) recordTrackPoint();
     if(state.retracing) updateRetrace();
     syncTrackMap();
+    updateDiagnostics();
   }
 
   function stopCompass(){
@@ -1270,12 +1308,14 @@
       }
       if(h !== null){
         gotEvent = true;
+        lastHeadingAt=Date.now();
         state.heading = (h+360)%360;
         state.headingSource = 'compass';
         document.getElementById('permCompass').textContent = '✅ مفعّل';
         document.getElementById('diagBanner').style.display = 'none';
         renderCompassScreen();
         updateNavActivation();
+        updateDiagnostics();
       }
     }
     compassOrientationHandler = handleOrientation;
@@ -1291,6 +1331,7 @@
           diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
           navActivation.style.display = 'flex';
           document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
+          updateDiagnostics();
         }
       }
     }, 4000);
@@ -2497,6 +2538,10 @@
   renderTrackHistory();
   updateTrackStats();
   recoverTrackDraft();
+  updateDiagnostics();
+  window.setInterval(()=>{
+    if(document.getElementById('screen-settings').classList.contains('active')) updateDiagnostics();
+  },5000);
 
   // لا نعرض نافذة إذن مفاجئة عند فتح التطبيق. نشغّل GPS تلقائيًا فقط إذا كان الإذن ممنوحًا مسبقًا.
   if(navigator.permissions && navigator.permissions.query){
