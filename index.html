@@ -281,6 +281,7 @@
   .install-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
   .install-actions .wide{grid-column:1/-1;}
   .permission-note{max-width:280px; margin-top:10px; padding:8px 10px; border-radius:11px; background:rgba(217,161,91,.13); color:var(--text-dim); font-size:10.5px; font-weight:700; line-height:1.7; text-align:center;}
+  .permission-note.error{background:rgba(193,85,63,.12); border:1px solid rgba(193,85,63,.3); color:var(--danger);}
 
   section-title, .section-title{
     display:block; font-size:13px; font-weight:800; color:var(--text-dim);
@@ -773,9 +774,10 @@
     <div class="mark">🧭</div>
     <h2>دليل — بوصلة البر</h2>
     <p>دليل — بوصلة البر. يحتاج التطبيق إذن الموقع والبوصلة ليعمل بشكل صحيح.</p>
-    <button class="btn btn-primary" id="onboardBtn" style="max-width:260px;">🚀 ابدأ الاستخدام</button>
+    <button class="btn btn-primary" id="onboardBtn" style="max-width:260px;">🔓 تفعيل الموقع والبوصلة</button>
+    <button class="btn btn-ghost" id="skipPermissionsBtn" style="max-width:260px; margin-top:8px; display:none;">متابعة مؤقتًا دون الأذونات</button>
     <button class="btn btn-ghost" id="installHelpBtn" style="max-width:260px; margin-top:9px;">📲 ثبّت دليل على الآيفون — 20 ثانية</button>
-    <div class="permission-note">بعد التثبيت: افتح «دليل»، واضغط «ابدأ الاستخدام»، ثم اختر «سماح» للموقع والبوصلة.</div>
+    <div class="permission-note" id="onboardPermissionNote">ستظهر رسالتان من الآيفون: اختر «سماح» للبوصلة، ثم «سماح» للموقع.</div>
     <div class="developer-credit">تطوير: فهد محمد اللهيبي</div>
   </div>
 
@@ -789,7 +791,7 @@
         <div class="install-step"><span class="num">1</span><span>في Safari اضغط <b>زر القائمة</b> ثم <b>مشاركة ⬆️</b>.</span></div>
         <div class="install-step"><span class="num">2</span><span>مرّر للأسفل واختر <b>إضافة إلى الشاشة الرئيسية</b>.</span></div>
         <div class="install-step"><span class="num">3</span><span>فعّل <b>فتح كتطبيق ويب</b> ثم اضغط <b>إضافة</b>.</span></div>
-        <div class="install-step"><span class="num">4</span><span>افتح «دليل» من الأيقونة، واضغط <b>ابدأ الاستخدام</b> ثم اختر <b>سماح</b>.</span></div>
+        <div class="install-step"><span class="num">4</span><span>افتح «دليل» من الأيقونة، واضغط <b>تفعيل الموقع والبوصلة</b> ثم اختر <b>سماح</b> للطلبين.</span></div>
       </div>
       <div class="install-actions">
         <button class="btn btn-ghost" id="copyInstallLinkBtn">📋 نسخ رابط التثبيت</button>
@@ -931,10 +933,28 @@
 
   // ---------- onboarding & permissions ----------
   const onboardBtn = document.getElementById('onboardBtn');
+  const skipPermissionsBtn = document.getElementById('skipPermissionsBtn');
+  const onboardPermissionNote = document.getElementById('onboardPermissionNote');
   const permissionSettingsBtn = document.getElementById('reqPermBtn');
   onboardBtn.addEventListener('click', async ()=>{
-    await requestPermissions(false, onboardBtn);
+    onboardPermissionNote.classList.remove('error');
+    onboardPermissionNote.textContent = 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
+    const result = await requestPermissions(true, onboardBtn);
+    if(result.locationGranted && result.compassGranted !== false){
+      document.getElementById('onboard').style.display = 'none';
+    }else{
+      const missing = [];
+      if(!result.locationGranted) missing.push('الموقع');
+      if(result.compassGranted === false) missing.push('البوصلة');
+      onboardPermissionNote.classList.add('error');
+      onboardPermissionNote.textContent = 'لم يُفعّل إذن ' + missing.join(' و') + '. إذا رفضته سابقًا، اسمح به من إعدادات الآيفون ثم اضغط «إعادة المحاولة».';
+      onboardBtn.textContent = '🔄 إعادة محاولة الأذونات';
+      skipPermissionsBtn.style.display = 'block';
+    }
+  });
+  skipPermissionsBtn.addEventListener('click', ()=>{
     document.getElementById('onboard').style.display = 'none';
+    toast('يمكنك تفعيل الأذونات لاحقًا من الإعدادات');
   });
   const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
   const ua = navigator.userAgent || '';
@@ -1021,6 +1041,8 @@
   async function requestPermissions(forceGeoRestart=false, sourceButton=permissionSettingsBtn){
     const permissionBtn = sourceButton;
     const originalLabel = permissionBtn.textContent;
+    let compassGranted = null;
+    let locationGranted = false;
     permissionBtn.disabled = true;
     permissionBtn.textContent = 'جارٍ طلب الأذونات…';
     document.getElementById('permLoc').textContent = '⏳ جارٍ التحقق';
@@ -1028,23 +1050,27 @@
     try{
       // على iOS يجب أن يأتي طلب مستشعر الاتجاه مباشرة بعد ضغطة المستخدم.
       if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
-        const res = await DeviceOrientationEvent.requestPermission();
+        // true يطلب الاتجاه المطلق ويشمل المستشعر المغناطيسي اللازم للبوصلة.
+        const res = await DeviceOrientationEvent.requestPermission(true);
+        compassGranted = res === 'granted';
         document.getElementById('permCompass').textContent = res === 'granted' ? '✅ مفعّل' : '❌ مرفوض';
         if(res === 'granted') startCompass();
         else diagText('تشخيص البوصلة: المتصفح رفض إذن مستشعر الحركة (iOS). اذهب لإعدادات الجوال ← Safari ← إعادة ضبط تحذيرات المواقع، أو جرّب فتح الرابط في تبويب مستقل بدل المعاينة المصغّرة.');
       } else if('DeviceOrientationEvent' in window){
         startCompass();
+        compassGranted = true;
         document.getElementById('permCompass').textContent = '✅ مفعّل';
       } else {
         document.getElementById('permCompass').textContent = '— غير مدعوم —';
       }
     }catch(e){
+      compassGranted = false;
       document.getElementById('permCompass').textContent = '❌ غير متاح';
       diagText('تعذّر طلب إذن البوصلة: ' + (e.message||e) + '. إذا سبق رفض الإذن، فعّله من إعدادات الموقع ثم أعد فتح التطبيق.');
     }
 
     try{
-      await requestLocationAccess(forceGeoRestart);
+      locationGranted = await requestLocationAccess(forceGeoRestart);
       toast('اكتمل فحص الأذونات');
     }catch(e){
       document.getElementById('permLoc').textContent = '❌ تعذّر الطلب';
@@ -1055,6 +1081,7 @@
         permissionBtn.textContent = originalLabel;
       }, 700);
     }
+    return {compassGranted, locationGranted};
   }
 
   function requestLocationAccess(forceRestart=false){
