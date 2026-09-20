@@ -1014,35 +1014,41 @@
     handle.addEventListener('pointercancel', finishDrag);
     overlay.addEventListener('click', e=>{ if(e.target === overlay) dismissBottomSheet(overlay); });
   });
-  document.getElementById('reqPermBtn').addEventListener('click', requestPermissions);
+  document.getElementById('reqPermBtn').addEventListener('click', ()=>requestPermissions(true));
 
-  async function requestPermissions(){
-    // geolocation
-    if(navigator.geolocation){
-      startGeoWatch();
-    }
-    // device orientation (iOS 13+ needs explicit permission via user gesture)
-    if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
-      try{
+  async function requestPermissions(forceGeoRestart=false){
+    const permissionBtn = document.getElementById('reqPermBtn');
+    const originalLabel = permissionBtn.textContent;
+    permissionBtn.disabled = true;
+    permissionBtn.textContent = 'جارٍ طلب الأذونات…';
+    document.getElementById('permLoc').textContent = '⏳ جارٍ التحقق';
+    document.getElementById('permCompass').textContent = '⏳ جارٍ التحقق';
+    try{
+      // على iOS يجب أن يأتي طلب مستشعر الاتجاه مباشرة بعد ضغطة المستخدم.
+      if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
         const res = await DeviceOrientationEvent.requestPermission();
         document.getElementById('permCompass').textContent = res === 'granted' ? '✅ مفعّل' : '❌ مرفوض';
         if(res === 'granted') startCompass();
         else diagText('تشخيص البوصلة: المتصفح رفض إذن مستشعر الحركة (iOS). اذهب لإعدادات الجوال ← Safari ← إعادة ضبط تحذيرات المواقع، أو جرّب فتح الرابط في تبويب مستقل بدل المعاينة المصغّرة.');
-      }catch(e){
-        document.getElementById('permCompass').textContent = '❌ غير متاح';
-        diagText('تشخيص البوصلة: فشل استدعاء طلب الإذن — ' + (e.message||e) + '. هذا شائع عندما تُفتح الصفحة داخل إطار مضمّن بدل تبويب مستقل.');
-      }
-    } else if('DeviceOrientationEvent' in window){
-      try{
+      } else if('DeviceOrientationEvent' in window){
         startCompass();
         document.getElementById('permCompass').textContent = '✅ مفعّل';
-      }catch(e){
-        document.getElementById('permCompass').textContent = '❌ خطأ';
-        diagText('تشخيص البوصلة: ' + (e.message||e));
+      } else {
+        document.getElementById('permCompass').textContent = '— غير مدعوم —';
       }
-    } else {
-      document.getElementById('permCompass').textContent = '— غير مدعوم —';
-      diagText('تشخيص البوصلة: هذا المتصفح/الجهاز لا يعرض واجهة DeviceOrientationEvent إطلاقًا (شائع على أجهزة كمبيوتر مكتبية بدون مستشعر حركة).');
+
+      if(navigator.geolocation) startGeoWatch(forceGeoRestart);
+      else document.getElementById('permLoc').textContent = '— غير مدعوم —';
+      toast('تم إرسال طلب الأذونات — راقب الحالة أعلاه');
+    }catch(e){
+      document.getElementById('permCompass').textContent = '❌ غير متاح';
+      if(navigator.geolocation) startGeoWatch(forceGeoRestart);
+      diagText('تعذّر طلب إذن البوصلة: ' + (e.message||e) + '. إذا سبق رفض الإذن، فعّله من إعدادات الموقع ثم أعد فتح التطبيق.');
+    }finally{
+      window.setTimeout(()=>{
+        permissionBtn.disabled = false;
+        permissionBtn.textContent = originalLabel;
+      }, 700);
     }
   }
 
@@ -1058,7 +1064,7 @@
     }
   })();
 
-  function startGeoWatch(){
+  function startGeoWatch(forceRestart=false){
     if(!('geolocation' in navigator)){
       showDiag('❌ متصفحك لا يدعم واجهة تحديد الموقع (Geolocation) إطلاقًا.');
       document.getElementById('gpsLabel').textContent = 'GPS غير مدعوم';
@@ -1066,6 +1072,10 @@
     }
     if(!window.isSecureContext){
       showDiag('❌ الصفحة ليست ضمن اتصال آمن (HTTPS)، والمتصفحات تمنع الموقع والبوصلة بدونه.');
+    }
+    if(forceRestart && geoWatchId !== null){
+      try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+      geoWatchId = null;
     }
     if(geoWatchId !== null) return;
     try{
@@ -1085,6 +1095,10 @@
   function showDiag(msg){ diagText(msg); }
 
   function onPositionError(err){
+    if(err.code === 1 && geoWatchId !== null){
+      try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+      geoWatchId = null;
+    }
     document.getElementById('gpsDot').className = 'dot bad';
     const codes = {1:'رفض المستخدم/المتصفح إذن الموقع (PERMISSION_DENIED)', 2:'تعذّر تحديد الموقع من الجهاز (POSITION_UNAVAILABLE)', 3:'انتهت مهلة انتظار إشارة GPS (TIMEOUT)'};
     const detail = codes[err.code] || err.message || 'خطأ غير معروف';
