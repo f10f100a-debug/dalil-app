@@ -470,6 +470,11 @@
         <div class="weather-warning" id="weatherWarning"></div>
       </div>
 
+      <div class="nav-activation" id="navActivation" role="status">
+        <div class="hint" id="navActivationHint">اضغط مرة واحدة لتشغيل البوصلة والموقع على iPhone.</div>
+        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل البوصلة والموقع</button>
+      </div>
+
       <div class="compass-wrap">
         <div class="compass">
           <svg viewBox="0 0 260 260" id="compassSvg">
@@ -530,11 +535,6 @@
           <span>⛰ فرق الارتفاع: <b id="navTargetElev">—</b></span>
         </div>
         <button class="btn btn-ghost small" style="margin-top:10px;" id="cancelNavBtn">إلغاء التوجيه</button>
-      </div>
-
-      <div class="nav-activation" id="navActivation" role="status">
-        <div class="hint">اضغط مرة واحدة لتشغيل البوصلة والموقع على iPhone.</div>
-        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل البوصلة والموقع</button>
       </div>
 
       <div class="compass-actions">
@@ -951,6 +951,7 @@
   const permissionSettingsBtn = document.getElementById('reqPermBtn');
   const navActivation = document.getElementById('navActivation');
   const navActivationBtn = document.getElementById('navActivationBtn');
+  const navActivationHint = document.getElementById('navActivationHint');
   const permissionsReadyKey = 'dalil_permissions_ready';
   let permissionsWereReady = false;
   try{ permissionsWereReady = localStorage.getItem(permissionsReadyKey) === '1'; }catch(e){}
@@ -1065,6 +1066,9 @@
       toast('تم تشغيل البوصلة والتوجيه');
     }else{
       navActivation.style.display = 'flex';
+      if(isIOS && !isSafari){
+        navActivationHint.textContent = 'إذا رفض المتصفح الداخلي المستشعر، افتح القائمة واختر «فتح في Safari» ثم حاول مرة أخرى.';
+      }
       toast('اسمح بالموقع والحركة ثم أعد المحاولة');
     }
   });
@@ -1253,7 +1257,9 @@
         window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
         window.removeEventListener('deviceorientation', handleOrientation, true);
         compassStarted = false;
-        diagText('تشخيص البوصلة: لم يصل أي حدث من مستشعر اتجاه الجهاز خلال 4 ثوانٍ. جرّب تحريك الجوال على شكل رقم 8 بالهواء، أو تأكد أن إذن الحركة مفعّل من إعدادات الموقع بالمتصفح. بديل مؤقت: التطبيق سيستخدم اتجاه حركتك من GPS تلقائيًا إذا كنت تتحرك بسرعة كافية.');
+        const inAppHint = isIOS && !isSafari ? ' افتح قائمة المتصفح واختر «فتح في Safari» إذا لم يستجب زر التشغيل.' : '';
+        diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
+        navActivation.style.display = 'flex';
         document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
       }
     }, 4000);
