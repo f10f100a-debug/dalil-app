@@ -930,8 +930,10 @@
   });
 
   // ---------- onboarding & permissions ----------
-  document.getElementById('onboardBtn').addEventListener('click', async ()=>{
-    await requestPermissions();
+  const onboardBtn = document.getElementById('onboardBtn');
+  const permissionSettingsBtn = document.getElementById('reqPermBtn');
+  onboardBtn.addEventListener('click', async ()=>{
+    await requestPermissions(false, onboardBtn);
     document.getElementById('onboard').style.display = 'none';
   });
   const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
@@ -1014,10 +1016,10 @@
     handle.addEventListener('pointercancel', finishDrag);
     overlay.addEventListener('click', e=>{ if(e.target === overlay) dismissBottomSheet(overlay); });
   });
-  document.getElementById('reqPermBtn').addEventListener('click', ()=>requestPermissions(true));
+  permissionSettingsBtn.addEventListener('click', ()=>requestPermissions(true, permissionSettingsBtn));
 
-  async function requestPermissions(forceGeoRestart=false){
-    const permissionBtn = document.getElementById('reqPermBtn');
+  async function requestPermissions(forceGeoRestart=false, sourceButton=permissionSettingsBtn){
+    const permissionBtn = sourceButton;
     const originalLabel = permissionBtn.textContent;
     permissionBtn.disabled = true;
     permissionBtn.textContent = 'جارٍ طلب الأذونات…';
@@ -1036,20 +1038,46 @@
       } else {
         document.getElementById('permCompass').textContent = '— غير مدعوم —';
       }
-
-      if(navigator.geolocation) startGeoWatch(forceGeoRestart);
-      else document.getElementById('permLoc').textContent = '— غير مدعوم —';
-      toast('تم إرسال طلب الأذونات — راقب الحالة أعلاه');
     }catch(e){
       document.getElementById('permCompass').textContent = '❌ غير متاح';
-      if(navigator.geolocation) startGeoWatch(forceGeoRestart);
       diagText('تعذّر طلب إذن البوصلة: ' + (e.message||e) + '. إذا سبق رفض الإذن، فعّله من إعدادات الموقع ثم أعد فتح التطبيق.');
+    }
+
+    try{
+      await requestLocationAccess(forceGeoRestart);
+      toast('اكتمل فحص الأذونات');
+    }catch(e){
+      document.getElementById('permLoc').textContent = '❌ تعذّر الطلب';
+      diagText('تعذّر تشغيل الموقع: ' + (e.message||e));
     }finally{
       window.setTimeout(()=>{
         permissionBtn.disabled = false;
         permissionBtn.textContent = originalLabel;
       }, 700);
     }
+  }
+
+  function requestLocationAccess(forceRestart=false){
+    if(!('geolocation' in navigator)){
+      document.getElementById('permLoc').textContent = '— غير مدعوم —';
+      return Promise.resolve(false);
+    }
+    if(forceRestart && geoWatchId !== null){
+      try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+      geoWatchId = null;
+    }
+    return new Promise(resolve=>{
+      navigator.geolocation.getCurrentPosition(position=>{
+        onPosition(position);
+        startGeoWatch();
+        resolve(true);
+      }, err=>{
+        onPositionError(err);
+        // عند ضعف الإشارة نستمر بالمراقبة؛ أما الرفض فلا نكرر الطلب تلقائيًا.
+        if(err.code !== 1) startGeoWatch();
+        resolve(false);
+      }, {enableHighAccuracy:true, maximumAge:1000, timeout:15000});
+    });
   }
 
   // detect if running inside an embedded iframe (common cause of blocked geolocation/motion permissions)
@@ -2283,8 +2311,12 @@
   renderTrackHistory();
   updateTrackStats();
 
-  // try starting geolocation immediately in case permission already granted (won't show iOS compass prompt without gesture though)
-  if(navigator.geolocation) startGeoWatch();
+  // لا نعرض نافذة إذن مفاجئة عند فتح التطبيق. نشغّل GPS تلقائيًا فقط إذا كان الإذن ممنوحًا مسبقًا.
+  if(navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({name:'geolocation'}).then(status=>{
+      if(status.state === 'granted') startGeoWatch();
+    }).catch(()=>{});
+  }
 })();
 </script>
 </body>
