@@ -375,8 +375,15 @@
     padding:20px 18px calc(20px + env(safe-area-inset-bottom));
     box-shadow:var(--shadow);
     max-height:85vh; overflow-y:auto;
+    transition:transform .22s ease;
   }
-  .sheet-handle{width:38px; height:4px; background:var(--line); border-radius:10px; margin:0 auto 16px;}
+  .sheet.dragging{transition:none; overflow-y:hidden;}
+  .sheet-handle{
+    width:54px; height:5px; background:var(--line); border-radius:10px; margin:0 auto 16px;
+    cursor:grab; touch-action:none; position:relative;
+  }
+  .sheet-handle::before{content:""; position:absolute; inset:-15px -34px;}
+  .sheet-handle:active{cursor:grabbing;}
   .sheet h3{margin:0 0 14px; font-size:16px; font-weight:800;}
   .field-label{font-size:12px; color:var(--text-dim); margin:14px 0 6px; font-weight:700;}
   .text-input, textarea{
@@ -959,6 +966,54 @@
   let installGuideSeen = false;
   try{ installGuideSeen = localStorage.getItem('dalil_install_guide_seen') === '1'; }catch(e){}
   if(!isStandalone && (installRequested || (isIOS && !installGuideSeen))) setTimeout(openInstallGuide, 450);
+
+  // اسحب المقبض إلى الأسفل لإغلاق أي نافذة سفلية.
+  function dismissBottomSheet(overlay){
+    const sheet = overlay.querySelector('.sheet');
+    if(!sheet) return;
+    sheet.classList.remove('dragging');
+    sheet.style.transform = 'translateY(105%)';
+    window.setTimeout(()=>{
+      overlay.classList.remove('show');
+      sheet.style.transform = '';
+      if(overlay.id === 'installOverlay'){
+        try{ localStorage.setItem('dalil_install_guide_seen','1'); }catch(e){}
+      }
+    }, 210);
+  }
+  document.querySelectorAll('.overlay').forEach(overlay=>{
+    const sheet = overlay.querySelector('.sheet');
+    const handle = overlay.querySelector('.sheet-handle');
+    if(!sheet || !handle) return;
+    handle.setAttribute('role','button');
+    handle.setAttribute('aria-label','اسحب للأسفل للإغلاق');
+    let startY = 0, currentY = 0, startTime = 0, pointerId = null;
+    handle.addEventListener('pointerdown', e=>{
+      pointerId = e.pointerId;
+      startY = currentY = e.clientY;
+      startTime = performance.now();
+      sheet.classList.add('dragging');
+      try{ handle.setPointerCapture(pointerId); }catch(err){}
+    });
+    handle.addEventListener('pointermove', e=>{
+      if(pointerId !== e.pointerId) return;
+      currentY = e.clientY;
+      const distance = Math.max(0, currentY - startY);
+      sheet.style.transform = `translateY(${distance}px)`;
+    });
+    function finishDrag(e){
+      if(pointerId === null || (e.pointerId != null && pointerId !== e.pointerId)) return;
+      const distance = Math.max(0, currentY - startY);
+      const elapsed = Math.max(1, performance.now() - startTime);
+      pointerId = null;
+      sheet.classList.remove('dragging');
+      if(distance > 80 || (distance / elapsed > .55 && distance > 28)) dismissBottomSheet(overlay);
+      else sheet.style.transform = '';
+    }
+    handle.addEventListener('pointerup', finishDrag);
+    handle.addEventListener('pointercancel', finishDrag);
+    overlay.addEventListener('click', e=>{ if(e.target === overlay) dismissBottomSheet(overlay); });
+  });
   document.getElementById('reqPermBtn').addEventListener('click', requestPermissions);
 
   async function requestPermissions(){
