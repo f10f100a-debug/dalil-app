@@ -553,7 +553,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-5" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
         <button class="track-google-btn" id="trackGoogleBtn">قوقل ماب ↗</button>
@@ -644,7 +644,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🛣️</span>المسار</button>
-    <a class="tab" href="map.html?v=20260920-4"><span class="ic">🗺️</span>الخريطة</a>
+    <a class="tab" href="map.html?v=20260920-5"><span class="ic">🗺️</span>الخريطة</a>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -1526,7 +1526,7 @@
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   let pendingNavPlace = null;
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260920-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260920-5&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
 
   function renderPlaces(){
@@ -2328,7 +2328,13 @@
   });
 
   // ---------- init ----------
-  const requestedScreen = new URLSearchParams(location.search).get('screen');
+  const launchParams = new URLSearchParams(location.search);
+  const requestedScreen = launchParams.get('screen');
+  const launchNavLat = Number(launchParams.get('navLat'));
+  const launchNavLng = Number(launchParams.get('navLng'));
+  if(launchParams.has('navLat') && launchParams.has('navLng') && validLatLng(launchNavLat, launchNavLng)){
+    state.navTarget = {id:'__map_point__', name:launchParams.get('navLabel')||'نقطة محددة على الخريطة', icon:'📍', cat:'map', lat:launchNavLat, lng:launchNavLng, alt:null};
+  }
   if(requestedScreen === 'compass'){
     document.querySelector('.tab[data-screen="compass"]').click();
   }
