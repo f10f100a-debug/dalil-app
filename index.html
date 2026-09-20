@@ -938,11 +938,16 @@
   const skipPermissionsBtn = document.getElementById('skipPermissionsBtn');
   const onboardPermissionNote = document.getElementById('onboardPermissionNote');
   const permissionSettingsBtn = document.getElementById('reqPermBtn');
+  const permissionsReadyKey = 'dalil_permissions_ready';
+  let permissionsWereReady = false;
+  try{ permissionsWereReady = localStorage.getItem(permissionsReadyKey) === '1'; }catch(e){}
+  if(permissionsWereReady) document.getElementById('onboard').style.display = 'none';
   onboardBtn.addEventListener('click', async ()=>{
     onboardPermissionNote.classList.remove('error');
     onboardPermissionNote.textContent = 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
     const result = await requestPermissions(true, onboardBtn);
     if(result.locationGranted && result.compassGranted !== false){
+      try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
       document.getElementById('onboard').style.display = 'none';
     }else{
       const missing = [];
@@ -1084,6 +1089,9 @@
         permissionBtn.disabled = false;
         permissionBtn.textContent = originalLabel;
       }, 700);
+    }
+    if(locationGranted && compassGranted !== false){
+      try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
     }
     return {compassGranted, locationGranted};
   }
@@ -2348,6 +2356,8 @@
     state.navTarget = {id:'__map_point__', name:launchParams.get('navLabel')||'نقطة محددة على الخريطة', icon:'📍', cat:'map', lat:launchNavLat, lng:launchNavLng, alt:null};
   }
   if(requestedScreen === 'compass'){
+    // روابط الرجوع والتوجيه يجب أن تصل للبوصلة مباشرة، لا إلى شاشة البداية.
+    document.getElementById('onboard').style.display = 'none';
     document.querySelector('.tab[data-screen="compass"]').click();
   }
   drawTrackSvg();
