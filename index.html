@@ -551,7 +551,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-3" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
         <button class="track-google-btn" id="trackGoogleBtn">قوقل ماب ↗</button>
@@ -642,7 +642,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🛣️</span>المسار</button>
-    <a class="tab" href="map.html?v=20260920-2"><span class="ic">🗺️</span>الخريطة</a>
+    <a class="tab" href="map.html?v=20260920-3"><span class="ic">🗺️</span>الخريطة</a>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -1524,7 +1524,7 @@
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   let pendingNavPlace = null;
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260920-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260920-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
 
   function renderPlaces(){
