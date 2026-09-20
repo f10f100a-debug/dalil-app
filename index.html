@@ -187,6 +187,12 @@
   .distance-focus.near{background:rgba(127,164,135,.18); border-color:rgba(127,164,135,.55);}
   .distance-focus.near .dist{color:var(--sage);}
   .nav-target-card .sub-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:10px; font-size:12px; color:var(--text-dim);}
+  .nav-activation{
+    display:none; align-items:center; gap:10px; margin:8px 0; padding:9px 10px;
+    background:rgba(217,161,91,.14); border:1px solid rgba(217,161,91,.38); border-radius:13px;
+  }
+  .nav-activation .hint{flex:1; font-size:11px; line-height:1.55; color:var(--text-dim);}
+  .nav-activation .btn{width:auto; flex:0 0 auto; padding:9px 11px; font-size:11.5px;}
 
   /* saved places */
   .search-row{display:flex; gap:8px; margin-bottom:10px;}
@@ -524,6 +530,11 @@
           <span>⛰ فرق الارتفاع: <b id="navTargetElev">—</b></span>
         </div>
         <button class="btn btn-ghost small" style="margin-top:10px;" id="cancelNavBtn">إلغاء التوجيه</button>
+      </div>
+
+      <div class="nav-activation" id="navActivation" role="status">
+        <div class="hint">اضغط مرة واحدة ليعمل اتجاه السهم والمسافة على iPhone.</div>
+        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل التوجيه</button>
       </div>
 
       <div class="compass-actions">
@@ -938,6 +949,8 @@
   const skipPermissionsBtn = document.getElementById('skipPermissionsBtn');
   const onboardPermissionNote = document.getElementById('onboardPermissionNote');
   const permissionSettingsBtn = document.getElementById('reqPermBtn');
+  const navActivation = document.getElementById('navActivation');
+  const navActivationBtn = document.getElementById('navActivationBtn');
   const permissionsReadyKey = 'dalil_permissions_ready';
   let permissionsWereReady = false;
   try{ permissionsWereReady = localStorage.getItem(permissionsReadyKey) === '1'; }catch(e){}
@@ -1044,6 +1057,21 @@
     overlay.addEventListener('click', e=>{ if(e.target === overlay) dismissBottomSheet(overlay); });
   });
   permissionSettingsBtn.addEventListener('click', ()=>requestPermissions(true, permissionSettingsBtn));
+  navActivationBtn.addEventListener('click', async ()=>{
+    const result = await requestPermissions(true, navActivationBtn);
+    if(result.locationGranted && result.compassGranted !== false){
+      navActivation.style.display = 'none';
+      renderCompassScreen();
+      toast('تم تشغيل البوصلة والتوجيه');
+    }else{
+      navActivation.style.display = 'flex';
+      toast('اسمح بالموقع والحركة ثم أعد المحاولة');
+    }
+  });
+
+  function updateNavActivation(){
+    if(state.pos && state.heading !== null) navActivation.style.display = 'none';
+  }
 
   async function requestPermissions(forceGeoRestart=false, sourceButton=permissionSettingsBtn){
     const permissionBtn = sourceButton;
@@ -1191,6 +1219,7 @@
       }
     }
     renderCompassScreen();
+    updateNavActivation();
     maybeUpdateWeather();
     if(state.tracking) recordTrackPoint();
     if(state.retracing) updateRetrace();
@@ -1213,6 +1242,7 @@
         state.heading = (h+360)%360;
         state.headingSource = 'compass';
         renderCompassScreen();
+        updateNavActivation();
       }
     }
     window.addEventListener('deviceorientationabsolute', handleOrientation, true);
@@ -2359,6 +2389,13 @@
     // روابط الرجوع والتوجيه يجب أن تصل للبوصلة مباشرة، لا إلى شاشة البداية.
     document.getElementById('onboard').style.display = 'none';
     document.querySelector('.tab[data-screen="compass"]').click();
+    // Safari لا يدعم Permissions API للموقع دائمًا، لذلك ابدأ GPS هنا مباشرة.
+    // مستشعر الحركة في iPhone قد يحتاج ضغطة صريحة؛ نظهر زرًا صغيرًا فقط إن لم تصل البيانات.
+    startGeoWatch();
+    startCompass();
+    window.setTimeout(()=>{
+      if(!state.pos || state.heading === null) navActivation.style.display = 'flex';
+    }, 1200);
   }
   drawTrackSvg();
   document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
