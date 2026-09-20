@@ -273,6 +273,13 @@
   .install-steps{display:grid; gap:9px; margin:10px 0;}
   .install-step{display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; font-size:12px; line-height:1.65;}
   .install-step .num{width:27px; height:27px; flex:0 0 auto; display:grid; place-items:center; border-radius:9px; background:var(--sand); color:#1a1206; font-weight:900;}
+  .install-hero{padding:12px; margin:10px 0; border:1px solid rgba(217,161,91,.38); border-radius:14px; background:linear-gradient(135deg,rgba(217,161,91,.18),rgba(25,91,73,.08)); text-align:center;}
+  .install-hero strong{display:block; font-size:15px; margin-bottom:4px;}
+  .install-hero span{font-size:11.5px; color:var(--text-dim); line-height:1.7;}
+  .install-alert{display:none; margin:9px 0; padding:10px 12px; border-radius:12px; background:rgba(193,85,63,.12); border:1px solid rgba(193,85,63,.3); color:var(--danger); font-size:11.5px; font-weight:800; line-height:1.7;}
+  .install-alert.show{display:block;}
+  .install-actions{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;}
+  .install-actions .wide{grid-column:1/-1;}
   .permission-note{max-width:280px; margin-top:10px; padding:8px 10px; border-radius:11px; background:rgba(217,161,91,.13); color:var(--text-dim); font-size:10.5px; font-weight:700; line-height:1.7; text-align:center;}
 
   section-title, .section-title{
@@ -760,7 +767,7 @@
     <h2>دليل — بوصلة البر</h2>
     <p>دليل — بوصلة البر. يحتاج التطبيق إذن الموقع والبوصلة ليعمل بشكل صحيح.</p>
     <button class="btn btn-primary" id="onboardBtn" style="max-width:260px;">🚀 ابدأ الاستخدام</button>
-    <button class="btn btn-ghost" id="installHelpBtn" style="max-width:260px; margin-top:9px;">📲 تثبيت على الشاشة الرئيسية</button>
+    <button class="btn btn-ghost" id="installHelpBtn" style="max-width:260px; margin-top:9px;">📲 ثبّت دليل على الآيفون — 20 ثانية</button>
     <div class="permission-note">بعد التثبيت: افتح «دليل»، واضغط «ابدأ الاستخدام»، ثم اختر «سماح» للموقع والبوصلة.</div>
     <div class="developer-credit">تطوير: فهد محمد اللهيبي</div>
   </div>
@@ -769,14 +776,19 @@
     <div class="sheet">
       <div class="sheet-handle"></div>
       <h3>📲 تثبيت تطبيق دليل</h3>
-      <div class="banner">افتح الرابط في Safari، ثم اتبع الخطوات التالية:</div>
+      <div class="install-hero"><strong>ثبّت «دليل» خلال 20 ثانية</strong><span id="installDeviceText">اتبع الخطوات التالية وسيظهر التطبيق على شاشتك الرئيسية.</span></div>
+      <div class="install-alert" id="installBrowserAlert">⚠️ افتح الرابط في <b>Safari</b> أولًا؛ التثبيت على الآيفون لا يظهر من متصفح واتساب أو Chrome. انسخ الرابط من الزر أدناه ثم الصقه في Safari.</div>
       <div class="install-steps">
-        <div class="install-step"><span class="num">1</span><span>اضغط زر المشاركة <b>⬆️</b> أسفل Safari.</span></div>
-        <div class="install-step"><span class="num">2</span><span>اختر <b>إضافة إلى الشاشة الرئيسية</b>.</span></div>
-        <div class="install-step"><span class="num">3</span><span>اضغط <b>إضافة</b>؛ وستظهر أيقونة دليل كتطبيق مستقل.</span></div>
-        <div class="install-step"><span class="num">4</span><span>افتح التطبيق واضغط <b>ابدأ الاستخدام</b>، ثم اختر <b>سماح</b> للموقع والبوصلة.</span></div>
+        <div class="install-step"><span class="num">1</span><span>في Safari اضغط <b>زر القائمة</b> ثم <b>مشاركة ⬆️</b>.</span></div>
+        <div class="install-step"><span class="num">2</span><span>مرّر للأسفل واختر <b>إضافة إلى الشاشة الرئيسية</b>.</span></div>
+        <div class="install-step"><span class="num">3</span><span>فعّل <b>فتح كتطبيق ويب</b> ثم اضغط <b>إضافة</b>.</span></div>
+        <div class="install-step"><span class="num">4</span><span>افتح «دليل» من الأيقونة، واضغط <b>ابدأ الاستخدام</b> ثم اختر <b>سماح</b>.</span></div>
       </div>
-      <button class="btn btn-primary" id="closeInstallBtn">فهمت</button>
+      <div class="install-actions">
+        <button class="btn btn-ghost" id="copyInstallLinkBtn">📋 نسخ رابط التثبيت</button>
+        <button class="btn btn-primary" id="shareInstallBtn">📤 إرسال الشرح لصديق</button>
+        <button class="btn btn-ghost wide" id="closeInstallBtn">فهمت — متابعة إلى دليل</button>
+      </div>
     </div>
   </div>
 
@@ -916,9 +928,37 @@
     document.getElementById('onboard').style.display = 'none';
   });
   const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|WhatsApp|FBAN|FBAV|Instagram|GSA/.test(ua);
+  const installOverlay = document.getElementById('installOverlay');
+  const installUrl = location.origin + location.pathname + '?install=1';
+  function openInstallGuide(){
+    document.getElementById('installBrowserAlert').classList.toggle('show', isIOS && !isSafari);
+    document.getElementById('installDeviceText').textContent = isIOS
+      ? (isSafari ? 'أنت في Safari — نفّذ الخطوات الأربع التالية.' : 'أنت على آيفون، لكن يلزم فتح الرابط في Safari لإظهار خيار التثبيت.')
+      : 'على الآيفون: افتح هذا الرابط في Safari ثم اتبع الخطوات التالية.';
+    installOverlay.classList.add('show');
+  }
   if(isStandalone) document.getElementById('installHelpBtn').style.display = 'none';
-  document.getElementById('installHelpBtn').addEventListener('click', ()=>document.getElementById('installOverlay').classList.add('show'));
-  document.getElementById('closeInstallBtn').addEventListener('click', ()=>document.getElementById('installOverlay').classList.remove('show'));
+  document.getElementById('installHelpBtn').addEventListener('click', openInstallGuide);
+  document.getElementById('closeInstallBtn').addEventListener('click', ()=>{
+    installOverlay.classList.remove('show');
+    try{ localStorage.setItem('dalil_install_guide_seen','1'); }catch(e){}
+  });
+  document.getElementById('copyInstallLinkBtn').addEventListener('click', async ()=>{
+    try{ await navigator.clipboard.writeText(installUrl); toast('تم نسخ رابط التثبيت — الصقه في Safari'); }
+    catch(e){ prompt('انسخ هذا الرابط وافتحه في Safari:', installUrl); }
+  });
+  document.getElementById('shareInstallBtn').addEventListener('click', async ()=>{
+    const shareData={title:'تثبيت تطبيق دليل',text:'افتح الرابط في Safari واتبع خطوات تثبيت تطبيق دليل على الشاشة الرئيسية:',url:installUrl};
+    if(navigator.share){ try{ await navigator.share(shareData); }catch(e){} }
+    else { try{ await navigator.clipboard.writeText(installUrl); toast('تم نسخ رابط التثبيت لإرساله'); }catch(e){ prompt('انسخ رابط التثبيت:',installUrl); } }
+  });
+  const installRequested = new URLSearchParams(location.search).get('install') === '1';
+  let installGuideSeen = false;
+  try{ installGuideSeen = localStorage.getItem('dalil_install_guide_seen') === '1'; }catch(e){}
+  if(!isStandalone && (installRequested || (isIOS && !installGuideSeen))) setTimeout(openInstallGuide, 450);
   document.getElementById('reqPermBtn').addEventListener('click', requestPermissions);
 
   async function requestPermissions(){
