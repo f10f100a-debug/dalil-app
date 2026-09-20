@@ -553,7 +553,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260920-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
         <button class="track-google-btn" id="trackGoogleBtn">قوقل ماب ↗</button>
@@ -644,7 +644,7 @@
     <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
     <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
     <button class="tab" data-screen="track"><span class="ic">🛣️</span>المسار</button>
-    <a class="tab" href="map.html?v=20260920-5"><span class="ic">🗺️</span>الخريطة</a>
+    <a class="tab" href="map.html?v=20260920-6"><span class="ic">🗺️</span>الخريطة</a>
     <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
   </div>
 
@@ -1053,7 +1053,9 @@
       // على iOS يجب أن يأتي طلب مستشعر الاتجاه مباشرة بعد ضغطة المستخدم.
       if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
         // true يطلب الاتجاه المطلق ويشمل المستشعر المغناطيسي اللازم للبوصلة.
-        const res = await DeviceOrientationEvent.requestPermission(true);
+        // Safari/iOS (وخاصة عند التشغيل من الشاشة الرئيسية) يعتمد الصيغة القياسية بلا معاملات.
+        // تمرير true يعمل في بعض الإصدارات، لكنه قد يمنع وصول أحداث البوصلة في إصدارات أخرى.
+        const res = await DeviceOrientationEvent.requestPermission();
         compassGranted = res === 'granted';
         document.getElementById('permCompass').textContent = res === 'granted' ? '✅ مفعّل' : '❌ مرفوض';
         if(res === 'granted') startCompass();
@@ -1217,6 +1219,16 @@
         document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
       }
     }, 4000);
+  }
+
+  // عند فتح النسخة المثبتة من الشاشة الرئيسية لا يعيد iOS نافذة الإذن إذا كان
+  // المستخدم قد وافق سابقًا؛ لذلك نعيد ربط مستشعر البوصلة عند كل عودة للتطبيق.
+  if(isStandalone){
+    startCompass();
+    window.addEventListener('pageshow', startCompass);
+    document.addEventListener('visibilitychange', ()=>{
+      if(document.visibilityState === 'visible') startCompass();
+    });
   }
 
   // ---------- compass rendering ----------
@@ -1526,7 +1538,7 @@
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   let pendingNavPlace = null;
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260920-5&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260920-6&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
 
   function renderPlaces(){
