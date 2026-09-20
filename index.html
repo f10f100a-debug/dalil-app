@@ -868,6 +868,8 @@
 
   let geoWatchId = null;
   let compassStarted = false;
+  let compassOrientationHandler = null;
+  let compassFailureTimer = null;
   let lastWeatherFetch = 0;
   let lastWeatherPoint = null;
 
@@ -1097,10 +1099,12 @@
         const res = await DeviceOrientationEvent.requestPermission();
         compassGranted = res === 'granted';
         document.getElementById('permCompass').textContent = res === 'granted' ? '✅ مفعّل' : '❌ مرفوض';
-        if(res === 'granted') startCompass();
+        // أعد ربط المستمع بعد الموافقة؛ بعض إصدارات iOS لا ترسل أحداثًا
+        // للمستمع الذي أضيف قبل منح الإذن.
+        if(res === 'granted') startCompass(true);
         else diagText('تشخيص البوصلة: المتصفح رفض إذن مستشعر الحركة (iOS). اذهب لإعدادات الجوال ← Safari ← إعادة ضبط تحذيرات المواقع، أو جرّب فتح الرابط في تبويب مستقل بدل المعاينة المصغّرة.');
       } else if('DeviceOrientationEvent' in window){
-        startCompass();
+        startCompass(true);
         compassGranted = true;
         document.getElementById('permCompass').textContent = '✅ مفعّل';
       } else {
@@ -1233,7 +1237,21 @@
     syncTrackMap();
   }
 
-  function startCompass(){
+  function stopCompass(){
+    if(compassOrientationHandler){
+      window.removeEventListener('deviceorientationabsolute', compassOrientationHandler, true);
+      window.removeEventListener('deviceorientation', compassOrientationHandler, true);
+      compassOrientationHandler = null;
+    }
+    if(compassFailureTimer !== null){
+      clearTimeout(compassFailureTimer);
+      compassFailureTimer = null;
+    }
+    compassStarted = false;
+  }
+
+  function startCompass(forceRestart=false){
+    if(forceRestart) stopCompass();
     if(compassStarted) return;
     compassStarted = true;
     let gotEvent = false;
@@ -1248,22 +1266,26 @@
         gotEvent = true;
         state.heading = (h+360)%360;
         state.headingSource = 'compass';
+        document.getElementById('permCompass').textContent = '✅ مفعّل';
+        document.getElementById('diagBanner').style.display = 'none';
         renderCompassScreen();
         updateNavActivation();
       }
     }
-    window.addEventListener('deviceorientationabsolute', handleOrientation, true);
-    window.addEventListener('deviceorientation', handleOrientation, true);
+    compassOrientationHandler = handleOrientation;
+    window.addEventListener('deviceorientationabsolute', compassOrientationHandler, true);
+    window.addEventListener('deviceorientation', compassOrientationHandler, true);
     // if no orientation event arrives at all within 4s, tell the user plainly instead of staying silent
-    setTimeout(()=>{
-      if(!gotEvent && state.headingSource !== 'gps'){
-        window.removeEventListener('deviceorientationabsolute', handleOrientation, true);
-        window.removeEventListener('deviceorientation', handleOrientation, true);
-        compassStarted = false;
-        const inAppHint = isIOS && !isSafari ? ' افتح قائمة المتصفح واختر «فتح في Safari» إذا لم يستجب زر التشغيل.' : '';
-        diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
-        navActivation.style.display = 'flex';
-        document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
+    compassFailureTimer = setTimeout(()=>{
+      compassFailureTimer = null;
+      if(!gotEvent){
+        stopCompass();
+        if(state.headingSource !== 'gps'){
+          const inAppHint = isIOS && !isSafari ? ' افتح قائمة المتصفح واختر «فتح في Safari» إذا لم يستجب زر التشغيل.' : '';
+          diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
+          navActivation.style.display = 'flex';
+          document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
+        }
       }
     }, 4000);
   }
@@ -1272,9 +1294,9 @@
   // المستخدم قد وافق سابقًا؛ لذلك نعيد ربط مستشعر البوصلة عند كل عودة للتطبيق.
   if(isStandalone){
     startCompass();
-    window.addEventListener('pageshow', startCompass);
+    window.addEventListener('pageshow', ()=>startCompass(true));
     document.addEventListener('visibilitychange', ()=>{
-      if(document.visibilityState === 'visible') startCompass();
+      if(document.visibilityState === 'visible') startCompass(true);
     });
   }
 
