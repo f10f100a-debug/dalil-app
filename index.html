@@ -874,9 +874,15 @@
   let lastWeatherPoint = null;
 
   function save(){
-    localStorage.setItem('dalil_places', JSON.stringify(state.places));
-    localStorage.setItem('dalil_tracks', JSON.stringify(state.tracks));
-    localStorage.setItem('dalil_fmt', state.coordFmt);
+    try{
+      localStorage.setItem('dalil_places', JSON.stringify(state.places));
+      localStorage.setItem('dalil_tracks', JSON.stringify(state.tracks));
+      localStorage.setItem('dalil_fmt', state.coordFmt);
+      return true;
+    }catch(e){
+      toast('تعذّر الحفظ: مساحة الجهاز المخصصة لدليل ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
+      return false;
+    }
   }
 
   // ---------- utils: geo math ----------
@@ -1983,7 +1989,14 @@
       state.tracking = true;
       state.trackPoints = [{lat:state.pos.lat, lng:state.pos.lng, t:Date.now()}];
       state.trackStart = Date.now();
-      localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      try{
+        localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      }catch(e){
+        state.tracking=false;
+        state.trackPoints=[];
+        state.trackStart=null;
+        return toast('تعذّر بدء التسجيل لأن مساحة الحفظ ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
+      }
       document.getElementById('trackGpsStatus').textContent = '🔴 التسجيل نشط — يتم الحفظ التلقائي على هذا الجهاز.';
       document.getElementById('trackToggleBtn').textContent = '⏸ إيقاف التسجيل';
       document.getElementById('recPill').style.display = 'flex';
@@ -2008,11 +2021,14 @@
           dist, duration: Date.now()-state.trackStart,
           createdAt: Date.now()
         });
-        save();
-        localStorage.removeItem('dalil_track_draft');
-        document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ الجولة بنجاح في الجولات المحفوظة.';
-        renderTrackHistory();
-        toast('تم حفظ الجولة');
+        if(save()){
+          localStorage.removeItem('dalil_track_draft');
+          document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ الجولة بنجاح في الجولات المحفوظة.';
+          renderTrackHistory();
+          toast('تم حفظ الجولة');
+        }else{
+          document.getElementById('trackGpsStatus').textContent = '⚠️ لم تُحفظ الجولة نهائيًا؛ بقيت نسخة الاسترداد المؤقتة.';
+        }
       }
       syncTrackMap();
     }
@@ -2035,11 +2051,29 @@
   });
 
   function recordTrackPoint(){
+    const accuracy = Number(state.pos.accuracy);
+    if(Number.isFinite(accuracy) && accuracy > 60){
+      document.getElementById('trackGpsStatus').textContent = '🟠 التسجيل نشط — بانتظار دقة GPS أفضل من ±60م';
+      return;
+    }
     const last = state.trackPoints[state.trackPoints.length-1];
     const d = last ? haversine(last.lat, last.lng, state.pos.lat, state.pos.lng) : 999;
+    const elapsed = last?.t ? Math.max(1,(Date.now()-last.t)/1000) : 1;
+    if(last && d/elapsed > 70){
+      document.getElementById('trackGpsStatus').textContent = '🟠 تم تجاهل قفزة GPS غير منطقية — التسجيل مستمر';
+      return;
+    }
     if(d > 8){ // avoid noisy duplicate points
       state.trackPoints.push({lat:state.pos.lat, lng:state.pos.lng, t:Date.now()});
-      localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      try{
+        localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
+      }catch(e){
+        state.tracking=false;
+        clearInterval(state.trackTimer);
+        document.getElementById('trackToggleBtn').textContent='▶ بدء تسجيل المسار';
+        document.getElementById('recPill').style.display='none';
+        return toast('توقف التسجيل لأن مساحة الحفظ ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
+      }
       const acc = state.pos.accuracy != null ? Math.round(state.pos.accuracy) : null;
       document.getElementById('trackGpsStatus').textContent = '🔴 التسجيل نشط — ' + state.trackPoints.length + ' نقطة' + (acc ? ' — دقة GPS ±' + acc + 'م' : '') + ' — حفظ تلقائي';
       drawTrackSvg();
@@ -2050,6 +2084,32 @@
     let d = 0;
     for(let i=1;i<points.length;i++) d += haversine(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng);
     return d;
+  }
+
+  function recoverTrackDraft(){
+    const draft=readStoredJson('dalil_track_draft',null);
+    if(!draft || !Array.isArray(draft.points)) return false;
+    const points=draft.points.map(p=>({lat:Number(p.lat),lng:Number(p.lng),t:Number(p.t)||undefined})).filter(p=>validLatLng(p.lat,p.lng));
+    if(points.length<2) return false;
+    const started=Number(draft.start)||points[0].t||Date.now();
+    const ended=points[points.length-1].t||started;
+    const recovered={
+      id:'recovered-'+started,
+      name:'مسار مستعاد '+new Date(started).toLocaleDateString('ar-SA'),
+      points,
+      dist:trackDistance(points),
+      duration:Math.max(0,ended-started),
+      createdAt:started,
+      recovered:true
+    };
+    if(!state.tracks.some(t=>t.id===recovered.id)) state.tracks.unshift(recovered);
+    if(!save()) return false;
+    localStorage.removeItem('dalil_track_draft');
+    renderTrackHistory();
+    loadSavedTrack(recovered);
+    document.getElementById('trackGpsStatus').textContent='✅ تم استعادة المسار غير المكتمل وحفظه ضمن الجولات.';
+    toast('تم استعادة مسار غير مكتمل');
+    return true;
   }
 
   function updateTrackStats(){
@@ -2436,6 +2496,7 @@
   updateCarQuick();
   renderTrackHistory();
   updateTrackStats();
+  recoverTrackDraft();
 
   // لا نعرض نافذة إذن مفاجئة عند فتح التطبيق. نشغّل GPS تلقائيًا فقط إذا كان الإذن ممنوحًا مسبقًا.
   if(navigator.permissions && navigator.permissions.query){
