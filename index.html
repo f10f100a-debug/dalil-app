@@ -816,7 +816,6 @@
       <h3>📡 الرادارات والخرائط الجوية</h3>
       <div class="banner">تفتح الأدوات في صفحة خارجية، وتحتاج إلى اتصال بالإنترنت.</div>
       <div class="radar-grid">
-        <a class="radar-link wide" id="springRadarLink" target="_blank" rel="noopener" href="https://browser.dataspace.copernicus.eu/?zoom=9&amp;lat=27.22692&amp;lng=42.20947&amp;themeId=DEFAULT-THEME&amp;visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&amp;datasetId=S2_L2A_CDAS&amp;fromTime=2026-09-19T00%3A00%3A00.000Z&amp;toTime=2026-09-19T23%3A59%3A59.999Z&amp;layerId=2_FALSE_COLOR&amp;demSource3D=%22MAPZEN%22&amp;cloudCoverage=30&amp;dateMode=SINGLE"><span class="ri">🌱</span><span>كشف مواقع الربيع</span></a>
         <a class="radar-link wide" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="ri">🌧️</span><span>رادار الأمطار</span></a>
         <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/ukmomodel2/"><span class="ri">🇬🇧</span><span>النموذج البريطاني</span></a>
         <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/weathermaps-accessg/"><span class="ri">🇦🇺</span><span>النموذج الأسترالي</span></a>
@@ -916,6 +915,7 @@
   let compassStarted = false;
   let compassOrientationHandler = null;
   let compassFailureTimer = null;
+  let lastAbsoluteOrientationAt = 0;
   let lastWeatherFetch = 0;
   let lastWeatherPoint = null;
   let lastPositionAt = 0;
@@ -954,9 +954,12 @@
     return dirs[Math.round(deg/22.5)%16];
   }
 
-  function smoothHeading(previous, next, factor=.28){
+  function smoothHeading(previous, next){
     if(previous === null) return next;
     const delta = ((next - previous + 540) % 360) - 180;
+    const distance = Math.abs(delta);
+    if(distance < .6) return previous;
+    const factor = distance >= 45 ? .92 : distance >= 15 ? .78 : .62;
     return (previous + delta * factor + 360) % 360;
   }
 
@@ -1330,6 +1333,7 @@
       window.removeEventListener('deviceorientation', compassOrientationHandler, true);
       compassOrientationHandler = null;
     }
+    lastAbsoluteOrientationAt = 0;
     if(compassFailureTimer !== null){
       clearTimeout(compassFailureTimer);
       compassFailureTimer = null;
@@ -1343,6 +1347,9 @@
     compassStarted = true;
     let gotEvent = false;
     function handleOrientation(e){
+      const now = performance.now();
+      if(e.type === 'deviceorientationabsolute') lastAbsoluteOrientationAt = now;
+      else if(typeof e.webkitCompassHeading !== 'number' && now - lastAbsoluteOrientationAt < 1000) return;
       let h = null;
       if(typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)){
         h = e.webkitCompassHeading; // iOS: already 0=north, clockwise
@@ -2044,7 +2051,7 @@
     updateWeather(true);
   });
   const radarOverlay=document.getElementById('radarOverlay');
-  const springRadarLink=document.getElementById('springRadarLink');
+  const springRadarLink=document.getElementById('springRadarMainLink');
   const saudiDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   const springRadarUrl=new URL(springRadarLink.href);
   springRadarUrl.searchParams.set('fromTime',saudiDate+'T00:00:00.000Z');
