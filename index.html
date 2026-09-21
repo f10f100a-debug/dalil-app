@@ -478,7 +478,7 @@
             <div class="weather-title" id="weatherTitle">طقس اليوم — بانتظار تحديد الموقع</div>
             <div class="weather-meta" id="weatherMeta">ستظهر الحرارة والرياح بعد تفعيل GPS والاتصال بالإنترنت.</div>
           </div>
-          <button class="icon-btn" id="refreshWeatherBtn" title="تحديث الطقس">↻</button>
+          <button class="icon-btn" id="refreshWeatherBtn" type="button" title="تحديث الطقس" aria-label="تحديث الطقس">↻</button>
         </div>
         <div class="weather-warning" id="weatherWarning"></div>
       </div>
@@ -520,7 +520,7 @@
             <button data-fmt="ddm">DDM</button>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="icon-btn" id="copyCoordBtn" title="نسخ">📋</button>
+            <button class="icon-btn" id="copyCoordBtn" type="button" title="نسخ الإحداثيات" aria-label="نسخ الإحداثيات">📋</button>
           </div>
         </div>
         <div class="coord-value" id="coordValue" style="margin-top:12px;">— بانتظار الموقع —</div>
@@ -561,7 +561,7 @@
     <section class="screen" id="screen-places">
       <div class="search-row">
         <input class="search-box" id="placeSearch" placeholder="ابحث في الأماكن المحفوظة…">
-        <button class="btn btn-primary" style="width:auto; padding:11px 16px;" id="addPlaceBtn">📍</button>
+        <button class="btn btn-primary" type="button" style="width:auto; padding:11px 16px;" id="addPlaceBtn" title="حفظ مكان جديد" aria-label="حفظ مكان جديد">📍</button>
       </div>
       <div class="chips" id="filterChips">
         <div class="chip active" data-cat="all">الكل</div>
@@ -953,6 +953,12 @@
     return dirs[Math.round(deg/22.5)%16];
   }
 
+  function smoothHeading(previous, next, factor=.28){
+    if(previous === null) return next;
+    const delta = ((next - previous + 540) % 360) - 180;
+    return (previous + delta * factor + 360) % 360;
+  }
+
   function fmtDD(lat, lng){
     return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
   }
@@ -1340,12 +1346,14 @@
       if(typeof e.webkitCompassHeading === 'number' && !isNaN(e.webkitCompassHeading)){
         h = e.webkitCompassHeading; // iOS: already 0=north, clockwise
       } else if(e.alpha !== null && e.alpha !== undefined){
-        h = 360 - e.alpha; // works for both absolute and relative alpha as an approximation
+        let screenAngle = Number(screen.orientation && screen.orientation.angle);
+        if(!Number.isFinite(screenAngle)) screenAngle = Number(window.orientation) || 0;
+        h = 360 - e.alpha + screenAngle;
       }
       if(h !== null){
         gotEvent = true;
         lastHeadingAt=Date.now();
-        state.heading = (h+360)%360;
+        state.heading = smoothHeading(state.headingSource === 'compass' ? state.heading : null, (h+360)%360);
         state.headingSource = 'compass';
         document.getElementById('permCompass').textContent = '✅ مفعّل';
         document.getElementById('diagBanner').style.display = 'none';
@@ -1724,10 +1732,10 @@
           <div class="place-meta"><span>${distTxt}</span><span>${brgTxt}</span></div>
         </div>
         <div class="place-actions">
-          <div class="icon-btn" data-map="${p.id}" title="عرض على الخريطة">🗺️</div>
-          <div class="icon-btn" data-share="${p.id}" title="مشاركة الموقع">📤</div>
-          <div class="icon-btn go" data-go="${p.id}" title="اختيار طريقة التوجه">🧭</div>
-          <div class="icon-btn" data-del="${p.id}">🗑</div>
+          <button type="button" class="icon-btn" data-map="${p.id}" title="عرض على الخريطة" aria-label="عرض ${escapeHtml(p.name)} على الخريطة">🗺️</button>
+          <button type="button" class="icon-btn" data-share="${p.id}" title="مشاركة الموقع" aria-label="مشاركة موقع ${escapeHtml(p.name)}">📤</button>
+          <button type="button" class="icon-btn go" data-go="${p.id}" title="اختيار طريقة التوجه" aria-label="التوجه إلى ${escapeHtml(p.name)}">🧭</button>
+          <button type="button" class="icon-btn" data-del="${p.id}" title="حذف الموقع" aria-label="حذف ${escapeHtml(p.name)}">🗑</button>
         </div>
       </div>`;
     }).join('');
