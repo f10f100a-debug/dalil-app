@@ -19,6 +19,7 @@
 <meta name="apple-mobile-web-app-title" content="دليل">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#11171b">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -383,6 +384,7 @@
   @media (display-mode:standalone){
     #screen-compass .compass{width:min(320px,42dvh);height:min(320px,42dvh);}
     #screen-compass .compass-wrap{padding:5px 0 10px;}
+    #screen-compass .compass-side-btn{width:76px;min-height:54px;padding:7px 5px;font-size:10.5px;}
     #screen-compass .coord-card{padding:10px 12px;margin-top:8px;}
     #screen-compass .compass-actions{margin-top:8px;gap:7px;}
     #screen-compass .compass-actions .btn{padding:10px 6px;}
@@ -508,16 +510,16 @@
           </div>
         </div>
         <div class="compass-target-name" id="compassTargetName"></div>
-        <button class="btn btn-primary compass-side-btn save" id="saveHereBtn">📍 حفظ<br>موقعي</button>
-        <button class="btn btn-ghost compass-side-btn paste" id="pasteBtn">📋 لصق<br>موقع</button>
+        <button class="btn btn-primary compass-side-btn save" type="button" id="saveHereBtn" aria-label="حفظ موقعي الحالي">📍 حفظ<br>موقعي</button>
+        <button class="btn btn-ghost compass-side-btn paste" type="button" id="pasteBtn" aria-label="لصق موقع أو إحداثية">📋 لصق<br>موقع</button>
       </div>
 
       <div class="coord-card">
         <div class="coord-row">
           <div class="fmt-switch">
-            <button data-fmt="dd" class="active">DD</button>
+            <button data-fmt="dd">DD</button>
             <button data-fmt="dms">DMS</button>
-            <button data-fmt="ddm">DDM</button>
+            <button data-fmt="ddm" class="active">DDM</button>
           </div>
           <div style="display:flex; gap:6px;">
             <button class="icon-btn" id="copyCoordBtn" type="button" title="نسخ الإحداثيات" aria-label="نسخ الإحداثيات">📋</button>
@@ -604,6 +606,9 @@
       <div class="banner" id="trackGpsStatus" style="margin-top:12px;">
         حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.
       </div>
+      <div class="banner" style="margin-top:-4px;margin-bottom:8px;font-size:11px;line-height:1.65;">
+        📱 لتسجيل موثوق على iPhone أبقِ «دليل» ظاهرًا أثناء الحركة؛ سيحاول التطبيق منع نوم الشاشة ويحفظ نسخة استرداد تلقائيًا. الانتقال لتطبيق آخر يوقف GPS في تطبيقات الويب بأمر من iOS.
+      </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="trackToggleBtn">▶ بدء تسجيل المسار</button>
       </div>
@@ -663,9 +668,9 @@
 
       <div class="section-title">صيغة الإحداثيات الافتراضية</div>
       <div class="chips">
-        <div class="chip active" data-fmt-set="dd">Decimal Degrees</div>
+        <div class="chip" data-fmt-set="dd">Decimal Degrees</div>
         <div class="chip" data-fmt-set="dms">DMS</div>
-        <div class="chip" data-fmt-set="ddm">DDM</div>
+        <div class="chip active" data-fmt-set="ddm">DDM</div>
       </div>
 
       <div class="section-title">قناة الرحلة في Zello</div>
@@ -888,13 +893,12 @@
     }
   }
 
-  const storedFmt = localStorage.getItem('dalil_fmt');
   const QIBLA_TARGET = Object.freeze({id:'__qibla__', name:'مكة المكرمة', icon:'🕋', cat:'qibla', lat:21.422487, lng:39.826206, alt:null});
   const state = {
     pos: null,            // {lat,lng,alt,speed,accuracy}
     heading: null,        // degrees 0-360, 0 = true/compass north
     headingSource: null,  // 'compass' | 'gps' | null
-    coordFmt: ['dd','dms','ddm'].includes(storedFmt) ? storedFmt : 'dd',
+    coordFmt: 'ddm',        // الصيغة الافتراضية عند كل تشغيل: درجات ودقائق عشرية
     places: readStoredJson('dalil_places', []),
     activeCat: 'all',
     navTarget: {...QIBLA_TARGET}, // مكة المكرمة هي الوجهة الافتراضية عند بدء التطبيق
@@ -916,6 +920,7 @@
   let compassOrientationHandler = null;
   let compassFailureTimer = null;
   let lastAbsoluteOrientationAt = 0;
+  let trackWakeLock = null;
   let lastWeatherFetch = 0;
   let lastWeatherPoint = null;
   let lastPositionAt = 0;
@@ -2090,15 +2095,36 @@
     return hh ? `${String(hh).padStart(2,'0')}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 
+  async function requestTrackWakeLock(){
+    if(!state.tracking || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    try{
+      if(trackWakeLock && !trackWakeLock.released) return;
+      trackWakeLock = await navigator.wakeLock.request('screen');
+      trackWakeLock.addEventListener('release',()=>{ trackWakeLock=null; });
+    }catch(e){ trackWakeLock=null; }
+  }
+
+  async function releaseTrackWakeLock(){
+    if(!trackWakeLock) return;
+    try{ await trackWakeLock.release(); }catch(e){}
+    trackWakeLock=null;
+  }
+
+  function saveTrackDraft(){
+    if(!state.tracking || !state.trackPoints.length) return true;
+    try{
+      localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart,updatedAt:Date.now()}));
+      return true;
+    }catch(e){ return false; }
+  }
+
   document.getElementById('trackToggleBtn').addEventListener('click', ()=>{
     if(!state.tracking){
       if(!state.pos) return toast('بانتظار تحديد الموقع…');
       state.tracking = true;
       state.trackPoints = [{lat:state.pos.lat, lng:state.pos.lng, t:Date.now()}];
       state.trackStart = Date.now();
-      try{
-        localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
-      }catch(e){
+      if(!saveTrackDraft()){
         state.tracking=false;
         state.trackPoints=[];
         state.trackStart=null;
@@ -2110,11 +2136,13 @@
       document.getElementById('retraceBtn').disabled = true;
       document.getElementById('clearTrackBtn').disabled = false;
       state.trackTimer = setInterval(updateTrackStats, 1000);
+      requestTrackWakeLock();
       syncTrackMap();
       toast('بدأ تسجيل المسار');
     } else {
       state.tracking = false;
       clearInterval(state.trackTimer);
+      releaseTrackWakeLock();
       document.getElementById('trackToggleBtn').textContent = '▶ بدء تسجيل المسار';
       document.getElementById('recPill').style.display = 'none';
       if(state.trackPoints.length > 1){
@@ -2147,6 +2175,7 @@
     document.getElementById('trackGpsStatus').textContent = 'حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.';
     state.tracking = false;
     clearInterval(state.trackTimer);
+    releaseTrackWakeLock();
     document.getElementById('trackToggleBtn').textContent = '▶ بدء تسجيل المسار';
     document.getElementById('recPill').style.display = 'none';
     document.getElementById('retraceBtn').disabled = true;
@@ -2172,11 +2201,10 @@
     }
     if(d > 8){ // avoid noisy duplicate points
       state.trackPoints.push({lat:state.pos.lat, lng:state.pos.lng, t:Date.now()});
-      try{
-        localStorage.setItem('dalil_track_draft', JSON.stringify({points:state.trackPoints,start:state.trackStart}));
-      }catch(e){
+      if(!saveTrackDraft()){
         state.tracking=false;
         clearInterval(state.trackTimer);
+        releaseTrackWakeLock();
         document.getElementById('trackToggleBtn').textContent='▶ بدء تسجيل المسار';
         document.getElementById('recPill').style.display='none';
         return toast('توقف التسجيل لأن مساحة الحفظ ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
@@ -2192,6 +2220,19 @@
     for(let i=1;i<points.length;i++) d += haversine(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng);
     return d;
   }
+
+  window.addEventListener('pagehide',saveTrackDraft);
+  document.addEventListener('visibilitychange',()=>{
+    if(!state.tracking) return;
+    if(document.visibilityState==='visible'){
+      requestTrackWakeLock();
+      startGeoWatch(true);
+      document.getElementById('trackGpsStatus').textContent='🔴 عاد التسجيل للعمل — بانتظار تحديث GPS.';
+    }else{
+      saveTrackDraft();
+      document.getElementById('trackGpsStatus').textContent='🟠 حُفظت مسودة المسار — iPhone قد يوقف GPS في الخلفية.';
+    }
+  });
 
   function recoverTrackDraft(){
     const draft=readStoredJson('dalil_track_draft',null);
@@ -2608,6 +2649,10 @@
   window.setInterval(()=>{
     if(document.getElementById('screen-settings').classList.contains('active')) updateDiagnostics();
   },5000);
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
 
   // لا نعرض نافذة إذن مفاجئة عند فتح التطبيق. نشغّل GPS تلقائيًا فقط إذا كان الإذن ممنوحًا مسبقًا.
   if(navigator.permissions && navigator.permissions.query){

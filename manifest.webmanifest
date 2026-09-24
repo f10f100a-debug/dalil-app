@@ -1,0 +1,12 @@
+{
+  "name": "دليل — بوصلة البر",
+  "short_name": "دليل",
+  "description": "بوصلة ورحلات ومسارات وخرائط برية",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1ee",
+  "theme_color": "#d9a15b"
+}

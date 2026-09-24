@@ -105,4 +105,5 @@ if(validLatLng(queryLat,queryLng)){
 }else if(query.has('lat')||query.has('lng')) status.textContent='⚠️ إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
 render();
 locateUser(false,!targetPoint);
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>
