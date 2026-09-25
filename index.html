@@ -340,7 +340,9 @@
   .cp-compass.near .cp-near-ring{display:block;}
   @keyframes cpSpin{to{transform:rotate(360deg)}}
   .cp-car-dot{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:1.6; stroke-linejoin:round;}
-  .cp-qibla{fill:#2F6B4F;}
+  .cp-qibla .cube{fill:#1C1A17; stroke:#FFFDF9; stroke-width:1.6;}
+  .cp-qibla .band{fill:#C9964F;}
+  .cp-qibla.on .cube{stroke:#2F7A4B; stroke-width:2.6; filter:drop-shadow(0 0 5px rgba(47,122,75,.9));}
   .cp-center{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     width:48%; text-align:center; pointer-events:none;
@@ -1843,7 +1845,9 @@
     if(pos){
       const qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
       const [qx,qy] = polar(qb - heading, 126);
-      marks += `<rect class="cp-qibla" x="${(qx-4).toFixed(1)}" y="${(qy-4).toFixed(1)}" width="8" height="8" rx="1.5"><title>القبلة</title></rect>`;
+      // الكعبة: مكعب أسود بحزام ذهبي على حلقة القرص باتجاه مكة، ويتوهّج عند مواجهة القبلة.
+      const qiblaOn = haveHeading && Math.abs(((qb - heading + 540) % 360) - 180) <= 5;
+      marks += `<g class="cp-qibla${qiblaOn ? ' on' : ''}" transform="translate(${qx.toFixed(1)} ${qy.toFixed(1)})"><title>القبلة</title><rect class="cube" x="-8" y="-8" width="16" height="16" rx="2.5"/><rect class="band" x="-8" y="-3.8" width="16" height="3"/></g>`;
       if(car && !isCarTarget(t)){
         // سهم صغير على الحافة باتجاه السيارة (أصغر من سهم التوجيه).
         const carRel = (bearing(pos.lat, pos.lng, car.lat, car.lng) - heading + 360) % 360;
@@ -1888,6 +1892,10 @@
       label = targetLabel; main = 'بانتظار الموقع'; words = true; sub = headingLine;
     }else if(haveHeading){
       main = iso(Math.round(heading) + '°'); sub = cardinalSpaced(heading);
+      if(pos){
+        const qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
+        sub2 = 'القبلة ' + iso(Math.round(qb) + '°') + ' · ' + directionWord(qb);
+      }
     }else{
       main = iso('--°'); sub = 'بانتظار البوصلة';
     }
