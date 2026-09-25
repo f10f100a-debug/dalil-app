@@ -66,7 +66,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 body.embed .nav-actions button{height:44px}
 body.embed .nav-arrow{width:44px;height:44px}
 </style></head><body><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
-<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-4" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
+<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-5" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>
 <div class="ctrl"><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
 <div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
@@ -110,8 +110,16 @@ function normRot(){return((rot%360)+360)%360}
 function isRotated(){const n=normRot();return n>.5&&n<359.5}
 
 // ---------- heading: GPS course when driving, compass otherwise ----------
+// أثناء القيادة: GPS مرجع الاتجاه (كل ثانية تقريبًا) والمستشعر يعطي التغيّر اللحظي
+// بين القراءات؛ الفرق الثابت الناتج عن هيكل السيارة يُصحَّح بـ courseOffset.
+let courseOffset=null,deviceHeadingAt=0;
+const angleDiff=(a,b)=>((a-b+540)%360)-180,norm360=a=>((a%360)+360)%360;
+function isDriving(){return gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH}
 function currentHeading(){
-  if(gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH)return gpsCourse;
+  if(isDriving()){
+    if(courseOffset!==null&&deviceHeading!==null&&Date.now()-deviceHeadingAt<2000)return norm360(deviceHeading+courseOffset);
+    return gpsCourse;
+  }
   return deviceHeading;
 }
 function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide}
@@ -125,7 +133,7 @@ function onHeadingChanged(){
     updateNavigation()});
 }
 function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
-function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){deviceHeading=smoothHeading(deviceHeading,(h+360)%360);onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
+function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){deviceHeading=smoothHeading(deviceHeading,(h+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
 // على iOS يجب أن يأتي طلب الإذن من ضغطة المستخدم؛ إن سبق منحه لا تظهر نافذة.
 async function ensureOrientation(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()!=='granted')return false}}catch(e){return false}bindOrientation();return true}
 
@@ -253,7 +261,10 @@ $('#plus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z+1)};$('#minus').o
 function statusForPosition(){const acc=Number.isFinite(gps.acc)?' — دقة GPS '+iso('±'+Math.round(gps.acc))+' م':'';return navigationActive?'التوجيه على الخريطة نشط'+acc:iso(fmtCoords(gps.lat,gps.lng))+acc}
 function acceptPosition(p,center=true){
   const c=p.coords;gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
-  if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){gpsCourse=c.heading;gpsCourseAt=Date.now()}
+  if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){
+    gpsCourse=c.heading;gpsCourseAt=Date.now();
+    if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
+  }else if(!isDriving())courseOffset=null;
   if(view==='fit'&&navigationActive)fitNavigation();
   else if(view==='follow'||view==='heading')centerOnGps();
   else if(center&&!navigationActive){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}
