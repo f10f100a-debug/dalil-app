@@ -2,7 +2,7 @@
 // Every call carries the admin password; failed attempts are throttled per IP.
 import webpush from "npm:web-push@3.6.7";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { b64uDecode, b64uEncode, cleanText, cleanup, config, cors, db, ipHash, json, KIND_AR, REGIONS } from "../_shared/common.ts";
+import { b64uDecode, b64uEncode, cleanText, cleanup, config, cors, db, ipHash, json, KIND_AR, KINDS, REGIONS } from "../_shared/common.ts";
 
 const MAX_FAILS = 5;
 const FAIL_WINDOW_MS = 15 * 60e3;
@@ -23,6 +23,16 @@ async function checkPassword(pass: string, cfg: Record<string,string>): Promise<
 }
 
 type Sub = { endpoint: string; p256dh: string; auth: string };
+
+function eventPayload(ev: { id: string; kind: string; region: string; caption: string }) {
+  const where = ev.region ? " في " + ev.region : "";
+  return {
+    title: `${KIND_AR[ev.kind] || "حدث"} الآن${where}`,
+    body: ev.caption || "صورة جديدة في «الأحداث» — اضغط للمشاهدة",
+    url: `./?screen=weather&tab=events&event=${ev.id}`,
+    tag: "event-" + ev.id,
+  };
+}
 
 async function sendPush(sb: SupabaseClient, cfg: Record<string,string>, region: string, payload: Record<string,unknown>) {
   webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
@@ -99,6 +109,40 @@ Deno.serve(async (req) => {
       });
     }
 
+    // نشر صورة مباشرة من الإدارة (بدون مراجعة) مع تنبيه اختياري.
+    if (action === "publish") {
+      const kind = String(body.kind || "");
+      if (!KINDS.includes(kind)) return json(req, { error: "bad_kind" }, 400);
+      const dec = (v: unknown) => typeof v === "string" && v ? b64uDecode(v.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) : new Uint8Array();
+      const photo = dec(body.photo_b64), thumb = dec(body.thumb_b64);
+      const isJpeg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+      if (!isJpeg(photo) || !isJpeg(thumb)) return json(req, { error: "bad_image" }, 415);
+      if (photo.length > 900 * 1024 || thumb.length > 120 * 1024) return json(req, { error: "too_large" }, 413);
+      const regionIn = cleanText(body.region, 40);
+      const region = REGIONS.includes(regionIn) ? regionIn : "";
+      let lat = Number(body.lat), lng = Number(body.lng);
+      const hasLoc = body.lat !== null && body.lat !== undefined && body.lat !== "" && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+      if (hasLoc) { lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5; }
+      const days = Math.min(14, Math.max(1, Math.round(Number(body.days) || LIVE_DAYS)));
+      const id = crypto.randomUUID(), photoPath = `${id}.jpg`, thumbPath = `${id}_t.jpg`;
+      for (const [p, b] of [[photoPath, photo], [thumbPath, thumb]] as const) {
+        const up = await sb.storage.from("events").upload(p, b, { contentType: "image/jpeg", cacheControl: "3600" });
+        if (up.error) throw up.error;
+      }
+      const now = new Date();
+      const ev = {
+        id, kind, region, lat: hasLoc ? lat : null, lng: hasLoc ? lng : null,
+        caption: cleanText(body.caption, 140), nickname: cleanText(body.nickname, 24), device: "admin",
+        width: Math.round(Number(body.w)) || null, height: Math.round(Number(body.h)) || null,
+        photo_path: photoPath, thumb_path: thumbPath, status: "approved",
+        approved_at: now.toISOString(), expires_at: new Date(now.getTime() + days * 86400e3).toISOString(),
+      };
+      const { error } = await sb.from("events").insert(ev);
+      if (error) { await sb.storage.from("events").remove([photoPath, thumbPath]); throw error; }
+      const push = body.notify ? await sendPush(sb, cfg, region, eventPayload(ev)) : null;
+      return json(req, { ok: true, id, push });
+    }
+
     if (action === "approve" && validId) {
       const { data: ev } = await sb.from("events").select("*").eq("id", id).maybeSingle();
       if (!ev || ev.status !== "pending") return json(req, { error: "not_pending" }, 409);
@@ -117,13 +161,7 @@ Deno.serve(async (req) => {
       if (error) throw error;
       let push = null;
       if (body.notify) {
-        const where = ev.region ? " في " + ev.region : "";
-        push = await sendPush(sb, cfg, ev.region, {
-          title: `${KIND_AR[ev.kind] || "حدث"} الآن${where}`,
-          body: ev.caption || "صورة جديدة في «الأحداث» — اضغط للمشاهدة",
-          url: `./?screen=weather&tab=events&event=${id}`,
-          tag: "event-" + id,
-        });
+        push = await sendPush(sb, cfg, ev.region, eventPayload(ev));
       }
       return json(req, { ok: true, push });
     }
