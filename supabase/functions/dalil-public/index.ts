@@ -101,6 +101,25 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // عدّاد استخدام مجهول: مرة يوميًا لكل جهاز/IP، مع المنطقة فقط (بدون موقع).
+    if (action === "ping") {
+      const regionIn = cleanText(body.region, 40);
+      const region = REGIONS.includes(regionIn) ? regionIn : "";
+      await sb.rpc("dalil_count", { p_ip: ip, p_key: "open", p_region: region, p_ad: null, p_kind: "open" });
+      return json(req, { ok: true });
+    }
+
+    // ظهور إعلان أو الضغط عليه (يُحسب مرة يوميًا لكل IP).
+    if (action === "ad") {
+      const id = String(body.id || ""), kind = String(body.kind || "");
+      if (!/^[0-9a-f-]{36}$/.test(id) || !["imp", "click"].includes(kind)) return json(req, { error: "bad_request" }, 400);
+      const regionIn = cleanText(body.region, 40);
+      const region = REGIONS.includes(regionIn) ? regionIn : "";
+      const { error } = await sb.rpc("dalil_count", { p_ip: ip, p_key: kind + ":" + id, p_region: region, p_ad: id, p_kind: kind });
+      if (error && !String(error.message || "").includes("foreign key")) console.error("ad count", error.message);
+      return json(req, { ok: true });
+    }
+
     if (action === "unsubscribe") {
       const endpoint = String(body.endpoint || "");
       if (endpoint) await sb.from("push_subs").delete().eq("endpoint", endpoint);

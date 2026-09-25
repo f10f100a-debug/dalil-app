@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>دليل — لوحة الإدارة</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -45,6 +45,16 @@
   .big.show{display:flex;}
   .big img{max-width:100%; max-height:100%;}
   [hidden]{display:none !important;}
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center;}
+  .kpis b{display:block; font-size:26px; line-height:1.2;} .kpis span{font-size:12.5px; color:var(--dim);}
+  .bars{display:flex; align-items:flex-end; gap:2px; height:70px; margin-top:12px; direction:ltr;}
+  .bars i{flex:1; background:var(--gold); border-radius:3px 3px 0 0; min-height:2px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .ad{display:grid; grid-template-columns:110px 1fr; gap:12px; align-items:start;}
+  .ad .thumb{width:110px; aspect-ratio:16/9; object-fit:cover; border-radius:10px; background:var(--line);}
+  .ad .noimg{width:110px; aspect-ratio:16/9; border-radius:10px; background:#F4F0E8; display:grid; place-items:center; font-size:12px; color:var(--dim);}
+  .on{background:var(--green-bg); color:var(--green);} .off{background:#F4F0E8; color:var(--dim);}
+  #adPreview img{max-width:100%; max-height:180px; border-radius:12px; margin-top:8px;}
 </style>
 </head>
 <body>
@@ -65,6 +75,13 @@
       <button class="white" id="logout" style="flex:0 0 auto">خروج</button>
     </div>
 
+    <h2>الاستخدام <span class="muted" style="font-weight:400">· فتح التطبيق مرة يوميًا لكل جهاز، بلا أي بيانات شخصية</span></h2>
+    <div class="card">
+      <div class="kpis"><div><b id="uToday">–</b><span>اليوم</span></div><div><b id="uWeek">–</b><span>آخر 7 أيام</span></div><div><b id="uMonth">–</b><span>آخر 30 يومًا</span></div></div>
+      <div class="bars" id="uBars" aria-label="الاستخدام اليومي لآخر 30 يومًا"></div>
+      <div class="stats" id="uRegions" style="margin-top:10px"></div>
+    </div>
+
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
     <div id="pending"></div>
 
@@ -82,6 +99,33 @@
 
     <h2>المنشور الآن <span class="badge" id="liveCount">0</span></h2>
     <div id="live"></div>
+
+    <h2>الإعلانات <span class="muted" style="font-weight:400">· تظهر في «الأحداث» وأسفل «الأماكن»، ولا تظهر في البوصلة</span></h2>
+    <div class="row" style="margin-bottom:10px"><button class="gold" id="adNew" style="flex:0 0 auto">+ إعلان جديد</button></div>
+    <div class="card" id="adForm" hidden>
+      <label for="adAdvertiser">المعلن (للإدارة فقط)</label><input id="adAdvertiser" maxlength="60" placeholder="مثال: محل الرحلات — حائل">
+      <label for="adTitle">العنوان</label><input id="adTitle" maxlength="60" placeholder="مثال: كل عدّة الكشتة في مكان واحد">
+      <label for="adBody">النص (اختياري)</label><textarea id="adBody" maxlength="140" placeholder="مثال: خيام، حطب، دفايات — توصيل للمخيم"></textarea>
+      <label for="adImage">الصورة (اختيارية)</label><input id="adImage" type="file" accept="image/*">
+      <div id="adPreview" class="muted"></div>
+      <label class="chk" id="adRemoveRow" hidden><input type="checkbox" id="adRemoveImage"> حذف الصورة الحالية</label>
+      <div class="grid2">
+        <div><label for="adCtaLabel">نص الزر</label><input id="adCtaLabel" maxlength="24" value="تواصل واتساب"></div>
+        <div><label for="adCtaUrl">الرابط</label><input id="adCtaUrl" dir="ltr" placeholder="https://wa.me/9665…"></div>
+      </div>
+      <div class="grid2">
+        <div><label for="adRegion">المنطقة</label><select id="adRegion"><option value="">كل المناطق</option></select></div>
+        <div><label for="adPlacement">المكان</label><select id="adPlacement"><option value="both">الأحداث والأماكن</option><option value="events">الأحداث فقط</option><option value="places">الأماكن فقط</option></select></div>
+      </div>
+      <div class="grid2">
+        <div><label for="adStart">من</label><input id="adStart" type="date"></div>
+        <div><label for="adEnd">إلى</label><input id="adEnd" type="date"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="adActive"> مفعّل (يظهر للمستخدمين)</label>
+      <div class="row" style="margin-top:10px"><button class="gold" id="adSave">حفظ</button><button class="white" id="adCancel">إلغاء</button></div>
+      <div class="msg" id="adMsg"></div>
+    </div>
+    <div id="adList"></div>
   </section>
 </main>
 <div class="big" id="big"><img alt=""></div>
@@ -143,7 +187,7 @@
   $('loginBtn').addEventListener('click', async ()=>{
     pass = $('pass').value.trim(); if(!pass) return;
     $('loginBtn').disabled = true; $('loginMsg').textContent = '';
-    try{ await load(); try{ sessionStorage.setItem('dalil_admin', pass); }catch(e){} $('pass').value = ''; }
+    try{ await load(); try{ sessionStorage.setItem('dalil_admin', pass); }catch(e){} $('pass').value = ''; loadUsage().catch(showErr); loadAds().catch(showErr); }
     catch(e){ showErr(e); }
     finally{ $('loginBtn').disabled = false; }
   });
@@ -181,7 +225,108 @@
     finally{ $('pSend').disabled = false; }
   });
 
-  if(pass) load().catch(showErr);
+
+  // ---------- الاستخدام ----------
+  async function loadUsage(){
+    const u = await api('usage');
+    $('uToday').textContent = u.today; $('uWeek').textContent = u.week; $('uMonth').textContent = u.month;
+    const days = []; for(let i = 29; i >= 0; i--){ days.push(new Date(Date.now() + 3 * 3600e3 - i * 86400e3).toISOString().slice(0, 10)); }
+    const max = Math.max(1, ...days.map(d=>u.byDay[d] || 0));
+    $('uBars').innerHTML = days.map(d=>`<i title="${d}: ${u.byDay[d] || 0}" style="height:${Math.round((u.byDay[d] || 0) / max * 100)}%"></i>`).join('');
+    const regs = Object.entries(u.byRegion).sort((a, b)=>b[1] - a[1]);
+    $('uRegions').innerHTML = regs.length ? regs.map(([k, v])=>`<span>${esc(k)}: <b>${v}</b></span>`).join('') : '<span>لا توجد بيانات بعد</span>';
+  }
+
+  // ---------- الإعلانات ----------
+  let ads = [], editing = null, adImage = null;
+  const dateVal = iso=>new Date(new Date(iso).getTime() + 3 * 3600e3).toISOString().slice(0, 10);
+  function adCard(a){
+    const now = Date.now(), running = a.active && new Date(a.starts_at) <= now && new Date(a.ends_at) >= now;
+    const ctr = a.stats.imp ? (a.stats.clk / a.stats.imp * 100).toFixed(1) + '%' : '–';
+    return `<div class="card ad" data-ad="${esc(a.id)}">
+      ${a.image_url ? `<img class="thumb" src="${esc(safeUrl(a.image_url))}" alt="">` : '<div class="noimg">بدون صورة</div>'}
+      <div>
+        <div class="t">${esc(a.title)} <span class="badge ${running ? 'on' : 'off'}">${running ? 'يظهر الآن' : a.active ? 'خارج المدة' : 'متوقف'}</span></div>
+        <div class="m">${a.advertiser ? esc(a.advertiser) + ' · ' : ''}${esc(a.region || 'كل المناطق')} · ${esc(dateVal(a.starts_at))} ← ${esc(dateVal(a.ends_at))}<br>
+          ظهر لـ <b>${a.stats.imp}</b> · ضغطات <b>${a.stats.clk}</b> · نسبة الضغط ${ctr}</div>
+        <div class="row"><button class="white" data-adact="toggle">${a.active ? 'إيقاف' : 'تفعيل'}</button><button class="white" data-adact="edit">تعديل</button><button class="danger" data-adact="delete">حذف</button></div>
+      </div></div>`;
+  }
+  async function loadAds(){
+    const d = await api('ads_list');
+    ads = d.ads || [];
+    const sel = $('adRegion');
+    if(sel.options.length === 1) (d.regions || []).forEach(r=>{ const o = document.createElement('option'); o.textContent = r; sel.appendChild(o); });
+    $('adList').innerHTML = ads.length ? ads.map(adCard).join('') : '<div class="card muted">لا توجد إعلانات. التطبيق لا يعرض أي إعلان حتى تضيف واحدًا وتفعّله.</div>';
+  }
+  function openForm(a){
+    editing = a || null; adImage = null;
+    $('adAdvertiser').value = a ? a.advertiser : ''; $('adTitle').value = a ? a.title : ''; $('adBody').value = a ? a.body : '';
+    $('adCtaLabel').value = a ? a.cta_label : 'تواصل واتساب'; $('adCtaUrl').value = a ? a.cta_url : '';
+    $('adRegion').value = a ? a.region : ''; $('adPlacement').value = a ? a.placement : 'both';
+    $('adStart').value = dateVal(a ? a.starts_at : new Date().toISOString());
+    $('adEnd').value = dateVal(a ? a.ends_at : new Date(Date.now() + 30 * 86400e3).toISOString());
+    $('adActive').checked = a ? a.active : false;
+    $('adImage').value = ''; $('adRemoveImage').checked = false; $('adRemoveRow').hidden = !(a && a.image_url);
+    $('adPreview').innerHTML = a && a.image_url ? `<img src="${esc(safeUrl(a.image_url))}" alt="">` : '';
+    $('adMsg').textContent = ''; $('adForm').hidden = false; $('adForm').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  function compress(file){
+    return new Promise((resolve, reject)=>{
+      const url = URL.createObjectURL(file), img = new Image();
+      img.onload = ()=>{
+        const s = Math.min(1, 1200 / Math.max(img.naturalWidth, img.naturalHeight));
+        const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * s); c.height = Math.round(img.naturalHeight * s);
+        const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        let q = .82, data = c.toDataURL('image/jpeg', q);
+        while(data.length * .75 > 450 * 1024 && q > .4){ q -= .12; data = c.toDataURL('image/jpeg', q); }
+        resolve(data);
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('decode')); };
+      img.src = url;
+    });
+  }
+  $('adNew').addEventListener('click', ()=>openForm(null));
+  $('adCancel').addEventListener('click', ()=>{ $('adForm').hidden = true; });
+  $('adImage').addEventListener('change', async e=>{
+    const f = e.target.files && e.target.files[0]; if(!f) return;
+    try{ adImage = await compress(f); $('adPreview').innerHTML = `<img src="${adImage}" alt="">`; }
+    catch(err){ adImage = null; $('adMsg').textContent = 'تعذّر قراءة الصورة'; $('adMsg').className = 'msg err'; }
+  });
+  $('adSave').addEventListener('click', async ()=>{
+    const ad = {
+      id: editing ? editing.id : undefined,
+      advertiser: $('adAdvertiser').value.trim(), title: $('adTitle').value.trim(), body: $('adBody').value.trim(),
+      cta_label: $('adCtaLabel').value.trim(), cta_url: $('adCtaUrl').value.trim(),
+      region: $('adRegion').value, placement: $('adPlacement').value, active: $('adActive').checked,
+      starts_at: $('adStart').value ? $('adStart').value + 'T00:00:00+03:00' : undefined,
+      ends_at: $('adEnd').value ? $('adEnd').value + 'T23:59:59+03:00' : undefined
+    };
+    if(!ad.title){ $('adMsg').textContent = 'اكتب عنوان الإعلان'; $('adMsg').className = 'msg err'; return; }
+    if(!/^(https:\/\/\S+|tel:\+?\d{6,15})$/.test(ad.cta_url)){ $('adMsg').textContent = 'الرابط يجب أن يبدأ بـ https:// (مثل https://wa.me/9665…) أو tel:'; $('adMsg').className = 'msg err'; return; }
+    $('adSave').disabled = true;
+    try{
+      await api('ad_save', {ad, image_b64: adImage ? adImage.split(',')[1] : undefined, remove_image: $('adRemoveImage').checked});
+      $('adForm').hidden = true; await loadAds();
+    }catch(e){ $('adMsg').textContent = e.message === 'bad_url' ? 'الرابط غير صالح' : (e.message || 'تعذّر الحفظ'); $('adMsg').className = 'msg err'; if(e.auth) showErr(e); }
+    finally{ $('adSave').disabled = false; }
+  });
+  $('adList').addEventListener('click', async ev=>{
+    const b = ev.target.closest('[data-adact]'); if(!b) return;
+    const a = ads.find(x=>x.id === b.closest('[data-ad]').dataset.ad); if(!a) return;
+    if(b.dataset.adact === 'edit'){ openForm(a); return; }
+    if(b.dataset.adact === 'delete' && !confirm('حذف الإعلان نهائيًا مع إحصائياته؟')) return;
+    b.disabled = true;
+    try{
+      if(b.dataset.adact === 'delete') await api('ad_delete', {id:a.id});
+      else await api('ad_save', {ad:{...a, active:!a.active}});
+      await loadAds();
+    }catch(e){ showErr(e); b.disabled = false; }
+  });
+  const loadAll = ()=>load().then(()=>Promise.all([loadUsage(), loadAds()]));
+  $('refresh').addEventListener('click', ()=>Promise.all([loadUsage(), loadAds()]).catch(showErr));
+  if(pass) loadAll().catch(showErr);
 })();
 </script>
 </body>
