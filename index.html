@@ -23,6 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#11171b;
@@ -109,46 +110,12 @@
   .banner b{color:var(--sand); font-weight:700;}
 
   /* compass */
-  .compass-wrap{
-    display:flex; flex-direction:column; align-items:center;
-    padding:6px 0 8px; position:relative;
-  }
-  .compass{position:relative; width:310px; height:310px; max-width:86vw; max-height:86vw; margin:0 auto;}
-  .compass svg{width:100%; height:100%; display:block;}
-  .compass-side-btn{
-    position:absolute; top:84%; transform:translateY(-50%); z-index:3;
-    width:76px; min-height:54px; padding:7px 5px; border-radius:14px;
-    font-size:10.5px; line-height:1.35; box-shadow:var(--shadow);
-  }
-  .compass-side-btn.save{right:0;}
-  .compass-side-btn.paste{left:0;}
-  .heading-badge{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    text-align:center;
-  }
-  .heading-badge .deg{font-size:34px; font-weight:900; line-height:1;}
-  .heading-badge .card{font-size:12px; color:var(--text-dim); margin-top:4px; letter-spacing:1px;}
-  .compass-target-name{
-    display:none; position:absolute; top:22px; right:0; z-index:4;
-    width:88px; padding:6px 7px; border:1px solid rgba(217,161,91,.3); border-radius:12px;
-    background:var(--panel); color:var(--sand); font-size:10px; font-weight:800;
-    line-height:1.35; text-align:center;
-  }
-  .compass-target-name.show{display:block;}
-
   .coord-card{
     background:var(--panel); border:1px solid var(--line); border-radius:16px;
     padding:14px 16px; margin-top:16px;
   }
   .coord-row{display:flex; align-items:center; justify-content:space-between;}
   .coord-value{font-size:19px; font-weight:700; letter-spacing:.3px; direction:ltr; text-align:left; unicode-bidi:plaintext;}
-  .fmt-switch{display:flex; gap:4px; background:var(--panel-2); border-radius:100px; padding:3px;}
-  .fmt-switch button{
-    border:none; background:transparent; color:var(--text-faint); font-family:inherit;
-    font-size:11px; padding:5px 9px; border-radius:100px; cursor:pointer; font-weight:700;
-  }
-  .fmt-switch button.active{background:var(--sand); color:#1a1206;}
-
   .stat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:12px;}
   .stat{
     background:var(--panel-2); border-radius:12px; padding:10px 8px; text-align:center;
@@ -169,7 +136,6 @@
   .btn-row{display:flex; gap:8px; margin-top:10px;}
   .btn-row .btn{width:auto; flex:1;}
   .btn.small{padding:9px 12px; font-size:12.5px; border-radius:10px;}
-  .btn.compass-side-btn{width:76px;}
 
   .nav-target-card{
     margin-top:14px; background:linear-gradient(160deg, rgba(217,161,91,.14), transparent);
@@ -188,13 +154,6 @@
   .distance-focus.near{background:rgba(127,164,135,.18); border-color:rgba(127,164,135,.55);}
   .distance-focus.near .dist{color:var(--sage);}
   .nav-target-card .sub-stats{display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:10px; font-size:12px; color:var(--text-dim);}
-  .nav-activation{
-    display:none; align-items:center; gap:10px; margin:8px 0; padding:9px 10px;
-    background:rgba(217,161,91,.14); border:1px solid rgba(217,161,91,.38); border-radius:13px;
-  }
-  .nav-activation .hint{flex:1; min-width:0; font-size:11px; line-height:1.55; color:var(--text-dim);}
-  .nav-activation .btn{width:auto; max-width:55%; flex:0 1 auto; padding:9px 11px; font-size:11.5px; line-height:1.45;}
-
   /* saved places */
   .search-row{display:flex; gap:8px; margin-bottom:10px;}
   .search-box{
@@ -323,72 +282,178 @@
   .tab .ic{font-size:19px;}
   .tab.active{color:var(--sand);}
 
-  .floating-tools{
-    position:fixed; left:50%; bottom:calc(82px + env(safe-area-inset-bottom)); transform:translateX(-50%);
-    width:calc(100% - 24px); max-width:456px; z-index:19;
-    display:flex; align-items:center; justify-content:flex-end; gap:8px;
-    pointer-events:none;
-  }
-  .floating-tools > *{pointer-events:auto;}
-  .car-quick{position:relative;}
-  .car-fab{width:50px;height:50px;border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--text);font-size:23px;box-shadow:var(--shadow);cursor:pointer;}
-  .car-fab.has-car{background:var(--sand);color:#1a1206;border-color:var(--sand);}
-  .car-menu{display:none;position:absolute;left:0;bottom:58px;width:190px;padding:7px;background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);}
-  .car-menu.show{display:grid;gap:6px;}
-  .car-menu button{min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);color:var(--text);font-family:inherit;font-size:11.5px;font-weight:800;text-align:right;cursor:pointer;}
-  .car-menu .remove{color:var(--danger);}
-  .compass-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;}
-  .compass-actions .btn{padding:11px 8px;font-size:12px;min-width:0;}
-  .compass-actions .wide{grid-column:1/-1;}
   @media (max-height:850px){
     #app{min-height:100dvh;height:100dvh;}
     .topbar{padding:8px 14px 5px;}
     .brand .mark{width:30px;height:30px;font-size:16px;}
     .brand .name{font-size:16px;}
     main{padding:3px 14px calc(72px + env(safe-area-inset-bottom));}
-    #screen-compass .weather-card{padding:7px 10px;margin-bottom:5px;border-radius:13px;}
-    #screen-compass .weather-icon{font-size:23px;width:30px;}
-    #screen-compass .weather-title{font-size:12px;}
-    #screen-compass .weather-meta{font-size:10px;line-height:1.35;margin-top:1px;}
-    #screen-compass .compass-wrap{padding:0;}
-    #screen-compass .compass{width:min(300px,39dvh);height:min(300px,39dvh);}
-    #screen-compass .compass-side-btn{width:70px;min-height:48px;padding:6px 4px;font-size:10px;}
-    #screen-compass .heading-badge .deg{font-size:28px;}
-    #screen-compass .coord-card{padding:8px 10px;margin-top:5px;border-radius:13px;}
-    #screen-compass .coord-value{font-size:16px;margin-top:5px!important;}
-    #screen-compass .stat-grid{margin-top:6px;gap:5px;}
-    #screen-compass .stat{padding:5px 4px;}
-    #screen-compass .stat .v{font-size:13px;}
-    #screen-compass .stat .l{font-size:9px;}
-    #screen-compass .nav-target-card{margin-top:6px;padding:7px 9px;}
-    #screen-compass .distance-focus{margin-top:5px;padding:5px 8px;}
-    #screen-compass .nav-target-card .dist{font-size:27px;}
-    #screen-compass .nav-target-card .sub-stats{margin-top:5px;font-size:10px;}
-    #screen-compass .nav-target-card .btn{margin-top:5px!important;padding:6px 9px;}
-    #screen-compass .compass-actions{gap:5px;margin-top:6px;}
-    #screen-compass .compass-actions .btn{padding:7px 5px;font-size:10.5px;border-radius:10px;}
     .tabbar{padding:4px 4px calc(4px + env(safe-area-inset-bottom));}
     .tab{gap:2px;padding:3px 2px;font-size:9.5px;}
     .tab .ic{font-size:17px;}
-    .floating-tools{bottom:calc(60px + env(safe-area-inset-bottom));}
-    .car-fab{width:44px;height:44px;border-radius:14px;font-size:20px;}
-    .car-menu{bottom:51px;}
   }
   @media (max-width:370px){
-    .btn.compass-side-btn{width:62px;font-size:9px;}
     .icon-btn.radar-btn{padding:0 7px;font-size:10px;}
   }
   @media (max-height:700px){
     .track-map-frame{height:55dvh;min-height:330px;}
   }
-  @media (display-mode:standalone){
-    #screen-compass .compass{width:min(320px,42dvh);height:min(320px,42dvh);}
-    #screen-compass .compass-wrap{padding:5px 0 10px;}
-    #screen-compass .compass-side-btn{width:76px;min-height:54px;padding:7px 5px;font-size:10.5px;}
-    #screen-compass .coord-card{padding:10px 12px;margin-top:8px;}
-    #screen-compass .compass-actions{margin-top:8px;gap:7px;}
-    #screen-compass .compass-actions .btn{padding:10px 6px;}
+  /* ===== صفحة البوصلة (الهوية الجديدة) ===== */
+  #screen-compass, .cp-sheet{
+    --cp-bg:#F2EFE9; --cp-card:#FFFFFF; --cp-line:#E4DED3;
+    --cp-gold:#C9964F; --cp-gold-ink:#7A4E14; --cp-ink:#1C1A17;
+    --cp-dim:#6B645A; --cp-faint:#9A9287; --cp-soft:#F7F4EE;
+    --cp-red:#8E1E17; --cp-red-bg:#F7E4E1; --cp-green:#2F7A4B; --cp-green-bg:#E3F1E7;
+    font-family:"IBM Plex Sans Arabic", system-ui, sans-serif;
+    color:var(--cp-ink);
   }
+  body.on-compass, body.on-compass #app{background:#F2EFE9;}
+  body.on-compass .topbar{display:none;}
+  #screen-compass{padding-top:max(8px, env(safe-area-inset-top));}
+  .cp-ic{width:22px; height:22px; flex:0 0 auto; display:inline-block; vertical-align:middle;}
+  .cp-ic svg{width:100%; height:100%; display:block;}
+
+  .cp-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 10px;}
+  .cp-title{margin:0; font-size:22px; font-weight:700; letter-spacing:0;}
+  .cp-badges{display:flex; align-items:center; gap:4px;}
+  .cp-badge{
+    min-height:44px; display:flex; align-items:center; padding:0; background:none; border:0;
+    font-family:inherit; color:inherit; cursor:pointer;
+  }
+  .cp-badge[hidden]{display:none;}
+  .cp-pill{
+    display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 11px;
+    background:var(--cp-card); border:1px solid var(--cp-line); border-radius:100px;
+    font-size:13px; font-weight:600; color:var(--cp-ink); white-space:nowrap;
+  }
+  .cp-pill .cp-ic{width:18px; height:18px; color:var(--cp-gold-ink);}
+  .cp-dot{width:8px; height:8px; border-radius:50%; background:var(--cp-faint); flex:0 0 auto;}
+  .cp-dot.good{background:#3E8E5A;} .cp-dot.fair{background:var(--cp-gold);} .cp-dot.poor{background:#B23A2E;}
+
+  .cp-card{
+    background:var(--cp-card); border:1px solid var(--cp-line); border-radius:22px;
+    padding:16px; margin-bottom:12px;
+  }
+  .cp-activation{display:none; align-items:center; gap:10px; margin-bottom:12px; padding:12px 14px; border-radius:20px;
+    background:#FBF3E6; border:1px solid #EAD6B5;}
+  .cp-activation .hint{flex:1; min-width:0; font-size:12.5px; line-height:1.6; color:var(--cp-dim);}
+  .cp-activation .cp-btn{width:auto; flex:0 0 auto; padding:0 14px;}
+
+  /* البوصلة */
+  .cp-compass-card{padding:14px 12px 12px;}
+  .cp-compass{position:relative; width:min(100%, 300px, 44dvh); aspect-ratio:1; margin:0 auto; min-width:220px;}
+  .cp-compass svg{width:100%; height:100%; display:block; overflow:visible;}
+  .cp-face{fill:#FFFDF9; stroke:var(--cp-line); stroke-width:1.5;}
+  .cp-inner{fill:none; stroke:#EFEAE1; stroke-width:1;}
+  .cp-tick{stroke:#CFC7BA; stroke-width:1.2;}
+  .cp-tick.major{stroke:#A79E90; stroke-width:1.8;}
+  .cp-letter{font-family:"IBM Plex Sans Arabic", system-ui, sans-serif; font-size:19px; font-weight:700; fill:var(--cp-dim);}
+  .cp-letter.north{fill:#C0392B;}
+  .cp-index{fill:var(--cp-ink);}
+  .cp-arrow path{fill:var(--cp-gold); stroke:#FFFDF9; stroke-width:1.5; stroke-linejoin:round; transition:fill .2s, opacity .3s;}
+  .cp-compass.aligned .cp-arrow path{fill:var(--cp-gold-ink); filter:drop-shadow(0 0 5px rgba(201,150,79,.9));}
+  .cp-glow{fill:none; stroke:var(--cp-gold); stroke-width:3; opacity:0;}
+  .cp-compass.aligned .cp-glow{animation:cpGlow 1.4s ease-in-out infinite;}
+  @keyframes cpGlow{0%,100%{opacity:.15} 50%{opacity:.7}}
+  .cp-compass.near .cp-arrow{opacity:.35;}
+  .cp-near-ring{fill:none; stroke:var(--cp-gold); stroke-width:2; stroke-dasharray:3 6; stroke-linecap:round; display:none; transform-origin:150px 150px; animation:cpSpin 14s linear infinite;}
+  .cp-compass.near .cp-near-ring{display:block;}
+  @keyframes cpSpin{to{transform:rotate(360deg)}}
+  .cp-car-dot{fill:var(--cp-gold); stroke:#FFFDF9; stroke-width:2;}
+  .cp-qibla{fill:#2F6B4F;}
+  .cp-center{
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:52%; text-align:center; pointer-events:none;
+  }
+  .cp-c-label{font-size:13px; font-weight:600; color:var(--cp-gold-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:0;}
+  .cp-c-label:empty, .cp-c-sub:empty{display:none;}
+  .cp-c-main{font-size:40px; font-weight:700; line-height:1.15; color:var(--cp-ink); font-variant-numeric:tabular-nums; unicode-bidi:plaintext;}
+  .cp-c-main.words{font-size:24px; line-height:1.35;}
+  .cp-c-sub{font-size:12.5px; color:var(--cp-dim); margin-top:2px; line-height:1.45;}
+  .cp-c-sub + .cp-c-sub{margin-top:1px; font-size:11.5px;}
+  .cp-calib{display:flex; align-items:center; justify-content:center; gap:6px; margin:10px auto 0; padding:6px 12px; width:max-content; max-width:100%;
+    border-radius:100px; background:#FBF3E6; color:var(--cp-gold-ink); font-size:12px; font-weight:600;}
+  .cp-calib[hidden]{display:none;}
+  .cp-calib .cp-ic{width:16px; height:16px;}
+
+  /* الأزرار */
+  .cp-btn{
+    min-height:48px; width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    border-radius:16px; border:1px solid transparent; padding:0 16px; cursor:pointer;
+    font-family:inherit; font-size:15px; font-weight:600; line-height:1.3; text-align:center;
+  }
+  .cp-btn:disabled{opacity:.45; cursor:not-allowed;}
+  .cp-btn-gold{background:var(--cp-gold); color:var(--cp-ink);}
+  .cp-btn-gold:active{background:#B98640;}
+  .cp-btn-white{background:var(--cp-card); color:var(--cp-ink); border-color:var(--cp-line);}
+  .cp-btn-white:active{background:var(--cp-soft);}
+  .cp-btn-danger{background:var(--cp-red-bg); color:var(--cp-red); border-color:#EFCFC9;}
+  .cp-btn-lg{min-height:54px; font-size:16px;}
+  .cp-actions{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:12px;}
+  .cp-actions .cp-btn{flex-direction:column; gap:4px; min-height:68px; padding:8px 4px; font-size:13.5px; border-radius:18px;}
+  .cp-actions .cp-btn-gold .cp-ic{color:var(--cp-ink);}
+  .cp-actions .cp-btn-white .cp-ic{color:var(--cp-gold-ink);}
+  .cp-icon-btn{
+    width:44px; height:44px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; cursor:pointer;
+    background:var(--cp-soft); border:1px solid var(--cp-line); color:var(--cp-ink); padding:0;
+  }
+
+  /* بطاقة السيارة */
+  .cp-car.cp-empty{border:1.5px dashed #CDBFA8; background:#FBF9F5;}
+  .cp-car-row{display:flex; align-items:center; gap:12px;}
+  .cp-car-ic{width:44px; height:44px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; background:#FBF3E6; color:var(--cp-gold-ink);}
+  .cp-car-ic.ok{background:var(--cp-green-bg); color:var(--cp-green);}
+  .cp-car-ic.ok .cp-ic{width:26px; height:26px;}
+  .cp-car-txt{flex:1; min-width:0;}
+  .cp-car-title{font-size:16px; font-weight:700; line-height:1.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cp-car-sub{font-size:13px; color:var(--cp-dim); line-height:1.5; margin-top:1px;}
+  .cp-car-sub:empty{display:none;}
+  .cp-car .cp-btn{margin-top:12px;}
+  .cp-car-btns{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
+  .cp-car-btns .cp-btn{margin-top:0;}
+
+  /* موقعي الحالي */
+  .cp-label{font-size:13px; font-weight:600; color:var(--cp-dim);}
+  .cp-loc-row{display:flex; align-items:center; gap:10px; margin-top:6px;}
+  .cp-coords{flex:1; min-width:0; direction:ltr; text-align:left; unicode-bidi:isolate; font-size:21px; font-weight:600; line-height:1.35; font-variant-numeric:tabular-nums; letter-spacing:.2px;}
+  .cp-coords.waiting{font-size:15px; color:var(--cp-faint); direction:rtl; text-align:right;}
+  .cp-loc-meta{font-size:13px; color:var(--cp-dim); margin-top:6px;}
+  .cp-loc-meta:empty{display:none;}
+  .cp-zello{margin-bottom:12px;}
+  .cp-zello .cp-ic{color:var(--cp-gold-ink);}
+
+  /* الطوارئ */
+  .cp-sos{
+    position:relative; overflow:hidden; width:100%; min-height:56px; border-radius:18px; cursor:pointer;
+    background:var(--cp-red-bg); color:var(--cp-red); border:1px solid #EFCFC9;
+    font-family:inherit; font-size:15px; font-weight:700; padding:0 14px;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation;
+  }
+  .cp-sos-fill{position:absolute; inset:0; background:rgba(142,30,23,.16); transform:scaleX(0); transform-origin:right center;}
+  .cp-sos.holding .cp-sos-fill{transform:scaleX(1); transition:transform 1s linear;}
+  .cp-sos.armed{background:#EFCAC4;}
+  .cp-sos-body{position:relative; display:flex; align-items:center; justify-content:center; gap:8px;}
+  .cp-sos-note{font-size:12px; color:var(--cp-faint); text-align:center; margin:6px 0 4px;}
+
+  /* القائمة السفلية */
+  .cp-sheet{background:var(--cp-card); color:var(--cp-ink);}
+  .cp-sheet .sheet-handle{background:var(--cp-line);}
+  .cp-sheet h3{font-size:17px; font-weight:700;}
+  .cp-sheet-list{display:grid; gap:8px; margin-bottom:12px;}
+  .cp-sheet-item{
+    display:flex; align-items:center; gap:12px; min-height:56px; width:100%; padding:10px 14px; cursor:pointer;
+    background:var(--cp-soft); border:1px solid var(--cp-line); border-radius:16px;
+    font-family:inherit; color:var(--cp-ink); text-align:right;
+  }
+  .cp-sheet-item[hidden], .cp-sheet .cp-btn[hidden]{display:none;}
+  .cp-sheet-item .cp-ic{color:var(--cp-gold-ink);}
+  .cp-sheet-item b{display:block; font-size:15px; font-weight:600;}
+  .cp-sheet-item small{display:block; font-size:12px; color:var(--cp-dim); margin-top:2px;}
+  .cp-sheet-item small.warn{color:var(--cp-gold-ink);}
+  .cp-sheet .cp-btn + .cp-btn{margin-top:8px;}
+  /* التنبيه المؤقت يظهر أعلى الشاشة حتى لا يغطي أزرار البوصلة السفلية */
+  body.on-compass .toast{bottom:auto; top:calc(env(safe-area-inset-top) + 10px); transform:translate(-50%,-6px);}
+  body.on-compass .toast.show{transform:translate(-50%,0);}
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -448,7 +513,7 @@
   }
 </style>
 </head>
-<body>
+<body class="on-compass">
 <div id="app">
 
   <div class="topbar">
@@ -473,90 +538,70 @@
 
     <!-- ============ COMPASS SCREEN ============ -->
     <section class="screen active" id="screen-compass">
-      <div class="weather-card" id="weatherCard" aria-live="polite">
-        <div class="weather-main">
-          <div class="weather-icon" id="weatherIcon">⛅</div>
-          <div class="weather-info">
-            <div class="weather-title" id="weatherTitle">طقس اليوم — بانتظار تحديد الموقع</div>
-            <div class="weather-meta" id="weatherMeta">ستظهر الحرارة والرياح بعد تفعيل GPS والاتصال بالإنترنت.</div>
+      <header class="cp-head">
+        <h1 class="cp-title">البوصلة</h1>
+        <div class="cp-badges">
+          <button type="button" class="cp-badge" id="cpWeatherBadge" hidden aria-label="الطقس الحالي — عرض التفاصيل">
+            <span class="cp-pill"><span class="cp-ic" id="cpWeatherIcon"></span><span id="cpWeatherTemp" dir="ltr"></span></span>
+          </button>
+          <div class="cp-badge" role="status" aria-label="دقة GPS">
+            <span class="cp-pill"><span class="cp-dot" id="cpGpsDot"></span><span id="cpGpsText">GPS…</span></span>
           </div>
-          <button class="icon-btn" id="refreshWeatherBtn" type="button" title="تحديث الطقس" aria-label="تحديث الطقس">↻</button>
         </div>
-        <div class="weather-warning" id="weatherWarning"></div>
-      </div>
+      </header>
 
-      <div class="nav-activation" id="navActivation" role="status">
+      <div class="cp-activation" id="navActivation" role="status">
         <div class="hint" id="navActivationHint">اضغط مرة واحدة لتشغيل البوصلة والموقع على iPhone.</div>
-        <button class="btn btn-primary" id="navActivationBtn">🧭 تشغيل البوصلة والموقع</button>
+        <button class="cp-btn cp-btn-gold" id="navActivationBtn" type="button">تشغيل البوصلة</button>
       </div>
 
-      <div class="compass-wrap">
-        <div class="compass">
-          <svg viewBox="0 0 260 260" id="compassSvg">
-            <circle cx="130" cy="130" r="122" fill="var(--panel)" stroke="var(--line)" stroke-width="2"/>
-            <circle cx="130" cy="130" r="98" fill="none" stroke="var(--line)" stroke-width="1"/>
+      <div class="cp-card cp-compass-card">
+        <div class="cp-compass" id="cpCompass">
+          <svg viewBox="0 0 300 300" id="compassSvg" aria-hidden="true">
+            <circle class="cp-glow" cx="150" cy="150" r="140"/>
+            <circle class="cp-face" cx="150" cy="150" r="136"/>
+            <circle class="cp-inner" cx="150" cy="150" r="86"/>
             <g id="dial"></g>
-            <g id="targetArrow" style="display:none">
-              <line x1="130" y1="150" x2="130" y2="94" stroke="var(--sand)" stroke-width="6" stroke-linecap="round"/>
-              <path d="M130 10 L154 92 L130 72 L106 92 Z" fill="var(--sand)" stroke="#1a1206" stroke-width="2" stroke-linejoin="round"/>
-            </g>
-            <circle cx="130" cy="130" r="5" fill="var(--sand)"/>
-            <path d="M130 20 L136 34 L130 30 L124 34 Z" fill="var(--danger)"/>
+            <g id="dialLetters"></g>
+            <g id="dialMarks"></g>
+            <circle class="cp-near-ring" cx="150" cy="150" r="80"/>
+            <g id="targetArrow" class="cp-arrow" style="display:none"><path d="M150 15 L162 40 L150 34 L138 40 Z"/></g>
+            <path class="cp-index" d="M141 0 L159 0 L150 13 Z"/>
           </svg>
-          <div class="heading-badge">
-            <div class="deg" id="headingDeg">--°</div>
-            <div class="card" id="headingCard">—</div>
-            <div id="headingSrc" style="font-size:9.5px; color:var(--text-faint); margin-top:3px; max-width:130px; line-height:1.5;">بانتظار بيانات الاتجاه…</div>
+          <div class="cp-center" aria-live="polite">
+            <div class="cp-c-label" id="cpCLabel"></div>
+            <div class="cp-c-main" id="cpCMain" dir="ltr">--°</div>
+            <div class="cp-c-sub" id="cpCSub">بانتظار البوصلة</div>
+            <div class="cp-c-sub" id="cpCSub2"></div>
           </div>
         </div>
-        <div class="compass-target-name" id="compassTargetName"></div>
-        <button class="btn btn-primary compass-side-btn save" type="button" id="saveHereBtn" aria-label="حفظ موقعي الحالي">📍 حفظ<br>موقعي</button>
-        <button class="btn btn-ghost compass-side-btn paste" type="button" id="pasteBtn" aria-label="لصق موقع أو إحداثية">📋 لصق<br>موقع</button>
+        <div class="cp-calib" id="cpCalib" hidden><span class="cp-ic" data-ico="calib"></span>حرّك جوالك على شكل 8 للمعايرة</div>
       </div>
 
-      <div class="coord-card">
-        <div class="coord-row">
-          <div class="fmt-switch">
-            <button data-fmt="dd">DD</button>
-            <button data-fmt="dms">DMS</button>
-            <button data-fmt="ddm" class="active">DDM</button>
-          </div>
-          <div style="display:flex; gap:6px;">
-            <button class="icon-btn" id="copyCoordBtn" type="button" title="نسخ الإحداثيات" aria-label="نسخ الإحداثيات">📋</button>
-          </div>
-        </div>
-        <div class="coord-value" id="coordValue" style="margin-top:12px;">— بانتظار الموقع —</div>
-        <div class="stat-grid">
-          <div class="stat"><div class="v" id="statAlt">—</div><div class="l">الارتفاع (م)</div></div>
-          <div class="stat"><div class="v" id="statSpeed">—</div><div class="l">السرعة (كم/س)</div></div>
-          <div class="stat"><div class="v" id="statAcc">—</div><div class="l">دقة GPS (م)</div></div>
-        </div>
+      <div class="cp-card cp-car" id="carCard"></div>
+
+      <div class="cp-actions">
+        <button class="cp-btn cp-btn-gold" type="button" id="saveHereBtn"><span class="cp-ic" data-ico="pin"></span>حفظ موقعي</button>
+        <button class="cp-btn cp-btn-white" type="button" id="pasteBtn"><span class="cp-ic" data-ico="paste"></span>لصق موقع</button>
+        <button class="cp-btn cp-btn-white" type="button" id="shareCurrentBtn"><span class="cp-ic" data-ico="send"></span>إرسال موقعي</button>
       </div>
 
-      <div class="nav-target-card" id="navTargetCard" style="display:none;">
-        <div class="row1">
-          <div>
-            <div class="place-name" id="navTargetName">—</div>
-            <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">جارٍ التوجيه إليها</div>
-          </div>
+      <div class="cp-card cp-loc">
+        <div class="cp-label">موقعي الحالي</div>
+        <div class="cp-loc-row">
+          <div class="cp-coords waiting" id="coordValue">بانتظار الموقع…</div>
+          <button class="cp-icon-btn" id="copyCoordBtn" type="button" title="نسخ الإحداثيات" aria-label="نسخ الإحداثيات"><span class="cp-ic" data-ico="copy"></span></button>
         </div>
-        <div class="distance-focus" id="distanceFocus">
-          <div class="distance-label">المسافة التقريبية المتبقية</div>
-          <div class="dist" id="navTargetDist" aria-live="polite">—</div>
-          <div class="distance-accuracy" id="navTargetAccuracy">—</div>
-        </div>
-        <div class="sub-stats">
-          <span>⏱ الوصول التقديري: <b id="navTargetEta">—</b></span>
-          <span>⛰ فرق الارتفاع: <b id="navTargetElev">—</b></span>
-        </div>
-        <button class="btn btn-ghost small" style="margin-top:10px;" id="cancelNavBtn">إلغاء التوجيه</button>
+        <div class="cp-loc-meta" id="cpLocMeta"></div>
       </div>
 
-      <div class="compass-actions">
-        <button class="btn btn-ghost" id="shareCurrentBtn">📤 إرسال موقعي</button>
-        <button class="btn btn-danger" id="emergencyBtn">🆘 إرسال موقع طوارئ</button>
-        <button class="btn btn-primary wide" id="openZelloBtn">🎙 فتح قناة الرحلة في Zello</button>
-      </div>
+      <button class="cp-btn cp-btn-white cp-zello" type="button" id="openZelloBtn"><span class="cp-ic" data-ico="radio"></span>قناة الرحلة في Zello</button>
+
+      <button class="cp-sos" type="button" id="emergencyBtn" aria-label="طوارئ: اضغط مطوّلًا لإرسال موقعك">
+        <span class="cp-sos-fill"></span>
+        <span class="cp-sos-body"><span class="cp-ic" data-ico="sos"></span><span id="sosLabel">طوارئ SOS</span></span>
+      </button>
+      <div class="cp-sos-note" id="sosNote">اضغط مطوّلًا ثانية واحدة لإرسال موقعك</div>
     </section>
 
     <!-- ============ PLACES SCREEN ============ -->
@@ -866,14 +911,18 @@
 
   <div class="toast" id="toast"></div>
 
-  <div class="floating-tools" aria-label="أدوات سريعة">
-    <div class="car-quick" id="carQuick">
-      <div class="car-menu" id="carMenu">
-        <button type="button" id="saveCarBtn">📍 حفظ موقع السيارة</button>
-        <button type="button" id="goCarBtn">🧭 العودة إلى السيارة</button>
-        <button type="button" id="removeCarBtn" class="remove">🗑 إزالة موقع السيارة</button>
+  <!-- Car options bottom sheet -->
+  <div class="overlay" id="carSheetOverlay">
+    <div class="sheet cp-sheet" role="dialog" aria-modal="true" aria-labelledby="carSheetTitle">
+      <div class="sheet-handle"></div>
+      <h3 id="carSheetTitle">خيارات السيارة</h3>
+      <div class="cp-sheet-list">
+        <button type="button" class="cp-sheet-item" id="sheetStopNav"><span class="cp-ic" data-ico="stop"></span><span><b>إيقاف التوجيه</b><small id="sheetStopNavNote">يبقى الموقع محفوظًا</small></span></button>
+        <button type="button" class="cp-sheet-item" id="sheetSaveCar"><span class="cp-ic" data-ico="pin"></span><span><b>حفظ موقع السيارة هنا</b><small class="warn" id="sheetSaveCarNote">تنبيه: يستبدل الموقع المحفوظ</small></span></button>
+        <button type="button" class="cp-sheet-item" id="sheetShareCar"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة موقع السيارة</b></span></button>
       </div>
-      <button type="button" id="carFab" class="car-fab" aria-label="خيارات السيارة" aria-expanded="false">🚙</button>
+      <button type="button" class="cp-btn cp-btn-danger" id="sheetRemoveCar"><span class="cp-ic" data-ico="trash"></span>إزالة موقع السيارة</button>
+      <button type="button" class="cp-btn cp-btn-white" id="sheetClose">إغلاق</button>
     </div>
   </div>
 </div>
@@ -901,7 +950,8 @@
     coordFmt: 'ddm',        // الصيغة الافتراضية عند كل تشغيل: درجات ودقائق عشرية
     places: readStoredJson('dalil_places', []),
     activeCat: 'all',
-    navTarget: {...QIBLA_TARGET}, // مكة المكرمة هي الوجهة الافتراضية عند بدء التطبيق
+    navTarget: null,      // لا توجيه افتراضيًا؛ القبلة تظهر كعلامة صغيرة على القرص
+    arrival: null,        // {name, isCar} بعد الوصول وحتى يضغط المستخدم «تم»
     tracking: false,
     trackPoints: [],       // {lat,lng,t}
     trackStart: null,
@@ -911,7 +961,7 @@
     retraceIdx: 0,
     pasteParsed: null,
   };
-  function restoreDefaultTarget(){ state.navTarget = {...QIBLA_TARGET}; }
+  function restoreDefaultTarget(){ state.navTarget = null; }
   if(!Array.isArray(state.places)) state.places = [];
   if(!Array.isArray(state.tracks)) state.tracks = [];
 
@@ -926,6 +976,12 @@
   let lastPositionAt = 0;
   let lastHeadingAt = 0;
   let lastPositionError = '';
+  const GPS_COURSE_MIN_KMH = 5;
+  let gpsCourseAt = 0;
+  function gpsCourseActive(){
+    const kmh = state.pos && Number.isFinite(state.pos.speed) ? state.pos.speed*3.6 : 0;
+    return Date.now() - gpsCourseAt < 4000 && kmh > GPS_COURSE_MIN_KMH;
+  }
 
   function save(){
     try{
@@ -1010,6 +1066,7 @@
       document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
+      document.body.classList.toggle('on-compass', tab.dataset.screen === 'compass');
       if(tab.dataset.screen === 'places') renderPlaces();
       if(tab.dataset.screen === 'track') renderTrackHistory();
       if(tab.dataset.screen === 'weather') updateWeather();
@@ -1275,7 +1332,7 @@
     if(geoWatchId !== null) return;
     try{
       geoWatchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
-        enableHighAccuracy:true, maximumAge:1000, timeout:15000
+        enableHighAccuracy:true, maximumAge:0, timeout:15000
       });
     }catch(e){
       showDiag('❌ تعذّر استدعاء واجهة الموقع: ' + e.message);
@@ -1299,6 +1356,7 @@
     const detail = codes[err.code] || err.message || 'خطأ غير معروف';
     lastPositionError='❌ '+detail;
     document.getElementById('gpsLabel').textContent = 'تعذّر تحديد الموقع';
+    updateGpsBadge(true);
     document.getElementById('permLoc').textContent = '❌ مرفوض/غير متاح';
     showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.' : ''));
     updateDiagnostics();
@@ -1314,14 +1372,19 @@
       lat: p.coords.latitude, lng: p.coords.longitude,
       alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy
     };
-    // fallback heading source: GPS course-over-ground, useful while moving (car/walking)
-    // when the magnetometer/deviceorientation isn't available or hasn't fired yet
-    if(typeof p.coords.heading === 'number' && !isNaN(p.coords.heading) && (p.coords.speed||0) > 0.6){
-      if(state.headingSource !== 'compass'){
-        state.heading = p.coords.heading;
-        state.headingSource = 'gps';
-        lastHeadingAt=Date.now();
-      }
+    // اتجاه الحركة من GPS: فوق 5 كم/س يُقدَّم على المستشعر المغناطيسي لأنه
+    // يتشوش قرب هيكل السيارة المعدني. وتحت ذلك يبقى بديلًا فقط عند غياب المستشعر.
+    const gpsCourse = p.coords.heading, gpsSpeed = p.coords.speed;
+    const hasCourse = typeof gpsCourse === 'number' && Number.isFinite(gpsCourse) && gpsCourse >= 0;
+    if(hasCourse && Number.isFinite(gpsSpeed) && gpsSpeed*3.6 > GPS_COURSE_MIN_KMH){
+      gpsCourseAt = Date.now();
+      state.heading = gpsCourse;
+      state.headingSource = 'gps';
+      lastHeadingAt = Date.now();
+    }else if(hasCourse && (gpsSpeed||0) > 0.6 && state.headingSource !== 'compass'){
+      state.heading = gpsCourse;
+      state.headingSource = 'gps';
+      lastHeadingAt = Date.now();
     }
     renderCompassScreen();
     updateNavActivation();
@@ -1365,6 +1428,12 @@
       }
       if(h !== null){
         gotEvent = true;
+        trackCompassStability((h+360)%360, e.webkitCompassAccuracy);
+        if(gpsCourseActive()){
+          // أثناء الحركة السريعة نعتمد اتجاه GPS ونتجاهل المستشعر مؤقتًا.
+          document.getElementById('permCompass').textContent = '✅ مفعّل';
+          return;
+        }
         lastHeadingAt=Date.now();
         state.heading = smoothHeading(state.headingSource === 'compass' ? state.heading : null, (h+360)%360);
         state.headingSource = 'compass';
@@ -1387,7 +1456,6 @@
           const inAppHint = isIOS && !isSafari ? ' افتح قائمة المتصفح واختر «فتح في Safari» إذا لم يستجب زر التشغيل.' : '';
           diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
           navActivation.style.display = 'flex';
-          document.getElementById('headingSrc').textContent = '⚠️ لا توجد بيانات اتجاه من الجهاز بعد';
           updateDiagnostics();
         }
       }
@@ -1404,109 +1472,477 @@
     });
   }
 
-  // ---------- compass rendering ----------
-  function buildDial(){
-    const dial = document.getElementById('dial');
-    let svg = '';
-    const marks = [
-      {a:0,l:'ش'},{a:45,l:''},{a:90,l:'ق'},{a:135,l:''},
-      {a:180,l:'ج'},{a:225,l:''},{a:270,l:'غ'},{a:315,l:''}
-    ];
-    marks.forEach(m=>{
-      const rad = toRad(m.a-90);
-      const x1 = 130 + 108*Math.cos(rad), y1 = 130 + 108*Math.sin(rad);
-      const x2 = 130 + 98*Math.cos(rad), y2 = 130 + 98*Math.sin(rad);
-      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--text-faint)" stroke-width="2"/>`;
-      if(m.l){
-        const tx = 130 + 82*Math.cos(rad), ty = 130 + 82*Math.sin(rad);
-        const color = m.l==='ش' ? 'var(--danger)' : 'var(--text-dim)';
-        svg += `<text x="${tx}" y="${ty}" fill="${color}" font-size="15" font-weight="800" text-anchor="middle" dominant-baseline="middle" font-family="Tajawal">${m.l}</text>`;
+  // ---------- line icons ----------
+  const ICONS = {
+    pin:'<path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    paste:'<rect x="5.5" y="4" width="13" height="17" rx="2"/><path d="M9 4.5V3h6v1.5"/><path d="M9 11h6M9 15h4"/>',
+    send:'<path d="M21 3 10 14"/><path d="M21 3 14.5 21l-4.5-7-7-4.5z"/>',
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+    radio:'<rect x="6" y="7" width="12" height="14" rx="2"/><path d="M9 7V3"/><circle cx="12" cy="15" r="2.5"/><path d="M9.5 10.5h5"/>',
+    sos:'<path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5"/><path d="M12 17.2v.01"/>',
+    more:'<circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/>',
+    nav:'<path d="M12 2.5 19 21l-7-4-7 4z"/>',
+    car:'<path d="M5 15.5v-4l2-5A2 2 0 0 1 8.9 5h6.2A2 2 0 0 1 17 6.5l2 5v4"/><path d="M3.5 15.5h17v3a1 1 0 0 1-1 1H18a1 1 0 0 1-1-1v-3M7 15.5v3a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1v-3"/><path d="M5 11.5h14"/>',
+    check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+    trash:'<path d="M4 7h16"/><path d="M9 7V4.5h6V7"/><path d="M6.5 7l1 13h9l1-13"/><path d="M10 11v5.5M14 11v5.5"/>',
+    stop:'<circle cx="12" cy="12" r="9"/><rect x="9" y="9" width="6" height="6" rx="1"/>',
+    target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
+    calib:'<path d="M12 12c-2-3.5-7-3.5-7 0s5 3.5 7 0 7-3.5 7 0-5 3.5-7 0z"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
+    partly:'<path d="M8.5 4.5V3M4.3 6.3l-1-1M12.7 6.3l1-1M2.5 10.5H1.2"/><path d="M5 11.5a3.5 3.5 0 0 1 6.6-2"/><path d="M8 19.5h9.5a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.3 1.6A2.7 2.7 0 0 0 8 19.5z"/>',
+    cloud:'<path d="M7 19h10.5a4 4 0 0 0 .4-8A6 6 0 0 0 6.3 12.4 3.3 3.3 0 0 0 7 19z"/>',
+    fog:'<path d="M7 13.5h10.5a3.6 3.6 0 0 0 .3-7.1A5.5 5.5 0 0 0 7.1 7.8"/><path d="M3 17h14M6 20.5h12"/>',
+    rain:'<path d="M7 15h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 8.7 3.2 3.2 0 0 0 7 15z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>',
+    snow:'<path d="M7 14h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 7.7 3.2 3.2 0 0 0 7 14z"/><path d="M8 18v.01M12 17v.01M16 18v.01M10 21v.01M14 21v.01"/>',
+    storm:'<path d="M7 14h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 7.7 3.2 3.2 0 0 0 7 14z"/><path d="m12.5 14-2 4h3l-2 4"/>'
+  };
+  function ico(name){
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
+  }
+  function icoSpan(name){ return `<span class="cp-ic">${ico(name)}</span>`; }
+  document.querySelectorAll('[data-ico]').forEach(el=>{ el.innerHTML = ico(el.dataset.ico); });
+
+  // عزل الأرقام والرموز (° و ±) حتى لا ينقلب ترتيبها داخل النص العربي.
+  function iso(v){ return '⁦' + v + '⁩'; }
+  function setText(el, value){
+    if(typeof el === 'string') el = document.getElementById(el);
+    if(el && el.textContent !== value) el.textContent = value;
+  }
+  function cardinalSpaced(deg){ return cardinal(deg).replace(/\./g, ' '); }
+  function fmtDist(m){
+    if(m >= 1000) return iso((m/1000).toFixed(m >= 10000 ? 1 : 2)) + ' كم';
+    return iso(Math.round(m)) + ' م';
+  }
+  function fmtEta(dist){
+    const speedKmh = state.pos && state.pos.speed > 0.5 ? state.pos.speed*3.6 : 4; // سرعة مشي افتراضية
+    const min = (dist/1000)/speedKmh*60;
+    if(min < 1) return 'أقل من دقيقة';
+    if(min < 60) return iso(Math.round(min)) + ' دقيقة';
+    const h = Math.floor(min/60), m = Math.round(min%60);
+    return iso(h) + ' س' + (m ? ' ' + iso(m) + ' د' : '');
+  }
+  function fmtSavedAt(time){
+    if(!time) return '';
+    const d = new Date(time);
+    if(isNaN(d)) return '';
+    const clock = d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    const today = new Date().toDateString() === d.toDateString();
+    return 'حُفظت ' + (today ? '' : d.toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short'}) + ' ') + clock;
+  }
+
+  // ---------- parked car (dalil_car) ----------
+  let carCache;
+  function refreshCar(){
+    const car = readStoredJson('dalil_car', null);
+    carCache = car && validLatLng(Number(car.lat), Number(car.lng))
+      ? {lat:Number(car.lat), lng:Number(car.lng), time:car.time || null}
+      : null;
+    return carCache;
+  }
+  function getCar(){ return carCache === undefined ? refreshCar() : carCache; }
+  function carTarget(car){ return {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:car.lat, lng:car.lng, alt:null}; }
+  function isCarTarget(t){ return !!t && t.id === '__car__'; }
+
+  // ---------- compass stability / calibration hint ----------
+  const calibEl = document.getElementById('cpCalib');
+  let compassSamples = [];
+  let calibShownAt = 0;
+  function trackCompassStability(h, iosAccuracy){
+    const now = performance.now();
+    compassSamples.push({t:now, h});
+    compassSamples = compassSamples.filter(x=>now - x.t < 2000);
+    // iOS يعطي دقة المستشعر بالدرجات؛ القيمة السالبة تعني أنه غير معاير.
+    let unstable = typeof iosAccuracy === 'number' && (iosAccuracy < 0 || iosAccuracy >= 45);
+    if(!unstable && compassSamples.length >= 8){
+      // تذبذب ذهابًا وإيابًا بزوايا كبيرة (وليس دورانًا منتظمًا للجوال).
+      let flips = 0, big = 0, prevSign = 0;
+      for(let i=1;i<compassSamples.length;i++){
+        const d = ((compassSamples[i].h - compassSamples[i-1].h + 540) % 360) - 180;
+        if(Math.abs(d) > 12){
+          big++;
+          const sign = Math.sign(d);
+          if(prevSign && sign !== prevSign) flips++;
+          prevSign = sign;
+        }
       }
-    });
-    for(let i=0;i<72;i++){
-      const a = i*5;
-      const rad = toRad(a-90);
-      const len = i%2===0 ? 6 : 3;
-      const x1 = 130 + 122*Math.cos(rad), y1 = 130 + 122*Math.sin(rad);
-      const x2 = 130 + (122-len)*Math.cos(rad), y2 = 130 + (122-len)*Math.sin(rad);
-      svg += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--line)" stroke-width="1.5"/>`;
+      unstable = flips >= 3 && big >= 4;
     }
-    dial.innerHTML = svg;
+    if(unstable) calibShownAt = now;
+    updateCalibHint();
+  }
+  function updateCalibHint(){
+    const show = calibShownAt > 0 && performance.now() - calibShownAt < 5000;
+    if(calibEl.hidden === show) calibEl.hidden = !show;
+  }
+
+  // ---------- compass rendering ----------
+  const C = 150;
+  const compassEl = document.getElementById('cpCompass');
+  const dialEl = document.getElementById('dial');
+  const dialMarksEl = document.getElementById('dialMarks');
+  const targetArrowEl = document.getElementById('targetArrow');
+  const letterEls = [];
+  function polar(angleDeg, r){
+    const a = toRad(angleDeg - 90);
+    return [C + r*Math.cos(a), C + r*Math.sin(a)];
+  }
+  function buildDial(){
+    let svg = '';
+    for(let a=0; a<360; a+=5){
+      const major = a % 30 === 0;
+      const [x1,y1] = polar(a, 132), [x2,y2] = polar(a, major ? 120 : 126);
+      svg += `<line class="cp-tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
+    }
+    dialEl.innerHTML = svg;
+    const group = document.getElementById('dialLetters');
+    [['ش',0],['ق',90],['ج',180],['غ',270]].forEach(([label, angle])=>{
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('class', 'cp-letter' + (angle === 0 ? ' north' : ''));
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('dominant-baseline', 'central');
+      t.textContent = label;
+      group.appendChild(t);
+      letterEls.push({el:t, angle});
+    });
   }
   buildDial();
 
-  function renderCompassScreen(){
-    // coordinate display
-    if(state.pos){
-      document.getElementById('coordValue').textContent = formatCoords(state.pos.lat, state.pos.lng, state.coordFmt);
-      document.getElementById('statAlt').textContent = state.pos.alt !== null && state.pos.alt !== undefined ? Math.round(state.pos.alt) : '—';
-      document.getElementById('statSpeed').textContent = state.pos.speed ? (state.pos.speed*3.6).toFixed(1) : '0.0';
-      document.getElementById('statAcc').textContent = state.pos.accuracy ? Math.round(state.pos.accuracy) : '—';
+  function updateGpsBadge(){
+    const dot = document.getElementById('cpGpsDot');
+    const acc = state.pos ? Number(state.pos.accuracy) : NaN;
+    let cls = 'cp-dot', text = 'GPS…';
+    if(Number.isFinite(acc)){
+      cls += acc <= 15 ? ' good' : acc <= 40 ? ' fair' : ' poor';
+      text = iso('±' + Math.round(acc)) + ' م';
+    }else if(lastPositionError && !state.pos){
+      cls += ' poor';
+      text = 'لا يوجد GPS';
     }
-    // dial rotation (rotate dial opposite to heading so "ش" points to true north)
-    const srcEl = document.getElementById('headingSrc');
-    if(state.heading !== null && state.heading !== undefined){
-      document.getElementById('dial').setAttribute('transform', `rotate(${-state.heading} 130 130)`);
-      document.getElementById('headingDeg').textContent = Math.round(state.heading)+'°';
-      document.getElementById('headingCard').textContent = cardinal(state.heading);
-      srcEl.textContent = state.headingSource === 'gps' ? '🛰 من اتجاه حركة GPS' : '🧭 من مستشعر البوصلة';
-    } else {
-      srcEl.textContent = '⚠️ اتجاه الجهاز غير متاح بعد';
-    }
-    // target arrow
-    const arrow = document.getElementById('targetArrow');
-    const targetNameBadge = document.getElementById('compassTargetName');
-    if(state.navTarget && state.pos){
-      const dist = haversine(state.pos.lat, state.pos.lng, state.navTarget.lat, state.navTarget.lng);
-      const brg = bearing(state.pos.lat, state.pos.lng, state.navTarget.lat, state.navTarget.lng);
-      const haveHeading = state.heading !== null && state.heading !== undefined;
-      const relative = haveHeading ? (brg - state.heading + 360) % 360 : brg;
-      arrow.style.display = 'block';
-      arrow.setAttribute('transform', `rotate(${relative} 130 130)`);
-      targetNameBadge.textContent = state.navTarget.icon + ' ' + state.navTarget.name;
-      targetNameBadge.classList.add('show');
+    if(dot.className !== cls) dot.className = cls;
+    setText('cpGpsText', text);
+  }
 
-      const isDefaultQibla = state.navTarget.id === '__qibla__';
-      document.getElementById('navTargetCard').style.display = isDefaultQibla ? 'none' : 'block';
-      document.getElementById('navTargetName').textContent = state.navTarget.icon + ' ' + state.navTarget.name +
-        (haveHeading ? '' : ' (السهم يشير للشمال الجغرافي مؤقتًا)');
-      document.getElementById('navTargetDist').textContent = dist >= 1000 ? (dist/1000).toFixed(2)+' كم' : Math.round(dist)+' م';
-      const accuracy=Number(state.pos.accuracy);
-      const accuracyEl=document.getElementById('navTargetAccuracy');
-      const uncertain=Number.isFinite(accuracy) && accuracy>dist;
-      accuracyEl.textContent=Number.isFinite(accuracy) ? 'دقة الموقع الحالية: ±'+Math.round(accuracy)+' م'+(uncertain?' — الموقع ضمن نطاق الدقة':'') : 'دقة الموقع غير متاحة';
-      accuracyEl.classList.toggle('uncertain',uncertain);
-      document.getElementById('distanceFocus').classList.toggle('near',dist<20&&(!Number.isFinite(accuracy)||accuracy<=20));
-      const speedKmh = state.pos.speed ? state.pos.speed*3.6 : 4; // افتراض سرعة مشي إن لم تتوفر
-      const etaMin = speedKmh > 0.5 ? Math.round((dist/1000)/speedKmh*60) : null;
-      document.getElementById('navTargetEta').textContent = etaMin ? etaMin+' دقيقة' : '—';
-      const elevDiff = (state.navTarget.alt!=null && state.pos.alt!=null) ? Math.round(state.navTarget.alt - state.pos.alt) : null;
-      document.getElementById('navTargetElev').textContent = elevDiff!=null ? (elevDiff>=0?'+':'')+elevDiff+' م' : '—';
-    } else {
-      arrow.style.display = 'none';
-      targetNameBadge.classList.remove('show');
-      document.getElementById('navTargetCard').style.display = 'none';
+  const WEATHER_ICON_BY_CODE = code =>
+    code === 0 ? 'sun' : (code === 1 || code === 2) ? 'partly' : code === 3 ? 'cloud' :
+    (code === 45 || code === 48) ? 'fog' : ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) ? 'rain' :
+    (code >= 71 && code <= 77) ? 'snow' : code >= 95 ? 'storm' : 'partly';
+  function setWeatherBadge(code, temp){
+    if(!Number.isFinite(temp)) return;
+    document.getElementById('cpWeatherIcon').innerHTML = ico(WEATHER_ICON_BY_CODE(code));
+    setText('cpWeatherTemp', Math.round(temp) + '°');
+    document.getElementById('cpWeatherBadge').hidden = false;
+  }
+  document.getElementById('cpWeatherBadge').addEventListener('click', ()=>{
+    document.querySelector('.tab[data-screen="weather"]').click();
+  });
+
+  // انتقالات التوجيه: قريب جدًا ← وصلت. تُحسب مع كل قراءة موقع جديدة.
+  function finishGuidance(){
+    const t = state.navTarget;
+    if(!t) return;
+    state.arrival = {isCar:isCarTarget(t), name:t.name};
+    state.navTarget = null;
+    state.nearLatched = false;
+    if(navigator.vibrate) navigator.vibrate([40,60,40]);
+  }
+  function evaluateGuidance(){
+    const t = state.navTarget;
+    if(!t || !state.pos || t._retrace){ state.nearLatched = false; return null; }
+    const dist = haversine(state.pos.lat, state.pos.lng, t.lat, t.lng);
+    const acc = Number(state.pos.accuracy);
+    if(dist < 10 && Number.isFinite(acc) && acc <= 15){
+      finishGuidance();
+      return null;
+    }
+    const nearThreshold = Math.max(25, Number.isFinite(acc) ? acc : 0);
+    if(state.nearLatched){
+      if(dist > nearThreshold*1.25 + 5) state.nearLatched = false; // هامش يمنع التذبذب
+    }else if(dist < nearThreshold){
+      state.nearLatched = true;
+    }
+    return {dist, acc};
+  }
+
+  let renderQueued = false;
+  let lastAligned = false;
+  let lastMarks = '';
+  function renderCompassScreen(){
+    if(renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(()=>{ renderQueued = false; drawCompassScreen(); });
+  }
+
+  function drawCompassScreen(){
+    const pos = state.pos;
+    const haveHeading = state.heading !== null && state.heading !== undefined;
+    const heading = haveHeading ? state.heading : 0;
+    evaluateGuidance();
+    const t = state.navTarget;
+    if(t) state.arrival = null;
+
+    // موقعي الحالي
+    const coordEl = document.getElementById('coordValue');
+    if(pos){
+      setText(coordEl, formatCoords(pos.lat, pos.lng, state.coordFmt));
+      coordEl.classList.remove('waiting');
+    }
+    const meta = [];
+    if(pos && Number.isFinite(pos.alt)) meta.push('الارتفاع ' + iso(Math.round(pos.alt)) + ' م');
+    if(pos && Number.isFinite(pos.speed) && pos.speed >= 0) meta.push('السرعة ' + iso(Math.round(pos.speed*3.6)) + ' كم/س');
+    setText('cpLocMeta', meta.join('  ·  '));
+    updateGpsBadge();
+
+    // القرص يدور والأحرف تبقى معتدلة
+    dialEl.setAttribute('transform', `rotate(${(-heading).toFixed(1)} ${C} ${C})`);
+    letterEls.forEach(({el, angle})=>{
+      const [x,y] = polar(angle - heading, 103);
+      el.setAttribute('x', x.toFixed(1));
+      el.setAttribute('y', y.toFixed(1));
+    });
+
+    // علامات الحافة: القبلة، ونقطة السيارة عندما لا تكون هي الهدف
+    const car = getCar();
+    let marks = '';
+    if(pos){
+      const qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
+      const [qx,qy] = polar(qb - heading, 126);
+      marks += `<rect class="cp-qibla" x="${(qx-4).toFixed(1)}" y="${(qy-4).toFixed(1)}" width="8" height="8" rx="1.5"><title>القبلة</title></rect>`;
+      if(car && !isCarTarget(t)){
+        const [cx,cy] = polar(bearing(pos.lat, pos.lng, car.lat, car.lng) - heading, 126);
+        marks += `<circle class="cp-car-dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6"><title>السيارة</title></circle>`;
+      }
+    }
+    if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
+
+    // سهم الهدف والوسط
+    let nav = null, near = false, aligned = false;
+    if(t && pos){
+      nav = {
+        dist: haversine(pos.lat, pos.lng, t.lat, t.lng),
+        brg: bearing(pos.lat, pos.lng, t.lat, t.lng),
+        acc: Number(pos.accuracy)
+      };
+      near = !!state.nearLatched;
+      const rel = haveHeading ? (nav.brg - heading + 360) % 360 : nav.brg;
+      targetArrowEl.style.display = 'block';
+      targetArrowEl.setAttribute('transform', `rotate(${rel.toFixed(1)} ${C} ${C})`);
+      const diff = Math.abs(((nav.brg - heading + 540) % 360) - 180);
+      aligned = haveHeading && !near && diff <= 10;
+    }else{
+      targetArrowEl.style.display = 'none';
+    }
+    compassEl.classList.toggle('aligned', aligned);
+    compassEl.classList.toggle('near', near);
+    if(aligned && !lastAligned && navigator.vibrate) navigator.vibrate(25);
+    lastAligned = aligned;
+
+    const headingLine = haveHeading ? 'اتجاهك ' + iso(Math.round(heading) + '°') + ' · ' + cardinalSpaced(heading) : 'اتجاه الجوال غير متاح بعد';
+    const targetLabel = t ? (isCarTarget(t) ? 'إلى السيارة' : t._retrace ? 'العودة من نفس المسار' : 'إلى ' + t.name) : '';
+    let label = '', main, sub = '', sub2 = '', words = false;
+    if(t && nav && near){
+      main = 'قريب جدًا'; words = true; sub = 'انظر حولك';
+      sub2 = Number.isFinite(nav.acc) && nav.acc >= nav.dist
+        ? 'المسافة أقل من دقة GPS (' + iso('±' + Math.round(nav.acc)) + ' م)'
+        : 'على بُعد أقل من ' + iso(25) + ' م';
+    }else if(t && nav){
+      label = targetLabel; main = fmtDist(nav.dist); sub = headingLine;
+    }else if(t){
+      label = targetLabel; main = 'بانتظار الموقع'; words = true; sub = headingLine;
+    }else if(haveHeading){
+      main = iso(Math.round(heading) + '°'); sub = cardinalSpaced(heading);
+    }else{
+      main = iso('--°'); sub = 'بانتظار البوصلة';
+    }
+    setText('cpCLabel', label);
+    const mainEl = document.getElementById('cpCMain');
+    setText(mainEl, main);
+    mainEl.classList.toggle('words', words);
+    setText('cpCSub', sub);
+    setText('cpCSub2', sub2);
+
+    renderCarCard(car, t, nav, near);
+  }
+  setInterval(()=>{ renderCompassScreen(); updateCalibHint(); }, 1000);
+
+  // ---------- car card: 5 states ----------
+  const carCardEl = document.getElementById('carCard');
+  let carCardKey = '';
+  function carHeader(icon, menu, iconClass=''){
+    return `<div class="cp-car-row"><span class="cp-car-ic ${iconClass}">${icoSpan(icon)}</span>`+
+      `<div class="cp-car-txt"><div class="cp-car-title" data-f="title"></div><div class="cp-car-sub" data-f="sub"></div></div>`+
+      (menu ? `<button type="button" class="cp-icon-btn" data-act="menu" aria-label="خيارات">${icoSpan('more')}</button>` : '')+
+      `</div>`;
+  }
+  function renderCarCard(car, t, nav, near){
+    let key, title, sub = '';
+    const savedAt = car ? fmtSavedAt(car.time) : '';
+    if(t){
+      const isCar = isCarTarget(t);
+      const name = isCar ? '' : (t._retrace ? 'العودة من نفس المسار' : 'التوجّه إلى «' + t.name + '»');
+      if(near){
+        key = 'near';
+        title = isCar ? 'قريب جدًا من السيارة' : 'قريب جدًا من «' + t.name + '»';
+        sub = 'انظر حولك، ثم اضغط «وجدتها»';
+      }else{
+        key = 'guiding:' + (isCar ? 'car' : 'place');
+        title = isCar ? 'العودة إلى السيارة' : name;
+        const parts = [];
+        if(isCar && savedAt) parts.push(savedAt);
+        parts.push(nav ? 'الوصول: ' + fmtEta(nav.dist) : 'بانتظار الموقع…');
+        sub = parts.join(' · ');
+      }
+    }else if(state.arrival){
+      key = 'arrived:' + (state.arrival.isCar && car ? 'car' : 'place');
+      title = state.arrival.isCar ? 'وصلت إلى السيارة' : 'وصلت إلى «' + state.arrival.name + '»';
+      sub = 'انتهى التوجيه تلقائيًا';
+    }else if(car){
+      key = 'saved';
+      title = 'السيارة محفوظة';
+      const parts = [];
+      if(savedAt) parts.push(savedAt);
+      if(state.pos) parts.push('على بُعد ' + fmtDist(haversine(state.pos.lat, state.pos.lng, car.lat, car.lng)));
+      sub = parts.join(' · ');
+    }else{
+      key = 'none';
+    }
+
+    if(key !== carCardKey){
+      carCardKey = key;
+      carCardEl.classList.toggle('cp-empty', key === 'none');
+      let html;
+      if(key === 'none'){
+        html = `<div class="cp-car-row"><span class="cp-car-ic">${icoSpan('car')}</span><div class="cp-car-txt">`+
+          `<div class="cp-car-title">لم تحفظ موقع السيارة</div><div class="cp-car-sub">احفظه قبل أن تبتعد لتعود إليها بسهولة</div></div></div>`+
+          `<button type="button" class="cp-btn cp-btn-gold cp-btn-lg" data-act="save-car">${icoSpan('pin')}حفظ موقع السيارة هنا</button>`;
+      }else if(key === 'saved'){
+        html = carHeader('car', true) +
+          `<button type="button" class="cp-btn cp-btn-gold cp-btn-lg" data-act="go-car">${icoSpan('nav')}توجّه إلى السيارة</button>`;
+      }else if(key.startsWith('guiding')){
+        html = carHeader(key === 'guiding:car' ? 'car' : 'target', true);
+      }else if(key === 'near'){
+        html = carHeader('target', true) +
+          `<button type="button" class="cp-btn cp-btn-gold cp-btn-lg" data-act="found">${icoSpan('check')}وجدتها</button>`;
+      }else{
+        html = carHeader('check', false, 'ok') + (key === 'arrived:car'
+          ? `<div class="cp-car-btns"><button type="button" class="cp-btn cp-btn-gold" data-act="done">تم</button>`+
+            `<button type="button" class="cp-btn cp-btn-white" data-act="arrive-remove">${icoSpan('trash')}إزالة الموقع</button></div>`
+          : `<button type="button" class="cp-btn cp-btn-gold" data-act="done">تم</button>`);
+      }
+      carCardEl.innerHTML = html;
+    }
+    const titleEl = carCardEl.querySelector('[data-f="title"]');
+    const subEl = carCardEl.querySelector('[data-f="sub"]');
+    if(titleEl) setText(titleEl, title);
+    if(subEl) setText(subEl, sub);
+  }
+
+  function showCompassTab(){
+    if(!document.getElementById('screen-compass').classList.contains('active')){
+      document.querySelector('.tab[data-screen="compass"]').click();
     }
   }
-  setInterval(()=>{ if(state.navTarget) renderCompassScreen(); }, 1000);
-
-  // ---------- coord format switch ----------
-  document.querySelectorAll('.fmt-switch button').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      state.coordFmt = btn.dataset.fmt;
-      save();
+  function setNavTarget(target){
+    state.navTarget = target;
+    state.nearLatched = false;
+    state.arrival = null;
+  }
+  function saveCarHere(){
+    const storeCar = pos=>{
+      localStorage.setItem('dalil_car', JSON.stringify({lat:pos.lat, lng:pos.lng, time:Date.now()}));
+      const car = refreshCar();
+      if(isCarTarget(state.navTarget) && car) setNavTarget(carTarget(car));
+      renderPlaces();
       renderCompassScreen();
-    });
+      toast('تم حفظ موقع السيارة ✅');
+    };
+    if(state.pos){
+      storeCar(state.pos);
+      return;
+    }
+    if(!navigator.geolocation) return toast('تحديد الموقع غير مدعوم في هذا المتصفح');
+    toast('جارٍ تحديد موقع السيارة…');
+    navigator.geolocation.getCurrentPosition(
+      p=>storeCar({lat:p.coords.latitude, lng:p.coords.longitude}),
+      ()=>toast('تعذّر تحديد موقع السيارة'),
+      {enableHighAccuracy:true, timeout:15000, maximumAge:0}
+    );
+  }
+  function startCarGuidance(){
+    const car = getCar();
+    if(!car) return toast('احفظ موقع السيارة أولًا');
+    if(state.retracing) stopRetrace();
+    setNavTarget(carTarget(car));
+    showCompassTab();
+    renderCompassScreen();
+    toast('بدأ التوجيه إلى السيارة');
+  }
+  function removeCar(){
+    localStorage.removeItem('dalil_car');
+    refreshCar();
+    if(isCarTarget(state.navTarget)) setNavTarget(null);
+    if(state.arrival && state.arrival.isCar) state.arrival = null;
+    renderPlaces();
+    renderCompassScreen();
+  }
+  function stopGuidance(){
+    if(state.retracing) stopRetrace();
+    setNavTarget(null);
+    renderCompassScreen();
+  }
+
+  carCardEl.addEventListener('click', e=>{
+    const btn = e.target.closest('[data-act]');
+    if(!btn) return;
+    const act = btn.dataset.act;
+    if(act === 'save-car') saveCarHere();
+    else if(act === 'go-car') startCarGuidance();
+    else if(act === 'menu') openCarSheet();
+    else if(act === 'found'){ finishGuidance(); renderCompassScreen(); }
+    else if(act === 'done'){ state.arrival = null; renderCompassScreen(); }
+    else if(act === 'arrive-remove'){ removeCar(); toast('تمت إزالة موقع السيارة'); }
   });
+
+  // ---------- options bottom sheet ----------
+  const carSheetOverlay = document.getElementById('carSheetOverlay');
+  function openCarSheet(){
+    const car = getCar(), t = state.navTarget;
+    document.getElementById('carSheetTitle').textContent = t && !isCarTarget(t) ? 'خيارات التوجيه' : 'خيارات السيارة';
+    document.getElementById('sheetStopNav').hidden = !t;
+    setText('sheetStopNavNote', isCarTarget(t) ? 'يبقى الموقع محفوظًا' : (t ? (t._retrace ? 'العودة من نفس المسار' : 'التوجّه إلى «' + t.name + '»') : ''));
+    document.getElementById('sheetSaveCarNote').hidden = !car;
+    document.getElementById('sheetShareCar').hidden = !car;
+    document.getElementById('sheetRemoveCar').hidden = !car;
+    carSheetOverlay.classList.add('show');
+  }
+  function closeCarSheet(){ carSheetOverlay.classList.remove('show'); }
+  document.getElementById('sheetStopNav').addEventListener('click', ()=>{
+    closeCarSheet();
+    stopGuidance();
+    toast('تم إيقاف التوجيه');
+  });
+  document.getElementById('sheetSaveCar').addEventListener('click', ()=>{
+    closeCarSheet();
+    saveCarHere();
+  });
+  document.getElementById('sheetShareCar').addEventListener('click', ()=>{
+    const car = getCar();
+    closeCarSheet();
+    if(car) shareLocation({name:'موقع السيارة', lat:car.lat, lng:car.lng});
+  });
+  document.getElementById('sheetRemoveCar').addEventListener('click', ()=>{
+    if(!confirm('هل تريد إزالة موقع السيارة المحفوظ؟ لا يمكن التراجع.')) return;
+    closeCarSheet();
+    removeCar();
+    toast('تمت إزالة موقع السيارة');
+  });
+  document.getElementById('sheetClose').addEventListener('click', closeCarSheet);
+
   document.querySelectorAll('[data-fmt-set]').forEach(chip=>{
     chip.addEventListener('click', ()=>{
       document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.remove('active'));
       chip.classList.add('active');
       state.coordFmt = chip.dataset.fmtSet;
       save();
-      document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
       renderCompassScreen();
     });
   });
@@ -1806,7 +2242,8 @@
   });
   document.getElementById('navByCompassBtn').addEventListener('click', ()=>{
     if(!pendingNavPlace) return closeNavChoice();
-    state.navTarget = pendingNavPlace;
+    if(state.retracing) stopRetrace();
+    setNavTarget(pendingNavPlace);
     const name = pendingNavPlace.name;
     pendingNavPlace = null;
     closeNavChoice();
@@ -1852,13 +2289,7 @@
     shareLocation({name:'موقعي الحالي', lat:state.pos.lat, lng:state.pos.lng});
   });
 
-  document.getElementById('emergencyBtn').addEventListener('click', async()=>{
-    if(!state.pos){
-      toast('انتظر حتى يتم تحديد موقعك أولًا');
-      startGeoWatch();
-      return;
-    }
-    if(!confirm('سيتم تجهيز رسالة طوارئ تتضمن موقعك الحالي. هل تريد المتابعة؟')) return;
+  async function sendEmergency(){
     const lat=Number(state.pos.lat).toFixed(6), lng=Number(state.pos.lng).toFixed(6);
     const accuracy=Number.isFinite(Number(state.pos.accuracy)) ? Math.round(Number(state.pos.accuracy)) : null;
     const mapUrl=`https://www.google.com/maps?q=${lat},${lng}`;
@@ -1872,6 +2303,52 @@
       }
     }
     window.location.href=`https://wa.me/?text=${encodeURIComponent(text)}`;
+  }
+  // ضغط مطوّل (ثانية) مع مؤشر تقدّم لمنع الإرسال بالخطأ. الإرسال يتم عند رفع
+  // الإصبع حتى تُحسب لمسة مستخدم فعلية ويُسمح بفتح نافذة المشاركة في iOS.
+  const sosBtn=document.getElementById('emergencyBtn');
+  const sosLabel=document.getElementById('sosLabel');
+  let sosTimer=null, sosArmed=false, sosPointer=null;
+  function resetSos(){
+    clearTimeout(sosTimer);
+    sosTimer=null; sosArmed=false; sosPointer=null;
+    sosBtn.classList.remove('holding','armed');
+    sosLabel.textContent='طوارئ SOS';
+  }
+  function sosNeedsPosition(){
+    if(state.pos) return false;
+    toast('انتظر حتى يتم تحديد موقعك أولًا');
+    startGeoWatch();
+    return true;
+  }
+  sosBtn.addEventListener('pointerdown', e=>{
+    if(e.pointerType==='mouse' && e.button!==0) return;
+    resetSos();
+    if(sosNeedsPosition()) return;
+    sosPointer=e.pointerId;
+    void sosBtn.offsetWidth; // إعادة تشغيل حركة شريط التقدّم
+    sosBtn.classList.add('holding');
+    sosLabel.textContent='استمر بالضغط…';
+    sosTimer=setTimeout(()=>{
+      sosArmed=true;
+      sosBtn.classList.add('armed');
+      sosLabel.textContent='أفلت الآن لإرسال موقعك';
+      if(navigator.vibrate) navigator.vibrate(40);
+    }, 1000);
+  });
+  sosBtn.addEventListener('pointerup', e=>{
+    if(sosPointer===null || e.pointerId!==sosPointer) return;
+    const send=sosArmed;
+    resetSos();
+    if(send) sendEmergency();
+    else toast('اضغط مطوّلًا ثانية واحدة لإرسال موقع الطوارئ');
+  });
+  sosBtn.addEventListener('pointercancel', resetSos);
+  sosBtn.addEventListener('contextmenu', e=>e.preventDefault());
+  sosBtn.addEventListener('click', e=>{
+    if(e.detail!==0) return; // اللمس والفأرة يمرّان بالضغط المطوّل؛ هذا للوحة المفاتيح فقط
+    if(sosNeedsPosition()) return;
+    if(confirm('سيتم تجهيز رسالة طوارئ تتضمن موقعك الحالي. هل تريد المتابعة؟')) sendEmergency();
   });
 
   function getZelloLink(){
@@ -1911,11 +2388,6 @@
     }
     localStorage.setItem('dalil_zello_link', link);
     toast('تم حفظ رابط قناة Zello ✅');
-  });
-
-  document.getElementById('cancelNavBtn').addEventListener('click', ()=>{
-    restoreDefaultTarget();
-    renderCompassScreen();
   });
 
   // ---------- paste-from-whatsapp ----------
@@ -2000,11 +2472,10 @@
     if(!force && Date.now()-lastWeatherFetch<15*60*1000) return;
     lastWeatherFetch=Date.now();
     lastWeatherPoint={lat:state.pos.lat,lng:state.pos.lng};
-    const title=document.getElementById('weatherTitle');
-    const meta=document.getElementById('weatherMeta');
-    const warning=document.getElementById('weatherWarning');
-    title.textContent='طقس اليوم — جارٍ التحديث…';
-    document.getElementById('weatherHubTitle').textContent='الطقس — جارٍ التحديث…';
+    const hubTitle=document.getElementById('weatherHubTitle');
+    const hubMeta=document.getElementById('weatherHubMeta');
+    const hubWarning=document.getElementById('weatherHubWarning');
+    hubTitle.textContent='الطقس — جارٍ التحديث…';
     try{
       const qs=new URLSearchParams({
         latitude:state.pos.lat, longitude:state.pos.lng,
@@ -2016,30 +2487,23 @@
       if(!response.ok) throw new Error('weather '+response.status);
       const data=await response.json(), current=data.current||{}, daily=data.daily||{};
       const desc=weatherDescription(Number(current.weather_code));
-      document.getElementById('weatherIcon').textContent=desc[0];
-      title.textContent='طقس اليوم: '+desc[1]+' — '+Math.round(Number(current.temperature_2m))+'°';
+      const temp=Number(current.temperature_2m);
       document.getElementById('weatherHubIcon').textContent=desc[0];
-      document.getElementById('weatherHubTitle').textContent=title.textContent;
+      hubTitle.textContent='طقس اليوم: '+desc[1]+' — '+Math.round(temp)+'°';
       const high=Math.round(Number(daily.temperature_2m_max?.[0]));
       const low=Math.round(Number(daily.temperature_2m_min?.[0]));
       const wind=Math.round(Number(current.wind_speed_10m)||0);
       const dir=windName(current.wind_direction_10m);
       const rain=Math.round(Number(daily.precipitation_probability_max?.[0])||0);
-      meta.textContent='العظمى '+high+'° / الصغرى '+low+'° — الرياح '+dir+' '+wind+' كم/س — احتمال المطر '+rain+'%';
-      document.getElementById('weatherHubMeta').textContent=meta.textContent;
+      hubMeta.textContent='العظمى '+high+'° / الصغرى '+low+'° — الرياح '+dir+' '+wind+' كم/س — احتمال المطر '+rain+'%';
       const warningText=weatherWarningText(current,daily);
-      warning.textContent=warningText ? '⚠️ '+warningText : '';
-      warning.classList.toggle('show',Boolean(warningText));
-      const hubWarning=document.getElementById('weatherHubWarning');
-      hubWarning.textContent=warning.textContent;
+      hubWarning.textContent=warningText ? '⚠️ '+warningText : '';
       hubWarning.classList.toggle('show',Boolean(warningText));
+      setWeatherBadge(Number(current.weather_code), temp);
     }catch(e){
-      title.textContent='تعذّر تحديث الطقس';
-      meta.textContent='تحقق من اتصال الإنترنت ثم اضغط زر التحديث.';
-      warning.classList.remove('show');
-      document.getElementById('weatherHubTitle').textContent=title.textContent;
-      document.getElementById('weatherHubMeta').textContent=meta.textContent;
-      document.getElementById('weatherHubWarning').classList.remove('show');
+      hubTitle.textContent='تعذّر تحديث الطقس';
+      hubMeta.textContent='تحقق من اتصال الإنترنت ثم اضغط زر التحديث.';
+      hubWarning.classList.remove('show');
     }
   }
   function maybeUpdateWeather(){
@@ -2047,10 +2511,6 @@
     const moved=!lastWeatherPoint || haversine(lastWeatherPoint.lat,lastWeatherPoint.lng,state.pos.lat,state.pos.lng)>10000;
     if(moved || Date.now()-lastWeatherFetch>=15*60*1000) updateWeather();
   }
-  document.getElementById('refreshWeatherBtn').addEventListener('click',()=>{
-    lastWeatherFetch=0;
-    updateWeather(true);
-  });
   document.getElementById('refreshWeatherHubBtn').addEventListener('click',()=>{
     lastWeatherFetch=0;
     updateWeather(true);
@@ -2567,54 +3027,11 @@
   });
 
   // ---------- parked car ----------
-  const carFab = document.getElementById('carFab');
-  const carMenu = document.getElementById('carMenu');
+  // تُستدعى من تبويب الأماكن والإعدادات بعد تعديل dalil_car.
   function updateCarQuick(){
-    const car=readStoredJson('dalil_car',null);
-    const saved=car&&validLatLng(Number(car.lat),Number(car.lng));
-    carFab.classList.toggle('has-car',!!saved);
-    carFab.title=saved?'موقع السيارة محفوظ':'حفظ موقع السيارة';
-  }
-  function closeCarMenu(){carMenu.classList.remove('show');carFab.setAttribute('aria-expanded','false');}
-  carFab.addEventListener('click',e=>{e.stopPropagation();const open=carMenu.classList.toggle('show');carFab.setAttribute('aria-expanded',String(open));});
-  document.addEventListener('click',e=>{if(!document.getElementById('carQuick').contains(e.target))closeCarMenu();});
-  document.getElementById('saveCarBtn').addEventListener('click', ()=>{
-    const storeCar = pos=>{
-      localStorage.setItem('dalil_car', JSON.stringify({lat:pos.lat, lng:pos.lng, time:Date.now()}));
-      renderPlaces();
-      updateCarQuick();
-      closeCarMenu();
-      toast('تم حفظ موقع السيارة ✅');
-    };
-    if(state.pos){
-      storeCar(state.pos);
-      return;
-    }
-    if(!navigator.geolocation) return toast('تحديد الموقع غير مدعوم في هذا المتصفح');
-    navigator.geolocation.getCurrentPosition(
-      p=>storeCar({lat:p.coords.latitude, lng:p.coords.longitude}),
-      ()=>toast('تعذّر تحديد موقع السيارة'),
-      {enableHighAccuracy:true, timeout:15000, maximumAge:0}
-    );
-  });
-
-  document.getElementById('goCarBtn').addEventListener('click', ()=>{
-    const car = readStoredJson('dalil_car', null);
-    if(!car || !validLatLng(Number(car.lat), Number(car.lng))) return toast('احفظ موقع السيارة أولًا');
-    closeCarMenu();
-    state.navTarget = {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:Number(car.lat), lng:Number(car.lng), alt:null};
-    document.querySelector('.tab[data-screen="compass"]').click();
+    refreshCar();
     renderCompassScreen();
-    toast('بدأ التوجيه إلى السيارة');
-  });
-  document.getElementById('removeCarBtn').addEventListener('click', ()=>{
-    const car=readStoredJson('dalil_car',null);
-    if(!car){closeCarMenu();return toast('لا يوجد موقع سيارة محفوظ');}
-    localStorage.removeItem('dalil_car');
-    if(state.navTarget&&state.navTarget.id==='__car__')restoreDefaultTarget();
-    closeCarMenu();updateCarQuick();renderPlaces();renderCompassScreen();
-    toast('تمت إزالة موقع السيارة');
-  });
+  }
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
@@ -2638,7 +3055,6 @@
     }, 1800);
   }
   drawTrackSvg();
-  document.querySelectorAll('.fmt-switch button').forEach(b=>b.classList.toggle('active', b.dataset.fmt===state.coordFmt));
   document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.toggle('active', c.dataset.fmtSet===state.coordFmt));
   renderPlaces();
   updateCarQuick();
