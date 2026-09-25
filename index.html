@@ -490,14 +490,18 @@
   .pl-ic{width:46px; height:46px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; background:var(--cp-soft); font-size:22px;}
   .pl-ic.car{background:#FBF3E6; color:var(--cp-gold-ink);}
   .pl-info{flex:1; min-width:0;}
-  .pl-name{font-size:15.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .pl-meta{font-size:13px; color:var(--text-dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pl-name{font-size:15.5px; font-weight:600; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere;}
+  .pl-meta{font-size:12.5px; color:var(--text-dim); margin-top:2px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
   .pl-go{width:auto; flex:0 0 auto; min-height:44px; padding:0 14px; font-size:14px; border-radius:14px;}
   .pl-go .cp-ic{width:18px; height:18px;}
   .pl-empty{text-align:center; background:#fff; border:1.5px dashed #CDBFA8; border-radius:22px; padding:28px 18px;}
   .pl-empty .cp-ic{width:36px; height:36px; color:var(--cp-gold-ink); margin-bottom:6px;}
   .pl-empty b{display:block; font-size:16px; margin-bottom:4px;}
   .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+  .pl-section{font-size:13.5px; font-weight:700; color:var(--text-dim); margin:16px 2px 8px;}
+  .pl-section small{font-weight:500; color:var(--text-faint);}
+  .pl-ic.cat{background:#FBF3E6; color:var(--cp-gold-ink);}
+  .pl-note{font-size:13px; color:var(--text-dim); background:#fff; border:1px dashed #CDBFA8; border-radius:16px; padding:12px 14px; margin-top:12px; line-height:1.7;}
   .pl-sheet-coords{font-size:14px; color:var(--text-dim); text-align:right; margin:-6px 0 12px; font-variant-numeric:tabular-nums;}
   .pl-rename{display:flex; gap:8px; margin-bottom:12px;}
   .pl-rename[hidden]{display:none;}
@@ -684,7 +688,7 @@
     <!-- ============ PLACES SCREEN ============ -->
     <section class="screen" id="screen-places">
       <div class="pl-toolbar">
-        <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك" autocomplete="off"></label>
+        <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك وخرائط البر" autocomplete="off"></label>
         <button class="cp-btn cp-btn-gold pl-add" type="button" id="addPlaceBtn"><span class="cp-ic" data-ico="plus"></span>مكان جديد</button>
       </div>
       <div class="chips" id="filterChips" role="tablist" aria-label="تصفية حسب التصنيف">
@@ -812,6 +816,17 @@
         <div class="chip" data-fmt-set="dd">Decimal Degrees</div>
         <div class="chip" data-fmt-set="dms">DMS</div>
         <div class="chip active" data-fmt-set="ddm">DDM</div>
+      </div>
+
+      <div class="section-title">خرائط البر للبحث بدون إنترنت</div>
+      <div class="banner">
+        استورد ملفات <b>KML</b> أو <b>KMZ</b>، مثل خرائط موقع «خرائط البر»، ليظهر كل موقع فيها في بحث تبويب الأماكن مع التوجّه إليه بالبوصلة أو على الخريطة. تُحفظ على هذا الجهاز وتعمل بلا إنترنت.
+        <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);">لم تُستورد أي خريطة بعد.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="importCatalogBtn">استيراد ملفات KML / KMZ</button>
+        <button class="btn btn-ghost" id="clearCatalogBtn">حذف المستورد</button>
+        <input type="file" id="importCatalogInput" multiple hidden>
       </div>
 
       <div class="section-title">قناة الرحلة في Zello</div>
@@ -955,6 +970,7 @@
         <button type="button" class="cp-sheet-item" id="placeSheetMap"><span class="cp-ic" data-ico="map"></span><span><b>عرض على الخريطة</b><small>والتوجّه عليها</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetSave" hidden><span class="cp-ic" data-ico="pin"></span><span><b>حفظ في أماكني</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetRename"><span class="cp-ic" data-ico="edit"></span><span><b>تعديل الاسم</b></span></button>
       </div>
       <button type="button" class="cp-btn cp-btn-danger" id="placeSheetDelete"><span class="cp-ic" data-ico="trash"></span><span id="placeSheetDeleteLabel">حذف المكان</span></button>
@@ -1609,6 +1625,8 @@
     wind:'<path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/>',
     dust:'<path d="M3 8h13M6 12h14M3 16h11"/><circle cx="19" cy="8" r=".6"/><circle cx="17" cy="16" r=".6"/>',
     sunrise:'<path d="M4 18h16M7 14.5a5 5 0 0 1 10 0"/><path d="M12 3v5M9.5 5.5 12 3l2.5 2.5M4.5 11l1.3.8M19.5 11l-1.3.8"/>',
+    mountain:'<path d="M3 19.5 9.5 8l4 6.5 2.5-3.5 5 8.5z"/><path d="m7.7 11.2 1.8 1.3 1.6-1.4"/>',
+    landmark:'<path d="M4 20h16M6 20v-8M10 20v-8M14 20v-8M18 20v-8M3.5 12h17L12 5z"/>',
     therm:'<path d="M10 14.5V5a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 10v6.5"/>'
   };
   function ico(name){
@@ -2278,6 +2296,7 @@
   }
   function findPlace(id){
     if(id === '__car__') return carPlaceItem();
+    if(String(id).startsWith('k:')) return catalogItem(Number(String(id).slice(2)));
     return state.places.find(p=>p.id===id) || null;
   }
 
@@ -2299,23 +2318,36 @@
     }
     const total = sourcePlaces.length;
     setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
+    const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
+    const catalogHtml = found && found.items && found.items.length
+      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
+      : (q && !catalog.p.length ? `<div class="pl-note">لإضافة مواقع «خرائط البر» إلى البحث: الإعدادات ← استيراد ملفات KML / KMZ.</div>` : '');
+    if(items.length === 0 && catalogHtml){
+      setText('placesCount', '');
+      list.innerHTML = catalogHtml;
+      return;
+    }
     if(items.length === 0){
       list.innerHTML = total
         ? `<div class="pl-empty"><span class="cp-ic">${ico('search')}</span><b>لا توجد نتائج</b><span>جرّب كلمة أخرى أو تصنيفًا آخر.</span></div>`
         : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`;
       return;
     }
-    list.innerHTML = items.map(p=>{
-      const isCar = p.id === '__car__';
-      const icon = isCar ? `<span class="pl-ic car">${icoSpan('car')}</span>` : `<span class="pl-ic" aria-hidden="true">${escapeHtml(p.icon || '📍')}</span>`;
-      const name = escapeHtml(p.name);
-      return `<div class="pl-card">
+    list.innerHTML = items.map(placeCard).join('') + catalogHtml;
+  }
+  function placeCard(p){
+    const isCar = p.id === '__car__';
+    const icon = isCar ? `<span class="pl-ic car">${icoSpan('car')}</span>`
+      : p.catalog ? `<span class="pl-ic cat">${icoSpan(catalogIcon(p.kind))}</span>`
+      : `<span class="pl-ic" aria-hidden="true">${escapeHtml(p.icon || '📍')}</span>`;
+    const name = escapeHtml(p.name);
+    const meta = (p.catalog ? p.kind + (p.region ? ' · ' + p.region : '') + ' · ' : '') + placeMeta(p);
+    return `<div class="pl-card">
         ${icon}
-        <div class="pl-info"><div class="pl-name">${name}</div><div class="pl-meta">${escapeHtml(placeMeta(p))}</div></div>
+        <div class="pl-info"><div class="pl-name">${name}</div><div class="pl-meta">${escapeHtml(meta)}</div></div>
         <button type="button" class="cp-icon-btn" data-more="${escapeHtml(p.id)}" aria-label="خيارات ${name}">${icoSpan('more')}</button>
         <button type="button" class="cp-btn cp-btn-gold pl-go" data-go="${escapeHtml(p.id)}" aria-label="التوجّه إلى ${name}">${icoSpan('nav')}توجّه</button>
       </div>`;
-    }).join('');
   }
   document.getElementById('placesList').addEventListener('click', e=>{
     const go = e.target.closest('[data-go]');
@@ -2340,6 +2372,190 @@
     if(Date.now() - placesRenderedAt > 4000) renderPlaces();
   }
 
+
+  // ---------- desert maps catalogue (imported KML/KMZ, kept in IndexedDB) ----------
+  // مستقل تمامًا عن أماكن المستخدم ومفاتيح localStorage.
+  const catalog = {regions:[], cats:[], p:[], norm:null};
+  function normAr(v){
+    return String(v||'').replace(/[ً-ْٰـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه')
+      .replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي').replace(/\s+/g,' ').trim().toLowerCase();
+  }
+  function stripAl(v){ return v.split(' ').map(w=>w.length > 3 && w.startsWith('ال') ? w.slice(2) : w).join(' '); }
+  function catalogDb(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open('dalil_catalog', 1);
+      req.onupgradeneeded = ()=>req.result.createObjectStore('kv');
+      req.onsuccess = ()=>resolve(req.result);
+      req.onerror = ()=>reject(req.error);
+    });
+  }
+  async function catalogGet(){
+    const db = await catalogDb();
+    return new Promise((resolve, reject)=>{
+      const req = db.transaction('kv').objectStore('kv').get('desert');
+      req.onsuccess = ()=>resolve(req.result || null);
+      req.onerror = ()=>reject(req.error);
+    });
+  }
+  async function catalogPut(value){
+    const db = await catalogDb();
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction('kv', 'readwrite');
+      tx.objectStore('kv').put(value, 'desert');
+      tx.oncomplete = ()=>resolve();
+      tx.onerror = ()=>reject(tx.error);
+    });
+  }
+  function indexCatalog(){
+    catalog.norm = catalog.p.map(x=>{ const n = normAr(x[0]); return [n, stripAl(n)]; });
+  }
+  function catalogCategory(folder){
+    const f = String(folder||'');
+    if(/اثري|أثري/.test(f)) return 'آثار';
+    if(/تجمع مياه/.test(f)) return 'تجمع مياه';
+    if(/مياه|آبار|ابار/.test(f)) return 'مورد ماء';
+    if(/جبال|جبل/.test(f)) return 'جبل';
+    if(/نفود/.test(f)) return 'نفود';
+    if(/خطر/.test(f)) return 'موقع خطر';
+    if(/طرق|طريق/.test(f)) return 'طريق صحراوي';
+    if(/حدود/.test(f)) return 'حدود';
+    if(/رئيس/.test(f)) return 'معلم رئيسي';
+    return 'معلم';
+  }
+  function catalogIcon(kind){
+    return kind === 'جبل' ? 'mountain' : /ماء|مياه/.test(kind) ? 'drop' : kind === 'آثار' ? 'landmark' : kind === 'نفود' ? 'dust' : kind === 'موقع خطر' ? 'sos' : kind === 'طريق صحراوي' ? 'map' : 'pin';
+  }
+  // قارئ ZIP مصغّر لملفات KMZ (يعتمد DecompressionStream المتوفر في Safari 16.4+).
+  async function kmzToKml(buf){
+    const dv = new DataView(buf);
+    let eocd = -1;
+    for(let i = buf.byteLength - 22; i >= Math.max(0, buf.byteLength - 65557); i--){
+      if(dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+    }
+    if(eocd < 0) throw new Error('zip');
+    let off = dv.getUint32(eocd + 16, true);
+    const count = dv.getUint16(eocd + 10, true);
+    for(let n = 0; n < count; n++){
+      if(dv.getUint32(off, true) !== 0x02014b50) break;
+      const method = dv.getUint16(off + 10, true), size = dv.getUint32(off + 20, true);
+      const nameLen = dv.getUint16(off + 28, true), extraLen = dv.getUint16(off + 30, true), commentLen = dv.getUint16(off + 32, true);
+      const local = dv.getUint32(off + 42, true);
+      const name = new TextDecoder().decode(new Uint8Array(buf, off + 46, nameLen));
+      off += 46 + nameLen + extraLen + commentLen;
+      if(!/\.kml$/i.test(name)) continue;
+      const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+      const bytes = new Uint8Array(buf, start, size);
+      if(method === 0) return new TextDecoder().decode(bytes);
+      if(method === 8 && typeof DecompressionStream !== 'undefined'){
+        const out = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
+        return new TextDecoder().decode(out);
+      }
+      throw new Error('unsupported');
+    }
+    throw new Error('no kml');
+  }
+  function parseKmlInto(text, into, fallbackName){
+    const doc = new DOMParser().parseFromString(text, 'application/xml');
+    if(doc.getElementsByTagName('parsererror').length) throw new Error('kml');
+    const docEl = doc.getElementsByTagName('Document')[0];
+    const docNameEl = docEl && [...docEl.children].find(el=>el.localName === 'name');
+    const region = (docNameEl ? docNameEl.textContent : fallbackName).replace('خريطة','').replace('البرية','').replace(/\s+/g,' ').trim() || fallbackName;
+    let ri = into.regions.indexOf(region);
+    if(ri < 0){ into.regions.push(region); ri = into.regions.length - 1; }
+    let added = 0;
+    for(const pm of doc.getElementsByTagName('Placemark')){
+      const coordsEl = pm.getElementsByTagName('Point')[0]?.getElementsByTagName('coordinates')[0];
+      if(!coordsEl) continue;
+      const nameEl = [...pm.children].find(el=>el.localName === 'name');
+      const name = (nameEl ? nameEl.textContent : '').replace(/\s+/g,' ').trim();
+      const [lng, lat] = coordsEl.textContent.trim().split(',').map(Number);
+      if(!name || !validLatLng(lat, lng)) continue;
+      const folder = pm.parentElement && pm.parentElement.localName === 'Folder' ? [...pm.parentElement.children].find(el=>el.localName === 'name')?.textContent : '';
+      const kind = catalogCategory(folder);
+      let ci = into.cats.indexOf(kind);
+      if(ci < 0){ into.cats.push(kind); ci = into.cats.length - 1; }
+      const key = name + '|' + lat.toFixed(3) + '|' + lng.toFixed(3);
+      if(into.seen.has(key)) continue;
+      into.seen.add(key);
+      into.p.push([name, Number(lat.toFixed(5)), Number(lng.toFixed(5)), ri, ci]);
+      added++;
+    }
+    return added;
+  }
+  function updateCatalogStatus(){
+    const el = document.getElementById('catalogStatus');
+    if(!catalog.p.length){ el.textContent = 'لم تُستورد أي خريطة بعد.'; return; }
+    el.textContent = catalog.p.length.toLocaleString('ar-SA-u-nu-latn') + ' موقعًا من ' + catalog.regions.length + (catalog.regions.length === 1 ? ' خريطة' : ' خرائط') + ': ' + catalog.regions.join('، ');
+  }
+  async function loadCatalog(){
+    try{
+      const saved = await catalogGet();
+      if(saved && Array.isArray(saved.p)){
+        catalog.regions = saved.regions || []; catalog.cats = saved.cats || []; catalog.p = saved.p;
+        indexCatalog();
+      }
+    }catch(e){}
+    updateCatalogStatus();
+  }
+  document.getElementById('importCatalogBtn').addEventListener('click', ()=>document.getElementById('importCatalogInput').click());
+  document.getElementById('importCatalogInput').addEventListener('change', async e=>{
+    const files = [...(e.target.files || [])];
+    e.target.value = '';
+    if(!files.length) return;
+    const btn = document.getElementById('importCatalogBtn');
+    btn.disabled = true;
+    btn.textContent = 'جارٍ الاستيراد…';
+    const into = {regions:[...catalog.regions], cats:[...catalog.cats], p:[...catalog.p], seen:new Set(catalog.p.map(x=>x[0] + '|' + x[1].toFixed(3) + '|' + x[2].toFixed(3)))};
+    let added = 0, failed = 0;
+    for(const file of files){
+      try{
+        const buf = await file.arrayBuffer();
+        const isZip = buf.byteLength > 4 && new DataView(buf).getUint32(0, true) === 0x04034b50;
+        const text = isZip ? await kmzToKml(buf) : new TextDecoder().decode(buf);
+        added += parseKmlInto(text, into, file.name.replace(/\.(kml|kmz)$/i, ''));
+      }catch(err){ failed++; }
+    }
+    delete into.seen;
+    try{
+      await catalogPut(into);
+      catalog.regions = into.regions; catalog.cats = into.cats; catalog.p = into.p;
+      indexCatalog();
+      updateCatalogStatus();
+      toast('تمت إضافة ' + added.toLocaleString('ar-SA-u-nu-latn') + ' موقعًا' + (failed ? ' — تعذّر قراءة ' + failed + ' ملف' : ''));
+    }catch(err){
+      toast('تعذّر حفظ الخرائط على الجهاز');
+    }
+    btn.disabled = false;
+    btn.textContent = 'استيراد ملفات KML / KMZ';
+  });
+  document.getElementById('clearCatalogBtn').addEventListener('click', async ()=>{
+    if(!catalog.p.length) return toast('لا توجد خرائط مستوردة');
+    if(!confirm('حذف كل مواقع خرائط البر المستوردة من هذا الجهاز؟ أماكنك الخاصة لن تتأثر.')) return;
+    try{ await catalogPut({regions:[], cats:[], p:[]}); }catch(e){}
+    catalog.regions = []; catalog.cats = []; catalog.p = []; catalog.norm = [];
+    updateCatalogStatus();
+    toast('تم حذف الخرائط المستوردة');
+  });
+  function catalogItem(i){
+    const x = catalog.p[i];
+    return x ? {id:'k:' + i, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:catalog.cats[x[4]] || 'معلم', region:catalog.regions[x[3]] || ''} : null;
+  }
+  function searchCatalog(q){
+    if(!catalog.norm || !catalog.norm.length) return [];
+    const nq = normAr(q), sq = stripAl(nq);
+    if(nq.length < 2) return [];
+    const hits = [];
+    for(let i = 0; i < catalog.norm.length; i++){
+      const [n, s2] = catalog.norm[i];
+      if(n.includes(nq) || s2.includes(sq)) hits.push({i, starts:(n.startsWith(nq) || s2.startsWith(sq)) ? 1 : 0});
+    }
+    const pos = state.pos;
+    hits.forEach(h=>{ const x = catalog.p[h.i]; h.d = pos ? haversine(pos.lat, pos.lng, x[1], x[2]) : 0; });
+    hits.sort((a,b)=>(b.starts - a.starts) || (a.d - b.d));
+    return {total:hits.length, items:hits.slice(0, 40).map(h=>catalogItem(h.i))};
+  }
+  loadCatalog();
+
   // ---------- place options sheet ----------
   const placeSheetOverlay = document.getElementById('placeSheetOverlay');
   let sheetPlaceId = null;
@@ -2350,7 +2566,11 @@
     const isCar = id === '__car__';
     document.getElementById('placeSheetTitle').textContent = place.name;
     document.getElementById('placeSheetCoords').textContent = formatCoords(place.lat, place.lng, state.coordFmt);
-    document.getElementById('placeSheetRename').hidden = isCar;
+    const isCatalog = !!place.catalog;
+    document.getElementById('placeSheetRename').hidden = isCar || isCatalog;
+    document.getElementById('placeSheetSave').hidden = !isCatalog;
+    document.getElementById('placeSheetDelete').hidden = isCatalog;
+    if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
     document.getElementById('placeRenameRow').hidden = true;
     document.getElementById('placeSheetDeleteLabel').textContent = isCar ? 'إزالة موقع السيارة' : 'حذف المكان';
     placeSheetOverlay.classList.add('show');
@@ -2394,6 +2614,15 @@
     toast('تم تعديل الاسم');
   }
   document.getElementById('placeRenameSave').addEventListener('click', savePlaceRename);
+  document.getElementById('placeSheetSave').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    if(!place) return;
+    state.places.unshift({id:Date.now().toString(36), name:place.name, icon:'📍', cat:'other', lat:place.lat, lng:place.lng, alt:null, createdAt:Date.now()});
+    save();
+    closePlaceSheet();
+    renderPlaces();
+    toast('تم حفظ «' + place.name + '» في أماكنك');
+  });
   document.getElementById('placeRenameInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') savePlaceRename(); });
   document.getElementById('placeSheetDelete').addEventListener('click', ()=>{
     const place = findPlace(sheetPlaceId);
