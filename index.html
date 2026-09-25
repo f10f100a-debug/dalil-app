@@ -353,8 +353,8 @@
   .cp-letter{font-family:"IBM Plex Sans Arabic", system-ui, sans-serif; font-size:19px; font-weight:700; fill:var(--cp-dim);}
   .cp-letter.north{fill:#C0392B;}
   .cp-index{fill:var(--cp-ink);}
-  .cp-arrow path{fill:var(--cp-gold); stroke:#FFFDF9; stroke-width:1.5; stroke-linejoin:round; transition:fill .2s, opacity .3s;}
-  .cp-compass.aligned .cp-arrow path{fill:var(--cp-gold-ink); filter:drop-shadow(0 0 5px rgba(201,150,79,.9));}
+  .cp-arrow path{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:2.2; stroke-linejoin:round; paint-order:stroke; filter:drop-shadow(0 1px 2px rgba(28,26,23,.35)); transition:fill .2s, opacity .3s;}
+  .cp-compass.aligned .cp-arrow path{fill:var(--cp-gold-ink); stroke:#3A2408; filter:drop-shadow(0 0 7px rgba(201,150,79,1));}
   .cp-glow{fill:none; stroke:var(--cp-gold); stroke-width:3; opacity:0;}
   .cp-compass.aligned .cp-glow{animation:cpGlow 1.4s ease-in-out infinite;}
   @keyframes cpGlow{0%,100%{opacity:.15} 50%{opacity:.7}}
@@ -362,11 +362,11 @@
   .cp-near-ring{fill:none; stroke:var(--cp-gold); stroke-width:2; stroke-dasharray:3 6; stroke-linecap:round; display:none; transform-origin:150px 150px; animation:cpSpin 14s linear infinite;}
   .cp-compass.near .cp-near-ring{display:block;}
   @keyframes cpSpin{to{transform:rotate(360deg)}}
-  .cp-car-dot{fill:var(--cp-gold); stroke:#FFFDF9; stroke-width:2;}
+  .cp-car-dot{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:1.6; stroke-linejoin:round;}
   .cp-qibla{fill:#2F6B4F;}
   .cp-center{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    width:52%; text-align:center; pointer-events:none;
+    width:48%; text-align:center; pointer-events:none;
   }
   .cp-c-label{font-size:13px; font-weight:600; color:var(--cp-gold-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-height:0;}
   .cp-c-label:empty, .cp-c-sub:empty{display:none;}
@@ -560,7 +560,7 @@
 
       <div class="cp-card cp-compass-card">
         <div class="cp-compass" id="cpCompass">
-          <svg viewBox="0 0 300 300" id="compassSvg" aria-hidden="true">
+          <svg viewBox="-14 -14 328 328" id="compassSvg" aria-hidden="true">
             <circle class="cp-glow" cx="150" cy="150" r="140"/>
             <circle class="cp-face" cx="150" cy="150" r="136"/>
             <circle class="cp-inner" cx="150" cy="150" r="86"/>
@@ -568,8 +568,8 @@
             <g id="dialLetters"></g>
             <g id="dialMarks"></g>
             <circle class="cp-near-ring" cx="150" cy="150" r="80"/>
-            <g id="targetArrow" class="cp-arrow" style="display:none"><path d="M150 15 L162 40 L150 34 L138 40 Z"/></g>
-            <path class="cp-index" d="M141 0 L159 0 L150 13 Z"/>
+            <g id="targetArrow" class="cp-arrow" style="display:none"><path d="M150 2 L168 40 L150 31 L132 40 Z"/></g>
+            <path class="cp-index" d="M140 -14 L160 -14 L150 -1 Z"/>
           </svg>
           <div class="cp-center" aria-live="polite">
             <div class="cp-c-label" id="cpCLabel"></div>
@@ -1706,7 +1706,7 @@
     // القرص يدور والأحرف تبقى معتدلة
     dialEl.setAttribute('transform', `rotate(${(-heading).toFixed(1)} ${C} ${C})`);
     letterEls.forEach(({el, angle})=>{
-      const [x,y] = polar(angle - heading, 103);
+      const [x,y] = polar(angle - heading, 98);
       el.setAttribute('x', x.toFixed(1));
       el.setAttribute('y', y.toFixed(1));
     });
@@ -1719,8 +1719,9 @@
       const [qx,qy] = polar(qb - heading, 126);
       marks += `<rect class="cp-qibla" x="${(qx-4).toFixed(1)}" y="${(qy-4).toFixed(1)}" width="8" height="8" rx="1.5"><title>القبلة</title></rect>`;
       if(car && !isCarTarget(t)){
-        const [cx,cy] = polar(bearing(pos.lat, pos.lng, car.lat, car.lng) - heading, 126);
-        marks += `<circle class="cp-car-dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="6"><title>السيارة</title></circle>`;
+        // سهم صغير على الحافة باتجاه السيارة (أصغر من سهم التوجيه).
+        const carRel = (bearing(pos.lat, pos.lng, car.lat, car.lng) - heading + 360) % 360;
+        marks += `<path class="cp-car-dot" d="M150 8 L161 30 L150 25 L139 30 Z" transform="rotate(${carRel.toFixed(1)} ${C} ${C})"><title>السيارة</title></path>`;
       }
     }
     if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
