@@ -82,6 +82,30 @@
       <div class="stats" id="uRegions" style="margin-top:10px"></div>
     </div>
 
+    <h2>نشر صورة مباشرة <span class="muted" style="font-weight:400">· تظهر فورًا في «الأحداث» بدون مراجعة</span></h2>
+    <div class="card">
+      <label for="pubFile">الصورة</label>
+      <input id="pubFile" type="file" accept="image/*">
+      <div id="pubPreview" class="muted"></div>
+      <label for="pubKind">النوع</label>
+      <select id="pubKind"><option value="flood">سيل</option><option value="rain">مطر</option><option value="spring">ربيع</option><option value="dust">غبار</option><option value="road">حالة طريق</option><option value="other">أخرى</option></select>
+      <label for="pubCaption">الوصف</label>
+      <input id="pubCaption" maxlength="140" placeholder="مثال: سيل وادي الرمة الآن">
+      <div class="grid2">
+        <div><label for="pubRegion">المنطقة</label><select id="pubRegion"><option value="">بدون منطقة</option></select></div>
+        <div><label for="pubNick">المصوّر (اختياري)</label><input id="pubNick" maxlength="24" placeholder="بعدسة…"></div>
+      </div>
+      <label for="pubLoc">الموقع (اختياري): إحداثيات أو رابط قوقل ماب</label>
+      <input id="pubLoc" dir="ltr" placeholder="27.5201, 41.6962  أو  https://maps.google.com/…">
+      <div class="muted" id="pubLocNote" style="font-size:12.5px;margin-top:4px"></div>
+      <div class="grid2">
+        <div><label for="pubDays">مدة البقاء</label><select id="pubDays"><option value="1">يوم</option><option value="3" selected>3 أيام</option><option value="7">أسبوع</option><option value="14">أسبوعان</option></select></div>
+        <div style="align-self:end"><label class="chk"><input type="checkbox" id="pubNotify" checked> إرسال تنبيه للمنطقة</label></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="gold" id="pubSend" disabled>نشر الآن</button></div>
+      <div class="msg" id="pubMsg"></div>
+    </div>
+
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
     <div id="pending"></div>
 
@@ -175,8 +199,9 @@
     $('live').innerHTML = d.live.length ? d.live.map(e=>evCard(e, false)).join('') : '<div class="card muted">لا توجد صور منشورة الآن.</div>';
     const sub = d.subscribers || {total:0, byRegion:{}};
     $('stats').innerHTML = `<span>المشتركون في التنبيهات: <b>${sub.total}</b></span>` + Object.entries(sub.byRegion).map(([k, v])=>`<span>${esc(k)}: ${v}</span>`).join('');
-    const sel = $('pRegion');
-    if(sel.options.length === 1) (d.regions || []).forEach(r=>{ const o = document.createElement('option'); o.textContent = r; sel.appendChild(o); });
+    for(const sel of [$('pRegion'), $('pubRegion')]){
+      if(sel.options.length === 1) (d.regions || []).forEach(r=>{ const o = document.createElement('option'); o.textContent = r; sel.appendChild(o); });
+    }
   }
   function showErr(e){
     if(e.auth){ pass = ''; try{ sessionStorage.removeItem('dalil_admin'); }catch(x){} $('app').hidden = true; $('login').hidden = false; }
@@ -225,6 +250,106 @@
     finally{ $('pSend').disabled = false; }
   });
 
+
+
+  // ---------- نشر صورة مباشرة ----------
+  async function readExif(file){
+    try{
+      const buf = new DataView(await file.slice(0, 256 * 1024).arrayBuffer());
+      if(buf.getUint16(0) !== 0xFFD8) return {};
+      let off = 2;
+      while(off + 4 < buf.byteLength){
+        const marker = buf.getUint16(off), len = buf.getUint16(off + 2);
+        if(marker === 0xFFE1 && buf.getUint32(off + 4) === 0x45786966){ // "Exif"
+          const t = off + 10, le = buf.getUint16(t) === 0x4949;
+          const u16 = o=>buf.getUint16(t + o, le), u32 = o=>buf.getUint32(t + o, le);
+          const ifd = o=>{ const n = u16(o), m = {}; for(let i = 0; i < n; i++){ const e = o + 2 + i * 12; m[u16(e)] = {type:u16(e + 2), count:u32(e + 4), val:e + 8}; } return m; };
+          const str = en=>{ const p = en.count > 4 ? u32(en.val) : en.val; let r = ''; for(let i = 0; i < en.count - 1; i++) r += String.fromCharCode(buf.getUint8(t + p + i)); return r; };
+          const rats = en=>{ const p = u32(en.val), a = []; for(let i = 0; i < en.count; i++) a.push(u32(p + i * 8) / (u32(p + i * 8 + 4) || 1)); return a; };
+          const out = {};
+          const ifd0 = ifd(u32(4));
+          if(ifd0[0x8769]){
+            const ex = ifd(u32(ifd0[0x8769].val));
+            const dt = ex[0x9003] || ex[0x9004];
+            if(dt){ const m = str(dt).match(/^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/); if(m) out.taken = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime(); }
+          }
+          if(ifd0[0x8825]){
+            const g = ifd(u32(ifd0[0x8825].val));
+            if(g[2] && g[4]){
+              const dms = a=>a[0] + a[1] / 60 + a[2] / 3600;
+              let lat = dms(rats(g[2])), lng = dms(rats(g[4]));
+              if(g[1] && str(g[1]) === 'S') lat = -lat;
+              if(g[3] && str(g[3]) === 'W') lng = -lng;
+              if(Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) out.gps = {lat, lng};
+            }
+          }
+          return out;
+        }
+        if(marker === 0xFFDA || (marker & 0xFF00) !== 0xFF00) break;
+        off += 2 + len;
+      }
+    }catch(e){}
+    return {};
+  }
+
+  let pubDraft = null;
+  function parseLoc(t){
+    t = String(t || '').trim(); if(!t) return null;
+    try{ t = decodeURIComponent(t); }catch(e){}
+    const pats = [/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/, /[?&](?:q|query|ll|destination|daddr)=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/, /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/, /^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,،\s]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/];
+    for(const re of pats){ const m = t.match(re); if(m){ const lat = +m[1], lng = +m[2]; if(Math.abs(lat) <= 90 && Math.abs(lng) <= 180) return {lat, lng}; } }
+    return undefined;
+  }
+  function locNote(){
+    const v = parseLoc($('pubLoc').value);
+    $('pubLocNote').textContent = v === null ? 'بدون موقع: لن يظهر زر «توجّه».' : v ? `الموقع: ${v.lat.toFixed(5)}, ${v.lng.toFixed(5)}` : 'لم أتعرّف على الإحداثيات — الصق رقمين مثل 27.52, 41.69 أو رابط خرائط يحتوي الإحداثيات.';
+    $('pubLocNote').style.color = v === undefined ? 'var(--red)' : '';
+  }
+  function toJpegData(img, maxSide, q){
+    const s = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+    return {data:c.toDataURL('image/jpeg', q), w:c.width, h:c.height};
+  }
+  $('pubLoc').addEventListener('input', locNote);
+  $('pubFile').addEventListener('change', async e=>{
+    const f = e.target.files && e.target.files[0]; pubDraft = null; $('pubSend').disabled = true; if(!f) return;
+    $('pubMsg').textContent = 'جارٍ تجهيز الصورة…'; $('pubMsg').className = 'msg';
+    try{
+      const exif = await readExif(f);
+      const url = URL.createObjectURL(f), img = new Image();
+      await new Promise((ok, bad)=>{ img.onload = ok; img.onerror = bad; img.src = url; });
+      let full = toJpegData(img, 1280, .74);
+      if(full.data.length * .75 > 850 * 1024) full = toJpegData(img, 1080, .6);
+      const thumb = toJpegData(img, 420, .7);
+      URL.revokeObjectURL(url);
+      pubDraft = {photo:full.data.split(',')[1], thumb:thumb.data.split(',')[1], w:full.w, h:full.h};
+      $('pubPreview').innerHTML = `<img src="${full.data}" alt="" style="max-width:100%;max-height:220px;border-radius:12px;margin-top:8px">`;
+      if(exif.gps && !$('pubLoc').value.trim()){ $('pubLoc').value = exif.gps.lat.toFixed(5) + ', ' + exif.gps.lng.toFixed(5); }
+      locNote();
+      $('pubMsg').textContent = exif.gps ? 'أُخذ الموقع من بيانات الصورة.' : ''; $('pubSend').disabled = false;
+    }catch(err){ $('pubMsg').textContent = 'تعذّر قراءة الصورة'; $('pubMsg').className = 'msg err'; }
+  });
+  $('pubSend').addEventListener('click', async ()=>{
+    if(!pubDraft) return;
+    const loc = parseLoc($('pubLoc').value);
+    if(loc === undefined){ $('pubMsg').textContent = 'صحّح الموقع أو امسحه'; $('pubMsg').className = 'msg err'; return; }
+    const region = $('pubRegion').value, notify = $('pubNotify').checked;
+    if(notify && !confirm(`نشر الصورة وإرسال تنبيه إلى ${region || 'كل المشتركين'}؟`)) return;
+    $('pubSend').disabled = true; $('pubMsg').textContent = 'جارٍ النشر…'; $('pubMsg').className = 'msg';
+    try{
+      const r = await api('publish', {photo_b64:pubDraft.photo, thumb_b64:pubDraft.thumb, w:pubDraft.w, h:pubDraft.h,
+        kind:$('pubKind').value, caption:$('pubCaption').value.trim(), nickname:$('pubNick').value.trim(), region,
+        lat:loc ? loc.lat : null, lng:loc ? loc.lng : null, days:+$('pubDays').value, notify});
+      $('pubMsg').textContent = 'نُشرت الصورة ✓' + (r.push ? ` — وصل التنبيه إلى ${r.push.sent} من ${r.push.total}` : '');
+      $('pubMsg').className = 'msg ok';
+      pubDraft = null; $('pubFile').value = ''; $('pubPreview').innerHTML = ''; $('pubCaption').value = ''; $('pubLoc').value = ''; $('pubLocNote').textContent = '';
+      await load();
+    }catch(e){
+      $('pubMsg').textContent = ({bad_image:'صيغة الصورة غير مدعومة', too_large:'الصورة كبيرة جدًا', bad_kind:'اختر النوع'})[e.message] || e.message || 'تعذّر النشر';
+      $('pubMsg').className = 'msg err'; if(e.auth) showErr(e); $('pubSend').disabled = false;
+    }
+  });
 
   // ---------- الاستخدام ----------
   async function loadUsage(){
