@@ -309,6 +309,9 @@
   }
   body.on-compass, body.on-compass #app{background:#F2EFE9;}
   body.on-compass .topbar{display:none;}
+  /* في التطبيق المثبت يكون نص شريط الحالة أبيض (black-translucent)، فنضع خلفه
+     شريطًا داكنًا بارتفاع المنطقة الآمنة فقط؛ ارتفاعه صفر داخل Safari العادي. */
+  body.on-compass::before{content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top, 0px); background:#1C1A17; z-index:30; pointer-events:none;}
   #screen-compass{padding-top:max(8px, env(safe-area-inset-top));}
   .cp-ic{width:22px; height:22px; flex:0 0 auto; display:inline-block; vertical-align:middle;}
   .cp-ic svg{width:100%; height:100%; display:block;}
@@ -1067,12 +1070,20 @@
       tab.classList.add('active');
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       document.body.classList.toggle('on-compass', tab.dataset.screen === 'compass');
+      syncThemeColor();
       if(tab.dataset.screen === 'places') renderPlaces();
       if(tab.dataset.screen === 'track') renderTrackHistory();
       if(tab.dataset.screen === 'weather') updateWeather();
       if(tab.dataset.screen === 'settings') updateDiagnostics();
     });
   });
+
+  // لون شريط المتصفح يتبع خلفية الصفحة الحالية.
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  function syncThemeColor(){
+    if(themeColorMeta) themeColorMeta.setAttribute('content', document.body.classList.contains('on-compass') ? '#F2EFE9' : '#11171b');
+  }
+  syncThemeColor();
 
   // ---------- onboarding & permissions ----------
   const onboardBtn = document.getElementById('onboardBtn');
