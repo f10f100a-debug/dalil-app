@@ -195,6 +195,11 @@ function updateGpsBtn(){
 // تفضيل اتجاه الخريطة: 'auto' تدور مع السيارة تلقائيًا أثناء القيادة، 'north' الشمال للأعلى دائمًا.
 let headingPref=(()=>{try{return localStorage.getItem('dalil_map_heading')==='north'?'north':'auto'}catch(e){return'auto'}})();
 function setHeadingPref(v){headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
+// إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
+let screenLock=null;
+async function keepScreenOn(){if(!navigationActive||!('wakeLock' in navigator)||document.visibilityState!=='visible'||(screenLock&&!screenLock.released))return;try{screenLock=await navigator.wakeLock.request('screen');screenLock.addEventListener('release',()=>{screenLock=null})}catch(e){screenLock=null}}
+function releaseScreen(){if(screenLock){screenLock.release().catch(()=>{});screenLock=null}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepScreenOn()});
 function setView(v){view=v;updateOrigin();updateGpsBtn()}
 function enterHeading(){setView('heading');const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
 function releaseView(){if(view!=='free')setView('free')}
@@ -325,7 +330,7 @@ $('#googleNav').onclick=openGoogle;
 startNav.onclick=async()=>{
   if(!targetPoint)return;
   if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
-  navigationActive=true;setRot(0);setView('fit');
+  navigationActive=true;keepScreenOn();setRot(0);setView('fit');
   startNav.style.display='none';compassNav.style.display='none';stopNav.style.display='block';
   status.textContent='التوجيه على الخريطة نشط — جارٍ تشغيل الاتجاه وGPS';
   const oriented=await ensureOrientation();
@@ -334,7 +339,7 @@ startNav.onclick=async()=>{
   if(gps){fitNavigation();updateNavigation();render()}
 };
 compassNav.onclick=()=>{if(!targetPoint)return;const label=navName.textContent||'نقطة محددة على الخريطة',url='index.html?screen=compass&navLat='+encodeURIComponent(targetPoint.lat)+'&navLng='+encodeURIComponent(targetPoint.lng)+'&navLabel='+encodeURIComponent(label);if(isEmbedded)window.parent.location.href=url;else location.href=url};
-stopNav.onclick=()=>{navigationActive=false;if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
+stopNav.onclick=()=>{navigationActive=false;releaseScreen();if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
 
 // ---------- embedded in the app (track tab) ----------
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;
