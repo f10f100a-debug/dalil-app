@@ -18,50 +18,36 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="دليل">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#11171b">
+<meta name="theme-color" content="#F2EFE9">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#11171b;
-    --panel:#1a2228;
-    --panel-2:#212b32;
-    --line:#2b3841;
-    --sand:#d9a15b;
-    --sand-dim:#8a6a3d;
-    --sage:#7fa487;
-    --danger:#c1553f;
-    --text:#f1ece2;
-    --text-dim:#93a1aa;
-    --text-faint:#5f6d76;
-    --shadow: 0 10px 30px rgba(0,0,0,.35);
-  }
-  :root:not([data-theme="light"]) {}
-  @media (prefers-color-scheme: light){
-    :root:not([data-theme="dark"]){
-      --bg:#eef1ee;
-      --panel:#ffffff;
-      --panel-2:#f2f4f2;
-      --line:#dde3de;
-      --text:#1a2320;
-      --text-dim:#5a6863;
-      --text-faint:#8a9691;
-      --shadow: 0 10px 24px rgba(20,30,25,.08);
-    }
-  }
-  :root[data-theme="dark"]{
-    --bg:#11171b; --panel:#1a2228; --panel-2:#212b32; --line:#2b3841;
-    --text:#f1ece2; --text-dim:#93a1aa; --text-faint:#5f6d76;
-    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --bg:#F2EFE9;
+    --panel:#FFFFFF;
+    --panel-2:#F7F4EE;
+    --line:#E4DED3;
+    --sand:#C9964F;
+    --sand-dim:#7A4E14;
+    --sage:#2F7A4B;
+    --danger:#B23A2E;
+    --text:#1C1A17;
+    --text-dim:#6B645A;
+    --text-faint:#9A9287;
+    --shadow: 0 8px 24px rgba(60,45,20,.10);
+    --cp-bg:#F2EFE9; --cp-card:#FFFFFF; --cp-line:#E4DED3;
+    --cp-gold:#C9964F; --cp-gold-ink:#7A4E14; --cp-ink:#1C1A17;
+    --cp-dim:#6B645A; --cp-faint:#9A9287; --cp-soft:#F7F4EE;
+    --cp-red:#8E1E17; --cp-red-bg:#F7E4E1; --cp-green:#2F7A4B; --cp-green-bg:#E3F1E7;
+    color-scheme:light;
   }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
   html,body{margin:0; padding:0; background:var(--bg); overscroll-behavior:none;}
   body{
-    font-family:"Tajawal", system-ui, sans-serif;
+    font-family:"IBM Plex Sans Arabic", system-ui, sans-serif;
     color:var(--text);
     min-height:100vh;
     display:flex; justify-content:center;
@@ -299,19 +285,10 @@
     .track-map-frame{height:55dvh;min-height:330px;}
   }
   /* ===== صفحة البوصلة (الهوية الجديدة) ===== */
-  #screen-compass, .cp-sheet{
-    --cp-bg:#F2EFE9; --cp-card:#FFFFFF; --cp-line:#E4DED3;
-    --cp-gold:#C9964F; --cp-gold-ink:#7A4E14; --cp-ink:#1C1A17;
-    --cp-dim:#6B645A; --cp-faint:#9A9287; --cp-soft:#F7F4EE;
-    --cp-red:#8E1E17; --cp-red-bg:#F7E4E1; --cp-green:#2F7A4B; --cp-green-bg:#E3F1E7;
-    font-family:"IBM Plex Sans Arabic", system-ui, sans-serif;
-    color:var(--cp-ink);
-  }
-  body.on-compass, body.on-compass #app{background:#F2EFE9;}
   body.on-compass .topbar{display:none;}
   /* في التطبيق المثبت يكون نص شريط الحالة أبيض (black-translucent)، فنضع خلفه
      شريطًا داكنًا بارتفاع المنطقة الآمنة فقط؛ ارتفاعه صفر داخل Safari العادي. */
-  body.on-compass::before{content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top, 0px); background:#1C1A17; z-index:30; pointer-events:none;}
+  body::before{content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top, 0px); background:#1C1A17; z-index:30; pointer-events:none;}
   #screen-compass{padding-top:max(8px, env(safe-area-inset-top));}
   .cp-ic{width:22px; height:22px; flex:0 0 auto; display:inline-block; vertical-align:middle;}
   .cp-ic svg{width:100%; height:100%; display:block;}
@@ -454,9 +431,60 @@
   .cp-sheet-item small{display:block; font-size:12px; color:var(--cp-dim); margin-top:2px;}
   .cp-sheet-item small.warn{color:var(--cp-gold-ink);}
   .cp-sheet .cp-btn + .cp-btn{margin-top:8px;}
-  /* التنبيه المؤقت يظهر أعلى الشاشة حتى لا يغطي أزرار البوصلة السفلية */
-  body.on-compass .toast{bottom:auto; top:calc(env(safe-area-inset-top) + 10px); transform:translate(-50%,-6px);}
-  body.on-compass .toast.show{transform:translate(-50%,0);}
+
+  /* ===== الأماكن ===== */
+  .pl-toolbar{display:flex; gap:8px; margin-bottom:10px;}
+  .pl-search{position:relative; flex:1; min-width:0;}
+  .pl-search .cp-ic{position:absolute; right:14px; top:50%; transform:translateY(-50%); width:20px; height:20px; color:var(--text-faint); pointer-events:none;}
+  .pl-search .search-box{width:100%; padding-right:42px;}
+  .pl-add{width:auto; flex:0 0 auto; padding:0 14px; font-size:14px;}
+  .pl-count{font-size:13px; color:var(--text-dim); margin:2px 2px 8px;}
+  .pl-count:empty{display:none;}
+  .pl-card{display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line); border-radius:20px; padding:12px; margin-bottom:8px;}
+  .pl-ic{width:46px; height:46px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; background:var(--cp-soft); font-size:22px;}
+  .pl-ic.car{background:#FBF3E6; color:var(--cp-gold-ink);}
+  .pl-info{flex:1; min-width:0;}
+  .pl-name{font-size:15.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pl-meta{font-size:13px; color:var(--text-dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .pl-go{width:auto; flex:0 0 auto; min-height:44px; padding:0 14px; font-size:14px; border-radius:14px;}
+  .pl-go .cp-ic{width:18px; height:18px;}
+  .pl-empty{text-align:center; background:#fff; border:1.5px dashed #CDBFA8; border-radius:22px; padding:28px 18px;}
+  .pl-empty .cp-ic{width:36px; height:36px; color:var(--cp-gold-ink); margin-bottom:6px;}
+  .pl-empty b{display:block; font-size:16px; margin-bottom:4px;}
+  .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+  .pl-sheet-coords{font-size:14px; color:var(--text-dim); text-align:right; margin:-6px 0 12px; font-variant-numeric:tabular-nums;}
+  .pl-rename{display:flex; gap:8px; margin-bottom:12px;}
+  .pl-rename[hidden]{display:none;}
+  .pl-rename .cp-btn{width:auto; padding:0 18px;}
+  /* التنبيه المؤقت يظهر أعلى الشاشة حتى لا يغطي الأزرار السفلية */
+  body .toast{bottom:auto; top:calc(env(safe-area-inset-top) + 10px); transform:translate(-50%,-6px);}
+  body .toast.show{transform:translate(-50%,0);}
+
+  /* ===== الإطار الموحّد لكل الصفحات ===== */
+  .topbar{padding:max(10px, env(safe-area-inset-top)) 18px 6px;}
+  .app-head .cp-title{font-size:22px;}
+  .tabbar{background:#FFFFFF; border-top:1px solid var(--line); box-shadow:0 -4px 18px rgba(60,45,20,.06);}
+  .tab{color:var(--text-faint); font-size:11.5px; font-weight:600; min-height:52px; justify-content:center;}
+  .tab .ic{font-size:0; width:24px; height:24px;}
+  .tab .ic svg{width:24px; height:24px; display:block;}
+  .tab.active{color:var(--sand-dim);}
+  .tab.active .ic{color:var(--sand);}
+  .btn{border-radius:16px; font-weight:600; min-height:48px; padding:12px 16px; line-height:1.35;}
+  .btn.small{min-height:44px; border-radius:14px; font-size:13px;}
+  .btn-primary{color:var(--cp-ink);}
+  .btn-danger{background:var(--cp-red-bg); color:var(--cp-red); border:1px solid #EFCFC9;}
+  .btn-sage{background:var(--cp-green); color:#fff;}
+  .banner, .track-svg-wrap, .track-history-item, .perm-item, .track-tools-panel, .weather-card{border-radius:20px;}
+  .banner b{color:var(--sand-dim);}
+  .search-box{min-height:48px; border-radius:16px; font-size:15px;}
+  .chips{gap:8px;}
+  .chip{min-height:40px; display:inline-flex; align-items:center; padding:0 16px; font-size:13.5px; font-weight:600; color:var(--text-dim);}
+  .chip.active{color:var(--cp-ink);}
+  .icon-pick.active{background:#FBF3E6;}
+  .sheet{border-radius:24px 24px 0 0;}
+  .sheet h3{font-weight:700;}
+  #screen-settings .perm-list{max-width:none;}
+  .perm-item{min-height:52px; font-size:14px;}
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -519,16 +547,12 @@
 <body class="on-compass">
 <div id="app">
 
-  <div class="topbar">
-    <div class="brand">
-      <div class="mark">🧭</div>
-      <div>
-        <div class="name">دليل</div>
-        <div class="sub">نموذج تجريبي — التوجيه والمسار</div>
-      </div>
+  <header class="topbar app-head">
+    <h1 class="cp-title" id="screenTitle">دليل</h1>
+    <div class="cp-badges">
+      <div class="cp-badge" role="status" aria-label="دقة GPS"><span class="cp-pill"><span class="cp-dot" id="gpsDot"></span><span id="gpsLabel">GPS…</span></span></div>
     </div>
-    <div class="status-chip"><span class="dot" id="gpsDot"></span><span id="gpsLabel">بحث عن إشارة…</span></div>
-  </div>
+  </header>
 
   <div id="frameWarning" style="display:none; margin:0 18px 10px; background:rgba(193,85,63,.14); border:1px solid rgba(193,85,63,.35); border-radius:14px; padding:12px 14px; font-size:12.5px; color:var(--text);">
     ⚠️ يبدو أن الصفحة مفتوحة داخل إطار مصغّر ضمن المحادثة، والمتصفحات غالبًا تمنع إذن الموقع والبوصلة داخل الإطارات المضمّنة. لضمان عملهما افتح الصفحة في تبويب مستقل:
@@ -609,18 +633,20 @@
 
     <!-- ============ PLACES SCREEN ============ -->
     <section class="screen" id="screen-places">
-      <div class="search-row">
-        <input class="search-box" id="placeSearch" placeholder="ابحث في الأماكن المحفوظة…">
-        <button class="btn btn-primary" type="button" style="width:auto; padding:11px 16px;" id="addPlaceBtn" title="حفظ مكان جديد" aria-label="حفظ مكان جديد">📍</button>
+      <div class="pl-toolbar">
+        <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك" autocomplete="off"></label>
+        <button class="cp-btn cp-btn-gold pl-add" type="button" id="addPlaceBtn"><span class="cp-ic" data-ico="plus"></span>مكان جديد</button>
       </div>
-      <div class="chips" id="filterChips">
-        <div class="chip active" data-cat="all">الكل</div>
-        <div class="chip" data-cat="camp">⛺ مخيم</div>
-        <div class="chip" data-cat="water">💧 ماء</div>
-        <div class="chip" data-cat="danger">⚠️ خطر</div>
-        <div class="chip" data-cat="view">🌄 منظر</div>
-        <div class="chip" data-cat="fav">⭐ مفضل</div>
+      <div class="chips" id="filterChips" role="tablist" aria-label="تصفية حسب التصنيف">
+        <button type="button" class="chip active" data-cat="all">الكل</button>
+        <button type="button" class="chip" data-cat="car">السيارة</button>
+        <button type="button" class="chip" data-cat="camp">مخيم</button>
+        <button type="button" class="chip" data-cat="water">ماء</button>
+        <button type="button" class="chip" data-cat="danger">خطر</button>
+        <button type="button" class="chip" data-cat="view">منظر</button>
+        <button type="button" class="chip" data-cat="fav">مفضل</button>
       </div>
+      <div class="pl-count" id="placesCount"></div>
       <div id="placesList"></div>
     </section>
 
@@ -750,13 +776,13 @@
 
   </main>
 
-  <div class="tabbar">
-    <button class="tab active" data-screen="compass"><span class="ic">🧭</span>البوصلة</button>
-    <button class="tab" data-screen="places"><span class="ic">📍</span>الأماكن</button>
-    <button class="tab" data-screen="track"><span class="ic">🛣️</span>الخريطة والمسار</button>
-    <button class="tab" data-screen="weather"><span class="ic">🌦️</span>الطقس</button>
-    <button class="tab" data-screen="settings"><span class="ic">⚙️</span>الإعدادات</button>
-  </div>
+  <nav class="tabbar" aria-label="التبويبات">
+    <button class="tab active" data-screen="compass"><span class="ic" data-ico="compass"></span>البوصلة</button>
+    <button class="tab" data-screen="places"><span class="ic" data-ico="pin"></span>الأماكن</button>
+    <button class="tab" data-screen="track"><span class="ic" data-ico="map"></span>الخريطة</button>
+    <button class="tab" data-screen="weather"><span class="ic" data-ico="partly"></span>الطقس</button>
+    <button class="tab" data-screen="settings"><span class="ic" data-ico="sliders"></span>الإعدادات</button>
+  </nav>
 
   <!-- Save place sheet -->
   <div class="overlay" id="saveOverlay">
@@ -848,17 +874,24 @@
     </div>
   </div>
 
-  <!-- Navigation method sheet -->
-  <div class="overlay" id="navChoiceOverlay">
-    <div class="sheet">
+  <!-- Place options sheet -->
+  <div class="overlay" id="placeSheetOverlay">
+    <div class="sheet cp-sheet" role="dialog" aria-modal="true" aria-labelledby="placeSheetTitle">
       <div class="sheet-handle"></div>
-      <h3 id="navChoiceTitle">اختيار طريقة التوجه</h3>
-      <div class="banner">اختر طريقة التوجه إلى الموقع المحفوظ.</div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="navByCompassBtn">🧭 التوجه بالبوصلة</button>
-        <button class="btn btn-ghost" id="navByMapBtn">🗺️ التوجه بالخريطة</button>
+      <h3 id="placeSheetTitle">—</h3>
+      <div class="pl-sheet-coords" id="placeSheetCoords" dir="ltr"></div>
+      <div class="pl-rename" id="placeRenameRow" hidden>
+        <input class="text-input" id="placeRenameInput" maxlength="60" aria-label="الاسم الجديد">
+        <button type="button" class="cp-btn cp-btn-gold" id="placeRenameSave">حفظ</button>
       </div>
-      <button class="btn btn-ghost" style="margin-top:8px;" id="cancelNavChoiceBtn">إلغاء</button>
+      <div class="cp-sheet-list">
+        <button type="button" class="cp-sheet-item" id="placeSheetMap"><span class="cp-ic" data-ico="map"></span><span><b>عرض على الخريطة</b><small>والتوجّه عليها</small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetRename"><span class="cp-ic" data-ico="edit"></span><span><b>تعديل الاسم</b></span></button>
+      </div>
+      <button type="button" class="cp-btn cp-btn-danger" id="placeSheetDelete"><span class="cp-ic" data-ico="trash"></span><span id="placeSheetDeleteLabel">حذف المكان</span></button>
+      <button type="button" class="cp-btn cp-btn-white" id="placeSheetClose">إغلاق</button>
     </div>
   </div>
 
@@ -1063,6 +1096,7 @@
   }
 
   // ---------- tabs ----------
+  const SCREEN_TITLES = {compass:'البوصلة', places:'الأماكن', track:'الخريطة والمسار', weather:'الطقس', settings:'الإعدادات'};
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>{
     tab.addEventListener('click', ()=>{
       document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1070,20 +1104,13 @@
       tab.classList.add('active');
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       document.body.classList.toggle('on-compass', tab.dataset.screen === 'compass');
-      syncThemeColor();
+      document.getElementById('screenTitle').textContent = SCREEN_TITLES[tab.dataset.screen] || 'دليل';
       if(tab.dataset.screen === 'places') renderPlaces();
       if(tab.dataset.screen === 'track') renderTrackHistory();
       if(tab.dataset.screen === 'weather') updateWeather();
       if(tab.dataset.screen === 'settings') updateDiagnostics();
     });
   });
-
-  // لون شريط المتصفح يتبع خلفية الصفحة الحالية.
-  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-  function syncThemeColor(){
-    if(themeColorMeta) themeColorMeta.setAttribute('content', document.body.classList.contains('on-compass') ? '#F2EFE9' : '#11171b');
-  }
-  syncThemeColor();
 
   // ---------- onboarding & permissions ----------
   const onboardBtn = document.getElementById('onboardBtn');
@@ -1330,7 +1357,7 @@
   function startGeoWatch(forceRestart=false){
     if(!('geolocation' in navigator)){
       showDiag('❌ متصفحك لا يدعم واجهة تحديد الموقع (Geolocation) إطلاقًا.');
-      document.getElementById('gpsLabel').textContent = 'GPS غير مدعوم';
+      lastPositionError = 'GPS غير مدعوم';
       return;
     }
     if(!window.isSecureContext){
@@ -1362,12 +1389,10 @@
       try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
       geoWatchId = null;
     }
-    document.getElementById('gpsDot').className = 'dot bad';
     const codes = {1:'رفض المستخدم/المتصفح إذن الموقع (PERMISSION_DENIED)', 2:'تعذّر تحديد الموقع من الجهاز (POSITION_UNAVAILABLE)', 3:'انتهت مهلة انتظار إشارة GPS (TIMEOUT)'};
     const detail = codes[err.code] || err.message || 'خطأ غير معروف';
     lastPositionError='❌ '+detail;
-    document.getElementById('gpsLabel').textContent = 'تعذّر تحديد الموقع';
-    updateGpsBadge(true);
+    updateGpsBadge();
     document.getElementById('permLoc').textContent = '❌ مرفوض/غير متاح';
     showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.' : ''));
     updateDiagnostics();
@@ -1377,8 +1402,6 @@
     lastPositionAt=Date.now();
     lastPositionError='';
     document.getElementById('permLoc').textContent = '✅ مفعّل';
-    document.getElementById('gpsDot').className = 'dot live';
-    document.getElementById('gpsLabel').textContent = 'إشارة GPS نشطة';
     state.pos = {
       lat: p.coords.latitude, lng: p.coords.longitude,
       alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy
@@ -1403,6 +1426,7 @@
     if(state.tracking) recordTrackPoint();
     if(state.retracing) updateRetrace();
     syncTrackMap();
+    maybeRefreshPlaces();
     updateDiagnostics();
   }
 
@@ -1505,7 +1529,20 @@
     fog:'<path d="M7 13.5h10.5a3.6 3.6 0 0 0 .3-7.1A5.5 5.5 0 0 0 7.1 7.8"/><path d="M3 17h14M6 20.5h12"/>',
     rain:'<path d="M7 15h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 8.7 3.2 3.2 0 0 0 7 15z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>',
     snow:'<path d="M7 14h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 7.7 3.2 3.2 0 0 0 7 14z"/><path d="M8 18v.01M12 17v.01M16 18v.01M10 21v.01M14 21v.01"/>',
-    storm:'<path d="M7 14h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 7.7 3.2 3.2 0 0 0 7 14z"/><path d="m12.5 14-2 4h3l-2 4"/>'
+    storm:'<path d="M7 14h10.5a3.8 3.8 0 0 0 .4-7.6A5.8 5.8 0 0 0 6.6 7.7 3.2 3.2 0 0 0 7 14z"/><path d="m12.5 14-2 4h3l-2 4"/>',
+    compass:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+    map:'<path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5-5.5 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>',
+    sliders:'<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    edit:'<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+    search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
+    refresh:'<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/>',
+    external:'<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    drop:'<path d="M12 3.5s6 6.4 6 10.5a6 6 0 0 1-12 0c0-4.1 6-10.5 6-10.5z"/>',
+    wind:'<path d="M3 9h11a3 3 0 1 0-3-3"/><path d="M3 14h15a3 3 0 1 1-3 3"/>',
+    dust:'<path d="M3 8h13M6 12h14M3 16h11"/><circle cx="19" cy="8" r=".6"/><circle cx="17" cy="16" r=".6"/>',
+    sunrise:'<path d="M4 18h16M7 14.5a5 5 0 0 1 10 0"/><path d="M12 3v5M9.5 5.5 12 3l2.5 2.5M4.5 11l1.3.8M19.5 11l-1.3.8"/>',
+    therm:'<path d="M10 14.5V5a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"/><path d="M12 10v6.5"/>'
   };
   function ico(name){
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
@@ -1619,7 +1656,7 @@
   buildDial();
 
   function updateGpsBadge(){
-    const dot = document.getElementById('cpGpsDot');
+    const dots = [document.getElementById('cpGpsDot'), document.getElementById('gpsDot')];
     const acc = state.pos ? Number(state.pos.accuracy) : NaN;
     let cls = 'cp-dot', text = 'GPS…';
     if(Number.isFinite(acc)){
@@ -1629,8 +1666,9 @@
       cls += ' poor';
       text = 'لا يوجد GPS';
     }
-    if(dot.className !== cls) dot.className = cls;
+    dots.forEach(dot=>{ if(dot.className !== cls) dot.className = cls; });
     setText('cpGpsText', text);
+    setText('gpsLabel', text);
   }
 
   const WEATHER_ICON_BY_CODE = code =>
@@ -2157,119 +2195,157 @@
     });
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
-  let pendingNavPlace = null;
   function openPlaceOnMap(place){
     location.href=`map.html?v=20260921-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
+  function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
+  function placeMeta(p){
+    if(!state.pos) return 'بانتظار موقعك لحساب المسافة';
+    const d = haversine(state.pos.lat, state.pos.lng, p.lat, p.lng);
+    if(d < 15) return 'أنت هنا تقريبًا';
+    return 'على بُعد ' + fmtDist(d) + ' · ' + directionWord(bearing(state.pos.lat, state.pos.lng, p.lat, p.lng));
+  }
+  function carPlaceItem(){
+    const car = getCar();
+    return car ? {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:car.lat, lng:car.lng, alt:null} : null;
+  }
+  function findPlace(id){
+    if(id === '__car__') return carPlaceItem();
+    return state.places.find(p=>p.id===id) || null;
+  }
 
+  let placesRenderedAt = 0;
   function renderPlaces(){
+    placesRenderedAt = Date.now();
     const list = document.getElementById('placesList');
     const q = document.getElementById('placeSearch').value.trim().toLowerCase();
-    const car = readStoredJson('dalil_car', null);
-    const carPlace = car && validLatLng(Number(car.lat), Number(car.lng))
-      ? {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:Number(car.lat), lng:Number(car.lng), alt:null}
-      : null;
+    const carPlace = carPlaceItem();
     const sourcePlaces = carPlace ? [carPlace, ...state.places] : state.places;
-    let items = sourcePlaces.filter(p=>{
+    const items = sourcePlaces.filter(p=>{
       if(state.activeCat !== 'all' && p.cat !== state.activeCat) return false;
-      if(q && !p.name.toLowerCase().includes(q)) return false;
-      return true;
+      if(q && !String(p.name).toLowerCase().includes(q)) return false;
+      return validLatLng(Number(p.lat), Number(p.lng));
     });
     if(state.pos){
       items.forEach(p=> p._dist = haversine(state.pos.lat, state.pos.lng, p.lat, p.lng));
       items.sort((a,b)=> a._dist - b._dist);
     }
+    const total = sourcePlaces.length;
+    setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
     if(items.length === 0){
-      list.innerHTML = `<div class="empty"><div class="big">📭</div><div class="t">لا توجد أماكن محفوظة بعد.<br>احفظ موقعك الحالي أو الصق موقعًا من واتساب.</div></div>`;
+      list.innerHTML = total
+        ? `<div class="pl-empty"><span class="cp-ic">${ico('search')}</span><b>لا توجد نتائج</b><span>جرّب كلمة أخرى أو تصنيفًا آخر.</span></div>`
+        : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`;
       return;
     }
     list.innerHTML = items.map(p=>{
-      const distTxt = p._dist!=null ? (p._dist>=1000 ? (p._dist/1000).toFixed(1)+' كم' : Math.round(p._dist)+' م') : '—';
-      const brgTxt = (state.pos && p._dist!=null) ? cardinal(bearing(state.pos.lat, state.pos.lng, p.lat, p.lng)) : '';
-      return `<div class="place-card">
-        <div class="place-icon">${p.icon}</div>
-        <div class="place-info">
-          <div class="place-name">${escapeHtml(p.name)}</div>
-          <div class="place-meta"><span>${distTxt}</span><span>${brgTxt}</span></div>
-        </div>
-        <div class="place-actions">
-          <button type="button" class="icon-btn" data-map="${p.id}" title="عرض على الخريطة" aria-label="عرض ${escapeHtml(p.name)} على الخريطة">🗺️</button>
-          <button type="button" class="icon-btn" data-share="${p.id}" title="مشاركة الموقع" aria-label="مشاركة موقع ${escapeHtml(p.name)}">📤</button>
-          <button type="button" class="icon-btn go" data-go="${p.id}" title="اختيار طريقة التوجه" aria-label="التوجه إلى ${escapeHtml(p.name)}">🧭</button>
-          <button type="button" class="icon-btn" data-del="${p.id}" title="حذف الموقع" aria-label="حذف ${escapeHtml(p.name)}">🗑</button>
-        </div>
+      const isCar = p.id === '__car__';
+      const icon = isCar ? `<span class="pl-ic car">${icoSpan('car')}</span>` : `<span class="pl-ic" aria-hidden="true">${escapeHtml(p.icon || '📍')}</span>`;
+      const name = escapeHtml(p.name);
+      return `<div class="pl-card">
+        ${icon}
+        <div class="pl-info"><div class="pl-name">${name}</div><div class="pl-meta">${escapeHtml(placeMeta(p))}</div></div>
+        <button type="button" class="cp-icon-btn" data-more="${escapeHtml(p.id)}" aria-label="خيارات ${name}">${icoSpan('more')}</button>
+        <button type="button" class="cp-btn cp-btn-gold pl-go" data-go="${escapeHtml(p.id)}" aria-label="التوجّه إلى ${name}">${icoSpan('nav')}توجّه</button>
       </div>`;
     }).join('');
-    list.querySelectorAll('[data-map]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const place=items.find(p=>p.id===btn.dataset.map);
-        if(!place || !validLatLng(Number(place.lat), Number(place.lng))){
-          toast('إحداثية هذا المكان غير صالحة؛ احذفه واحفظه من جديد');
-          return;
-        }
-        openPlaceOnMap(place);
-      });
-    });
-    list.querySelectorAll('[data-share]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const place = items.find(p=>p.id===btn.dataset.share);
-        if(place) shareLocation(place);
-      });
-    });
-    list.querySelectorAll('[data-go]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        const place = items.find(p=>p.id===btn.dataset.go);
-        if(!place) return;
-        pendingNavPlace = place;
-        document.getElementById('navChoiceTitle').textContent = 'التوجه إلى «'+place.name+'»';
-        document.getElementById('navChoiceOverlay').classList.add('show');
-      });
-    });
-    list.querySelectorAll('[data-del]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
-        if(btn.dataset.del === '__car__'){
-          localStorage.removeItem('dalil_car');
-          updateCarQuick();
-          if(state.navTarget && state.navTarget.id === '__car__'){
-            restoreDefaultTarget();
-            renderCompassScreen();
-          }
-          toast('تم حذف موقع السيارة');
-          renderPlaces();
-          return;
-        }
-        state.places = state.places.filter(p=>p.id!==btn.dataset.del);
-        save(); renderPlaces();
-      });
-    });
   }
-  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  document.getElementById('placesList').addEventListener('click', e=>{
+    const go = e.target.closest('[data-go]');
+    const more = e.target.closest('[data-more]');
+    if(go){
+      const place = findPlace(go.dataset.go);
+      if(!place) return renderPlaces();
+      if(place.id === '__car__') return startCarGuidance();
+      if(state.retracing) stopRetrace();
+      setNavTarget(place);
+      showCompassTab();
+      renderCompassScreen();
+      toast('جارٍ التوجّه بالبوصلة إلى «'+place.name+'»');
+    }else if(more){
+      openPlaceSheet(more.dataset.more);
+    }
+  });
+  // تحديث المسافات أثناء الحركة، دون إعادة الرسم أثناء فتح أي نافذة.
+  function maybeRefreshPlaces(){
+    if(!document.getElementById('screen-places').classList.contains('active')) return;
+    if(document.querySelector('.overlay.show')) return;
+    if(Date.now() - placesRenderedAt > 4000) renderPlaces();
+  }
 
-  function closeNavChoice(){
-    document.getElementById('navChoiceOverlay').classList.remove('show');
+  // ---------- place options sheet ----------
+  const placeSheetOverlay = document.getElementById('placeSheetOverlay');
+  let sheetPlaceId = null;
+  function openPlaceSheet(id){
+    const place = findPlace(id);
+    if(!place) return;
+    sheetPlaceId = id;
+    const isCar = id === '__car__';
+    document.getElementById('placeSheetTitle').textContent = place.name;
+    document.getElementById('placeSheetCoords').textContent = formatCoords(place.lat, place.lng, state.coordFmt);
+    document.getElementById('placeSheetRename').hidden = isCar;
+    document.getElementById('placeRenameRow').hidden = true;
+    document.getElementById('placeSheetDeleteLabel').textContent = isCar ? 'إزالة موقع السيارة' : 'حذف المكان';
+    placeSheetOverlay.classList.add('show');
   }
-  document.getElementById('cancelNavChoiceBtn').addEventListener('click', ()=>{
-    pendingNavPlace = null;
-    closeNavChoice();
+  function closePlaceSheet(){ placeSheetOverlay.classList.remove('show'); sheetPlaceId = null; }
+  document.getElementById('placeSheetClose').addEventListener('click', closePlaceSheet);
+  document.getElementById('placeSheetMap').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(place) openPlaceOnMap(place);
   });
-  document.getElementById('navByCompassBtn').addEventListener('click', ()=>{
-    if(!pendingNavPlace) return closeNavChoice();
-    if(state.retracing) stopRetrace();
-    setNavTarget(pendingNavPlace);
-    const name = pendingNavPlace.name;
-    pendingNavPlace = null;
-    closeNavChoice();
-    document.querySelector('.tab[data-screen="compass"]').click();
-    renderCompassScreen();
-    toast('جارٍ التوجّه بالبوصلة إلى «'+name+'»');
+  document.getElementById('placeSheetShare').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(place) shareLocation(place.id === '__car__' ? {name:'موقع السيارة', lat:place.lat, lng:place.lng} : place);
   });
-  document.getElementById('navByMapBtn').addEventListener('click', ()=>{
-    if(!pendingNavPlace) return closeNavChoice();
-    const place = pendingNavPlace;
-    pendingNavPlace = null;
-    closeNavChoice();
-    openPlaceOnMap(place);
+  document.getElementById('placeSheetCopy').addEventListener('click', async ()=>{
+    const place = findPlace(sheetPlaceId);
+    if(!place) return;
+    try{ await navigator.clipboard.writeText(formatCoords(place.lat, place.lng, state.coordFmt)); toast('تم نسخ الإحداثيات'); }
+    catch(e){ toast('تعذّر النسخ في هذا المتصفح'); }
   });
+  document.getElementById('placeSheetRename').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    if(!place) return;
+    const input = document.getElementById('placeRenameInput');
+    document.getElementById('placeRenameRow').hidden = false;
+    input.value = place.name;
+    input.focus();
+    input.select();
+  });
+  function savePlaceRename(){
+    const place = state.places.find(p=>p.id===sheetPlaceId);
+    const name = document.getElementById('placeRenameInput').value.trim();
+    if(!place || !name) return toast('اكتب اسمًا للمكان');
+    place.name = name;
+    save();
+    closePlaceSheet();
+    renderPlaces();
+    if(state.navTarget && state.navTarget.id === place.id){ state.navTarget.name = name; renderCompassScreen(); }
+    toast('تم تعديل الاسم');
+  }
+  document.getElementById('placeRenameSave').addEventListener('click', savePlaceRename);
+  document.getElementById('placeRenameInput').addEventListener('keydown', e=>{ if(e.key === 'Enter') savePlaceRename(); });
+  document.getElementById('placeSheetDelete').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    if(!place) return closePlaceSheet();
+    if(place.id === '__car__'){
+      if(!confirm('هل تريد إزالة موقع السيارة المحفوظ؟ لا يمكن التراجع.')) return;
+      closePlaceSheet();
+      removeCar();
+      return toast('تمت إزالة موقع السيارة');
+    }
+    if(!confirm('هل تريد حذف «'+place.name+'»؟ لا يمكن التراجع.')) return;
+    state.places = state.places.filter(p=>p.id!==place.id);
+    save();
+    if(state.navTarget && state.navTarget.id === place.id){ setNavTarget(null); renderCompassScreen(); }
+    closePlaceSheet();
+    renderPlaces();
+    toast('تم حذف «'+place.name+'»');
+  });
+  function escapeHtml(s){ return String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   async function shareLocation(place){
     if(!place || !validLatLng(Number(place.lat), Number(place.lng))){
