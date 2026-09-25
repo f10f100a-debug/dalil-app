@@ -500,6 +500,7 @@
   .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
   .pl-section{font-size:13.5px; font-weight:700; color:var(--text-dim); margin:16px 2px 8px;}
   .pl-section small{font-weight:500; color:var(--text-faint);}
+  .pl-source{font-size:11.5px; color:var(--text-faint); text-align:center; margin:6px 0 4px;}
   .pl-ic.cat{background:#FBF3E6; color:var(--cp-gold-ink);}
   .pl-note{font-size:13px; color:var(--text-dim); background:#fff; border:1px dashed #CDBFA8; border-radius:16px; padding:12px 14px; margin-top:12px; line-height:1.7;}
   .pl-sheet-coords{font-size:14px; color:var(--text-dim); text-align:right; margin:-6px 0 12px; font-variant-numeric:tabular-nums;}
@@ -818,13 +819,14 @@
         <div class="chip active" data-fmt-set="ddm">DDM</div>
       </div>
 
-      <div class="section-title">خرائط البر للبحث بدون إنترنت</div>
+      <div class="section-title">خرائط البر</div>
       <div class="banner">
-        استورد ملفات <b>KML</b> أو <b>KMZ</b>، مثل خرائط موقع «خرائط البر»، ليظهر كل موقع فيها في بحث تبويب الأماكن مع التوجّه إليه بالبوصلة أو على الخريطة. تُحفظ على هذا الجهاز وتعمل بلا إنترنت.
-        <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);">لم تُستورد أي خريطة بعد.</div>
+        يتضمن التطبيق مواقع «خرائط البر» (أكثر من 32 ألف موقع في 13 منطقة) للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك إضافة ملفات <b>KML</b> أو <b>KMZ</b> أخرى.
+        <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);"></div>
+        <div style="margin-top:4px; font-size:11.5px; color:var(--text-faint);">المصدر: «خرائط البر» — sites.google.com/view/desertmaps</div>
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" id="importCatalogBtn">استيراد ملفات KML / KMZ</button>
+        <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملفات KML / KMZ</button>
         <button class="btn btn-ghost" id="clearCatalogBtn">حذف المستورد</button>
         <input type="file" id="importCatalogInput" multiple hidden>
       </div>
@@ -1188,7 +1190,8 @@
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       document.body.classList.toggle('on-compass', tab.dataset.screen === 'compass');
       document.getElementById('screenTitle').textContent = SCREEN_TITLES[tab.dataset.screen] || 'دليل';
-      if(tab.dataset.screen === 'places') renderPlaces();
+      if(tab.dataset.screen === 'places'){ renderPlaces(); ensureBundledCatalog(); }
+      if(tab.dataset.screen === 'settings') ensureBundledCatalog();
       if(tab.dataset.screen === 'track') renderTrackHistory();
       if(tab.dataset.screen === 'weather') updateWeather();
       if(tab.dataset.screen === 'settings') updateDiagnostics();
@@ -2318,10 +2321,11 @@
     }
     const total = sourcePlaces.length;
     setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
+    if(q) ensureBundledCatalog();
     const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
     const catalogHtml = found && found.items && found.items.length
-      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
-      : (q && !catalog.p.length ? `<div class="pl-note">لإضافة مواقع «خرائط البر» إلى البحث: الإعدادات ← استيراد ملفات KML / KMZ.</div>` : '');
+      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('') + `<div class="pl-source">المصدر: «خرائط البر» — sites.google.com/view/desertmaps</div>`
+      : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تعذّر تحميل مواقع خرائط البر — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
     if(items.length === 0 && catalogHtml){
       setText('placesCount', '');
       list.innerHTML = catalogHtml;
@@ -2482,20 +2486,59 @@
     }
     return added;
   }
+  // المواقع المدمجة (data/desert-places.json) تُحمَّل عند الحاجة فقط، وتُدمج مع ما
+  // يستورده المستخدم (محفوظ منفصلًا في IndexedDB) دون تكرار.
+  let bundledCatalog = null, bundledLoading = null;
+  let userCatalog = {regions:[], cats:[], p:[]};
+  const catalogKey = (name, lat, lng)=>name + '|' + Number(lat).toFixed(3) + '|' + Number(lng).toFixed(3);
+  function mergeCatalog(target, src, seen){
+    let added = 0;
+    for(const x of src.p || []){
+      const key = catalogKey(x[0], x[1], x[2]);
+      if(seen.has(key)) continue;
+      seen.add(key);
+      const region = (src.regions || [])[x[3]] || '', kind = (src.cats || [])[x[4]] || 'معلم';
+      let ri = target.regions.indexOf(region); if(ri < 0){ target.regions.push(region); ri = target.regions.length - 1; }
+      let ci = target.cats.indexOf(kind); if(ci < 0){ target.cats.push(kind); ci = target.cats.length - 1; }
+      target.p.push([x[0], x[1], x[2], ri, ci]);
+      added++;
+    }
+    return added;
+  }
+  function rebuildCatalog(){
+    const merged = {regions:[], cats:[], p:[]}, seen = new Set();
+    if(bundledCatalog) mergeCatalog(merged, bundledCatalog, seen);
+    mergeCatalog(merged, userCatalog, seen);
+    catalog.regions = merged.regions; catalog.cats = merged.cats; catalog.p = merged.p;
+    indexCatalog();
+    updateCatalogStatus();
+    if(document.getElementById('screen-places').classList.contains('active') && document.getElementById('placeSearch').value.trim()) renderPlaces();
+  }
+  function ensureBundledCatalog(){
+    if(bundledCatalog) return Promise.resolve();
+    if(bundledLoading) return bundledLoading;
+    bundledLoading = fetch('data/desert-places.json?v=1')
+      .then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
+      .then(d=>{ if(d && Array.isArray(d.p)){ bundledCatalog = d; rebuildCatalog(); } })
+      .catch(()=>{ bundledLoading = null; updateCatalogStatus(); });
+    return bundledLoading;
+  }
   function updateCatalogStatus(){
     const el = document.getElementById('catalogStatus');
-    if(!catalog.p.length){ el.textContent = 'لم تُستورد أي خريطة بعد.'; return; }
-    el.textContent = catalog.p.length.toLocaleString('ar-SA-u-nu-latn') + ' موقعًا من ' + catalog.regions.length + (catalog.regions.length === 1 ? ' خريطة' : ' خرائط') + ': ' + catalog.regions.join('، ');
+    const fmt = n=>n.toLocaleString('ar-SA-u-nu-latn');
+    const lines = [];
+    const regionsWord = n=>n > 10 ? 'منطقة' : n > 2 ? 'مناطق' : 'منطقة';
+    if(bundledCatalog) lines.push('مدمج في التطبيق: ' + fmt(bundledCatalog.p.length) + ' موقعًا من ' + bundledCatalog.regions.length + ' ' + regionsWord(bundledCatalog.regions.length) + '.');
+    else lines.push(bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تُحمَّل مواقع خرائط البر عند أول بحث.');
+    lines.push(userCatalog.p.length ? 'مستورد منك: ' + fmt(userCatalog.p.length) + (userCatalog.p.length > 2 && userCatalog.p.length < 11 ? ' مواقع (' : ' موقعًا (') + '' + userCatalog.regions.join('، ') + ').' : 'لم تستورد ملفات إضافية.');
+    el.textContent = lines.join(' ');
   }
   async function loadCatalog(){
     try{
       const saved = await catalogGet();
-      if(saved && Array.isArray(saved.p)){
-        catalog.regions = saved.regions || []; catalog.cats = saved.cats || []; catalog.p = saved.p;
-        indexCatalog();
-      }
+      if(saved && Array.isArray(saved.p)) userCatalog = {regions:saved.regions || [], cats:saved.cats || [], p:saved.p};
     }catch(e){}
-    updateCatalogStatus();
+    rebuildCatalog();
   }
   document.getElementById('importCatalogBtn').addEventListener('click', ()=>document.getElementById('importCatalogInput').click());
   document.getElementById('importCatalogInput').addEventListener('change', async e=>{
@@ -2505,7 +2548,9 @@
     const btn = document.getElementById('importCatalogBtn');
     btn.disabled = true;
     btn.textContent = 'جارٍ الاستيراد…';
-    const into = {regions:[...catalog.regions], cats:[...catalog.cats], p:[...catalog.p], seen:new Set(catalog.p.map(x=>x[0] + '|' + x[1].toFixed(3) + '|' + x[2].toFixed(3)))};
+    await ensureBundledCatalog();
+    // ما هو موجود أصلًا (مدمجًا أو مستوردًا) لا يُضاف مرة أخرى.
+    const into = {regions:[...userCatalog.regions], cats:[...userCatalog.cats], p:[...userCatalog.p], seen:new Set(catalog.p.map(x=>catalogKey(x[0], x[1], x[2])))};
     let added = 0, failed = 0;
     for(const file of files){
       try{
@@ -2518,10 +2563,9 @@
     delete into.seen;
     try{
       await catalogPut(into);
-      catalog.regions = into.regions; catalog.cats = into.cats; catalog.p = into.p;
-      indexCatalog();
-      updateCatalogStatus();
-      toast('تمت إضافة ' + added.toLocaleString('ar-SA-u-nu-latn') + ' موقعًا' + (failed ? ' — تعذّر قراءة ' + failed + ' ملف' : ''));
+      userCatalog = into;
+      rebuildCatalog();
+      toast(added ? 'تمت إضافة ' + added.toLocaleString('ar-SA-u-nu-latn') + ' موقعًا جديدًا' + (failed ? ' — تعذّر قراءة ' + failed + ' ملف' : '') : (failed ? 'تعذّر قراءة الملف' : 'كل مواقع الملف موجودة مسبقًا'));
     }catch(err){
       toast('تعذّر حفظ الخرائط على الجهاز');
     }
@@ -2529,12 +2573,12 @@
     btn.textContent = 'استيراد ملفات KML / KMZ';
   });
   document.getElementById('clearCatalogBtn').addEventListener('click', async ()=>{
-    if(!catalog.p.length) return toast('لا توجد خرائط مستوردة');
-    if(!confirm('حذف كل مواقع خرائط البر المستوردة من هذا الجهاز؟ أماكنك الخاصة لن تتأثر.')) return;
-    try{ await catalogPut({regions:[], cats:[], p:[]}); }catch(e){}
-    catalog.regions = []; catalog.cats = []; catalog.p = []; catalog.norm = [];
-    updateCatalogStatus();
-    toast('تم حذف الخرائط المستوردة');
+    if(!userCatalog.p.length) return toast('لا توجد ملفات مستوردة منك');
+    if(!confirm('حذف المواقع التي استوردتها من ملفاتك؟ مواقع خرائط البر المدمجة وأماكنك الخاصة لن تتأثر.')) return;
+    userCatalog = {regions:[], cats:[], p:[]};
+    try{ await catalogPut(userCatalog); }catch(e){}
+    rebuildCatalog();
+    toast('تم حذف الملفات المستوردة');
   });
   function catalogItem(i){
     const x = catalog.p[i];

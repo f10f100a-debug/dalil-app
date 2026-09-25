@@ -1,6 +1,6 @@
-const SHELL_CACHE='dalil-shell-v1';
+const SHELL_CACHE='dalil-shell-v2';
 const MAP_CACHE='dalil-map-tiles-v1';
-const SHELL=['./','./index.html','./map.html','./manifest.webmanifest'];
+const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
