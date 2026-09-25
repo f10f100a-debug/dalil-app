@@ -1,0 +1,33 @@
+# مؤقت: يسحب صفحات موقع خرائط البر والخرائط المضمّنة فيه لاستخراج الإحداثيات.
+name: fetch-desertmaps
+on:
+  push:
+    branches: [claude/dalil-compass-redesign-dsxh6l]
+    paths: ['.github/workflows/fetch-desertmaps.yml']
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch site and embedded maps
+        run: |
+          set -x
+          mkdir -p _scrape
+          UA="Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1"
+          curl -sSL -A "$UA" "https://sites.google.com/view/desertmaps/home" -o _scrape/home.html || true
+          grep -oE '/view/desertmaps/[A-Za-z0-9_%.-]+(/[A-Za-z0-9_%.-]+)*' _scrape/home.html | sort -u > _scrape/pages.txt || true
+          i=0
+          while read -r p; do i=$((i+1)); curl -sSL -A "$UA" "https://sites.google.com$p" -o "_scrape/page_$i.html" || true; echo "$i $p" >> _scrape/index.txt; done < _scrape/pages.txt
+          cat _scrape/*.html | grep -oE 'mid(=|%3D|\\u003d)[A-Za-z0-9_-]{15,}' | sed -E 's/^mid(%3D|\\u003d)/mid=/' | sort -u > _scrape/mids.txt || true
+          cat _scrape/*.html | grep -oE 'https?:(\\/|/)(\\/|/)(docs|drive|www)\.google\.com[^"\\ <>]{0,200}' | sort -u > _scrape/google_links.txt || true
+          while read -r m; do id=${m#mid=}; curl -sSL -A "$UA" "https://www.google.com/maps/d/kml?mid=$id&forcekml=1" -o "_scrape/map_$id.kml" || true; done < _scrape/mids.txt
+          ls -la _scrape; wc -l _scrape/*.txt; head -c 600 _scrape/*.kml 2>/dev/null || true
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add _scrape
+          git commit -m "Temporary: raw desertmaps pages for coordinate extraction" || exit 0
+          git push
