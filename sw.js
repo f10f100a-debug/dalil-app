@@ -1,6 +1,6 @@
-const SHELL_CACHE='dalil-shell-v4';
+const SHELL_CACHE='dalil-shell-v5';
 const MAP_CACHE='dalil-map-tiles-v1';
-const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json'];
+const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./events.js?v=1'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -40,5 +40,32 @@ self.addEventListener('fetch',event=>{
       }
       return response;
     });
+  }));
+});
+
+// تنبيهات الأحداث (سيول، أمطار، إعلانات) المرسلة من لوحة الإدارة.
+self.addEventListener('push',event=>{
+  let d={};
+  try{ d=event.data?event.data.json():{}; }catch(e){ d={title:'دليل',body:event.data?event.data.text():''}; }
+  const title=String(d.title||'دليل — بوصلة البر').slice(0,80);
+  event.waitUntil(self.registration.showNotification(title,{
+    body:String(d.body||'').slice(0,200),
+    tag:d.tag||undefined,
+    lang:'ar', dir:'rtl',
+    data:{url:typeof d.url==='string'?d.url:'./'}
+  }));
+});
+
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  // نفتح روابط التطبيق نفسه فقط.
+  let target=new URL('./',self.registration.scope).href;
+  try{
+    const u=new URL(event.notification.data&&event.notification.data.url||'./',self.registration.scope);
+    if(u.origin===self.location.origin&&u.pathname.startsWith(new URL(self.registration.scope).pathname)) target=u.href;
+  }catch(e){}
+  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{
+    for(const c of list){ if('navigate' in c){ return c.navigate(target).then(w=>(w||c).focus()); } }
+    return self.clients.openWindow(target);
   }));
 });

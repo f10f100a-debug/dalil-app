@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
+<title>دليل — لوحة الإدارة</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F2EFE9; --card:#fff; --line:#E4DED3; --gold:#C9964F; --gold-ink:#7A4E14; --ink:#1C1A17; --dim:#6B645A; --red:#8E1E17; --red-bg:#F7E4E1; --green:#2F7A4B; --green-bg:#E3F1E7;}
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans Arabic', system-ui, sans-serif; font-size:15px;
+    padding:max(14px, env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));}
+  main{max-width:720px; margin:0 auto;}
+  h1{font-size:22px; margin:6px 0 14px;}
+  h2{font-size:16px; margin:22px 2px 10px; color:var(--dim);}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:20px; padding:14px; margin-bottom:10px;}
+  input, select, textarea{width:100%; min-height:46px; border:1px solid var(--line); border-radius:14px; padding:10px 12px; font:inherit; background:#FBF9F5; color:var(--ink);}
+  textarea{min-height:80px; resize:vertical;}
+  label{display:block; font-size:13px; font-weight:600; color:var(--dim); margin:10px 0 6px;}
+  button{min-height:46px; border:1px solid transparent; border-radius:14px; padding:0 16px; font:inherit; font-weight:600; cursor:pointer;}
+  button:disabled{opacity:.5; cursor:wait;}
+  .gold{background:var(--gold); color:var(--ink);}
+  .white{background:#fff; border-color:var(--line); color:var(--ink);}
+  .danger{background:var(--red-bg); color:var(--red); border-color:#EFCFC9;}
+  .row{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .row > *{flex:1;}
+  .ev{display:grid; grid-template-columns:120px 1fr; gap:12px; align-items:start;}
+  .ev img{width:120px; height:150px; object-fit:cover; border-radius:14px; background:var(--line); cursor:zoom-in;}
+  .ev .t{font-weight:700;}
+  .ev .m{font-size:13px; color:var(--dim); margin:4px 0 8px; line-height:1.6;}
+  .ev .row button{flex:1 1 auto;}
+  .chk{display:flex; align-items:center; gap:8px; font-size:13.5px; margin:6px 0;}
+  .chk input{width:20px; min-height:20px; height:20px; accent-color:var(--gold);}
+  .badge{display:inline-block; font-size:12px; padding:2px 9px; border-radius:100px; background:#FBF3E6; color:var(--gold-ink); margin-inline-start:4px;}
+  .badge.warn{background:var(--red-bg); color:var(--red);}
+  .muted{color:var(--dim); font-size:13.5px;}
+  .msg{min-height:22px; font-size:13.5px; margin-top:8px;}
+  .msg.err{color:var(--red);} .msg.ok{color:var(--green);}
+  .stats{display:flex; flex-wrap:wrap; gap:6px;}
+  .stats span{background:#fff; border:1px solid var(--line); border-radius:100px; padding:4px 10px; font-size:13px;}
+  .big{position:fixed; inset:0; background:rgba(10,8,5,.92); display:none; align-items:center; justify-content:center; z-index:9;}
+  .big.show{display:flex;}
+  .big img{max-width:100%; max-height:100%;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<main>
+  <h1>لوحة إدارة دليل</h1>
+
+  <section id="login" class="card">
+    <label for="pass">كلمة سر الإدارة</label>
+    <input id="pass" type="password" autocomplete="current-password" dir="ltr">
+    <div class="row" style="margin-top:10px"><button class="gold" id="loginBtn">دخول</button></div>
+    <div class="msg" id="loginMsg"></div>
+  </section>
+
+  <section id="app" hidden>
+    <div class="row">
+      <div class="stats" id="stats"></div>
+      <button class="white" id="refresh" style="flex:0 0 auto">تحديث</button>
+      <button class="white" id="logout" style="flex:0 0 auto">خروج</button>
+    </div>
+
+    <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
+    <div id="pending"></div>
+
+    <h2>إرسال تنبيه لكل المشتركين</h2>
+    <div class="card">
+      <label for="pTitle">العنوان</label>
+      <input id="pTitle" maxlength="60" placeholder="مثال: تحذير من السيول">
+      <label for="pBody">النص</label>
+      <textarea id="pBody" maxlength="180" placeholder="مثال: أمطار غزيرة متوقعة على حائل الليلة. تجنّب بطون الأودية."></textarea>
+      <label for="pRegion">المنطقة</label>
+      <select id="pRegion"><option value="">كل المناطق</option></select>
+      <div class="row" style="margin-top:10px"><button class="gold" id="pSend">إرسال التنبيه</button></div>
+      <div class="msg" id="pMsg"></div>
+    </div>
+
+    <h2>المنشور الآن <span class="badge" id="liveCount">0</span></h2>
+    <div id="live"></div>
+  </section>
+</main>
+<div class="big" id="big"><img alt=""></div>
+
+<script>
+(function(){
+  'use strict';
+  const FN = 'https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-admin';
+  const KIND = {rain:'مطر', flood:'سيل', spring:'ربيع', dust:'غبار', road:'حالة طريق', other:'أخرى'};
+  const $ = id=>document.getElementById(id);
+  const esc = s=>String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const safeUrl = u=>/^https:\/\/penhpgvjtxytgyrhmetg\.supabase\.co\//.test(u || '') ? u : '';
+  let pass = '';
+  try{ pass = sessionStorage.getItem('dalil_admin') || ''; }catch(e){}
+
+  async function api(action, extra){
+    const r = await fetch(FN, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action, ...(extra || {})})});
+    const j = await r.json().catch(()=>({}));
+    if(r.status === 401) throw Object.assign(new Error('كلمة السر غير صحيحة'), {auth:true});
+    if(r.status === 429) throw Object.assign(new Error('محاولات كثيرة. انتظر 15 دقيقة.'), {auth:true});
+    if(!r.ok) throw new Error(j.error || ('خطأ ' + r.status));
+    return j;
+  }
+  const when = iso=>new Date(iso).toLocaleString('ar-SA-u-nu-latn', {weekday:'short', hour:'numeric', minute:'2-digit'});
+  function evCard(e, pending){
+    const loc = e.lat != null ? `<a href="https://maps.google.com/?q=${e.lat},${e.lng}" target="_blank" rel="noopener noreferrer">${e.lat}, ${e.lng}</a>` : 'بدون موقع';
+    const notifyDefault = e.kind === 'flood' || e.kind === 'rain';
+    return `<div class="card ev" data-id="${esc(e.id)}">
+      <img src="${esc(safeUrl(e.thumb_url))}" data-big="${esc(safeUrl(e.photo_url))}" alt="">
+      <div>
+        <div class="t">${esc(KIND[e.kind] || e.kind)}${e.region ? ' — ' + esc(e.region) : ''}${e.status === 'hidden' ? '<span class="badge warn">مخفية بالبلاغات</span>' : ''}${e.reports ? `<span class="badge warn">${e.reports} بلاغ</span>` : ''}</div>
+        ${e.caption ? `<div>${esc(e.caption)}</div>` : ''}
+        <div class="m">${esc(when(e.created_at))}${e.nickname ? ' · ' + esc(e.nickname) : ''} · ${loc}</div>
+        ${pending ? `
+          <label class="chk"><input type="checkbox" class="notify"${notifyDefault ? ' checked' : ''}> أرسل تنبيهًا لمشتركي ${e.region ? esc(e.region) : 'كل المناطق'}</label>
+          <div class="row"><button class="gold" data-act="approve">نشر</button><button class="danger" data-act="reject">رفض وحذف</button></div>`
+        : `<div class="row">${e.status === 'hidden' ? '<button class="white" data-act="restore">إعادة النشر</button>' : ''}<button class="danger" data-act="reject">حذف</button></div>`}
+      </div>
+    </div>`;
+  }
+  async function load(){
+    const d = await api('list');
+    $('login').hidden = true; $('app').hidden = false;
+    $('pendCount').textContent = d.pending.length;
+    $('liveCount').textContent = d.live.length;
+    $('pending').innerHTML = d.pending.length ? d.pending.map(e=>evCard(e, true)).join('') : '<div class="card muted">لا توجد صور بانتظار المراجعة.</div>';
+    $('live').innerHTML = d.live.length ? d.live.map(e=>evCard(e, false)).join('') : '<div class="card muted">لا توجد صور منشورة الآن.</div>';
+    const sub = d.subscribers || {total:0, byRegion:{}};
+    $('stats').innerHTML = `<span>المشتركون في التنبيهات: <b>${sub.total}</b></span>` + Object.entries(sub.byRegion).map(([k, v])=>`<span>${esc(k)}: ${v}</span>`).join('');
+    const sel = $('pRegion');
+    if(sel.options.length === 1) (d.regions || []).forEach(r=>{ const o = document.createElement('option'); o.textContent = r; sel.appendChild(o); });
+  }
+  function showErr(e){
+    if(e.auth){ pass = ''; try{ sessionStorage.removeItem('dalil_admin'); }catch(x){} $('app').hidden = true; $('login').hidden = false; }
+    const m = $('login').hidden ? $('pMsg') : $('loginMsg');
+    m.textContent = e.message || 'تعذّر الاتصال'; m.className = 'msg err';
+  }
+
+  $('loginBtn').addEventListener('click', async ()=>{
+    pass = $('pass').value.trim(); if(!pass) return;
+    $('loginBtn').disabled = true; $('loginMsg').textContent = '';
+    try{ await load(); try{ sessionStorage.setItem('dalil_admin', pass); }catch(e){} $('pass').value = ''; }
+    catch(e){ showErr(e); }
+    finally{ $('loginBtn').disabled = false; }
+  });
+  $('pass').addEventListener('keydown', e=>{ if(e.key === 'Enter') $('loginBtn').click(); });
+  $('refresh').addEventListener('click', ()=>load().catch(showErr));
+  $('logout').addEventListener('click', ()=>{ pass = ''; try{ sessionStorage.removeItem('dalil_admin'); }catch(e){} location.reload(); });
+
+  document.addEventListener('click', async ev=>{
+    const img = ev.target.closest('img[data-big]');
+    if(img && img.dataset.big){ $('big').querySelector('img').src = img.dataset.big; $('big').classList.add('show'); return; }
+    if(ev.target.closest('#big')){ $('big').classList.remove('show'); return; }
+    const b = ev.target.closest('button[data-act]'); if(!b) return;
+    const card = b.closest('[data-id]'), id = card.dataset.id, act = b.dataset.act;
+    if(act === 'reject' && !confirm('حذف الصورة نهائيًا؟')) return;
+    card.querySelectorAll('button').forEach(x=>x.disabled = true);
+    try{
+      const notify = act === 'approve' && !!card.querySelector('.notify')?.checked;
+      const r = await api(act, {id, notify});
+      if(r.push) alert(`نُشرت الصورة. وصل التنبيه إلى ${r.push.sent} من ${r.push.total}.`);
+      await load();
+    }catch(e){ showErr(e); card.querySelectorAll('button').forEach(x=>x.disabled = false); }
+  });
+
+  $('pSend').addEventListener('click', async ()=>{
+    const title = $('pTitle').value.trim(), body = $('pBody').value.trim(), region = $('pRegion').value;
+    if(!title){ $('pMsg').textContent = 'اكتب عنوان التنبيه'; $('pMsg').className = 'msg err'; return; }
+    if(!confirm(`إرسال التنبيه إلى ${region || 'كل المناطق'}؟`)) return;
+    $('pSend').disabled = true;
+    try{
+      const r = await api('push', {title, body, region});
+      $('pMsg').textContent = `أُرسل إلى ${r.push.sent} من ${r.push.total} جهاز.` + (r.push.removed ? ` (حُذف ${r.push.removed} اشتراك منتهٍ)` : '');
+      $('pMsg').className = 'msg ok';
+      $('pTitle').value = ''; $('pBody').value = '';
+    }catch(e){ showErr(e); }
+    finally{ $('pSend').disabled = false; }
+  });
+
+  if(pass) load().catch(showErr);
+})();
+</script>
+</body>
+</html>
