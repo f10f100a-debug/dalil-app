@@ -42,97 +42,273 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 .mk.car .mk-dot{background:#C9964F;border-color:#5C3A0E;color:#1C1A17}.mk.car .mk-dot svg{width:20px;height:20px}
 .mk-name{margin-top:3px;padding:1px 7px;border-radius:8px;background:#FFFFFFe8;color:#1C1A17;font-size:11px;font-weight:600;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .nav-card{background:#FFFFFFf5;border-color:#E4DED3;color:#1C1A17}.nav-arrow{background:#FBF3E6;color:#7A4E14}.nav-coords{color:#6B645A}.nav-info{color:#6B645A}
-</style></head><body><div id="map"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40"><path d="M12 22s-7.5-6.4-7.5-12a7.5 7.5 0 0 1 15 0c0 5.6-7.5 12-7.5 12z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10" r="2.8" fill="#fff"/></svg></div></div>
-<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-1" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
+
+/* ===== دوران الخريطة، سهم الموقع، أزرار ===== */
+#stage{position:absolute;inset:0;transform-origin:50% 50%;transform:rotate(calc(var(--rot,0) * -1deg));will-change:transform}
+#trackOverlay{overflow:visible}
+.mk{transform:translate(-50%,-50%) rotate(calc(var(--rot,0) * 1deg))}
+#targetMarker{font-size:0;line-height:0;transform:translate(-50%,-100%) rotate(calc(var(--rot,0) * 1deg));transform-origin:50% 100%}
+#targetMarker svg{display:block}
+#dot .dot-arrow{display:none;position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;transform:rotate(calc(var(--hdg,0) * 1deg));overflow:visible}
+#dot .dot-arrow path{fill:#2688ff;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#dot.has-heading{background:transparent;border-color:transparent;box-shadow:none}
+#dot.has-heading .dot-arrow{display:block}
+.ctrl button[hidden]{display:none}
+#gps.on{background:#1C1A17;border-color:#1C1A17;color:#F2C27A}
+#northBtn{display:grid;place-items:center;background:#fff}
+#northBtn[hidden]{display:none}
+#northIcon{transition:transform .15s linear}
+.nav-arrow{width:52px;height:52px}
+.nav-arrow svg{transition:transform .2s ease-out}
+.nav-coords{display:block;border:0;background:none;box-shadow:none;padding:0;width:auto;height:auto;font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:right}
+.nav-eta{font-size:12.5px;color:#7A4E14;margin-top:2px;font-weight:600}
+.nav-eta:empty{display:none}
+body.embed .nav-actions button{height:44px}
+body.embed .nav-arrow{width:44px;height:44px}
+</style></head><body><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
+<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-2" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>
-<div class="ctrl"><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
-<div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true">↑</div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><div id="navCoords" class="nav-coords">—</div><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
+<div class="ctrl"><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
+<div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
 <script>
 const query=new URLSearchParams(location.search);
 const isEmbedded=query.get('embed')==='1';
 if(isEmbedded)document.body.classList.add('embed');
 const S=256,minZ=7,maxZ=20,maxLocalZ=11,maxTileZ=10,maxOnlineTileZ=19,ranges={7:[76,82,52,58],8:[152,164,104,116],9:[304,329,208,233],10:[608,659,416,466]};
-let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,touchStart=null,touchMoved=false,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationWatch=null,navigationActive=false,navigationAutoFit=true,deviceHeading=null,orientationHandler=null,lastAbsoluteOrientationAt=0,mapMode='local',missingTileWarningShown=false;
-const map=document.querySelector('#map'),layer=document.querySelector('#layer'),dot=document.querySelector('#dot'),targetMarker=document.querySelector('#targetMarker'),trackOverlay=document.querySelector('#trackOverlay'),status=document.querySelector('#status'),badge=document.querySelector('#badge'),navCard=document.querySelector('#navCard'),navArrow=document.querySelector('#navArrow'),navName=document.querySelector('#navName'),navCoords=document.querySelector('#navCoords'),navInfo=document.querySelector('#navInfo'),startNav=document.querySelector('#startNav'),compassNav=document.querySelector('#compassNav'),stopNav=document.querySelector('#stopNav'),localMode=document.querySelector('#localMode'),onlineMode=document.querySelector('#onlineMode'),googleMode=document.querySelector('#googleMode'),attribution=document.querySelector('#attribution');
-const tileNodes=new Map(),missingLocalTiles=new Set();let renderFrame=0;
+const GPS_COURSE_MIN_KMH=5;
+let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,touchStart=null,touchMoved=false,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationActive=false,deviceHeading=null,orientationHandler=null,lastAbsoluteOrientationAt=0,mapMode='local',missingTileWarningShown=false;
+// view: free (المستخدم يحرّك الخريطة) | fit (يُظهر موقعك والهدف معًا) | follow (يتبعك والشمال للأعلى) | heading (يتبعك واتجاهك للأعلى)
+let view='free',rot=0,geoWatch=null,gpsCourse=null,gpsCourseAt=0,headingFrame=0;
+const $=s=>document.querySelector(s);
+const map=$('#map'),stage=$('#stage'),layer=$('#layer'),dot=$('#dot'),accCircle=$('#accCircle'),marksEl=$('#marks'),targetMarker=$('#targetMarker'),trackOverlay=$('#trackOverlay'),status=$('#status'),badge=$('#badge'),navCard=$('#navCard'),navArrow=$('#navArrow'),navName=$('#navName'),navCoords=$('#navCoords'),navInfo=$('#navInfo'),navEta=$('#navEta'),startNav=$('#startNav'),compassNav=$('#compassNav'),stopNav=$('#stopNav'),localMode=$('#localMode'),onlineMode=$('#onlineMode'),googleMode=$('#googleMode'),attribution=$('#attribution'),gpsBtn=$('#gps'),northBtn=$('#northBtn'),northIcon=$('#northIcon');
+const tileNodes=new Map(),missingLocalTiles=new Set();
+let renderFrame=0;
+
+// ---------- helpers ----------
+const iso=v=>'⁦'+v+'⁩'; // يمنع انقلاب الأرقام والرموز داخل النص العربي
 function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
-function screenToLatLng(x,y){let size=2**z*S,wx=cx+x-innerWidth/2,wy=cy+y-innerHeight/2,lng=wx/size*360-180,merc=Math.PI*(1-2*wy/size),lat=Math.atan(Math.sinh(merc))*180/Math.PI;return{lat:Math.max(-85.0511,Math.min(85.0511,lat)),lng:((lng+540)%360)-180}}
+// إحداثيات «المسرح» (قبل الدوران) إلى خط عرض وطول
+function stageToLatLng(x,y){let size=2**z*S,wx=cx+x-innerWidth/2,wy=cy+y-innerHeight/2,lng=wx/size*360-180,merc=Math.PI*(1-2*wy/size),lat=Math.atan(Math.sinh(merc))*180/Math.PI;return{lat:Math.max(-85.0511,Math.min(85.0511,lat)),lng:((lng+540)%360)-180}}
+// نقطة على الشاشة إلى إحداثيات المسرح، مع مراعاة دوران الخريطة
+function screenToStage(x,y){const a=rot*Math.PI/180,dx=x-innerWidth/2,dy=y-innerHeight/2;return[innerWidth/2+dx*Math.cos(a)-dy*Math.sin(a),innerHeight/2+dx*Math.sin(a)+dy*Math.cos(a)]}
+function screenDeltaToStage(dx,dy){const a=rot*Math.PI/180;return[dx*Math.cos(a)-dy*Math.sin(a),dx*Math.sin(a)+dy*Math.cos(a)]}
 function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
 function inOfflineCoverage(lat,lng){let p=world(lat,lng,maxTileZ),x=Math.floor(p[0]/S),y=Math.floor(p[1]/S),r=ranges[maxTileZ];return x>=r[0]&&x<=r[1]&&y>=r[2]&&y<=r[3]}
 function distanceMeters(a,b){let R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 function targetBearing(a,b){let p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360}
 function directionName(b){return['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]}
-function updateNavigation(){if(!targetPoint)return;navCard.classList.add('show');document.body.classList.add('has-target');navCoords.textContent=targetPoint.lat.toFixed(6)+', '+targetPoint.lng.toFixed(6);if(!gps){navInfo.textContent='جارٍ تحديد موقعك وحساب المسافة…';return}let d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),distance=d>=1000?(d/1000).toFixed(d<10000?1:0)+' كم':Math.round(d)+' م',relative=deviceHeading===null?b:b-deviceHeading;navInfo.textContent='يبعد '+distance+' — '+directionName(b)+(deviceHeading===null?' — السهم حسب شمال الخريطة':'');navArrow.style.transform=`rotate(${relative}deg)`}
-function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
+function fmtDistance(d){return d>=1000?iso((d/1000).toFixed(d<10000?1:0))+' كم':iso(Math.round(d))+' م'}
+function fmtDuration(sec){const m=Math.round(sec/60);if(m<1)return'أقل من دقيقة';if(m<60)return iso(m)+' د';const h=Math.floor(m/60),r=m%60;return iso(h)+' س'+(r?' '+iso(r)+' د':'')}
+function coordFormat(){try{const f=localStorage.getItem('dalil_fmt');return f==='dd'||f==='dms'?f:'ddm'}catch(e){return'ddm'}}
+function fmtCoords(lat,lng){const fmt=coordFormat();
+  const part=(v,isLat)=>{const a=Math.abs(v),d=Math.floor(a),dir=isLat?(v>=0?'N':'S'):(v>=0?'E':'W');if(fmt==='dms'){const mf=(a-d)*60,m=Math.floor(mf);return`${d}°${m}'${((mf-m)*60).toFixed(1)}"${dir}`}return`${d}°${((a-d)*60).toFixed(3)}'${dir}`};
+  return fmt==='dd'?lat.toFixed(6)+', '+lng.toFixed(6):part(lat,true)+' '+part(lng,false)}
 function smoothHeading(previous,next){if(previous===null)return next;let delta=((next-previous+540)%360)-180,distance=Math.abs(delta);if(distance<.6)return previous;let factor=distance>=45?.92:distance>=15?.78:.62;return(previous+delta*factor+360)%360}
-function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){deviceHeading=smoothHeading(deviceHeading,(h+360)%360);updateNavigation()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
-function selectMapPoint(x,y){let hit=null,best=26;for(const m of savedMarks){if(m.sx==null)continue;let d=Math.hypot(m.sx-x,m.sy-y);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:screenToLatLng(x,y);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اضغط «ابدأ التوجيه» أو «خرائط Google»'}
-if(mapMode==='online'){localMode.classList.remove('active');onlineMode.classList.add('active');attribution.classList.add('show')}
+function normRot(){return((rot%360)+360)%360}
+function isRotated(){const n=normRot();return n>.5&&n<359.5}
+
+// ---------- heading: GPS course when driving, compass otherwise ----------
+function currentHeading(){
+  if(gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH)return gpsCourse;
+  return deviceHeading;
+}
+function setRot(v){rot+=((v-rot)%360+540)%360-180;stage.style.setProperty('--rot',rot.toFixed(2));northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;northBtn.hidden=!isRotated()&&view!=='heading'}
+function onHeadingChanged(){
+  if(headingFrame)return;
+  headingFrame=requestAnimationFrame(()=>{headingFrame=0;
+    const h=currentHeading();
+    dot.classList.toggle('has-heading',h!==null);
+    if(h!==null)dot.style.setProperty('--hdg',h.toFixed(1));
+    if(view==='heading'&&h!==null){const before=isRotated();setRot(h);if(before!==isRotated())render()}
+    updateNavigation()});
+}
+function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
+function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){deviceHeading=smoothHeading(deviceHeading,(h+360)%360);onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
+// على iOS يجب أن يأتي طلب الإذن من ضغطة المستخدم؛ إن سبق منحه لا تظهر نافذة.
+async function ensureOrientation(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()!=='granted')return false}}catch(e){return false}bindOrientation();return true}
+
+// ---------- navigation card ----------
+function updateNavigation(){
+  if(!targetPoint)return;
+  navCard.classList.add('show');document.body.classList.add('has-target');
+  navCoords.textContent=fmtCoords(targetPoint.lat,targetPoint.lng);
+  if(!gps){navInfo.textContent='جارٍ تحديد موقعك وحساب المسافة…';navEta.textContent='';return}
+  const d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),h=currentHeading();
+  navInfo.textContent='يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b);
+  const speed=Number(gps.speed);
+  navEta.textContent=Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك');
+  const relative=h!==null?b-h:b-rot;
+  navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
+}
+navCoords.onclick=async()=>{if(!targetPoint)return;const text=fmtCoords(targetPoint.lat,targetPoint.lng);try{await navigator.clipboard.writeText(text);status.textContent='تم نسخ الإحداثيات'}catch(e){status.textContent=text}};
+
+// ---------- location button: follow → heading-up → follow ----------
+const ICON_LOCATE='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>';
+const ICON_FOLLOW='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>';
+const ICON_HEADING='<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2.5 19 21l-7-4-7 4z"/></svg>';
+function updateGpsBtn(){
+  gpsBtn.innerHTML=view==='heading'?ICON_HEADING:view==='follow'?ICON_FOLLOW:ICON_LOCATE;
+  gpsBtn.classList.toggle('on',view==='follow'||view==='heading');
+  const label=view==='follow'?'يتبع موقعك — اضغط ليتبع اتجاهك':view==='heading'?'الخريطة تدور مع اتجاهك — اضغط لإرجاع الشمال للأعلى':'إظهار موقعي ومتابعته';
+  gpsBtn.setAttribute('aria-label',label);gpsBtn.title=label;
+  northBtn.hidden=!isRotated()&&view!=='heading';
+}
+function setView(v){view=v;updateGpsBtn()}
+function releaseView(){if(view!=='free')setView('free')}
+gpsBtn.onclick=()=>{
+  ensureOrientation();
+  startWatch();
+  if(view==='follow'){setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
+  else{setView('follow');setRot(0)}
+  if(gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);render()}
+  else locateUser(true,true);
+};
+northBtn.onclick=()=>{if(view==='heading')setView('follow');setRot(0);render()};
+
+// ---------- rendering ----------
+function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»'}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
-function render(){let online=mapMode==='online',tz=online?Math.min(z,maxOnlineTileZ):Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=online?[0,2**tz-1,0,2**tz-1]:ranges[tz],vx0=cx-innerWidth/2-ts,vy0=cy-innerHeight/2-ts,vx1=cx+innerWidth/2+ts,vy1=cy+innerHeight/2+ts,needed=new Set(),fragment=document.createDocumentFragment();
-for(let x=Math.max(r[0],Math.floor(vx0/ts));x<=Math.min(r[1],Math.floor(vx1/ts));x++)for(let y=Math.max(r[2],Math.floor(vy0/ts));y<=Math.min(r[3],Math.floor(vy1/ts));y++){let key=(online?'o':'l')+':'+tz+':'+x+':'+y;if(!online&&missingLocalTiles.has(key))continue;let im=tileNodes.get(key);needed.add(key);if(!im){im=new Image();im.className='tile';im.decoding='async';im.draggable=false;im.onerror=()=>{im.remove();tileNodes.delete(key);if(!online){missingLocalTiles.add(key);let c=screenToLatLng(innerWidth/2,innerHeight/2);if(!missingTileWarningShown&&!inOfflineCoverage(c.lat,c.lng)){missingTileWarningShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر المحفوظة — استخدم خريطة الإنترنت عند توفر الشبكة'}}};im.src=online?'https://tile.openstreetmap.org/'+tz+'/'+x+'/'+y+'.png':'tiles/'+tz+'/'+x+'/'+y+'.png';tileNodes.set(key,im);fragment.appendChild(im)}im.style.width=ts+'px';im.style.height=ts+'px';im.style.transform=`translate3d(${x*ts+innerWidth/2-cx}px,${y*ts+innerHeight/2-cy}px,0)`}
-if(fragment.childNodes.length)layer.appendChild(fragment);for(const[key,im]of tileNodes){if(!needed.has(key)){im.remove();tileNodes.delete(key)}}
-drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
-function setMapMode(mode){if(mode==='online'&&!navigator.onLine){status.textContent='الخريطة المفتوحة تحتاج اتصالًا بالإنترنت';return}mapMode=mode;if(isEmbedded&&gps&&mode==='online'){z=17;[cx,cy]=world(gps.lat,gps.lng)}else if(mode==='local'&&z>maxLocalZ){z=maxLocalZ;[cx,cy]=gps?world(gps.lat,gps.lng):[79*S*2**(z-7),55*S*2**(z-7)]}if(targetPoint&&!inOfflineCoverage(targetPoint.lat,targetPoint.lng)){if(mode==='online'){z=16;[cx,cy]=world(targetPoint.lat,targetPoint.lng)}else{z=7;cx=79*S;cy=55*S}}localMode.classList.toggle('active',mode==='local');onlineMode.classList.toggle('active',mode==='online');attribution.classList.toggle('show',mode==='online');render();status.textContent=mode==='online'?'خريطة OpenStreetMap — تتطلب اتصالًا بالإنترنت':'خريطة البر الأوفلاين — تعمل من الملفات المحفوظة'}
+function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2;return[r,r]}return[innerWidth/2,innerHeight/2]}
+function render(){
+  const[hw,hh]=viewHalfSize();
+  let online=mapMode==='online',tz=online?Math.min(z,maxOnlineTileZ):Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=online?[0,2**tz-1,0,2**tz-1]:ranges[tz],vx0=cx-hw-ts,vy0=cy-hh-ts,vx1=cx+hw+ts,vy1=cy+hh+ts,needed=new Set(),fragment=document.createDocumentFragment();
+  for(let x=Math.max(r[0],Math.floor(vx0/ts));x<=Math.min(r[1],Math.floor(vx1/ts));x++)for(let y=Math.max(r[2],Math.floor(vy0/ts));y<=Math.min(r[3],Math.floor(vy1/ts));y++){
+    let key=(online?'o':'l')+':'+tz+':'+x+':'+y;
+    if(!online&&missingLocalTiles.has(key))continue;
+    let im=tileNodes.get(key);needed.add(key);
+    if(!im){im=new Image();im.className='tile';im.decoding='async';im.draggable=false;
+      im.onerror=()=>{im.remove();tileNodes.delete(key);if(!online){missingLocalTiles.add(key);let c=stageToLatLng(innerWidth/2,innerHeight/2);if(!missingTileWarningShown&&!inOfflineCoverage(c.lat,c.lng)){missingTileWarningShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر المحفوظة — استخدم خريطة الإنترنت عند توفر الشبكة'}}};
+      im.src=online?'https://tile.openstreetmap.org/'+tz+'/'+x+'/'+y+'.png':'tiles/'+tz+'/'+x+'/'+y+'.png';tileNodes.set(key,im);fragment.appendChild(im)}
+    im.style.width=ts+'px';im.style.height=ts+'px';im.style.transform=`translate3d(${x*ts+innerWidth/2-cx}px,${y*ts+innerHeight/2-cy}px,0)`}
+  if(fragment.childNodes.length)layer.appendChild(fragment);
+  for(const[key,im]of tileNodes){if(!needed.has(key)){im.remove();tileNodes.delete(key)}}
+  drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
+function setMapMode(mode){if(mode==='online'&&!navigator.onLine){status.textContent='الخريطة المفتوحة تحتاج اتصالًا بالإنترنت';return}mapMode=mode;
+  if(isEmbedded&&gps&&mode==='online'){z=17;[cx,cy]=world(gps.lat,gps.lng)}else if(mode==='local'&&z>maxLocalZ){z=maxLocalZ;[cx,cy]=gps?world(gps.lat,gps.lng):[79*S*2**(z-7),55*S*2**(z-7)]}
+  if(targetPoint&&!inOfflineCoverage(targetPoint.lat,targetPoint.lng)){if(mode==='online'){z=16;[cx,cy]=world(targetPoint.lat,targetPoint.lng)}else{z=7;cx=79*S;cy=55*S}}
+  localMode.classList.toggle('active',mode==='local');onlineMode.classList.toggle('active',mode==='online');attribution.classList.toggle('show',mode==='online');
+  render();status.textContent=mode==='online'?'خريطة OpenStreetMap — تتطلب اتصالًا بالإنترنت':'خريطة البر الأوفلاين — تعمل من الملفات المحفوظة'}
 function useOnlineForDetail(){mapMode='online';localMode.classList.remove('active');onlineMode.classList.add('active');attribution.classList.add('show');status.textContent='انتقلنا إلى خريطة الإنترنت لعرض تفاصيل أدق'}
 localMode.onclick=()=>setMapMode('local');onlineMode.onclick=()=>setMapMode('online');googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
-function drawDot(){const acc=document.querySelector('#accCircle');if(!gps){dot.style.display='none';acc.style.display='none';return}let p=world(gps.lat,gps.lng),x=(p[0]+innerWidth/2-cx)+'px',y=(p[1]+innerHeight/2-cy)+'px';dot.style.display='block';dot.style.left=x;dot.style.top=y;let r=Number.isFinite(gps.acc)?gps.acc/metersPerPixel(gps.lat):0;if(r>=12&&r<3000){acc.style.display='block';acc.style.left=x;acc.style.top=y;acc.style.width=acc.style.height=(2*r)+'px'}else acc.style.display='none'}
+function drawDot(){
+  if(!gps){dot.style.display='none';accCircle.style.display='none';return}
+  let p=world(gps.lat,gps.lng),x=(p[0]+innerWidth/2-cx)+'px',y=(p[1]+innerHeight/2-cy)+'px';dot.style.display='block';dot.style.left=x;dot.style.top=y;
+  let r=Number.isFinite(gps.acc)?gps.acc/metersPerPixel(gps.lat):0;
+  if(r>=12&&r<3000){accCircle.style.display='block';accCircle.style.left=x;accCircle.style.top=y;accCircle.style.width=accCircle.style.height=(2*r)+'px'}else accCircle.style.display='none'}
 let savedMarks=[];
 function loadSavedMarks(){let out=[];try{let car=JSON.parse(localStorage.getItem('dalil_car'));if(car&&validLatLng(Number(car.lat),Number(car.lng)))out.push({lat:Number(car.lat),lng:Number(car.lng),name:'السيارة',car:true})}catch(e){}try{let places=JSON.parse(localStorage.getItem('dalil_places'));if(Array.isArray(places))places.forEach(p=>{if(p&&validLatLng(Number(p.lat),Number(p.lng)))out.push({lat:Number(p.lat),lng:Number(p.lng),name:String(p.name||'مكان'),icon:String(p.icon||'📍')})})}catch(e){}savedMarks=out}
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const CAR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15.5v-4l2-5A2 2 0 0 1 8.9 5h6.2A2 2 0 0 1 17 6.5l2 5v4"/><path d="M3.5 15.5h17v3h-17z"/></svg>';
-function drawMarks(){let html='',showNames=z>=12;for(const m of savedMarks){let p=world(m.lat,m.lng),x=p[0]+innerWidth/2-cx,y=p[1]+innerHeight/2-cy;if(x<-60||y<-60||x>innerWidth+60||y>innerHeight+60)continue;m.sx=x;m.sy=y;html+=`<div class="mk${m.car?' car':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot">${m.car?CAR_SVG:escapeHtml(m.icon)}</span>${showNames?`<span class="mk-name">${escapeHtml(m.name)}</span>`:''}</div>`}document.querySelector('#marks').innerHTML=html}
-function drawScale(){let c=screenToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
+function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12;
+  for(const m of savedMarks){let p=world(m.lat,m.lng),x=p[0]+innerWidth/2-cx,y=p[1]+innerHeight/2-cy;m.sx=null;
+    if(Math.abs(x-innerWidth/2)>hw+60||Math.abs(y-innerHeight/2)>hh+60)continue;m.sx=x;m.sy=y;
+    html+=`<div class="mk${m.car?' car':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot">${m.car?CAR_SVG:escapeHtml(m.icon)}</span>${showNames?`<span class="mk-name">${escapeHtml(m.name)}</span>`:''}</div>`}
+  marksEl.innerHTML=html}
+function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
 function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
-function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';if(trackPoints.length){let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#e0a64f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6" fill="#c1553f" stroke="#fff" stroke-width="2"/>`}if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}trackOverlay.innerHTML=shapes}
+function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
+  if(trackPoints.length){let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#e0a64f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6" fill="#c1553f" stroke="#fff" stroke-width="2"/>`}
+  if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
+  trackOverlay.innerHTML=shapes}
 function detailZ(){return mapMode==='online'?16:maxLocalZ}
-function zoomTo(n){if(mapMode==='local'&&n>maxLocalZ){if(navigator.onLine){useOnlineForDetail()}else{status.textContent='هذا أقصى تكبير لخريطة البر المحفوظة — للتفاصيل الأدق اتصل بالإنترنت';return}}let limit=mapMode==='online'?maxZ:maxLocalZ;n=Math.max(minZ,Math.min(limit,n));if(n===z)return;let s=2**(n-z);cx*=s;cy*=s;z=n;render()}
+function zoomTo(n){if(mapMode==='local'&&n>maxLocalZ){if(navigator.onLine){useOnlineForDetail()}else{status.textContent='هذا أقصى تكبير لخريطة البر المحفوظة — للتفاصيل الأدق اتصل بالإنترنت';return}}
+  let limit=mapMode==='online'?maxZ:maxLocalZ;n=Math.max(minZ,Math.min(limit,n));if(n===z)return;let s=2**(n-z);cx*=s;cy*=s;z=n;render()}
 function fitTrackClose(){
   if(trackPoints.length<2)return;
   let target=13,limit=mapMode==='online'?maxZ:maxLocalZ,minLat=Math.min(...trackPoints.map(p=>p.lat)),maxLat=Math.max(...trackPoints.map(p=>p.lat)),minLng=Math.min(...trackPoints.map(p=>p.lng)),maxLng=Math.max(...trackPoints.map(p=>p.lng));
   for(let test=limit;test>=minZ;test--){let a=world(minLat,minLng,test),b=world(maxLat,maxLng,test);if(Math.abs(b[0]-a[0])<innerWidth*.72&&Math.abs(b[1]-a[1])<innerHeight*.72){target=test;break}}
-  z=Math.max(11,target);let midLat=(minLat+maxLat)/2,midLng=(minLng+maxLng)/2;[cx,cy]=world(midLat,midLng);embeddedCentered=true;
+  z=Math.max(Math.min(11,limit),target);let midLat=(minLat+maxLat)/2,midLng=(minLng+maxLng)/2;[cx,cy]=world(midLat,midLng);embeddedCentered=true;
 }
 function fitNavigation(){
   if(!gps||!targetPoint)return;
-  let limit=mapMode==='online'?maxOnlineTileZ:maxLocalZ,target=12;
+  let limit=mapMode==='online'?maxOnlineTileZ:maxLocalZ,target=minZ;
   for(let test=limit;test>=minZ;test--){let a=world(gps.lat,gps.lng,test),b=world(targetPoint.lat,targetPoint.lng,test);if(Math.abs(b[0]-a[0])<innerWidth*.68&&Math.abs(b[1]-a[1])<innerHeight*.48){target=test;break}}
   z=target;[cx,cy]=world((gps.lat+targetPoint.lat)/2,(gps.lng+targetPoint.lng)/2);embeddedCentered=true;
 }
-plus.onclick=()=>{if(navigationActive)navigationAutoFit=false;zoomTo(z+1)};minus.onclick=()=>{if(navigationActive)navigationAutoFit=false;zoomTo(z-1)};
-function acceptPosition(p,center=true){gps={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};if(deviceHeading===null&&typeof p.coords.heading==='number'&&!isNaN(p.coords.heading)&&(p.coords.speed||0)>.6)deviceHeading=p.coords.heading;if(navigationActive&&navigationAutoFit)fitNavigation();else if(!navigationActive&&center){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}render();updateNavigation();status.textContent=navigationActive?`التوجيه على الخريطة نشط — دقة GPS ±${Math.round(gps.acc)}م`:`${gps.lat.toFixed(6)}, ${gps.lng.toFixed(6)} — دقة ±${Math.round(gps.acc)}م`}
+$('#plus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z+1)};$('#minus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z-1)};
+
+// ---------- GPS ----------
+function statusForPosition(){const acc=Number.isFinite(gps.acc)?' — دقة GPS '+iso('±'+Math.round(gps.acc))+' م':'';return navigationActive?'التوجيه على الخريطة نشط'+acc:iso(fmtCoords(gps.lat,gps.lng))+acc}
+function acceptPosition(p,center=true){
+  const c=p.coords;gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
+  if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){gpsCourse=c.heading;gpsCourseAt=Date.now()}
+  if(view==='fit'&&navigationActive)fitNavigation();
+  else if(view==='follow'||view==='heading')[cx,cy]=world(gps.lat,gps.lng);
+  else if(center&&!navigationActive){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}
+  render();onHeadingChanged();updateNavigation();status.textContent=statusForPosition()}
+function geoError(e,showError){status.textContent=showError?'تعذّر تحديد الموقع: '+(e.code===1?'الإذن مرفوض — فعّله من إعدادات الجوال':'حاول في مكان مكشوف'):'اضغط زر الموقع لإظهار مكانك على الخريطة.'}
 function locateUser(showError=true,center=true){
   if(!navigator.geolocation){if(showError)status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
-  status.textContent='جاري تحديد الموقع…';
-  navigator.geolocation.getCurrentPosition(p=>acceptPosition(p,center),e=>{if(showError)status.textContent='تعذر GPS: '+e.message;else status.textContent='اضغط زر الموقع لإظهار مكانك على الخريطة.'},{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+  if(showError)status.textContent='جارٍ تحديد الموقع…';
+  navigator.geolocation.getCurrentPosition(p=>acceptPosition(p,center),e=>geoError(e,showError),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 }
-document.querySelector('#gps').onclick=()=>{navigationAutoFit=true;locateUser(true)};
+// مراقبة مستمرة بعد أول ضغطة على زر الموقع أو بدء التوجيه
+function startWatch(){if(geoWatch!==null||!navigator.geolocation)return;geoWatch=navigator.geolocation.watchPosition(p=>acceptPosition(p,false),e=>{if(navigationActive)status.textContent='التوجيه مستمر، لكن تعذّر تحديث GPS الآن'},{enableHighAccuracy:true,maximumAge:2000,timeout:20000})}
+
+// ---------- Google / compass hand-off ----------
 function openGoogleMap(){
-  if(!navigator.onLine){status.textContent='خرائط Google يحتاج اتصالًا بالإنترنت';return}
+  if(!navigator.onLine){status.textContent='خرائط Google تحتاج اتصالًا بالإنترنت';return}
   const point=targetPoint||gps;
   const url=point?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(point.lat+','+point.lng):'https://www.google.com/maps';
-  if(isEmbedded) window.open(url,'_blank','noopener'); else location.href=url;
+  if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url;
 }
-function openGoogle(){let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في خرائط Google';return}if(!navigator.onLine){status.textContent='خرائط Google يحتاج اتصالًا بالإنترنت';return}location.href='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(point.lat+','+point.lng)}
-document.querySelector('#googleNav').onclick=openGoogle;
-startNav.onclick=async()=>{if(!targetPoint)return;if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}if(navigationWatch!==null)navigator.geolocation.clearWatch(navigationWatch);navigationActive=true;navigationAutoFit=true;startNav.style.display='none';compassNav.style.display='none';stopNav.style.display='block';status.textContent='التوجيه على الخريطة نشط — جارٍ تشغيل الاتجاه وGPS';try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()==='granted')bindOrientation();else status.textContent='التوجيه يعمل، لكن إذن حركة الجوال مرفوض؛ السهم حسب شمال الخريطة'}else if('DeviceOrientationEvent'in window)bindOrientation()}catch(e){status.textContent='التوجيه يعمل، لكن مستشعر اتجاه الجوال غير متاح'}if(gps){fitNavigation();updateNavigation();render()}navigationWatch=navigator.geolocation.watchPosition(p=>acceptPosition(p,true),e=>{status.textContent='التوجيه مستمر، لكن تعذر تحديث GPS الآن: '+e.message},{enableHighAccuracy:true,maximumAge:3000,timeout:20000})};
+function openGoogle(){let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في خرائط Google';return}if(!navigator.onLine){status.textContent='خرائط Google تحتاج اتصالًا بالإنترنت';return}const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(point.lat+','+point.lng);if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url}
+$('#googleNav').onclick=openGoogle;
+startNav.onclick=async()=>{
+  if(!targetPoint)return;
+  if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  navigationActive=true;setRot(0);setView('fit');
+  startNav.style.display='none';compassNav.style.display='none';stopNav.style.display='block';
+  status.textContent='التوجيه على الخريطة نشط — جارٍ تشغيل الاتجاه وGPS';
+  const oriented=await ensureOrientation();
+  if(!oriented)status.textContent='التوجيه يعمل، لكن مستشعر اتجاه الجوال غير متاح؛ السهم حسب أعلى الخريطة';
+  startWatch();
+  if(gps){fitNavigation();updateNavigation();render()}
+};
 compassNav.onclick=()=>{if(!targetPoint)return;const label=navName.textContent||'نقطة محددة على الخريطة',url='index.html?screen=compass&navLat='+encodeURIComponent(targetPoint.lat)+'&navLng='+encodeURIComponent(targetPoint.lng)+'&navLabel='+encodeURIComponent(label);if(isEmbedded)window.parent.location.href=url;else location.href=url};
-stopNav.onclick=()=>{if(navigationWatch!==null)navigator.geolocation.clearWatch(navigationWatch);navigationWatch=null;navigationActive=false;deviceHeading=null;stopOrientation();startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
-window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;loadSavedMarks();let pos=e.data.position,mode=e.data.mode||'view';if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng))gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy};trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');if((mode==='record'||mode==='retrace')&&gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}else if(gps&&!embeddedCentered){z=detailZ();[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}lastTrackSignature=signature;render()});
+stopNav.onclick=()=>{navigationActive=false;if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
+
+// ---------- embedded in the app (track tab) ----------
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;
+  loadSavedMarks();
+  let pos=e.data.position,mode=e.data.mode||'view';
+  if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng)&&geoWatch===null)gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:null};
+  trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];
+  let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');
+  if(view==='follow'||view==='heading'){if(gps)[cx,cy]=world(gps.lat,gps.lng)}
+  else if((mode==='record'||mode==='retrace')&&gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
+  else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}
+  else if(gps&&!embeddedCentered){z=detailZ();[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
+  lastTrackSignature=signature;render();updateNavigation()});
+
+// ---------- gestures ----------
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
 map.addEventListener('touchstart',e=>{if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];touchStart={x:t.clientX,y:t.clientY,time:performance.now()};touchMoved=false}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false;touchStart=null;touchMoved=true}},{passive:false});
-map.addEventListener('touchmove',e=>{e.preventDefault();if(e.touches.length===1&&drag){let x=e.touches[0].clientX,y=e.touches[0].clientY;if(touchStart&&Math.hypot(x-touchStart.x,y-touchStart.y)>8){touchMoved=true;if(navigationActive)navigationAutoFit=false}cx-=x-last[0];cy-=y-last[1];last=[x,y];scheduleRender()}else if(e.touches.length===2&&pinch0){touchMoved=true;if(navigationActive)navigationAutoFit=false;let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
-map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];selectMapPoint(t.clientX,t.clientY)}drag=false;last=null;pinch0=null;touchStart=null});
-map.addEventListener('click',e=>{if(!('ontouchstart'in window))selectMapPoint(e.clientX,e.clientY)});window.addEventListener('resize',render);
+map.addEventListener('touchmove',e=>{e.preventDefault();
+  if(e.touches.length===1&&drag&&last){let x=e.touches[0].clientX,y=e.touches[0].clientY;
+    if(touchStart&&Math.hypot(x-touchStart.x,y-touchStart.y)>8){touchMoved=true;releaseView()}
+    if(touchMoved){const[dx,dy]=screenDeltaToStage(x-last[0],y-last[1]);cx-=dx;cy-=dy;scheduleRender()}
+    last=[x,y]}
+  else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
+map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
+map.addEventListener('click',e=>{if(!('ontouchstart'in window)){const[sx,sy]=screenToStage(e.clientX,e.clientY);selectMapPoint(sx,sy)}});
+window.addEventListener('resize',render);
+
+// ---------- start ----------
 const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
 if(validLatLng(queryLat,queryLng)){
   targetPoint={lat:queryLat,lng:queryLng};
   navName.textContent=query.get('label')||'الموقع المحفوظ';updateNavigation();
-  if(inOfflineCoverage(queryLat,queryLng)){z=maxLocalZ;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+queryLat.toFixed(6)+', '+queryLng.toFixed(6);embeddedCentered=true}
-  else status.textContent=navigator.onLine?'⚠️ الموقع خارج نطاق الأوفلاين — اختر «عبر الإنترنت» لعرضه.':'⚠️ الموقع خارج نطاق خريطة البر الأوفلاين.';
-}else if(query.has('lat')||query.has('lng')) status.textContent='⚠️ إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
-loadSavedMarks();window.addEventListener('storage',()=>{loadSavedMarks();render()});document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadSavedMarks();render()}});
+  if(inOfflineCoverage(queryLat,queryLng)){z=maxLocalZ;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+iso(fmtCoords(queryLat,queryLng));embeddedCentered=true}
+  else status.textContent=navigator.onLine?'الموقع خارج نطاق خريطة البر المحفوظة — اختر «خريطة الإنترنت» لعرضه.':'الموقع خارج نطاق خريطة البر المحفوظة.';
+}else if(query.has('lat')||query.has('lng'))status.textContent='إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
+loadSavedMarks();
+window.addEventListener('storage',()=>{loadSavedMarks();render()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadSavedMarks();render()}});
+updateGpsBtn();
+// بدون نافذة إذن: يعمل مباشرة في أندرويد، وفي iOS إن سبق منح الإذن.
+if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();
 locateUser(false,!targetPoint);
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
