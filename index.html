@@ -432,6 +432,52 @@
   .cp-sheet-item small.warn{color:var(--cp-gold-ink);}
   .cp-sheet .cp-btn + .cp-btn{margin-top:8px;}
 
+  /* ===== الطقس ===== */
+  .wx-hero{padding:18px;}
+  .wx-top{display:flex; align-items:center; gap:14px;}
+  .wx-icon{width:72px; height:72px; flex:0 0 auto; color:var(--cp-gold);}
+  .wx-icon svg{width:100%; height:100%; stroke-width:1.4;}
+  .wx-temp{font-size:52px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums;}
+  .wx-desc{font-size:17px; font-weight:600; margin-top:6px;}
+  .wx-feels{font-size:13.5px; color:var(--text-dim); margin-top:2px;}
+  .wx-feels:empty{display:none;}
+  .wx-updated{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:12px; padding-top:10px; border-top:1px solid var(--line); font-size:13px; color:var(--text-dim);}
+  .wx-updated.stale{color:var(--cp-gold-ink);}
+  .wx-warning{display:none; margin-bottom:12px; padding:12px 14px; border-radius:18px; background:var(--cp-red-bg); border:1px solid #EFCFC9; color:var(--cp-red); font-size:13.5px; font-weight:600; line-height:1.7;}
+  .wx-warning.show{display:block;}
+  .wx-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .wx-tile{background:#fff; border:1px solid var(--line); border-radius:20px; padding:12px 14px; min-width:0;}
+  .wx-tile-h{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-dim);}
+  .wx-tile-h .cp-ic{width:18px; height:18px; color:var(--cp-gold-ink);}
+  .wx-tile-v{font-size:21px; font-weight:700; margin-top:4px; font-variant-numeric:tabular-nums;}
+  .wx-tile-s{font-size:12.5px; color:var(--text-dim); margin-top:1px;}
+  .wx-tile-s:empty{display:none;}
+  .wx-hours{display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scroll-snap-type:x mandatory;}
+  .wx-hour{flex:0 0 76px; scroll-snap-align:start; background:#fff; border:1px solid var(--line); border-radius:18px; padding:10px 6px; text-align:center;}
+  .wx-hour.now{border-color:var(--cp-gold); background:#FBF3E6;}
+  .wx-hour .t{font-size:12.5px; color:var(--text-dim);}
+  .wx-hour .cp-ic{width:26px; height:26px; margin:6px auto 4px; display:block; color:var(--cp-gold-ink);}
+  .wx-hour .v{font-size:17px; font-weight:700;}
+  .wx-hour .w{font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+  .wx-hour .w.strong{color:var(--cp-red); font-weight:600;}
+  .wx-unit{font-weight:500; color:var(--text-faint); font-size:12px;}
+  .wx-days{padding:4px 14px;}
+  .wx-day{display:flex; align-items:center; gap:10px; min-height:56px; border-bottom:1px solid var(--line);}
+  .wx-day:last-child{border-bottom:0;}
+  .wx-day .d{flex:0 0 72px; font-weight:600; font-size:14.5px;}
+  .wx-day .cp-ic{color:var(--cp-gold-ink);}
+  .wx-day .m{flex:1; min-width:0; font-size:12.5px; color:var(--text-dim);}
+  .wx-day .r{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .wx-day .r span{color:var(--text-faint); font-weight:500;}
+  .wx-links{padding:4px 6px;}
+  .wx-link{display:flex; align-items:center; gap:12px; width:100%; min-height:58px; padding:8px 10px; border:0; border-bottom:1px solid var(--line); background:none; color:var(--text); text-decoration:none; font-family:inherit; text-align:right; cursor:pointer;}
+  .wx-link:last-child{border-bottom:0;}
+  .wx-link > .cp-ic:first-child{color:var(--cp-gold-ink);}
+  .wx-link > span:nth-child(2){flex:1; min-width:0;}
+  .wx-link b{display:block; font-size:15px; font-weight:600;}
+  .wx-link small{display:block; font-size:12px; color:var(--text-dim); margin-top:1px;}
+  .wx-ext{width:18px; height:18px; color:var(--text-faint);}
+
   /* ===== الأماكن ===== */
   .pl-toolbar{display:flex; gap:8px; margin-bottom:10px;}
   .pl-search{position:relative; flex:1; min-width:0;}
@@ -706,23 +752,40 @@
 
     <!-- ============ WEATHER SCREEN ============ -->
     <section class="screen" id="screen-weather">
-      <div class="weather-hub-hero" aria-live="polite">
-        <div class="weather-hub-title"><span class="wi" id="weatherHubIcon">⛅</span><span id="weatherHubTitle">الطقس — بانتظار تحديد الموقع</span></div>
-        <div class="weather-hub-meta" id="weatherHubMeta">فعّل الموقع لعرض حالة الطقس والرياح في موقعك الحالي.</div>
-        <div class="weather-hub-warning" id="weatherHubWarning"></div>
-        <button class="btn btn-ghost small" id="refreshWeatherHubBtn" style="margin-top:10px;">↻ تحديث الطقس</button>
+      <div class="cp-card wx-hero" aria-live="polite">
+        <div class="wx-top">
+          <span class="wx-icon" id="wxIcon"></span>
+          <div class="wx-now">
+            <div class="wx-temp" id="wxTemp">--°</div>
+            <div class="wx-desc" id="wxDesc">بانتظار تحديد الموقع</div>
+            <div class="wx-feels" id="wxFeels"></div>
+          </div>
+        </div>
+        <div class="wx-updated">
+          <span id="wxUpdated">فعّل الموقع لعرض الطقس في مكانك</span>
+          <button class="cp-icon-btn" type="button" id="refreshWeatherHubBtn" aria-label="تحديث الطقس"><span class="cp-ic" data-ico="refresh"></span></button>
+        </div>
+      </div>
+      <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
+
+      <div id="wxData" hidden>
+        <div class="wx-grid" id="wxGrid"></div>
+        <div class="section-title">الساعات القادمة <span class="wx-unit">· الرياح والهبّات كم/س</span></div>
+        <div class="wx-hours" id="wxHours"></div>
+        <div class="section-title">الأيام القادمة</div>
+        <div class="cp-card wx-days" id="wxDays"></div>
       </div>
 
-      <div class="section-title">المصادر الرسمية والرادارات</div>
-      <div class="radar-grid">
-        <a class="radar-link wide" id="springRadarMainLink" target="_blank" rel="noopener" href="https://browser.dataspace.copernicus.eu/?zoom=9&amp;lat=27.22692&amp;lng=42.20947&amp;themeId=DEFAULT-THEME&amp;visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&amp;datasetId=S2_L2A_CDAS&amp;fromTime=2026-09-19T00%3A00%3A00.000Z&amp;toTime=2026-09-19T23%3A59%3A59.999Z&amp;layerId=2_FALSE_COLOR&amp;demSource3D=%22MAPZEN%22&amp;cloudCoverage=30&amp;dateMode=SINGLE"><span class="ri">🌱</span><span>كشف مواقع الربيع بالأقمار الصناعية</span></a>
-        <a class="radar-link wide" target="_blank" rel="noopener" href="https://apps.apple.com/sa/app/%D8%A3%D9%86%D9%88%D8%A7%D8%A1/id1612841473?l=ar"><span class="ri">🇸🇦</span><span>أنواء — الإنذارات الرسمية للأرصاد</span></a>
-        <a class="radar-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="ri">🌧️</span><span>رادار الأمطار</span></a>
-        <a class="radar-link" target="_blank" rel="noopener" href="https://www.rainviewer.com/"><span class="ri">🛰️</span><span>حركة المطر</span></a>
-        <a class="radar-link" target="_blank" rel="noopener" href="https://earth.nullschool.net/#current/wind/surface/level/orthographic=-317.21,26.74,3000/loc=42.362,27.919"><span class="ri">💨</span><span>الرياح واتجاهها</span></a>
-        <button class="radar-link" type="button" id="allRadarToolsBtn"><span class="ri">📊</span><span>النماذج الجوية</span></button>
+      <div class="section-title">أدوات خارجية</div>
+      <div class="cp-card wx-links">
+        <a class="wx-link" id="springRadarMainLink" target="_blank" rel="noopener" href="https://browser.dataspace.copernicus.eu/?zoom=9&amp;lat=27.22692&amp;lng=42.20947&amp;themeId=DEFAULT-THEME&amp;visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&amp;datasetId=S2_L2A_CDAS&amp;fromTime=2026-09-19T00%3A00%3A00.000Z&amp;toTime=2026-09-19T23%3A59%3A59.999Z&amp;layerId=2_FALSE_COLOR&amp;demSource3D=%22MAPZEN%22&amp;cloudCoverage=30&amp;dateMode=SINGLE"><span class="cp-ic" data-ico="sun"></span><span><b>كشف مواقع الربيع</b><small>صور الأقمار الصناعية</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <a class="wx-link" target="_blank" rel="noopener" href="https://apps.apple.com/sa/app/%D8%A3%D9%86%D9%88%D8%A7%D8%A1/id1612841473?l=ar"><span class="cp-ic" data-ico="sos"></span><span><b>أنواء</b><small>الإنذارات الرسمية للأرصاد</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <a class="wx-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <a class="wx-link" target="_blank" rel="noopener" href="https://www.rainviewer.com/"><span class="cp-ic" data-ico="cloud"></span><span><b>حركة المطر</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <a class="wx-link" target="_blank" rel="noopener" href="https://earth.nullschool.net/#current/wind/surface/level/orthographic=-317.21,26.74,3000/loc=42.362,27.919"><span class="cp-ic" data-ico="wind"></span><span><b>الرياح واتجاهها</b><small>خريطة حية</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <button class="wx-link" type="button" id="allRadarToolsBtn"><span class="cp-ic" data-ico="map"></span><span><b>النماذج الجوية</b><small>البريطاني والأمريكي والأسترالي والهندي</small></span><span class="cp-ic wx-ext" data-ico="more"></span></button>
       </div>
-      <div class="weather-source-note">تحتاج الخرائط الجوية إلى الإنترنت. تحذيرات السلامة الرسمية مرجعها المركز الوطني للأرصاد.</div>
+      <div class="weather-source-note">بيانات الطقس من Open-Meteo. تحذيرات السلامة الرسمية مرجعها المركز الوطني للأرصاد.</div>
     </section>
 
     <!-- ============ SETTINGS SCREEN ============ -->
@@ -2559,45 +2622,141 @@
     if(Number.isFinite(min) && min<=2) warnings.push('برودة شديدة متوقعة');
     return warnings.join(' — ');
   }
+  // آخر نشرة تُحفظ على الجهاز لتبقى متاحة في البر بلا تغطية.
+  const WX_CACHE_KEY = 'dalil_weather_cache';
+  function wxClock(str){
+    const m = String(str||'').match(/T(\d{2}):(\d{2})/);
+    if(!m) return '';
+    const h = Number(m[1]);
+    return iso((h%12||12) + ':' + m[2]) + (h < 12 ? ' ص' : ' م');
+  }
+  function wxHour(str){
+    const m = String(str||'').match(/T(\d{2})/);
+    if(!m) return '';
+    const h = Number(m[1]);
+    return iso(h%12||12) + (h < 12 ? ' ص' : ' م');
+  }
+  function dustLevel(v){
+    if(!Number.isFinite(v)) return null;
+    return v < 50 ? 'منخفض' : v < 150 ? 'متوسط' : v < 400 ? 'مرتفع' : 'شديد جدًا';
+  }
+  function wxTile(icon, label, value, sub='', extra=''){
+    return `<div class="wx-tile"><div class="wx-tile-h">${icoSpan(icon)}${label}</div><div class="wx-tile-v">${value}${extra}</div><div class="wx-tile-s">${sub}</div></div>`;
+  }
+  function renderWeather(bundle, offline){
+    const data = bundle.data || {}, current = data.current || {}, daily = data.daily || {}, hourly = data.hourly || {};
+    const code = Number(current.weather_code);
+    const temp = Number(current.temperature_2m);
+    const desc = weatherDescription(code);
+    document.getElementById('wxIcon').innerHTML = ico(WEATHER_ICON_BY_CODE(code));
+    setText('wxTemp', Number.isFinite(temp) ? iso(Math.round(temp) + '°') : iso('--°'));
+    setText('wxDesc', desc[1]);
+    const feels = Number(current.apparent_temperature);
+    setText('wxFeels', Number.isFinite(feels) ? 'الإحساس الفعلي ' + iso(Math.round(feels) + '°') : '');
+    const updated = document.getElementById('wxUpdated');
+    const clock = new Date(bundle.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    const today = new Date(bundle.at).toDateString() === new Date().toDateString();
+    updated.textContent = (offline === true ? 'بدون اتصال — ' : '') + 'آخر تحديث ' + (today ? '' : new Date(bundle.at).toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short'}) + ' ') + clock;
+    updated.parentElement.classList.toggle('stale', !!offline);
+
+    // المربعات: لا نعرض أي قيمة غير متوفرة
+    const tiles = [];
+    const max = Number(daily.temperature_2m_max?.[0]), min = Number(daily.temperature_2m_min?.[0]);
+    if(Number.isFinite(max) && Number.isFinite(min)) tiles.push(wxTile('therm', 'العظمى / الصغرى', iso(Math.round(max) + '° / ' + Math.round(min) + '°')));
+    const wind = Number(current.wind_speed_10m), gust = Number(current.wind_gusts_10m), wdir = Number(current.wind_direction_10m);
+    if(Number.isFinite(wind)){
+      const arrow = Number.isFinite(wdir) ? `<span class="cp-ic" style="width:18px;height:18px;margin-inline-start:6px;transform:rotate(${(wdir+180)%360}deg)" title="اتجاه هبوب الرياح">${ico('nav')}</span>` : '';
+      tiles.push(wxTile('wind', 'الرياح', iso(Math.round(wind)) + ' كم/س', (Number.isFinite(wdir) ? windName(wdir) : '') + (Number.isFinite(gust) ? ' · هبّات ' + iso(Math.round(gust)) : ''), arrow));
+    }
+    const rain = Number(daily.precipitation_probability_max?.[0]), hum = Number(current.relative_humidity_2m);
+    if(Number.isFinite(rain)) tiles.push(wxTile('drop', 'احتمال المطر', iso(Math.round(rain) + '%'), Number.isFinite(hum) ? 'الرطوبة ' + iso(Math.round(hum) + '%') : ''));
+    const dust = bundle.dust ? Number(bundle.dust.dust) : NaN;
+    if(dustLevel(dust)) tiles.push(wxTile('dust', 'الغبار', dustLevel(dust), iso(Math.round(dust)) + ' ميكروغرام/م³'));
+    if(daily.sunrise?.[0]) tiles.push(wxTile('sunrise', 'الشروق', wxClock(daily.sunrise[0])));
+    if(daily.sunset?.[0]) tiles.push(wxTile('sun', 'الغروب', wxClock(daily.sunset[0])));
+    document.getElementById('wxGrid').innerHTML = tiles.join('');
+
+    // الساعات القادمة (12 ساعة)
+    const times = hourly.time || [];
+    const nowKey = String(current.time || '').slice(0, 13);
+    let start = times.findIndex(t=>String(t).slice(0,13) >= nowKey);
+    if(start < 0) start = 0;
+    let hoursHtml = '';
+    for(let i=start; i<Math.min(times.length, start+12); i++){
+      const g = Number(hourly.wind_gusts_10m?.[i]), w = Number(hourly.wind_speed_10m?.[i]), t = Number(hourly.temperature_2m?.[i]);
+      const r = Number(hourly.precipitation_probability?.[i]);
+      hoursHtml += `<div class="wx-hour${i===start?' now':''}"><div class="t">${i===start?'الآن':wxHour(times[i])}</div>${icoSpan(WEATHER_ICON_BY_CODE(Number(hourly.weather_code?.[i])))}`+
+        `<div class="v">${Number.isFinite(t)?iso(Math.round(t)+'°'):''}</div>`+
+        `<div class="w${g>=40?' strong':''}">${Number.isFinite(w)?iso(Math.round(w))+(Number.isFinite(g)?'–'+iso(Math.round(g)):''):''}</div>`+
+        (r >= 20 ? `<div class="w">مطر ${iso(Math.round(r)+'%')}</div>` : '') + `</div>`;
+    }
+    document.getElementById('wxHours').innerHTML = hoursHtml;
+
+    // الأيام القادمة
+    const days = daily.time || [];
+    let daysHtml = '';
+    days.forEach((d, i)=>{
+      const name = i === 0 ? 'اليوم' : i === 1 ? 'غدًا' : new Date(d + 'T12:00:00').toLocaleDateString('ar-SA', {weekday:'long'});
+      const dm = Number(daily.temperature_2m_max?.[i]), dn = Number(daily.temperature_2m_min?.[i]);
+      const dg = Number(daily.wind_gusts_10m_max?.[i]), dr = Number(daily.precipitation_probability_max?.[i]);
+      const meta = [];
+      if(Number.isFinite(dg)) meta.push('هبّات ' + iso(Math.round(dg)) + ' كم/س');
+      if(Number.isFinite(dr) && dr >= 10) meta.push('مطر ' + iso(Math.round(dr) + '%'));
+      daysHtml += `<div class="wx-day"><div class="d">${name}</div>${icoSpan(WEATHER_ICON_BY_CODE(Number(daily.weather_code?.[i])))}<div class="m">${meta.join(' · ')}</div>`+
+        `<div class="r">${Number.isFinite(dm)?iso(Math.round(dm)+'°'):''} <span>${Number.isFinite(dn)?iso(Math.round(dn)+'°'):''}</span></div></div>`;
+    });
+    document.getElementById('wxDays').innerHTML = daysHtml;
+    document.getElementById('wxData').hidden = !(tiles.length || hoursHtml || daysHtml);
+
+    const warnings = [];
+    const baseWarning = weatherWarningText(current, daily);
+    if(baseWarning) warnings.push(baseWarning);
+    if(dust >= 150) warnings.push('غبار ' + dustLevel(dust) + '؛ الرؤية قد تنخفض، قلّل القيادة وخذ كمامة');
+    const hubWarning = document.getElementById('weatherHubWarning');
+    hubWarning.textContent = warnings.join(' — ');
+    hubWarning.classList.toggle('show', warnings.length > 0);
+
+    if(!offline || Date.now() - bundle.at < 3*3600*1000) setWeatherBadge(code, temp);
+  }
+  async function fetchDust(lat, lng){
+    try{
+      const r = await fetch('https://air-quality-api.open-meteo.com/v1/air-quality?' + new URLSearchParams({latitude:lat, longitude:lng, current:'dust,pm10', timezone:'auto'}));
+      if(!r.ok) return null;
+      return (await r.json()).current || null;
+    }catch(e){ return null; }
+  }
   async function updateWeather(force=false){
     if(!state.pos) return;
     if(!force && Date.now()-lastWeatherFetch<15*60*1000) return;
     lastWeatherFetch=Date.now();
     lastWeatherPoint={lat:state.pos.lat,lng:state.pos.lng};
-    const hubTitle=document.getElementById('weatherHubTitle');
-    const hubMeta=document.getElementById('weatherHubMeta');
-    const hubWarning=document.getElementById('weatherHubWarning');
-    hubTitle.textContent='الطقس — جارٍ التحديث…';
+    setText('wxUpdated', 'جارٍ التحديث…');
     try{
       const qs=new URLSearchParams({
         latitude:state.pos.lat, longitude:state.pos.lng,
-        current:'temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
-        daily:'temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant',
-        timezone:'auto', forecast_days:'1'
+        current:'temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m',
+        hourly:'temperature_2m,weather_code,wind_speed_10m,wind_gusts_10m,precipitation_probability',
+        daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunrise,sunset',
+        timezone:'auto', forecast_days:'4'
       });
-      const response=await fetch('https://api.open-meteo.com/v1/forecast?'+qs);
+      const [response, dust] = await Promise.all([fetch('https://api.open-meteo.com/v1/forecast?'+qs), fetchDust(state.pos.lat, state.pos.lng)]);
       if(!response.ok) throw new Error('weather '+response.status);
-      const data=await response.json(), current=data.current||{}, daily=data.daily||{};
-      const desc=weatherDescription(Number(current.weather_code));
-      const temp=Number(current.temperature_2m);
-      document.getElementById('weatherHubIcon').textContent=desc[0];
-      hubTitle.textContent='طقس اليوم: '+desc[1]+' — '+Math.round(temp)+'°';
-      const high=Math.round(Number(daily.temperature_2m_max?.[0]));
-      const low=Math.round(Number(daily.temperature_2m_min?.[0]));
-      const wind=Math.round(Number(current.wind_speed_10m)||0);
-      const dir=windName(current.wind_direction_10m);
-      const rain=Math.round(Number(daily.precipitation_probability_max?.[0])||0);
-      hubMeta.textContent='العظمى '+high+'° / الصغرى '+low+'° — الرياح '+dir+' '+wind+' كم/س — احتمال المطر '+rain+'%';
-      const warningText=weatherWarningText(current,daily);
-      hubWarning.textContent=warningText ? '⚠️ '+warningText : '';
-      hubWarning.classList.toggle('show',Boolean(warningText));
-      setWeatherBadge(Number(current.weather_code), temp);
+      const bundle = {data:await response.json(), dust, at:Date.now(), lat:state.pos.lat, lng:state.pos.lng};
+      try{ localStorage.setItem(WX_CACHE_KEY, JSON.stringify(bundle)); }catch(e){}
+      renderWeather(bundle, false);
     }catch(e){
-      hubTitle.textContent='تعذّر تحديث الطقس';
-      hubMeta.textContent='تحقق من اتصال الإنترنت ثم اضغط زر التحديث.';
-      hubWarning.classList.remove('show');
+      const cached = readStoredJson(WX_CACHE_KEY, null);
+      if(cached && cached.data) renderWeather(cached, true);
+      else{
+        setText('wxDesc', 'تعذّر تحديث الطقس');
+        setText('wxUpdated', 'تحقق من اتصال الإنترنت ثم اضغط زر التحديث');
+      }
     }
   }
+  (function showCachedWeather(){
+    const cached = readStoredJson(WX_CACHE_KEY, null);
+    if(cached && cached.data && Date.now() - cached.at < 48*3600*1000) renderWeather(cached, 'cached');
+  })();
   function maybeUpdateWeather(){
     if(!state.pos) return;
     const moved=!lastWeatherPoint || haversine(lastWeatherPoint.lat,lastWeatherPoint.lng,state.pos.lat,state.pos.lng)>10000;
