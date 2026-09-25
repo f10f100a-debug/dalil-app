@@ -87,6 +87,7 @@
       ${pushBanner()}
       <div class="chips ev-chips">${chips}</div>
       ${body}
+      ${B.adHtml ? B.adHtml('events') : ''}
       <p class="ev-note">الصور من المشتركين، تُراجع قبل نشرها وتُحذف تلقائيًا بعد 3 أيام. لا تصوّر وأنت تقود.</p>`;
     if(paneVisible()) markSeen();
   }
@@ -417,6 +418,7 @@
     show(openId){
       if(openId) st.pendingOpen = openId;
       render();
+      if(B.loadAds) B.loadAds().then(()=>{ if(paneVisible()) render(); });
       fetchEvents(false).then(()=>{
         render();
         if(st.pendingOpen){ const id = st.pendingOpen; st.pendingOpen = null; openViewer(id); }

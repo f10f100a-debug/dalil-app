@@ -753,6 +753,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .theme-chips{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px;}
   .theme-chips .chip{justify-content:center; padding:0 6px; min-height:44px;}
   .theme-note{font-size:12.5px; color:var(--text-dim); margin:2px 2px 0; line-height:1.7;}
+
+  /* ===== بطاقة الإعلان ===== */
+  .ad-card{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:12px; margin:14px 0 8px; display:grid; gap:10px;}
+  .ad-label{position:absolute; top:10px; left:10px; z-index:1; font-size:11px; font-weight:700; color:var(--text-dim); background:var(--panel-2); border:1px solid var(--line); border-radius:100px; padding:1px 9px;}
+  .ad-img{width:100%; aspect-ratio:16/9; object-fit:cover; border-radius:14px; display:block; background:var(--panel-2);}
+  .ad-txt b{display:block; font-size:15.5px; font-weight:700; padding-left:58px;}
+  .ad-img + .ad-txt b{padding-left:0;}
+  .ad-txt span{display:block; font-size:13.5px; color:var(--text-dim); margin-top:2px; line-height:1.6;}
+  .ad-go{min-height:44px;}
 </style>
 </head>
 <body class="on-compass">
@@ -1423,7 +1432,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       document.getElementById('screen-'+tab.dataset.screen).classList.add('active');
       document.body.classList.toggle('on-compass', tab.dataset.screen === 'compass');
       document.getElementById('screenTitle').textContent = SCREEN_TITLES[tab.dataset.screen] || 'دليل';
-      if(tab.dataset.screen === 'places'){ renderPlaces(); ensureBundledCatalog(); }
+      if(tab.dataset.screen === 'places'){ renderPlaces(); ensureBundledCatalog(); refreshAds(); }
       if(tab.dataset.screen === 'settings') ensureBundledCatalog();
       if(tab.dataset.screen === 'track') renderTrackHistory();
       if(tab.dataset.screen === 'weather') updateWeather();
@@ -2653,7 +2662,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`;
       return;
     }
-    list.innerHTML = items.map(placeCard).join('') + catalogHtml;
+    list.innerHTML = items.map(placeCard).join('') + catalogHtml + adHtml('places');
   }
   function placeCard(p){
     const isCar = p.id === '__car__';
@@ -3982,6 +3991,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const el = document.getElementById(id);
       if(el) setTimeout(()=>el.scrollIntoView({behavior:'smooth', block:'center'}), 60);
     },
+    adHtml: p=>adHtml(p),
+    loadAds: ()=>refreshMyRegion().then(loadAds),
     setEventsDot: on=>{
       document.querySelectorAll('.seg-dot, .tab-dot').forEach(d=>{ d.hidden = !on; });
     }
@@ -3992,7 +4003,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=2';
+      sc.src = 'events.js?v=3';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -4069,6 +4080,83 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   document.getElementById('trackMapFrame').addEventListener('load', applyTheme);
   applyTheme();
+
+
+  // ---------- المنطقة (بدون إرسال الموقع) + عدّاد الاستخدام اليومي + الإعلانات ----------
+  const DALIL_SB = 'https://penhpgvjtxytgyrhmetg.supabase.co';
+  const DALIL_KEY = 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';
+  let regionGrid = null, regionGridLoading = null;
+  function loadRegionGrid(){
+    if(regionGrid) return Promise.resolve(regionGrid);
+    if(!regionGridLoading) regionGridLoading = fetch('data/region-grid.json?v=1').then(r=>r.ok ? r.json() : null)
+      .then(g=>{ regionGrid = g; return g; }).catch(()=>{ regionGridLoading = null; return null; });
+    return regionGridLoading;
+  }
+  // يحدّد المنطقة محليًا من شبكة مصغّرة؛ الموقع نفسه لا يغادر الجوال.
+  async function regionOf(lat, lng){
+    const g = await loadRegionGrid();
+    if(!g || !Number.isFinite(lat) || !Number.isFinite(lng)) return '';
+    const i = Math.floor((lat - g.lat0) / g.r), j = Math.floor((lng - g.lng0) / g.r);
+    if(i < 0 || j < 0 || i >= g.rows || j >= g.cols) return '';
+    const c = g.g.charCodeAt(i * g.cols + j) - 97;
+    return c >= 0 && c < g.regions.length ? g.regions[c] : '';
+  }
+  const riyadhDay = ()=>new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+  function dalilPost(action, payload){
+    return fetch(DALIL_SB + '/functions/v1/dalil-public?a=' + action, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload), keepalive:true});
+  }
+  let myRegion = '';
+  async function refreshMyRegion(){ if(state.pos) myRegion = await regionOf(state.pos.lat, state.pos.lng); return myRegion; }
+  window.setTimeout(async ()=>{
+    if(navigator.onLine === false) return;
+    let last = ''; try{ last = localStorage.getItem('dalil_ping_day') || ''; }catch(e){}
+    const day = riyadhDay(); if(last === day) return;
+    await refreshMyRegion();
+    dalilPost('ping', {region:myRegion}).then(r=>{ if(r.ok) try{ localStorage.setItem('dalil_ping_day', day); }catch(e){} }).catch(()=>{});
+  }, 8000);
+
+  let adsCache = null, adsAt = 0, adsLoading = null;
+  function loadAds(){
+    if(navigator.onLine === false) return Promise.resolve(adsCache || []);
+    if(adsCache && Date.now() - adsAt < 10 * 60e3) return Promise.resolve(adsCache);
+    if(!adsLoading) adsLoading = fetch(DALIL_SB + '/rest/v1/ads?select=id,title,body,image_path,cta_label,cta_url,region,placement', {headers:{apikey:DALIL_KEY}})
+      .then(r=>r.ok ? r.json() : []).then(list=>{ adsCache = Array.isArray(list) ? list : []; adsAt = Date.now(); return adsCache; })
+      .catch(()=>adsCache || []).finally(()=>{ adsLoading = null; });
+    return adsLoading;
+  }
+  function pickAd(placement){
+    if(!adsCache || !adsCache.length) return null;
+    const list = adsCache.filter(a=>(a.placement === 'both' || a.placement === placement) && (!a.region || a.region === myRegion));
+    if(!list.length) return null;
+    const local = list.filter(a=>a.region && a.region === myRegion);
+    const pool = local.length ? local : list;
+    return pool[Math.floor(Date.now() / 60000) % pool.length];
+  }
+  const adSafeUrl = u=>/^(https:\/\/|tel:)/.test(u || '') ? u : '';
+  function adHtml(placement){
+    const a = pickAd(placement);
+    if(!a || !adSafeUrl(a.cta_url)) return '';
+    const img = a.image_path ? `<img class="ad-img" src="${escapeHtml(DALIL_SB + '/storage/v1/object/public/ads/' + a.image_path)}" alt="" loading="lazy">` : '';
+    trackAd(a.id, 'imp');
+    return `<div class="ad-card"><span class="ad-label">إعلان</span>${img}<div class="ad-txt"><b>${escapeHtml(a.title)}</b>${a.body ? `<span>${escapeHtml(a.body)}</span>` : ''}</div>
+      <button type="button" class="cp-btn cp-btn-white ad-go" data-ad-go="${escapeHtml(a.id)}">${escapeHtml(a.cta_label || 'زيارة')}</button></div>`;
+  }
+  function trackAd(id, kind){
+    const k = 'dalil_ad_' + kind, day = riyadhDay();
+    let seen = {}; try{ seen = JSON.parse(localStorage.getItem(k) || '{}'); }catch(e){}
+    if(seen[id] === day) return;
+    seen = Object.fromEntries(Object.entries(seen).filter(([, d])=>d === day)); seen[id] = day;
+    try{ localStorage.setItem(k, JSON.stringify(seen)); }catch(e){}
+    dalilPost('ad', {id, kind, region:myRegion}).catch(()=>{});
+  }
+  document.addEventListener('click', e=>{
+    const b = e.target.closest('[data-ad-go]'); if(!b) return;
+    const a = (adsCache || []).find(x=>x.id === b.dataset.adGo); if(!a) return;
+    const url = adSafeUrl(a.cta_url); if(!url) return;
+    trackAd(a.id, 'click');
+    if(url.startsWith('tel:')) window.location.href = url; else window.open(url, '_blank', 'noopener');
+  });
+  function refreshAds(){ refreshMyRegion().then(loadAds).then(list=>{ if(list.length && document.getElementById('screen-places').classList.contains('active')) renderPlaces(); }).catch(()=>{}); }
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);

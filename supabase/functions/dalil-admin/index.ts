@@ -153,6 +153,76 @@ Deno.serve(async (req) => {
       return json(req, { ok: true, push });
     }
 
+    if (action === "usage") {
+      const since = new Date(Date.now() - 30 * 86400e3).toISOString().slice(0, 10);
+      const { data, error } = await sb.from("usage_daily").select("day,region,opens").gte("day", since).order("day");
+      if (error) throw error;
+      const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10); // توقيت الرياض
+      const d7 = new Date(Date.now() + 3 * 3600e3 - 6 * 86400e3).toISOString().slice(0, 10);
+      const byDay: Record<string, number> = {}, byRegion: Record<string, number> = {};
+      let t = 0, w = 0, m = 0;
+      for (const r of data || []) {
+        byDay[r.day] = (byDay[r.day] || 0) + r.opens;
+        const k = r.region || "غير محدد";
+        byRegion[k] = (byRegion[k] || 0) + r.opens;
+        m += r.opens; if (r.day >= d7) w += r.opens; if (r.day === today) t += r.opens;
+      }
+      return json(req, { today: t, week: w, month: m, byDay, byRegion });
+    }
+
+    if (action === "ads_list") {
+      const { data: ads, error } = await sb.from("ads").select("*").order("created_at", { ascending: false }).limit(100);
+      if (error) throw error;
+      const { data: st } = await sb.from("ad_stats").select("ad_id,impressions,clicks").limit(20000);
+      const agg: Record<string, { imp: number; clk: number }> = {};
+      (st || []).forEach((r) => { const a = agg[r.ad_id] ||= { imp: 0, clk: 0 }; a.imp += r.impressions; a.clk += r.clicks; });
+      const pub = (p: string | null) => p ? sb.storage.from("ads").getPublicUrl(p).data.publicUrl : null;
+      return json(req, { ads: (ads || []).map((a) => ({ ...a, image_url: pub(a.image_path), stats: agg[a.id] || { imp: 0, clk: 0 } })), regions: REGIONS });
+    }
+
+    if (action === "ad_save") {
+      const a = body.ad || {};
+      const title = cleanText(a.title, 60), text = cleanText(a.body, 140), label = cleanText(a.cta_label, 24) || "زيارة";
+      const url = String(a.cta_url || "").trim();
+      if (!title) return json(req, { error: "title_required" }, 400);
+      if (!/^(https:\/\/[^\s<>"]{3,490}|tel:\+?[0-9]{6,15})$/.test(url)) return json(req, { error: "bad_url" }, 400);
+      const regionIn = cleanText(a.region, 40);
+      const row: Record<string, unknown> = {
+        title, body: text, cta_label: label, cta_url: url,
+        region: REGIONS.includes(regionIn) ? regionIn : "",
+        placement: ["events", "places", "both"].includes(a.placement) ? a.placement : "both",
+        active: !!a.active, advertiser: cleanText(a.advertiser, 60),
+        starts_at: new Date(a.starts_at || Date.now()).toISOString(),
+        ends_at: new Date(a.ends_at || Date.now() + 30 * 86400e3).toISOString(),
+      };
+      const editId = /^[0-9a-f-]{36}$/.test(String(a.id || "")) ? String(a.id) : null;
+      let old: { image_path: string | null } | null = null;
+      if (editId) { const r = await sb.from("ads").select("image_path").eq("id", editId).maybeSingle(); old = r.data; if (!old) return json(req, { error: "not_found" }, 404); }
+      const id = editId || crypto.randomUUID();
+      if (typeof body.image_b64 === "string" && body.image_b64) {
+        const bytes = b64uDecode(body.image_b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
+        if (bytes.length > 500 * 1024 || !(bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)) return json(req, { error: "bad_image" }, 415);
+        const path = `${id}-${Date.now()}.jpg`;
+        const up = await sb.storage.from("ads").upload(path, bytes, { contentType: "image/jpeg", cacheControl: "86400" });
+        if (up.error) throw up.error;
+        row.image_path = path;
+        if (old?.image_path) await sb.storage.from("ads").remove([old.image_path]);
+      } else if (body.remove_image) {
+        row.image_path = null;
+        if (old?.image_path) await sb.storage.from("ads").remove([old.image_path]);
+      }
+      const res = editId ? await sb.from("ads").update(row).eq("id", id) : await sb.from("ads").insert({ id, ...row });
+      if (res.error) throw res.error;
+      return json(req, { ok: true, id });
+    }
+
+    if (action === "ad_delete" && validId) {
+      const { data: ad } = await sb.from("ads").select("image_path").eq("id", id).maybeSingle();
+      if (ad?.image_path) await sb.storage.from("ads").remove([ad.image_path]);
+      await sb.from("ads").delete().eq("id", id);
+      return json(req, { ok: true });
+    }
+
     if (action === "ping") return json(req, { ok: true });
     return json(req, { error: "unknown_action" }, 400);
   } catch (e) {
