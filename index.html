@@ -956,7 +956,9 @@
         <button class="btn btn-ghost" id="cancelPasteBtn">إلغاء</button>
         <button class="btn btn-primary" id="tryPasteFromClipboard">لصق من الحافظة</button>
       </div>
-      <button class="btn btn-sage" style="margin-top:8px; display:none;" id="confirmPasteBtn">حفظ والتوجّه إليها</button>
+      <button class="btn btn-ghost" style="margin-top:8px; display:none;" id="confirmPasteBtn">حفظ باسم ثم التوجّه إليها</button>
+      <button class="btn btn-primary" style="margin-top:8px; display:none;" id="goNowPasteBtn"><span class="cp-ic" data-ico="nav"></span>التوجّه فورًا بالبوصلة</button>
+      <div id="goNowPasteHint" style="display:none; margin-top:6px; font-size:12px; color:var(--text-faint); text-align:center;"></div>
     </div>
   </div>
 
@@ -2231,7 +2233,9 @@
     toast('تمت تعبئة الإحداثية');
   });
 
+  let navigateAfterSave = false;
   function openSaveSheet(lat, lng){
+    navigateAfterSave = false;
     document.getElementById('placeNameInput').value = '';
     document.querySelectorAll('.coord-part').forEach(el=>el.value='');
     document.getElementById('coordPasteText').value = '';
@@ -2272,10 +2276,16 @@
       createdAt: Date.now()
     };
     state.places.unshift(place);
-    save();
+    if(!save()){ state.places.shift(); return; }
     document.getElementById('saveOverlay').classList.remove('show');
-    toast('تم حفظ «'+name+'»');
     renderPlaces();
+    if(navigateAfterSave){
+      navigateAfterSave = false;
+      navigateToPlace(place);
+      toast('تم حفظ «'+name+'» — جارٍ التوجّه إليه');
+    }else{
+      toast('تم حفظ «'+name+'»');
+    }
   });
   document.getElementById('addPlaceBtn').addEventListener('click', ()=>{
     openSaveSheet(state.pos ? state.pos.lat : null, state.pos ? state.pos.lng : null);
@@ -2830,7 +2840,7 @@
   document.getElementById('pasteBtn').addEventListener('click', ()=>{
     document.getElementById('pasteText').value = '';
     document.getElementById('pasteResult').textContent = '';
-    document.getElementById('confirmPasteBtn').style.display = 'none';
+    setPasteDetected(false);
     state.pasteParsed = null;
     document.getElementById('pasteOverlay').classList.add('show');
   });
@@ -2850,14 +2860,13 @@
 
   function parsePastedText(text){
     const resultEl = document.getElementById('pasteResult');
-    const confirmBtn = document.getElementById('confirmPasteBtn');
-    if(!text || !text.trim()){ resultEl.textContent=''; confirmBtn.style.display='none'; return; }
+    if(!text || !text.trim()){ resultEl.textContent=''; setPasteDetected(false); return; }
 
     const parsed = parseCoordsFromText(text);
     if(parsed){
       state.pasteParsed = parsed;
-      resultEl.innerHTML = `✅ تم اكتشاف موقع: <b style="color:var(--sand)">${formatCoords(parsed.lat,parsed.lng,state.coordFmt)}</b>`;
-      confirmBtn.style.display = 'flex';
+      resultEl.innerHTML = `✅ تم اكتشاف موقع: <bdi dir="ltr" style="color:var(--sand-dim); font-weight:700">${escapeHtml(formatCoords(parsed.lat,parsed.lng,state.coordFmt))}</bdi>`;
+      setPasteDetected(true);
       return;
     }
     if(/maps\.app\.goo\.gl|goo\.gl\/maps/.test(text)){
@@ -2865,14 +2874,52 @@
     } else {
       resultEl.innerHTML = `لم يتم العثور على إحداثيات صالحة بعد.`;
     }
-    confirmBtn.style.display = 'none';
+    setPasteDetected(false);
     state.pasteParsed = null;
+  }
+  // بعد اكتشاف موقع يصبح «التوجّه فورًا» هو الزر الأساسي.
+  function setPasteDetected(found){
+    document.getElementById('confirmPasteBtn').style.display = found ? 'flex' : 'none';
+    document.getElementById('goNowPasteBtn').style.display = found ? 'flex' : 'none';
+    const hint = document.getElementById('goNowPasteHint');
+    hint.style.display = found ? 'block' : 'none';
+    if(found) hint.textContent = 'يُحفظ في أماكنك باسم «' + nextPastedName() + '» ويمكنك تغييره لاحقًا';
+    const clip = document.getElementById('tryPasteFromClipboard');
+    clip.classList.toggle('btn-primary', !found);
+    clip.classList.toggle('btn-ghost', found);
+  }
+  function nextPastedName(){
+    let max = 0;
+    state.places.forEach(p=>{ const m = /^موقع (\d+)$/.exec(String(p.name||'').trim()); if(m) max = Math.max(max, Number(m[1])); });
+    return 'موقع ' + (max + 1);
+  }
+  function navigateToPlace(place){
+    if(state.retracing) stopRetrace();
+    setNavTarget(place);
+    showCompassTab();
+    renderCompassScreen();
   }
   document.getElementById('confirmPasteBtn').addEventListener('click', ()=>{
     if(!state.pasteParsed) return;
     document.getElementById('pasteOverlay').classList.remove('show');
     openSaveSheet(state.pasteParsed.lat, state.pasteParsed.lng);
-    toast('راجع الاسم ثم احفظ للتوجّه إليها');
+    navigateAfterSave = true;
+    toast('اكتب الاسم ثم اضغط «حفظ» ليبدأ التوجيه');
+  });
+  document.getElementById('goNowPasteBtn').addEventListener('click', ()=>{
+    if(!state.pasteParsed) return;
+    const place = {
+      id: Date.now().toString(36),
+      name: nextPastedName(), icon: '📍', cat: 'other',
+      lat: state.pasteParsed.lat, lng: state.pasteParsed.lng,
+      alt: null, createdAt: Date.now()
+    };
+    state.places.unshift(place);
+    if(!save()){ state.places.shift(); return; }
+    document.getElementById('pasteOverlay').classList.remove('show');
+    renderPlaces();
+    navigateToPlace(place);
+    toast('تم حفظ «' + place.name + '» — جارٍ التوجّه إليه');
   });
 
   // ---------- daily weather ----------
