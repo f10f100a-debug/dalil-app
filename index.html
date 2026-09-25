@@ -484,6 +484,10 @@
   .sheet{border-radius:24px 24px 0 0;}
   .sheet h3{font-weight:700;}
   #screen-settings .perm-list{max-width:none;}
+  /* الخريطة تملأ المساحة المتاحة بين العنوان وزر أدوات المسار */
+  .track-svg-wrap{padding:6px;}
+  #screen-track .track-tools-toggle{position:static; box-shadow:none;}
+  #screen-track .track-map-frame{height:calc(100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height:320px; border-radius:16px;}
   .perm-item{min-height:52px; font-size:14px;}
   /* modal */
   .overlay{
@@ -653,11 +657,11 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260921-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
-      <button class="btn btn-primary track-tools-toggle" id="trackToolsToggle" aria-expanded="false">⌃ تسجيل المسار وأدواته</button>
+      <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false">⌃ تسجيل المسار وأدواته</button>
       <div class="track-tools-panel" id="trackToolsPanel">
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-top:12px;">
         <div class="stat"><div class="v" id="trkDist">0.0</div><div class="l">كم</div></div>
@@ -2196,7 +2200,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260921-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-1&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
