@@ -511,7 +511,6 @@
   .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
   .pl-section{font-size:13.5px; font-weight:700; color:var(--text-dim); margin:16px 2px 8px;}
   .pl-section small{font-weight:500; color:var(--text-faint);}
-  .pl-source{font-size:11.5px; color:var(--text-faint); text-align:center; margin:6px 0 4px;}
   .pl-ic.cat{background:#FBF3E6; color:var(--cp-gold-ink);}
   .pl-note{font-size:13px; color:var(--text-dim); background:#fff; border:1px dashed #CDBFA8; border-radius:16px; padding:12px 14px; margin-top:12px; line-height:1.7;}
   .pl-sheet-coords{font-size:14px; color:var(--text-dim); text-align:right; margin:-6px 0 12px; font-variant-numeric:tabular-nums;}
@@ -732,7 +731,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-9" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-10" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -848,7 +847,6 @@
       <div class="banner">
         يتضمن التطبيق مواقع «خرائط البر» (أكثر من 32 ألف موقع في 13 منطقة) للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك إضافة ملفات <b>KML</b> أو <b>KMZ</b> أخرى.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);"></div>
-        <div style="margin-top:4px; font-size:11.5px; color:var(--text-faint);">المصدر: «خرائط البر» — sites.google.com/view/desertmaps</div>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملفات KML / KMZ</button>
@@ -2411,7 +2409,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-9&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-10&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -2451,7 +2449,7 @@
     if(q) ensureBundledCatalog();
     const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
     const catalogHtml = found && found.items && found.items.length
-      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('') + `<div class="pl-source">المصدر: «خرائط البر» — sites.google.com/view/desertmaps</div>`
+      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
       : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تعذّر تحميل مواقع خرائط البر — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
     if(items.length === 0 && catalogHtml){
       setText('placesCount', '');
@@ -2644,7 +2642,7 @@
   function ensureBundledCatalog(){
     if(bundledCatalog) return Promise.resolve();
     if(bundledLoading) return bundledLoading;
-    bundledLoading = fetch('data/desert-places.json?v=1')
+    bundledLoading = fetch('data/desert-places.json?v=2')
       .then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
       .then(d=>{ if(d && Array.isArray(d.p)){ bundledCatalog = d; rebuildCatalog(); } })
       .catch(()=>{ bundledLoading = null; updateCatalogStatus(); });
