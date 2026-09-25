@@ -323,26 +323,33 @@
   .cp-compass-card{padding:14px 12px 12px;}
   .cp-compass{position:relative; width:min(100%, 300px, 44dvh); aspect-ratio:1; margin:0 auto; min-width:220px;}
   .cp-compass svg{width:100%; height:100%; display:block; overflow:visible;}
+  .cp-layer, .cp-rot, .cp-letters{position:absolute; inset:0; pointer-events:none;}
+  .cp-rot{transform-origin:50% 50%; will-change:transform;}
+  .cp-letters{--u:1px;}
+  .cp-l{position:absolute; left:0; top:0; width:calc(30 * var(--u)); height:calc(30 * var(--u)); margin:calc(-15 * var(--u)) 0 0 calc(-15 * var(--u)); display:grid; place-items:center; font-size:calc(19 * var(--u)); font-weight:700; line-height:1; color:var(--cp-dim); will-change:transform;}
+  .cp-l.north{color:#C0392B;}
+  .cp-qibla{position:absolute; left:0; top:0; width:calc(17 * var(--u)); height:calc(17 * var(--u)); margin:calc(-8.5 * var(--u)) 0 0 calc(-8.5 * var(--u)); will-change:transform; border-radius:4px;}
+  .cp-qibla[hidden]{display:none;}
+  .cp-qibla.on{box-shadow:0 0 0 2.5px #2F7A4B, 0 0 10px 2px rgba(47,122,75,.75);}
   .cp-face{fill:#FFFDF9; stroke:var(--cp-line); stroke-width:1.5;}
   .cp-inner{fill:none; stroke:#EFEAE1; stroke-width:1;}
   .cp-tick{stroke:#CFC7BA; stroke-width:1.2;}
   .cp-tick.major{stroke:#A79E90; stroke-width:1.8;}
-  .cp-letter{font-family:"IBM Plex Sans Arabic", system-ui, sans-serif; font-size:19px; font-weight:700; fill:var(--cp-dim);}
-  .cp-letter.north{fill:#C0392B;}
   .cp-index{fill:var(--cp-ink);}
-  .cp-arrow path{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:2.2; stroke-linejoin:round; paint-order:stroke; filter:drop-shadow(0 1px 2px rgba(28,26,23,.35)); transition:fill .2s, opacity .3s;}
-  .cp-compass.aligned .cp-arrow path{fill:var(--cp-gold-ink); stroke:#3A2408; filter:drop-shadow(0 0 7px rgba(201,150,79,1));}
+  .cp-arrow path{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:2.2; stroke-linejoin:round; paint-order:stroke;}
+  .cp-compass.aligned .cp-arrow path{fill:var(--cp-gold-ink); stroke:#F2C27A; stroke-width:2.6;}
+  #targetArrow{transition:opacity .3s;}
   .cp-glow{fill:none; stroke:var(--cp-gold); stroke-width:3; opacity:0;}
   .cp-compass.aligned .cp-glow{animation:cpGlow 1.4s ease-in-out infinite;}
   @keyframes cpGlow{0%,100%{opacity:.15} 50%{opacity:.7}}
-  .cp-compass.near .cp-arrow{opacity:.35;}
+  .cp-compass.near #targetArrow{opacity:.35;}
   .cp-near-ring{fill:none; stroke:var(--cp-gold); stroke-width:2; stroke-dasharray:3 6; stroke-linecap:round; display:none; transform-origin:150px 150px; animation:cpSpin 14s linear infinite;}
   .cp-compass.near .cp-near-ring{display:block;}
   @keyframes cpSpin{to{transform:rotate(360deg)}}
   .cp-car-dot{fill:var(--cp-gold); stroke:#5C3A0E; stroke-width:1.6; stroke-linejoin:round;}
   .cp-qibla .cube{fill:#1C1A17; stroke:#FFFDF9; stroke-width:1.6;}
   .cp-qibla .band{fill:#C9964F;}
-  .cp-qibla.on .cube{stroke:#2F7A4B; stroke-width:2.6; filter:drop-shadow(0 0 5px rgba(47,122,75,.9));}
+
   .cp-center{
     position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     width:48%; text-align:center; pointer-events:none;
@@ -642,17 +649,18 @@
 
       <div class="cp-card cp-compass-card">
         <div class="cp-compass" id="cpCompass">
-          <svg viewBox="-14 -14 328 328" id="compassSvg" aria-hidden="true">
+          <!-- كل جزء متحرك طبقة مستقلة تُدوَّر بـ CSS فتتولاها وحدة الرسومات دون إعادة رسم -->
+          <svg class="cp-layer" viewBox="-14 -14 328 328" aria-hidden="true">
             <circle class="cp-glow" cx="150" cy="150" r="140"/>
             <circle class="cp-face" cx="150" cy="150" r="136"/>
             <circle class="cp-inner" cx="150" cy="150" r="86"/>
-            <g id="dial"></g>
-            <g id="dialLetters"></g>
-            <g id="dialMarks"></g>
             <circle class="cp-near-ring" cx="150" cy="150" r="80"/>
-            <g id="targetArrow" class="cp-arrow" style="display:none"><path d="M150 2 L168 40 L150 31 L132 40 Z"/></g>
-            <path class="cp-index" d="M140 -14 L160 -14 L150 -1 Z"/>
           </svg>
+          <div class="cp-rot" id="cpDialRot"><svg class="cp-layer" viewBox="-14 -14 328 328" aria-hidden="true"><g id="dial"></g><g id="dialMarks"></g></svg></div>
+          <div class="cp-letters" id="cpLetters" aria-hidden="true"></div>
+          <div class="cp-qibla" id="qiblaMark" hidden title="القبلة"><svg viewBox="-9 -9 18 18"><rect class="cube" x="-8" y="-8" width="16" height="16" rx="2.5"/><rect class="band" x="-8" y="-3.8" width="16" height="3"/></svg></div>
+          <div class="cp-rot" id="targetArrow" style="display:none"><svg class="cp-layer cp-arrow" viewBox="-14 -14 328 328" aria-hidden="true"><path d="M150 2 L168 40 L150 31 L132 40 Z"/></svg></div>
+          <svg class="cp-layer" viewBox="-14 -14 328 328" aria-hidden="true"><path class="cp-index" d="M140 -14 L160 -14 L150 -1 Z"/></svg>
           <div class="cp-center" aria-live="polite">
             <div class="cp-c-label" id="cpCLabel"></div>
             <div class="cp-c-main" id="cpCMain" dir="ltr">--°</div>
@@ -712,7 +720,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1103,6 +1111,21 @@
   let lastPositionAt = 0;
   let lastHeadingAt = 0;
   let lastPositionError = '';
+  // أداة قياس على الجهاز: أضف ?debug=1 إلى الرابط لعرضها.
+  const perfStats = {ori:0, draws:0, drawMs:0, gps:0};
+  if(new URLSearchParams(location.search).get('debug') === '1'){
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 56px);z-index:90;background:rgba(28,26,23,.88);color:#F2EFE9;font:600 11.5px/1.6 ui-monospace,monospace;padding:8px 10px;border-radius:12px;direction:ltr;pointer-events:none;white-space:pre-wrap';
+    document.body.appendChild(box);
+    setInterval(()=>{
+      const kmh = state.pos && Number.isFinite(state.pos.speed) ? (state.pos.speed*3.6).toFixed(0) : '-';
+      const avg = perfStats.draws ? (perfStats.drawMs/perfStats.draws).toFixed(2) : '-';
+      box.textContent = `compass events/s: ${perfStats.ori}   draws/s: ${perfStats.draws}   draw avg: ${avg} ms\n` +
+        `gps fixes/s: ${perfStats.gps}   speed: ${kmh} km/h   gps course: ${state.pos && state.pos.courseRaw != null ? Math.round(state.pos.courseRaw) : '-'}\n` +
+        `source: ${state.headingSource || '-'}   heading: ${state.heading != null ? Math.round(state.heading) : '-'}   raw: ${lastCompassRaw != null ? Math.round(lastCompassRaw) : '-'}   offset: ${gpsOffset != null ? Math.round(gpsOffset) : '-'}`;
+      perfStats.ori = perfStats.draws = perfStats.gps = 0; perfStats.drawMs = 0;
+    }, 1000);
+  }
   const GPS_COURSE_MIN_KMH = 5;
   let gpsCourseAt = 0;
   // دمج المصدرين أثناء القيادة: GPS مرجع الاتجاه الصحيح (مرة كل ثانية تقريبًا)،
@@ -1152,8 +1175,8 @@
     if(previous === null) return next;
     const delta = ((next - previous + 540) % 360) - 180;
     const distance = Math.abs(delta);
-    if(distance < .6) return previous;
-    const factor = distance >= 45 ? .92 : distance >= 15 ? .78 : .62;
+    if(distance < .3) return previous;
+    const factor = distance >= 30 ? .95 : distance >= 8 ? .85 : .7;
     return (previous + delta * factor + 360) % 360;
   }
 
@@ -1497,12 +1520,14 @@
   }
 
   function onPosition(p){
+    perfStats.gps++;
     lastPositionAt=Date.now();
     lastPositionError='';
     document.getElementById('permLoc').textContent = '✅ مفعّل';
     state.pos = {
       lat: p.coords.latitude, lng: p.coords.longitude,
-      alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy
+      alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy,
+      courseRaw: Number.isFinite(p.coords.heading) ? p.coords.heading : null
     };
     // اتجاه الحركة من GPS: فوق 5 كم/س يُقدَّم على المستشعر المغناطيسي لأنه
     // يتشوش قرب هيكل السيارة المعدني. وتحت ذلك يبقى بديلًا فقط عند غياب المستشعر.
@@ -1572,6 +1597,7 @@
       if(h !== null){
         gotEvent = true;
         const raw = norm360(h);
+        perfStats.ori++;
         lastCompassRaw = raw; lastCompassAt = Date.now();
         lastHeadingAt = Date.now();
         if(gpsCourseActive()){
@@ -1768,18 +1794,25 @@
       svg += `<line class="cp-tick${major?' major':''}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"/>`;
     }
     dialEl.innerHTML = svg;
-    const group = document.getElementById('dialLetters');
+    const group = document.getElementById('cpLetters');
     [['ش',0],['ق',90],['ج',180],['غ',270]].forEach(([label, angle])=>{
-      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      t.setAttribute('class', 'cp-letter' + (angle === 0 ? ' north' : ''));
-      t.setAttribute('text-anchor', 'middle');
-      t.setAttribute('dominant-baseline', 'central');
+      const t = document.createElement('span');
+      t.className = 'cp-l' + (angle === 0 ? ' north' : '');
       t.textContent = label;
       group.appendChild(t);
       letterEls.push({el:t, angle});
     });
   }
   buildDial();
+  // مقياس البكسل لوحدات الرسم (القرص 328 وحدة) لتحديد مواضع الحروف والكعبة بـ CSS
+  let dialPx = 0;
+  function measureDial(){ dialPx = compassEl.clientWidth || 300; document.getElementById('cpLetters').style.setProperty('--u', (dialPx/328).toFixed(4) + 'px'); compassEl.style.setProperty('--u', (dialPx/328).toFixed(4) + 'px'); }
+  measureDial();
+  if('ResizeObserver' in window) new ResizeObserver(()=>{ measureDial(); renderCompassScreen(); }).observe(compassEl);
+  // موضع على القرص بالبكسل (زاوية من الشمال، ونصف قطر بوحدات الرسم)
+  function dialPoint(angleDeg, r){ const a = toRad(angleDeg), k = dialPx/328; return [dialPx/2 + r*k*Math.sin(a), dialPx/2 - r*k*Math.cos(a)]; }
+  const dialRotEl = document.getElementById('cpDialRot');
+  const qiblaEl = document.getElementById('qiblaMark');
 
   function updateGpsBadge(){
     const dots = [document.getElementById('cpGpsDot'), document.getElementById('gpsDot')];
@@ -1848,6 +1881,11 @@
   }
 
   function drawCompassScreen(){
+    const drawStart = performance.now();
+    perfStats.draws++;
+    try{ drawCompassScreenInner(); } finally { perfStats.drawMs += performance.now() - drawStart; }
+  }
+  function drawCompassScreenInner(){
     const pos = state.pos;
     const haveHeading = state.heading !== null && state.heading !== undefined;
     const heading = haveHeading ? state.heading : 0;
@@ -1872,11 +1910,10 @@
     updateGpsBadge();
 
     // القرص يدور والأحرف تبقى معتدلة
-    dialEl.setAttribute('transform', `rotate(${(-heading).toFixed(1)} ${C} ${C})`);
+    dialRotEl.style.transform = `rotate(${(-heading).toFixed(1)}deg)`;
     letterEls.forEach(({el, angle})=>{
-      const [x,y] = polar(angle - heading, 98);
-      el.setAttribute('x', x.toFixed(1));
-      el.setAttribute('y', y.toFixed(1));
+      const [x,y] = dialPoint(angle - heading, 98);
+      el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
     });
 
     // علامات الحافة (القبلة والسيارة) تُرسم مرة داخل مجموعة تدور مع القرص؛
@@ -1885,8 +1922,6 @@
     let marks = '', qb = null;
     if(pos){
       qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
-      const [qx,qy] = polar(qb, 126);
-      marks += `<g class="cp-qibla" id="qiblaMark" transform="translate(${qx.toFixed(1)} ${qy.toFixed(1)})"><title>القبلة</title><g id="qiblaInner"><rect class="cube" x="-8" y="-8" width="16" height="16" rx="2.5"/><rect class="band" x="-8" y="-3.8" width="16" height="3"/></g></g>`;
       if(car && !isCarTarget(t)){
         // سهم صغير على الحافة باتجاه السيارة (أصغر من سهم التوجيه).
         const cb = bearing(pos.lat, pos.lng, car.lat, car.lng);
@@ -1894,12 +1929,14 @@
       }
     }
     if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
-    dialMarksEl.setAttribute('transform', `rotate(${(-heading).toFixed(1)} ${C} ${C})`);
-    const qiblaMark = marks ? document.getElementById('qiblaMark') : null;
-    if(qiblaMark){
-      // الكعبة تبقى معتدلة، وتتوهّج عند مواجهة القبلة (±5°).
-      document.getElementById('qiblaInner').setAttribute('transform', `rotate(${heading.toFixed(1)})`);
-      qiblaMark.classList.toggle('on', haveHeading && Math.abs(((qb - heading + 540) % 360) - 180) <= 5);
+    // الكعبة: عنصر مستقل يتحرك على حلقة القرص ويبقى معتدلًا، ويتوهّج عند مواجهة القبلة (±5°).
+    if(qb === null){ if(!qiblaEl.hidden) qiblaEl.hidden = true; }
+    else{
+      if(qiblaEl.hidden) qiblaEl.hidden = false;
+      const [qx,qy] = dialPoint(qb - heading, 126);
+      qiblaEl.style.transform = `translate(${qx.toFixed(1)}px,${qy.toFixed(1)}px)`;
+      const on = haveHeading && Math.abs(((qb - heading + 540) % 360) - 180) <= 5;
+      if(qiblaEl.classList.contains('on') !== on) qiblaEl.classList.toggle('on', on);
     }
 
     // سهم الهدف والوسط
@@ -1912,15 +1949,15 @@
       };
       near = !!state.nearLatched;
       const rel = haveHeading ? (nav.brg - heading + 360) % 360 : nav.brg;
-      targetArrowEl.style.display = 'block';
-      targetArrowEl.setAttribute('transform', `rotate(${rel.toFixed(1)} ${C} ${C})`);
+      if(targetArrowEl.style.display !== 'block') targetArrowEl.style.display = 'block';
+      targetArrowEl.style.transform = `rotate(${rel.toFixed(1)}deg)`;
       const diff = Math.abs(((nav.brg - heading + 540) % 360) - 180);
       aligned = haveHeading && !near && diff <= 10;
-    }else{
+    }else if(targetArrowEl.style.display !== 'none'){
       targetArrowEl.style.display = 'none';
     }
-    compassEl.classList.toggle('aligned', aligned);
-    compassEl.classList.toggle('near', near);
+    if(compassEl.classList.contains('aligned') !== aligned) compassEl.classList.toggle('aligned', aligned);
+    if(compassEl.classList.contains('near') !== near) compassEl.classList.toggle('near', near);
     if(aligned && !lastAligned && navigator.vibrate) navigator.vibrate(25);
     lastAligned = aligned;
 
@@ -2346,7 +2383,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-5&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-6&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
