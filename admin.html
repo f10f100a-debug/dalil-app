@@ -45,6 +45,10 @@
   .big.show{display:flex;}
   .big img{max-width:100%; max-height:100%;}
   [hidden]{display:none !important;}
+  .perm{display:inline-flex; align-items:center; gap:6px; margin:4px 0 4px 12px; font-size:14px;}
+  .perm input{width:20px; min-height:20px; height:20px; accent-color:var(--gold);}
+  .log-row{display:flex; gap:8px; font-size:13px; padding:6px 0; border-bottom:1px solid var(--line);}
+  .log-row:last-child{border-bottom:0;} .log-row time{color:var(--dim); white-space:nowrap;}
   .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center;}
   .kpis b{display:block; font-size:26px; line-height:1.2;} .kpis span{font-size:12.5px; color:var(--dim);}
   .bars{display:flex; align-items:flex-end; gap:2px; height:70px; margin-top:12px; direction:ltr;}
@@ -62,19 +66,34 @@
   <h1>لوحة إدارة دليل</h1>
 
   <section id="login" class="card">
-    <label for="pass">كلمة سر الإدارة</label>
+    <label for="user">اسم المستخدم</label>
+    <input id="user" autocomplete="username" dir="ltr" autocapitalize="none" spellcheck="false" placeholder="admin">
+    <label for="pass">كلمة السر</label>
     <input id="pass" type="password" autocomplete="current-password" dir="ltr">
     <div class="row" style="margin-top:10px"><button class="gold" id="loginBtn">دخول</button></div>
     <div class="msg" id="loginMsg"></div>
   </section>
 
   <section id="app" hidden>
-    <div class="row">
-      <div class="stats" id="stats"></div>
+    <div class="row" style="margin-bottom:8px">
+      <div id="hello" style="font-weight:700"></div>
       <button class="white" id="refresh" style="flex:0 0 auto">تحديث</button>
+      <button class="white" id="pwBtn" style="flex:0 0 auto">كلمة السر</button>
       <button class="white" id="logout" style="flex:0 0 auto">خروج</button>
     </div>
+    <div class="stats" id="stats"></div>
 
+    <div class="card" id="pwCard" hidden style="margin-top:10px">
+      <b>تغيير كلمة السر</b>
+      <label for="pwNew">كلمة السر الجديدة (10 أحرف على الأقل)</label>
+      <input id="pwNew" type="password" autocomplete="new-password" dir="ltr">
+      <label for="pwNew2">أعد كتابتها</label>
+      <input id="pwNew2" type="password" autocomplete="new-password" dir="ltr">
+      <div class="row" style="margin-top:10px"><button class="gold" id="pwSave">حفظ كلمة السر</button><button class="white" id="pwCancel">إلغاء</button></div>
+      <div class="msg" id="pwMsg"></div>
+    </div>
+
+    <div data-perm="usage">
     <h2>الاستخدام <span class="muted" style="font-weight:400">· فتح التطبيق مرة يوميًا لكل جهاز، بلا أي بيانات شخصية</span></h2>
     <div class="card">
       <div class="kpis"><div><b id="uToday">–</b><span>اليوم</span></div><div><b id="uWeek">–</b><span>آخر 7 أيام</span></div><div><b id="uMonth">–</b><span>آخر 30 يومًا</span></div></div>
@@ -82,6 +101,8 @@
       <div class="stats" id="uRegions" style="margin-top:10px"></div>
     </div>
 
+    </div>
+    <div data-perm="publish">
     <h2>نشر صورة مباشرة <span class="muted" style="font-weight:400">· تظهر فورًا في «الأحداث» بدون مراجعة</span></h2>
     <div class="card">
       <label for="pubFile">الصورة</label>
@@ -100,15 +121,19 @@
       <div class="muted" id="pubLocNote" style="font-size:12.5px;margin-top:4px"></div>
       <div class="grid2">
         <div><label for="pubDays">مدة البقاء</label><select id="pubDays"><option value="1">يوم</option><option value="3" selected>3 أيام</option><option value="7">أسبوع</option><option value="14">أسبوعان</option></select></div>
-        <div style="align-self:end"><label class="chk"><input type="checkbox" id="pubNotify" checked> إرسال تنبيه للمنطقة</label></div>
+        <div style="align-self:end" data-perm="push"><label class="chk"><input type="checkbox" id="pubNotify" checked> إرسال تنبيه للمنطقة</label></div>
       </div>
       <div class="row" style="margin-top:10px"><button class="gold" id="pubSend" disabled>نشر الآن</button></div>
       <div class="msg" id="pubMsg"></div>
     </div>
 
+    </div>
+    <div data-perm="moderate">
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
     <div id="pending"></div>
 
+    </div>
+    <div data-perm="push">
     <h2>إرسال تنبيه لكل المشتركين</h2>
     <div class="card">
       <label for="pTitle">العنوان</label>
@@ -121,9 +146,13 @@
       <div class="msg" id="pMsg"></div>
     </div>
 
+    </div>
+    <div data-perm="moderate">
     <h2>المنشور الآن <span class="badge" id="liveCount">0</span></h2>
     <div id="live"></div>
 
+    </div>
+    <div data-perm="ads">
     <h2>الإعلانات <span class="muted" style="font-weight:400">· تظهر في «الأحداث» وأسفل «الأماكن»، ولا تظهر في البوصلة</span></h2>
     <div class="row" style="margin-bottom:10px"><button class="gold" id="adNew" style="flex:0 0 auto">+ إعلان جديد</button></div>
     <div class="card" id="adForm" hidden>
@@ -150,6 +179,29 @@
       <div class="msg" id="adMsg"></div>
     </div>
     <div id="adList"></div>
+    </div>
+
+    <div data-perm="owner">
+    <h2>المشرفون <span class="muted" style="font-weight:400">· لكل مشرف اسم مستخدم وكلمة سر وصلاحيات</span></h2>
+    <div class="row" style="margin-bottom:10px"><button class="gold" id="mNew" style="flex:0 0 auto">+ مشرف جديد</button></div>
+    <div class="card" id="mForm" hidden>
+      <div class="grid2">
+        <div><label for="mUser">اسم المستخدم (إنجليزي)</label><input id="mUser" dir="ltr" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="fahad_hail"></div>
+        <div><label for="mName">الاسم</label><input id="mName" maxlength="40" placeholder="أبو فهد"></div>
+      </div>
+      <label>الصلاحيات</label>
+      <div id="mPerms"></div>
+      <label for="mPass" id="mPassLabel">كلمة السر (10 أحرف على الأقل)</label>
+      <input id="mPass" type="password" autocomplete="new-password" dir="ltr">
+      <label class="chk" id="mActiveRow"><input type="checkbox" id="mActive" checked> الحساب مفعّل</label>
+      <div class="row" style="margin-top:10px"><button class="gold" id="mSave">حفظ</button><button class="white" id="mCancel">إلغاء</button></div>
+      <div class="msg" id="mMsg"></div>
+    </div>
+    <div id="mList"></div>
+
+    <h2>سجل العمليات <span class="muted" style="font-weight:400">· آخر 100 عملية</span></h2>
+    <div class="card" id="logList"><span class="muted">—</span></div>
+    </div>
   </section>
 </main>
 <div class="big" id="big"><img alt=""></div>
@@ -162,15 +214,27 @@
   const $ = id=>document.getElementById(id);
   const esc = s=>String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeUrl = u=>/^https:\/\/penhpgvjtxytgyrhmetg\.supabase\.co\//.test(u || '') ? u : '';
-  let pass = '';
-  try{ pass = sessionStorage.getItem('dalil_admin') || ''; }catch(e){}
+  let pass = '', user = '', me = null;
+  try{ const s = JSON.parse(sessionStorage.getItem('dalil_admin2') || 'null'); if(s){ user = s.user; pass = s.pass; } }catch(e){}
+  try{ sessionStorage.removeItem('dalil_admin'); }catch(e){}
+  const PERM_AR = {moderate:'مراجعة الصور وحذفها', publish:'نشر صور مباشرة', push:'إرسال التنبيهات', ads:'الإعلانات', usage:'إحصائيات الاستخدام'};
+  const ACT_AR = {approve:'نشر صورة مشترك', reject:'رفض صورة', delete_event:'حذف صورة منشورة', restore:'إعادة نشر', publish:'نشر مباشر', push:'إرسال تنبيه',
+    ad_create:'إضافة إعلان', ad_update:'تعديل إعلان', ad_delete:'حذف إعلان', admin_create:'إضافة مشرف', admin_update:'تعديل مشرف', admin_delete:'حذف مشرف', change_password:'تغيير كلمة السر'};
+  const can = p=>!!me && (me.role === 'owner' || me.perms.includes(p));
+  function applyPerms(){
+    document.querySelectorAll('[data-perm]').forEach(el=>{ el.hidden = el.dataset.perm === 'owner' ? !(me && me.role === 'owner') : !can(el.dataset.perm); });
+    $('hello').textContent = me ? `مرحبًا ${me.display_name || me.username}${me.role === 'owner' ? ' (المالك)' : ''}` : '';
+  }
+  function saveSession(){ try{ sessionStorage.setItem('dalil_admin2', JSON.stringify({user, pass})); }catch(e){} }
+  function clearSession(){ pass = ''; user = ''; me = null; try{ sessionStorage.removeItem('dalil_admin2'); }catch(e){} }
 
   async function api(action, extra){
-    const r = await fetch(FN, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pass, action, ...(extra || {})})});
+    const r = await fetch(FN, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user, pass, action, ...(extra || {})})});
     const j = await r.json().catch(()=>({}));
-    if(r.status === 401) throw Object.assign(new Error('كلمة السر غير صحيحة'), {auth:true});
+    if(r.status === 401) throw Object.assign(new Error('اسم المستخدم أو كلمة السر غير صحيحة'), {auth:true});
+    if(r.status === 403) throw new Error('ليست لديك صلاحية لهذا الإجراء');
     if(r.status === 429) throw Object.assign(new Error('محاولات كثيرة. انتظر 15 دقيقة.'), {auth:true});
-    if(!r.ok) throw new Error(j.error || ('خطأ ' + r.status));
+    if(!r.ok) throw new Error(j.message || j.error || ('خطأ ' + r.status));
     return j;
   }
   const when = iso=>new Date(iso).toLocaleString('ar-SA-u-nu-latn', {weekday:'short', hour:'numeric', minute:'2-digit'});
@@ -184,7 +248,7 @@
         ${e.caption ? `<div>${esc(e.caption)}</div>` : ''}
         <div class="m">${esc(when(e.created_at))}${e.nickname ? ' · ' + esc(e.nickname) : ''} · ${loc}</div>
         ${pending ? `
-          <label class="chk"><input type="checkbox" class="notify"${notifyDefault ? ' checked' : ''}> أرسل تنبيهًا لمشتركي ${e.region ? esc(e.region) : 'كل المناطق'}</label>
+          ${can('push') ? `<label class="chk"><input type="checkbox" class="notify"${notifyDefault ? ' checked' : ''}> أرسل تنبيهًا لمشتركي ${e.region ? esc(e.region) : 'كل المناطق'}</label>` : ''}
           <div class="row"><button class="gold" data-act="approve">نشر</button><button class="danger" data-act="reject">رفض وحذف</button></div>`
         : `<div class="row">${e.status === 'hidden' ? '<button class="white" data-act="restore">إعادة النشر</button>' : ''}<button class="danger" data-act="reject">حذف</button></div>`}
       </div>
@@ -204,21 +268,21 @@
     }
   }
   function showErr(e){
-    if(e.auth){ pass = ''; try{ sessionStorage.removeItem('dalil_admin'); }catch(x){} $('app').hidden = true; $('login').hidden = false; }
+    if(e.auth){ clearSession(); $('app').hidden = true; $('login').hidden = false; }
     const m = $('login').hidden ? $('pMsg') : $('loginMsg');
     m.textContent = e.message || 'تعذّر الاتصال'; m.className = 'msg err';
   }
 
   $('loginBtn').addEventListener('click', async ()=>{
-    pass = $('pass').value.trim(); if(!pass) return;
+    user = ($('user').value.trim() || 'admin').toLowerCase(); pass = $('pass').value; if(!pass) return;
     $('loginBtn').disabled = true; $('loginMsg').textContent = '';
-    try{ await load(); try{ sessionStorage.setItem('dalil_admin', pass); }catch(e){} $('pass').value = ''; loadUsage().catch(showErr); loadAds().catch(showErr); }
+    try{ await loadAll(); saveSession(); $('pass').value = ''; }
     catch(e){ showErr(e); }
     finally{ $('loginBtn').disabled = false; }
   });
+  $('user').addEventListener('keydown', e=>{ if(e.key === 'Enter') $('pass').focus(); });
   $('pass').addEventListener('keydown', e=>{ if(e.key === 'Enter') $('loginBtn').click(); });
-  $('refresh').addEventListener('click', ()=>load().catch(showErr));
-  $('logout').addEventListener('click', ()=>{ pass = ''; try{ sessionStorage.removeItem('dalil_admin'); }catch(e){} location.reload(); });
+  $('logout').addEventListener('click', ()=>{ clearSession(); location.reload(); });
 
   document.addEventListener('click', async ev=>{
     const img = ev.target.closest('img[data-big]');
@@ -449,8 +513,81 @@
       await loadAds();
     }catch(e){ showErr(e); b.disabled = false; }
   });
-  const loadAll = ()=>load().then(()=>Promise.all([loadUsage(), loadAds()]));
-  $('refresh').addEventListener('click', ()=>Promise.all([loadUsage(), loadAds()]).catch(showErr));
+  // ---------- كلمة السر ----------
+  $('pwBtn').addEventListener('click', ()=>{ $('pwCard').hidden = !$('pwCard').hidden; $('pwMsg').textContent = ''; $('pwNew').value = ''; $('pwNew2').value = ''; });
+  $('pwCancel').addEventListener('click', ()=>{ $('pwCard').hidden = true; });
+  $('pwSave').addEventListener('click', async ()=>{
+    const a = $('pwNew').value, b = $('pwNew2').value;
+    if(a.length < 10){ $('pwMsg').textContent = 'كلمة السر يجب ألا تقل عن 10 أحرف'; $('pwMsg').className = 'msg err'; return; }
+    if(a !== b){ $('pwMsg').textContent = 'كلمتا السر غير متطابقتين'; $('pwMsg').className = 'msg err'; return; }
+    $('pwSave').disabled = true;
+    try{
+      await api('change_password', {new_pass:a});
+      pass = a; saveSession();
+      $('pwMsg').textContent = 'تم تغيير كلمة السر ✓ استخدمها في الدخول القادم.'; $('pwMsg').className = 'msg ok';
+      $('pwNew').value = ''; $('pwNew2').value = '';
+    }catch(e){ $('pwMsg').textContent = e.message; $('pwMsg').className = 'msg err'; if(e.auth) showErr(e); }
+    finally{ $('pwSave').disabled = false; }
+  });
+
+  // ---------- المشرفون وسجل العمليات (للمالك) ----------
+  let admins = [], mEditing = null;
+  function adminCard(a){
+    const perms = a.role === 'owner' ? 'كل الصلاحيات' : (a.perms.map(p=>PERM_AR[p] || p).join('، ') || 'بلا صلاحيات');
+    return `<div class="card" data-admin="${esc(a.username)}">
+      <div class="t">${esc(a.display_name || a.username)} <span class="badge">${a.role === 'owner' ? 'المالك' : 'مشرف'}</span>${a.active ? '' : ' <span class="badge off">موقوف</span>'}</div>
+      <div class="m" dir="auto">@${esc(a.username)} · ${esc(perms)}<br>آخر دخول: ${a.last_login ? esc(when(a.last_login)) : '—'}</div>
+      ${a.role === 'owner' ? '' : '<div class="row"><button class="white" data-mact="edit">تعديل / كلمة سر جديدة</button><button class="danger" data-mact="delete">حذف</button></div>'}
+    </div>`;
+  }
+  async function loadAdmins(){
+    const d = await api('admins_list'); admins = d.admins || [];
+    $('mList').innerHTML = admins.map(adminCard).join('');
+    const l = await api('log');
+    $('logList').innerHTML = (l.log || []).length ? l.log.map(x=>`<div class="log-row"><time>${esc(when(x.at))}</time><span><b>${esc(x.username)}</b> · ${esc(ACT_AR[x.action] || x.action)}${x.detail ? ' — ' + esc(x.detail) : ''}</span></div>`).join('') : '<span class="muted">لا توجد عمليات بعد.</span>';
+  }
+  function openAdminForm(a){
+    mEditing = a || null;
+    $('mUser').value = a ? a.username : ''; $('mUser').disabled = !!a;
+    $('mName').value = a ? a.display_name : '';
+    $('mPerms').innerHTML = Object.entries(PERM_AR).map(([k, v])=>`<label class="perm"><input type="checkbox" value="${k}"${(a ? a.perms.includes(k) : k === 'moderate') ? ' checked' : ''}> ${v}</label>`).join('');
+    $('mPass').value = ''; $('mPassLabel').textContent = a ? 'كلمة سر جديدة (اتركها فارغة لإبقاء الحالية)' : 'كلمة السر (10 أحرف على الأقل)';
+    $('mActive').checked = a ? a.active : true;
+    $('mMsg').textContent = ''; $('mForm').hidden = false; $('mForm').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+  $('mNew').addEventListener('click', ()=>openAdminForm(null));
+  $('mCancel').addEventListener('click', ()=>{ $('mForm').hidden = true; });
+  $('mSave').addEventListener('click', async ()=>{
+    const admin = {username:$('mUser').value.trim().toLowerCase(), display_name:$('mName').value.trim(),
+      perms:[...$('mPerms').querySelectorAll('input:checked')].map(x=>x.value), active:$('mActive').checked, password:$('mPass').value || undefined};
+    if(!/^[a-z0-9_]{3,24}$/.test(admin.username)){ $('mMsg').textContent = 'اسم المستخدم: 3–24 حرفًا إنجليزيًا صغيرًا أو أرقام أو _'; $('mMsg').className = 'msg err'; return; }
+    if(!mEditing && !admin.password){ $('mMsg').textContent = 'اكتب كلمة سر للمشرف'; $('mMsg').className = 'msg err'; return; }
+    if(!mEditing && admins.some(a=>a.username === admin.username)){ $('mMsg').textContent = 'اسم المستخدم مستخدم'; $('mMsg').className = 'msg err'; return; }
+    $('mSave').disabled = true;
+    try{ await api('admin_save', {admin}); $('mForm').hidden = true; await loadAdmins(); }
+    catch(e){ $('mMsg').textContent = e.message; $('mMsg').className = 'msg err'; if(e.auth) showErr(e); }
+    finally{ $('mSave').disabled = false; }
+  });
+  $('mList').addEventListener('click', async ev=>{
+    const b = ev.target.closest('[data-mact]'); if(!b) return;
+    const a = admins.find(x=>x.username === b.closest('[data-admin]').dataset.admin); if(!a) return;
+    if(b.dataset.mact === 'edit'){ openAdminForm(a); return; }
+    if(!confirm(`حذف المشرف ${a.display_name || a.username}؟`)) return;
+    try{ await api('admin_delete', {username:a.username}); await loadAdmins(); }catch(e){ showErr(e); }
+  });
+
+  async function loadAll(){
+    me = await api('me');
+    applyPerms();
+    $('login').hidden = true; $('app').hidden = false;
+    const jobs = [];
+    if(can('moderate') || can('publish') || can('push')) jobs.push(load());
+    if(can('usage')) jobs.push(loadUsage());
+    if(can('ads')) jobs.push(loadAds());
+    if(me.role === 'owner') jobs.push(loadAdmins());
+    await Promise.all(jobs);
+  }
+  $('refresh').addEventListener('click', ()=>loadAll().catch(showErr));
   if(pass) loadAll().catch(showErr);
 })();
 </script>

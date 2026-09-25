@@ -8,18 +8,38 @@ const MAX_FAILS = 5;
 const FAIL_WINDOW_MS = 15 * 60e3;
 const LIVE_DAYS = 3;
 
-async function checkPassword(pass: string, cfg: Record<string,string>): Promise<boolean> {
-  if (!pass || pass.length > 200) return false;
+const PERMS = ["moderate", "publish", "push", "ads", "usage"];
+const PASS_ITER = 210000;
+type Admin = { username: string; display_name: string; role: string; perms: string[]; pass_salt: string; pass_hash: string; pass_iter: number; active: boolean };
+
+async function pbkdf2(pass: string, salt: Uint8Array, iter: number): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: "SHA-256", salt: b64uDecode(cfg.admin_salt), iterations: Number(cfg.admin_iter) },
-    key, 256,
-  );
-  const a = new Uint8Array(bits), b = b64uDecode(cfg.admin_hash);
-  if (a.length !== b.length) return false;
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt, iterations: iter }, key, 256));
+}
+async function hashPassword(pass: string) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return { pass_salt: b64uEncode(salt), pass_hash: b64uEncode(await pbkdf2(pass, salt, PASS_ITER)), pass_iter: PASS_ITER };
+}
+const DUMMY_SALT = new Uint8Array(16);
+// يتحقق من اسم المستخدم وكلمة السر. عند عدم وجود المستخدم نحسب تجزئة وهمية حتى لا يُعرف الفرق من الزمن.
+async function authenticate(sb: SupabaseClient, username: string, pass: string): Promise<Admin | null> {
+  if (!pass || pass.length > 200 || !/^[a-z0-9_]{3,24}$/.test(username)) { await pbkdf2("x", DUMMY_SALT, PASS_ITER); return null; }
+  const { data } = await sb.from("admins").select("*").eq("username", username).maybeSingle();
+  const row = data as Admin | null;
+  const a = await pbkdf2(pass, row ? b64uDecode(row.pass_salt) : DUMMY_SALT, row ? row.pass_iter : PASS_ITER);
+  if (!row || !row.active) return null;
+  const b = b64uDecode(row.pass_hash);
+  if (a.length !== b.length) return null;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
+  return diff === 0 ? row : null;
+}
+function validNewPassword(p: string, username: string): string | null {
+  if (typeof p !== "string" || p.length < 10) return "كلمة السر يجب ألا تقل عن 10 أحرف";
+  if (p.length > 200) return "كلمة السر طويلة جدًا";
+  if (p.toLowerCase().includes(username)) return "لا تضع اسم المستخدم داخل كلمة السر";
+  if (/^(.)\1+$/.test(p) || /^(0123456789|1234567890|password|qwerty)/i.test(p)) return "كلمة السر سهلة التخمين";
+  return null;
 }
 
 type Sub = { endpoint: string; p256dh: string; auth: string };
@@ -76,14 +96,88 @@ Deno.serve(async (req) => {
     if ((fails ?? 0) >= MAX_FAILS) return json(req, { error: "locked" }, 429);
 
     const body = await req.json().catch(() => ({}));
-    const ok = await checkPassword(String(body.pass || ""), cfg);
-    if (!ok) {
+    const username = String(body.user || "admin").trim().toLowerCase();
+    const me = await authenticate(sb, username, String(body.pass || ""));
+    if (!me) {
       await sb.from("admin_attempts").insert({ ip_hash: ip, ok: false });
       return json(req, { error: "unauthorized" }, 401);
     }
     const action = String(body.action || "");
     const id = String(body.id || "");
     const validId = /^[0-9a-f-]{36}$/.test(id);
+    const isOwner = me.role === "owner";
+    const can = (p: string) => isOwner || me.perms.includes(p);
+    const forbidden = () => json(req, { error: "forbidden" }, 403);
+    const log = (act: string, detail = "") => sb.from("admin_log").insert({ username: me.username, action: act, detail: detail.slice(0, 200) }).then(() => {}, () => {});
+    const NEED: Record<string, string[]> = {
+      list: ["moderate", "publish", "push"], approve: ["moderate"], reject: ["moderate"], restore: ["moderate"],
+      publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
+    };
+    if (NEED[action] && !NEED[action].some(can)) return forbidden();
+    if (["admins_list", "admin_save", "admin_delete", "log"].includes(action) && !isOwner) return forbidden();
+    if (body.notify && !can("push")) body.notify = false;
+
+    if (action === "me") {
+      await sb.from("admins").update({ last_login: new Date().toISOString() }).eq("username", me.username);
+      return json(req, { username: me.username, display_name: me.display_name, role: me.role, perms: isOwner ? PERMS : me.perms });
+    }
+
+    if (action === "change_password") {
+      const np = String(body.new_pass || "");
+      const bad = validNewPassword(np, me.username);
+      if (bad) return json(req, { error: "weak_password", message: bad }, 400);
+      const { error } = await sb.from("admins").update(await hashPassword(np)).eq("username", me.username);
+      if (error) throw error;
+      await log("change_password");
+      return json(req, { ok: true });
+    }
+
+    if (action === "admins_list") {
+      const { data, error } = await sb.from("admins").select("username,display_name,role,perms,active,created_at,last_login").order("created_at");
+      if (error) throw error;
+      return json(req, { admins: data || [], perms: PERMS });
+    }
+
+    if (action === "admin_save") {
+      const a = body.admin || {};
+      const uname = String(a.username || "").trim().toLowerCase();
+      if (!/^[a-z0-9_]{3,24}$/.test(uname)) return json(req, { error: "bad_username", message: "اسم المستخدم: 3–24 حرفًا إنجليزيًا صغيرًا أو أرقام أو _" }, 400);
+      const { data: existing } = await sb.from("admins").select("username,role").eq("username", uname).maybeSingle();
+      if (existing?.role === "owner" && uname !== me.username) return forbidden();
+      const row: Record<string, unknown> = {
+        display_name: cleanText(a.display_name, 40),
+        perms: (Array.isArray(a.perms) ? a.perms : []).filter((p: string) => PERMS.includes(p)),
+        active: uname === me.username ? true : a.active !== false,
+      };
+      if (a.password) {
+        const bad = validNewPassword(String(a.password), uname);
+        if (bad) return json(req, { error: "weak_password", message: bad }, 400);
+        Object.assign(row, await hashPassword(String(a.password)));
+      } else if (!existing) return json(req, { error: "weak_password", message: "اكتب كلمة سر للمشرف الجديد" }, 400);
+      if (existing?.role === "owner") delete row.perms;
+      const res = existing
+        ? await sb.from("admins").update(row).eq("username", uname)
+        : await sb.from("admins").insert({ username: uname, role: "moderator", ...row });
+      if (res.error) throw res.error;
+      await log(existing ? "admin_update" : "admin_create", uname + (a.password ? " (كلمة سر جديدة)" : ""));
+      return json(req, { ok: true });
+    }
+
+    if (action === "admin_delete") {
+      const uname = String(body.username || "").trim().toLowerCase();
+      if (uname === me.username) return json(req, { error: "cannot_delete_self" }, 400);
+      const { data: t } = await sb.from("admins").select("role").eq("username", uname).maybeSingle();
+      if (!t) return json(req, { ok: true });
+      if (t.role === "owner") return forbidden();
+      await sb.from("admins").delete().eq("username", uname);
+      await log("admin_delete", uname);
+      return json(req, { ok: true });
+    }
+
+    if (action === "log") {
+      const { data } = await sb.from("admin_log").select("at,username,action,detail").order("at", { ascending: false }).limit(100);
+      return json(req, { log: data || [] });
+    }
 
     if (action === "list") {
       const job = cleanup(sb).catch((e) => console.error("cleanup", e));
@@ -140,6 +234,7 @@ Deno.serve(async (req) => {
       const { error } = await sb.from("events").insert(ev);
       if (error) { await sb.storage.from("events").remove([photoPath, thumbPath]); throw error; }
       const push = body.notify ? await sendPush(sb, cfg, region, eventPayload(ev)) : null;
+      await log("publish", `${KIND_AR[kind]} ${region} ${ev.caption}`.trim());
       return json(req, { ok: true, id, push });
     }
 
@@ -163,6 +258,7 @@ Deno.serve(async (req) => {
       if (body.notify) {
         push = await sendPush(sb, cfg, ev.region, eventPayload(ev));
       }
+      await log("approve", `${KIND_AR[ev.kind]} ${ev.region} ${ev.caption}`.trim());
       return json(req, { ok: true, push });
     }
 
@@ -172,6 +268,7 @@ Deno.serve(async (req) => {
       const bucket = ev.status === "pending" || ev.status === "rejected" ? "pending" : "events";
       await sb.storage.from(bucket).remove([ev.photo_path, ev.thumb_path]);
       await sb.from("events").delete().eq("id", id);
+      await log(ev.status === "pending" ? "reject" : "delete_event", id.slice(0, 8));
       return json(req, { ok: true });
     }
 
@@ -179,6 +276,7 @@ Deno.serve(async (req) => {
       const { error } = await sb.from("events").update({ status: "approved", reports: 0 }).eq("id", id).eq("status", "hidden");
       if (error) throw error;
       await sb.from("reports").delete().eq("event_id", id);
+      await log("restore", id.slice(0, 8));
       return json(req, { ok: true });
     }
 
@@ -188,6 +286,7 @@ Deno.serve(async (req) => {
       const region = REGIONS.includes(regionIn) ? regionIn : "";
       if (!title) return json(req, { error: "title_required" }, 400);
       const push = await sendPush(sb, cfg, region, { title, body: text, url: "./", tag: "msg-" + Date.now() });
+      await log("push", `${region || "الكل"}: ${title}`);
       return json(req, { ok: true, push });
     }
 
@@ -251,6 +350,7 @@ Deno.serve(async (req) => {
       }
       const res = editId ? await sb.from("ads").update(row).eq("id", id) : await sb.from("ads").insert({ id, ...row });
       if (res.error) throw res.error;
+      await log(editId ? "ad_update" : "ad_create", title + (row.active ? " (مفعّل)" : ""));
       return json(req, { ok: true, id });
     }
 
@@ -258,6 +358,7 @@ Deno.serve(async (req) => {
       const { data: ad } = await sb.from("ads").select("image_path").eq("id", id).maybeSingle();
       if (ad?.image_path) await sb.storage.from("ads").remove([ad.image_path]);
       await sb.from("ads").delete().eq("id", id);
+      await log("ad_delete", id.slice(0, 8));
       return json(req, { ok: true });
     }
 
