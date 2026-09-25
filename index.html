@@ -1091,7 +1091,7 @@
         <label><span class="field-label">المنطقة</span><select class="text-input" id="evRegion"></select></label>
         <label><span class="field-label">اسمك (اختياري)</span><input class="text-input" id="evNick" maxlength="24" autocomplete="nickname" placeholder="اسم مستعار"></label>
       </div>
-      <label class="ev-check" id="evLocRow"><input type="checkbox" id="evAttachLoc" checked> إرفاق موقعي ليتمكن الآخرون من التوجّه إليه</label>
+      <label class="ev-check" id="evLocRow" hidden><input type="checkbox" id="evAttachLoc"> <span id="evLocText">إرفاق موقعي</span></label>
       <div class="ev-status" id="evStatus" role="status"></div>
       <button type="button" class="cp-btn cp-btn-gold cp-btn-lg" id="evSend" disabled>إرسال للمراجعة</button>
       <button type="button" class="cp-btn cp-btn-white" id="evCancel" style="margin-top:8px;">إلغاء</button>
@@ -3909,7 +3909,7 @@
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=1';
+      sc.src = 'events.js?v=2';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
