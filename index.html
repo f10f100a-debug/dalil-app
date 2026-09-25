@@ -697,6 +697,7 @@
   .push-row{display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600;}
   .push-row select{flex:1;}
   .cp-btn[hidden]{display:none;}
+  .share-card{margin-bottom:4px;}
 </style>
 </head>
 <body class="on-compass">
@@ -905,6 +906,11 @@
 
     <!-- ============ SETTINGS SCREEN ============ -->
     <section class="screen" id="screen-settings">
+      <div class="ev-push share-card">
+        <span class="cp-ic" data-ico="send"></span>
+        <span><b>شارك دليل مع ربعك</b><small>رابط التطبيق مع طريقة تثبيته</small></span>
+        <button type="button" class="cp-btn cp-btn-gold" id="shareAppBtn">مشاركة</button>
+      </div>
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
         <div class="perm-item">📍 <span style="flex:1">إذن الموقع الجغرافي</span> <span id="permLoc">—</span></div>
@@ -3941,6 +3947,15 @@
       document.getElementById('pushStatus').textContent = 'التنبيهات تحتاج اتصالًا بالإنترنت لتفعيلها.';
     });
   }));
+
+
+  // ---------- مشاركة التطبيق ----------
+  document.getElementById('shareAppBtn').addEventListener('click', ()=>{
+    const url = new URL('welcome.html', location.href).href.split('?')[0];
+    const text = 'دليل — بوصلة البر: ترجع لسيارتك، وتعرف وين السيل الآن، بدون إنترنت. مجاني وبدون تسجيل 👇';
+    if(navigator.share){ navigator.share({title:'دليل — بوصلة البر', text, url}).catch(()=>{}); return; }
+    window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text + '\n' + url);
+  });
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
