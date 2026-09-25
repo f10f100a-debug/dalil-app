@@ -189,7 +189,8 @@
   .track-map-frame{width:100%; height:min(60dvh,560px); min-height:420px; display:block; border:0; border-radius:10px;}
   #trackSvg{display:none;}
   .rec-pill{
-    position:absolute; top:16px; right:16px; background:rgba(193,85,63,.15); color:var(--danger);
+    position:absolute; top:70px; left:50%; transform:translateX(-50%); white-space:nowrap; pointer-events:none;
+    background:#FBE9E5; color:var(--danger); box-shadow:0 2px 8px rgba(60,45,20,.12);
     border:1px solid rgba(193,85,63,.35); font-size:11px; font-weight:800; padding:5px 11px;
     border-radius:100px; display:flex; align-items:center; gap:6px;
   }
@@ -811,7 +812,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260926-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260926-2" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -2535,7 +2536,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260926-1&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260926-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
