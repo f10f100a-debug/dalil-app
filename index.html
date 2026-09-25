@@ -3386,7 +3386,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function maybeUpdateWeather(){
     if(!state.pos) return;
     const moved=!lastWeatherPoint || haversine(lastWeatherPoint.lat,lastWeatherPoint.lng,state.pos.lat,state.pos.lng)>10000;
-    if(moved || Date.now()-lastWeatherFetch>=15*60*1000) updateWeather();
+    if(moved || Date.now()-lastWeatherFetch>=15*60*1000) updateWeather(moved);
   }
   document.getElementById('refreshWeatherHubBtn').addEventListener('click',()=>{
     lastWeatherFetch=0;
