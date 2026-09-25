@@ -3578,6 +3578,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   window.addEventListener('pagehide',saveTrackDraft);
+  // الآيفون قد يوقف تحديث الموقع عند الخروج من التطبيق أو قفل الشاشة؛ نعيد تشغيله فور العودة.
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible' && !state.tracking && (state.pos || permissionsWereReady)) startGeoWatch(true);
+  });
   document.addEventListener('visibilitychange',()=>{
     if(!state.tracking) return;
     if(document.visibilityState==='visible'){
