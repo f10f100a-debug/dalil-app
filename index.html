@@ -720,7 +720,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-6" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1379,8 +1379,16 @@
     }
   });
 
+  function compassLive(){ return Date.now() - lastCompassAt < 3000; }
+  // يظهر زر التشغيل عندما لا تصل قراءات من مستشعر البوصلة (مثل Safari بعد كل فتح جديد).
+  function showCompassActivation(){
+    navActivationHint.textContent = isIOS && !isSafari
+      ? 'البوصلة متوقفة. اضغط «تشغيل البوصلة»؛ وإن لم تعمل افتح الرابط في Safari.'
+      : 'البوصلة متوقفة. اضغط «تشغيل البوصلة» ثم اختر «سماح».';
+    navActivation.style.display = 'flex';
+  }
   function updateNavActivation(){
-    if(state.pos && state.heading !== null){
+    if(state.pos && (compassLive() || gpsCourseActive())){
       navActivation.style.display = 'none';
       if(permissionsWereReady) document.getElementById('onboard').style.display = 'none';
     }
@@ -1630,12 +1638,7 @@
       compassFailureTimer = null;
       if(!gotEvent){
         stopCompass();
-        if(state.headingSource !== 'gps'){
-          const inAppHint = isIOS && !isSafari ? ' افتح قائمة المتصفح واختر «فتح في Safari» إذا لم يستجب زر التشغيل.' : '';
-          diagText('البوصلة متوقفة: اضغط زر «تشغيل البوصلة والموقع» أعلى البوصلة.' + inAppHint);
-          navActivation.style.display = 'flex';
-          updateDiagnostics();
-        }
+        if(!gpsCourseActive()) showCompassActivation();
       }
     }, 4000);
   }
@@ -1991,7 +1994,14 @@
 
     renderCarCard(car, t, nav, near);
   }
-  setInterval(()=>{ renderCompassScreen(); updateCalibHint(); }, 1000);
+  setInterval(()=>{
+    // اتجاه GPS القديم لا يُعرض كأنه حي بعد 5 ثوانٍ بلا تحديث.
+    if(state.headingSource === 'gps' && !gpsCourseActive() && Date.now() - lastHeadingAt > 5000){ state.heading = null; state.headingSource = null; }
+    if(!compassLive() && !gpsCourseActive() && document.visibilityState === 'visible' && performance.now() > 5000) showCompassActivation();
+    renderCompassScreen(); updateCalibHint();
+  }, 1000);
+  // لمسة على البوصلة المتوقفة تشغّلها مباشرة (iOS يشترط ضغطة من المستخدم).
+  compassEl.addEventListener('click', ()=>{ if(!compassLive()) navActivationBtn.click(); });
 
   // ---------- car card: 5 states ----------
   const carCardEl = document.getElementById('carCard');
@@ -2187,34 +2197,39 @@
   let pendingCoords = null;
   let pendingIcon = '⛺', pendingCat = 'camp';
 
+  // يفهم روابط خرائط Google وApple ونصوص الإحداثيات (عشري / درجات ودقائق / درجات ودقائق وثوانٍ)
+  // بترتيب الأولوية: الدبوس الدقيق في الرابط، ثم معاملات الرابط، ثم @، ثم الإحداثيات بالحروف N/E، ثم الزوج العشري.
   function parseCoordsFromText(text){
     if(!text) return null;
-    const normalized = String(text).replace(/،/g, ',').trim();
-    const hemispheres = normalized.match(/[^NSEW]*[NSEW]/gi);
-    if(hemispheres && hemispheres.length >= 2){
-      let lat = null, lng = null;
-      hemispheres.forEach(part=>{
-        const hemi = (part.match(/[NSEW]/i) || [])[0];
-        const nums = (part.match(/\d+(?:\.\d+)?/g) || []).map(Number);
-        if(!hemi || !nums.length) return;
-        let value = nums[0] + (nums[1] || 0)/60 + (nums[2] || 0)/3600;
-        if(/[SW]/i.test(hemi)) value *= -1;
-        if(/[NS]/i.test(hemi)) lat = value;
-        else lng = value;
-      });
-      if(validLatLng(lat, lng)) return {lat, lng};
+    let t = String(text);
+    try{ t = decodeURIComponent(t.replace(/\+/g, ' ')); }catch(e){}
+    t = t.replace(/،/g, ',').replace(/[٠-٩]/g, d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/٫/g, '.');
+    const pair = (la, ln)=>{ const lat = Number(la), lng = Number(ln); return validLatLng(lat, lng) ? {lat, lng} : null; };
+    const N = '(-?\\d{1,3}(?:\\.\\d+)?)';
+    let m, r;
+    // 1) الدبوس الدقيق في روابط «place» من Google
+    if((m = t.match(/!3d(-?\d{1,3}(?:\.\d+)?)!4d(-?\d{1,3}(?:\.\d+)?)/)) && (r = pair(m[1], m[2]))) return r;
+    // 2) معاملات الرابط
+    if((m = t.match(new RegExp('[?&](?:q|query|ll|sll|daddr|destination|center|location|coordinates)=(?:loc:)?\\s*' + N + '\\s*,\\s*' + N, 'i'))) && (r = pair(m[1], m[2]))) return r;
+    // 3) @lat,lng
+    if((m = t.match(new RegExp('@' + N + ',' + N))) && (r = pair(m[1], m[2]))) return r;
+    // 4) إحداثيات بالحروف: 27°34'52.9"N أو N 27°34.882
+    const toDeg = (d, mi, se)=>Number(d) + (Number(mi) || 0)/60 + (Number(se) || 0)/3600;
+    let lat = null, lng = null;
+    const setHemi = (h, v)=>{
+      if((h === 'N' || h === 'S') && lat === null) lat = h === 'S' ? -v : v;
+      if((h === 'E' || h === 'W') && lng === null) lng = h === 'W' ? -v : v;
+    };
+    const after = /(\d{1,3}(?:\.\d+)?)\s*°?\s*(?:(\d{1,2}(?:\.\d+)?)\s*['′’]\s*)?(?:(\d{1,2}(?:\.\d+)?)\s*["″”]\s*)?([NSEW])(?![A-Za-z])/g;
+    while((m = after.exec(t))) setHemi(m[4], toDeg(m[1], m[2], m[3]));
+    if(lat === null || lng === null){
+      lat = lng = null;
+      const before = /(?:^|[^A-Za-z])([NSEW])\s*(\d{1,3}(?:\.\d+)?)\s*°?\s*(?:(\d{1,2}(?:\.\d+)?)['′’]?)?(?:\s*(\d{1,2}(?:\.\d+)?)["″”])?/g;
+      while((m = before.exec(t))) setHemi(m[1], toDeg(m[2], m[3], m[4]));
     }
-    const patterns = [
-      /@(-?\d{1,3}(?:\.\d+)?),\s*(-?\d{1,3}(?:\.\d+)?)/,
-      /[?&](?:q|query|ll|daddr)=(-?\d{1,3}(?:\.\d+)?)(?:%2C|,)\s*(-?\d{1,3}(?:\.\d+)?)/i,
-      /(?:^|\s)(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)(?:\s|$)/
-    ];
-    for(const pattern of patterns){
-      const match = normalized.match(pattern);
-      if(!match) continue;
-      const lat = Number(match[1]), lng = Number(match[2]);
-      if(validLatLng(lat, lng)) return {lat, lng};
-    }
+    if(lat !== null && lng !== null && validLatLng(lat, lng)) return {lat, lng};
+    // 5) زوج عشري: 27.581373, 41.713669
+    if((m = t.match(/(?:^|[^\d.])(-?\d{1,2}\.\d+)\s*[,\s]\s*(-?\d{1,3}\.\d+)(?![\d.])/)) && (r = pair(m[1], m[2]))) return r;
     return null;
   }
 
@@ -2383,7 +2398,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-6&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-7&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3711,7 +3726,7 @@
     startGeoWatch();
     startCompass();
     window.setTimeout(()=>{
-      if(!state.pos || state.heading === null) navActivation.style.display = 'flex';
+      if(!state.pos || !compassLive()) showCompassActivation();
     }, 1800);
   }
   drawTrackSvg();
