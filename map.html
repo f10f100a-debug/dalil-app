@@ -1,6 +1,6 @@
 <!doctype html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><style>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#171717}
 #map{position:fixed;inset:0;overflow:hidden;background:#ddd;touch-action:none}#layer{position:absolute;inset:0}
 .tile{position:absolute;left:0;top:0;width:256px;height:256px;user-select:none;-webkit-user-drag:none;will-change:transform;backface-visibility:hidden}
@@ -65,7 +65,36 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 .nav-eta:empty{display:none}
 body.embed .nav-actions button{height:44px}
 body.embed .nav-arrow{width:44px;height:44px}
-</style></head><body><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
+
+/* ===== الوضع الليلي والأحمر ===== */
+html[data-theme=dark],html[data-theme=red]{color-scheme:dark}
+:is(html[data-theme=dark],html[data-theme=red]) :is(html,body){background:#15120E}
+:is(html[data-theme=dark],html[data-theme=red]) #map{background:#1a1a1a}
+:is(html[data-theme=dark],html[data-theme=red]) #layer{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92)}
+:is(html[data-theme=dark],html[data-theme=red]) button{background:#1F1B16;color:#EFE8DC;border-color:#353027;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+:is(html[data-theme=dark],html[data-theme=red]) #gps{background:#C9964F;color:#1C1A17;border-color:#C9964F}
+:is(html[data-theme=dark],html[data-theme=red]) #gps.on{background:#EFE8DC;color:#1C1A17;border-color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) #northBtn{background:#1F1B16}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.top,.badge,.nav-card){background:#1F1B16f2;color:#EFE8DC;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.status,.nav-coords,.nav-info){color:#B3A996}
+:is(html[data-theme=dark],html[data-theme=red]) .nav-eta{color:#E0B574}
+:is(html[data-theme=dark],html[data-theme=red]) .nav-arrow{background:#2A2319;color:#E0B574}
+:is(html[data-theme=dark],html[data-theme=red]) .back-link{background:#27221B;color:#EFE8DC;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .scale-bar{border-color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes{background:#1F1B16f0;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes button{background:transparent;color:#B3A996;box-shadow:none}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes button.active{background:#C9964F;color:#1C1A17}
+:is(html[data-theme=dark],html[data-theme=red]) #googleMode{border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .attribution{background:#1F1B16d9;color:#B3A996}
+:is(html[data-theme=dark],html[data-theme=red]) .mk-dot{background:#1F1B16}
+:is(html[data-theme=dark],html[data-theme=red]) .mk-name{background:#1F1B16e8;color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.start-nav){background:#C9964F;color:#1C1A17}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.compass-nav,.google-nav,.stop-nav){background:#27221B;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .stop-nav{color:#F08A7E}
+#redTint{display:none;position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:#9A0000;mix-blend-mode:multiply}
+html[data-theme=red] #redTint{display:block}
+body.embed #redTint{display:none!important}
+</style></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
 <div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-8" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>
 <div class="ctrl"><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
@@ -163,17 +192,21 @@ function updateGpsBtn(){
   gpsBtn.setAttribute('aria-label',label);gpsBtn.title=label;
   northBtn.hidden=!isRotated()&&view!=='heading';
 }
+// تفضيل اتجاه الخريطة: 'auto' تدور مع السيارة تلقائيًا أثناء القيادة، 'north' الشمال للأعلى دائمًا.
+let headingPref=(()=>{try{return localStorage.getItem('dalil_map_heading')==='north'?'north':'auto'}catch(e){return'auto'}})();
+function setHeadingPref(v){headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
 function setView(v){view=v;updateOrigin();updateGpsBtn()}
+function enterHeading(){setView('heading');const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
 function releaseView(){if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
   ensureOrientation();
   startWatch();
-  if(view==='follow'){setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
-  else{setRot(0);setView('follow')}
+  if(view==='follow'||(view!=='heading'&&isDriving()&&headingPref!=='north')){setHeadingPref('auto');setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
+  else{if(view==='heading')setHeadingPref('north');setRot(0);setView('follow')}
   if(gps){z=Math.max(z,detailZ());centerOnGps();render()}
   else locateUser(true,true);
 };
-northBtn.onclick=()=>{setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
+northBtn.onclick=()=>{setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
 function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»'}
@@ -241,7 +274,7 @@ function clearArea(){
 }
 // الخريطة تدور حول نقطة ثابتة في منتصف المساحة الظاهرة. عند التتبّع يوضع موقعك
 // على هذه النقطة، فيكفي عند الالتفات تغيير زاوية الدوران فقط دون إعادة رسم.
-function updateOrigin(){if(isRotated())return;const area=clearArea();originX=(area.left+area.right)/2;originY=(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
+function updateOrigin(){if(isRotated())return;const area=clearArea();originX=(area.left+area.right)/2;originY=view==='heading'?area.top+(area.bottom-area.top)*.66:(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
 function centerOnGps(){if(!gps)return;const[wx,wy]=world(gps.lat,gps.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
 function fitNavigation(){
   if(!gps||!targetPoint)return;
@@ -265,6 +298,8 @@ function acceptPosition(p,center=true){
     gpsCourse=c.heading;gpsCourseAt=Date.now();
     if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
   }else if(!isDriving())courseOffset=null;
+  // عند بدء القيادة وأنت تتابع موقعك: الخريطة تدور تلقائيًا مع اتجاه السيارة.
+  if(view==='follow'&&headingPref!=='north'&&isDriving()){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
   if(view==='fit'&&navigationActive)fitNavigation();
   else if(view==='follow'||view==='heading')centerOnGps();
   else if(center&&!navigationActive){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}
