@@ -44,7 +44,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 .nav-card{background:#FFFFFFf5;border-color:#E4DED3;color:#1C1A17}.nav-arrow{background:#FBF3E6;color:#7A4E14}.nav-coords{color:#6B645A}.nav-info{color:#6B645A}
 
 /* ===== دوران الخريطة، سهم الموقع، أزرار ===== */
-#stage{position:absolute;inset:0;transform-origin:50% 50%;transform:rotate(calc(var(--rot,0) * -1deg));will-change:transform}
+#stage{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
 #trackOverlay{overflow:visible}
 .mk{transform:translate(-50%,-50%) rotate(calc(var(--rot,0) * 1deg))}
 #targetMarker{font-size:0;line-height:0;transform:translate(-50%,-100%) rotate(calc(var(--rot,0) * 1deg));transform-origin:50% 100%}
@@ -57,7 +57,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 #gps.on{background:#1C1A17;border-color:#1C1A17;color:#F2C27A}
 #northBtn{display:grid;place-items:center;background:#fff}
 #northBtn[hidden]{display:none}
-#northIcon{transition:transform .15s linear}
+#northIcon{}
 .nav-arrow{width:52px;height:52px}
 .nav-arrow svg{transition:transform .2s ease-out}
 .nav-coords{display:block;border:0;background:none;box-shadow:none;padding:0;width:auto;height:auto;font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:right}
@@ -66,7 +66,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 body.embed .nav-actions button{height:44px}
 body.embed .nav-arrow{width:44px;height:44px}
 </style></head><body><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
-<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-3" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
+<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-4" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>
 <div class="ctrl"><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
 <div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
@@ -78,6 +78,7 @@ const S=256,minZ=7,maxZ=20,maxLocalZ=11,maxTileZ=10,maxOnlineTileZ=19,ranges={7:
 const GPS_COURSE_MIN_KMH=5;
 let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,touchStart=null,touchMoved=false,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationActive=false,deviceHeading=null,orientationHandler=null,lastAbsoluteOrientationAt=0,mapMode='local',missingTileWarningShown=false;
 // view: free (المستخدم يحرّك الخريطة) | fit (يُظهر موقعك والهدف معًا) | follow (يتبعك والشمال للأعلى) | heading (يتبعك واتجاهك للأعلى)
+let originX=innerWidth/2,originY=innerHeight/2;
 let view='free',rot=0,geoWatch=null,gpsCourse=null,gpsCourseAt=0,headingFrame=0;
 const $=s=>document.querySelector(s);
 const map=$('#map'),stage=$('#stage'),layer=$('#layer'),dot=$('#dot'),accCircle=$('#accCircle'),marksEl=$('#marks'),targetMarker=$('#targetMarker'),trackOverlay=$('#trackOverlay'),status=$('#status'),badge=$('#badge'),navCard=$('#navCard'),navArrow=$('#navArrow'),navName=$('#navName'),navCoords=$('#navCoords'),navInfo=$('#navInfo'),navEta=$('#navEta'),startNav=$('#startNav'),compassNav=$('#compassNav'),stopNav=$('#stopNav'),localMode=$('#localMode'),onlineMode=$('#onlineMode'),googleMode=$('#googleMode'),attribution=$('#attribution'),gpsBtn=$('#gps'),northBtn=$('#northBtn'),northIcon=$('#northIcon');
@@ -85,12 +86,13 @@ const tileNodes=new Map(),missingLocalTiles=new Set();
 let renderFrame=0;
 
 // ---------- helpers ----------
-const iso=v=>'⁦'+v+'⁩'; // يمنع انقلاب الأرقام والرموز داخل النص العربي
+const iso=v=>'⁦'+v+'⁩';
+const setText=(el,v)=>{if(el.textContent!==v)el.textContent=v}; // يمنع انقلاب الأرقام والرموز داخل النص العربي
 function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
 // إحداثيات «المسرح» (قبل الدوران) إلى خط عرض وطول
 function stageToLatLng(x,y){let size=2**z*S,wx=cx+x-innerWidth/2,wy=cy+y-innerHeight/2,lng=wx/size*360-180,merc=Math.PI*(1-2*wy/size),lat=Math.atan(Math.sinh(merc))*180/Math.PI;return{lat:Math.max(-85.0511,Math.min(85.0511,lat)),lng:((lng+540)%360)-180}}
 // نقطة على الشاشة إلى إحداثيات المسرح، مع مراعاة دوران الخريطة
-function screenToStage(x,y){const a=rot*Math.PI/180,dx=x-innerWidth/2,dy=y-innerHeight/2;return[innerWidth/2+dx*Math.cos(a)-dy*Math.sin(a),innerHeight/2+dx*Math.sin(a)+dy*Math.cos(a)]}
+function screenToStage(x,y){const a=rot*Math.PI/180,dx=x-originX,dy=y-originY;return[originX+dx*Math.cos(a)-dy*Math.sin(a),originY+dx*Math.sin(a)+dy*Math.cos(a)]}
 function screenDeltaToStage(dx,dy){const a=rot*Math.PI/180;return[dx*Math.cos(a)-dy*Math.sin(a),dx*Math.sin(a)+dy*Math.cos(a)]}
 function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
 function inOfflineCoverage(lat,lng){let p=world(lat,lng,maxTileZ),x=Math.floor(p[0]/S),y=Math.floor(p[1]/S),r=ranges[maxTileZ];return x>=r[0]&&x<=r[1]&&y>=r[2]&&y<=r[3]}
@@ -112,14 +114,14 @@ function currentHeading(){
   if(gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH)return gpsCourse;
   return deviceHeading;
 }
-function setRot(v){rot+=((v-rot)%360+540)%360-180;stage.style.setProperty('--rot',rot.toFixed(2));northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;northBtn.hidden=!isRotated()&&view!=='heading'}
+function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide}
 function onHeadingChanged(){
   if(headingFrame)return;
   headingFrame=requestAnimationFrame(()=>{headingFrame=0;
     const h=currentHeading();
-    dot.classList.toggle('has-heading',h!==null);
+    if(dot.classList.contains('has-heading')!==(h!==null))dot.classList.toggle('has-heading',h!==null);
     if(h!==null)dot.style.setProperty('--hdg',h.toFixed(1));
-    if(view==='heading'&&h!==null){setRot(h);centerOnGps();render()}
+    if(view==='heading'&&h!==null){const wasRotated=isRotated();setRot(h);if(!wasRotated)render()}
     updateNavigation()});
 }
 function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
@@ -131,12 +133,12 @@ async function ensureOrientation(){try{if(typeof DeviceOrientationEvent!=='undef
 function updateNavigation(){
   if(!targetPoint)return;
   if(!navCard.classList.contains('show')){navCard.classList.add('show');document.body.classList.add('has-target');syncNavCardSpace()}
-  navCoords.textContent=fmtCoords(targetPoint.lat,targetPoint.lng);
-  if(!gps){navInfo.textContent='جارٍ تحديد موقعك وحساب المسافة…';navEta.textContent='';return}
+  setText(navCoords,fmtCoords(targetPoint.lat,targetPoint.lng));
+  if(!gps){setText(navInfo,'جارٍ تحديد موقعك وحساب المسافة…');setText(navEta,'');return}
   const d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),h=currentHeading();
-  navInfo.textContent='يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b);
+  setText(navInfo,'يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b));
   const speed=Number(gps.speed);
-  navEta.textContent=Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك');
+  setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
   const relative=h!==null?b-h:b-rot;
   navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
 }
@@ -153,22 +155,22 @@ function updateGpsBtn(){
   gpsBtn.setAttribute('aria-label',label);gpsBtn.title=label;
   northBtn.hidden=!isRotated()&&view!=='heading';
 }
-function setView(v){view=v;updateGpsBtn()}
+function setView(v){view=v;updateOrigin();updateGpsBtn()}
 function releaseView(){if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
   ensureOrientation();
   startWatch();
   if(view==='follow'){setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
-  else{setView('follow');setRot(0)}
+  else{setRot(0);setView('follow')}
   if(gps){z=Math.max(z,detailZ());centerOnGps();render()}
   else locateUser(true,true);
 };
-northBtn.onclick=()=>{if(view==='heading')setView('follow');setRot(0);render()};
+northBtn.onclick=()=>{setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
 function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»'}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
-function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2;return[r,r]}return[innerWidth/2,innerHeight/2]}
+function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
 function render(){
   const[hw,hh]=viewHalfSize();
   let online=mapMode==='online',tz=online?Math.min(z,maxOnlineTileZ):Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=online?[0,2**tz-1,0,2**tz-1]:ranges[tz],vx0=cx-hw-ts,vy0=cy-hh-ts,vx1=cx+hw+ts,vy1=cy+hh+ts,needed=new Set(),fragment=document.createDocumentFragment();
@@ -229,8 +231,10 @@ function clearArea(){
   if(bottom-top<120){top=innerHeight*.2;bottom=innerHeight*.7}
   return{top,bottom,left:44,right:innerWidth-44};
 }
-// يضع موقعك في منتصف المساحة الظاهرة (فوق البطاقة) حتى مع دوران الخريطة
-function centerOnGps(){if(!gps)return;const area=clearArea(),[wx,wy]=world(gps.lat,gps.lng),[dx,dy]=screenDeltaToStage((area.left+area.right)/2-innerWidth/2,(area.top+area.bottom)/2-innerHeight/2);cx=wx-dx;cy=wy-dy}
+// الخريطة تدور حول نقطة ثابتة في منتصف المساحة الظاهرة. عند التتبّع يوضع موقعك
+// على هذه النقطة، فيكفي عند الالتفات تغيير زاوية الدوران فقط دون إعادة رسم.
+function updateOrigin(){if(isRotated())return;const area=clearArea();originX=(area.left+area.right)/2;originY=(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
+function centerOnGps(){if(!gps)return;const[wx,wy]=world(gps.lat,gps.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
 function fitNavigation(){
   if(!gps||!targetPoint)return;
   const area=clearArea(),w=area.right-area.left,h=area.bottom-area.top;
@@ -310,10 +314,10 @@ map.addEventListener('touchmove',e=>{e.preventDefault();
   else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
 map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
 map.addEventListener('click',e=>{if(!('ontouchstart'in window)){const[sx,sy]=screenToStage(e.clientX,e.clientY);selectMapPoint(sx,sy)}});
-window.addEventListener('resize',render);
+window.addEventListener('resize',()=>{updateOrigin();if(view==='follow'||view==='heading')centerOnGps();render()});
 
 // ---------- keep controls above the navigation card ----------
-function syncNavCardSpace(){const r=navCard.getBoundingClientRect();const visible=navCard.classList.contains('show')&&r.height>0;document.body.style.setProperty('--nav-top',visible?Math.round(innerHeight-r.top)+'px':'0px')}
+function syncNavCardSpace(){const r=navCard.getBoundingClientRect();const visible=navCard.classList.contains('show')&&r.height>0;document.body.style.setProperty('--nav-top',visible?Math.round(innerHeight-r.top)+'px':'0px');updateOrigin()}
 if('ResizeObserver'in window)new ResizeObserver(syncNavCardSpace).observe(navCard);
 window.addEventListener('resize',syncNavCardSpace);
 
@@ -328,7 +332,7 @@ if(validLatLng(queryLat,queryLng)){
 loadSavedMarks();
 window.addEventListener('storage',()=>{loadSavedMarks();render()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadSavedMarks();render()}});
-updateGpsBtn();
+updateOrigin();updateGpsBtn();
 // بدون نافذة إذن: يعمل مباشرة في أندرويد، وفي iOS إن سبق منح الإذن.
 if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();

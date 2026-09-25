@@ -710,7 +710,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1661,8 +1661,15 @@
     const h = Math.floor(min/60), m = Math.round(min%60);
     return iso(h) + ' س' + (m ? ' ' + iso(m) + ' د' : '');
   }
+  let savedAtCache = {key:'', value:''};
   function fmtSavedAt(time){
     if(!time) return '';
+    const key = time + '|' + new Date().toDateString();
+    if(savedAtCache.key === key) return savedAtCache.value;
+    savedAtCache = {key, value:fmtSavedAtUncached(time)};
+    return savedAtCache.value;
+  }
+  function fmtSavedAtUncached(time){
     const d = new Date(time);
     if(isNaN(d)) return '';
     const clock = d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
@@ -1841,22 +1848,28 @@
       el.setAttribute('y', y.toFixed(1));
     });
 
-    // علامات الحافة: القبلة، ونقطة السيارة عندما لا تكون هي الهدف
+    // علامات الحافة (القبلة والسيارة) تُرسم مرة داخل مجموعة تدور مع القرص؛
+    // عند الالتفات يتغيّر دوران المجموعة فقط دون إعادة بنائها.
     const car = getCar();
-    let marks = '';
+    let marks = '', qb = null;
     if(pos){
-      const qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
-      const [qx,qy] = polar(qb - heading, 126);
-      // الكعبة: مكعب أسود بحزام ذهبي على حلقة القرص باتجاه مكة، ويتوهّج عند مواجهة القبلة.
-      const qiblaOn = haveHeading && Math.abs(((qb - heading + 540) % 360) - 180) <= 5;
-      marks += `<g class="cp-qibla${qiblaOn ? ' on' : ''}" transform="translate(${qx.toFixed(1)} ${qy.toFixed(1)})"><title>القبلة</title><rect class="cube" x="-8" y="-8" width="16" height="16" rx="2.5"/><rect class="band" x="-8" y="-3.8" width="16" height="3"/></g>`;
+      qb = bearing(pos.lat, pos.lng, QIBLA_TARGET.lat, QIBLA_TARGET.lng);
+      const [qx,qy] = polar(qb, 126);
+      marks += `<g class="cp-qibla" id="qiblaMark" transform="translate(${qx.toFixed(1)} ${qy.toFixed(1)})"><title>القبلة</title><g id="qiblaInner"><rect class="cube" x="-8" y="-8" width="16" height="16" rx="2.5"/><rect class="band" x="-8" y="-3.8" width="16" height="3"/></g></g>`;
       if(car && !isCarTarget(t)){
         // سهم صغير على الحافة باتجاه السيارة (أصغر من سهم التوجيه).
-        const carRel = (bearing(pos.lat, pos.lng, car.lat, car.lng) - heading + 360) % 360;
-        marks += `<path class="cp-car-dot" d="M150 8 L161 30 L150 25 L139 30 Z" transform="rotate(${carRel.toFixed(1)} ${C} ${C})"><title>السيارة</title></path>`;
+        const cb = bearing(pos.lat, pos.lng, car.lat, car.lng);
+        marks += `<path class="cp-car-dot" d="M150 8 L161 30 L150 25 L139 30 Z" transform="rotate(${cb.toFixed(1)} ${C} ${C})"><title>السيارة</title></path>`;
       }
     }
     if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
+    dialMarksEl.setAttribute('transform', `rotate(${(-heading).toFixed(1)} ${C} ${C})`);
+    const qiblaMark = marks ? document.getElementById('qiblaMark') : null;
+    if(qiblaMark){
+      // الكعبة تبقى معتدلة، وتتوهّج عند مواجهة القبلة (±5°).
+      document.getElementById('qiblaInner').setAttribute('transform', `rotate(${heading.toFixed(1)})`);
+      qiblaMark.classList.toggle('on', haveHeading && Math.abs(((qb - heading + 540) % 360) - 180) <= 5);
+    }
 
     // سهم الهدف والوسط
     let nav = null, near = false, aligned = false;
@@ -2302,7 +2315,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
