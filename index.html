@@ -3432,8 +3432,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return hh ? `${String(hh).padStart(2,'0')}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 
+  // إبقاء الشاشة مضاءة أثناء تسجيل مسار أو التوجّه إلى مكان.
+  const screenNeeded = ()=>state.tracking || !!state.navTarget;
   async function requestTrackWakeLock(){
-    if(!state.tracking || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
+    if(!screenNeeded() || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
     try{
       if(trackWakeLock && !trackWakeLock.released) return;
       trackWakeLock = await navigator.wakeLock.request('screen');
@@ -3442,7 +3444,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   async function releaseTrackWakeLock(){
-    if(!trackWakeLock) return;
+    if(!trackWakeLock || screenNeeded()) return;
     try{ await trackWakeLock.release(); }catch(e){}
     trackWakeLock=null;
   }
@@ -3578,6 +3580,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   window.addEventListener('pagehide',saveTrackDraft);
+  // مزامنة قفل الشاشة مع حالة التوجيه (يبدأ مع أي توجّه وينتهي بإلغائه أو الوصول).
+  window.setInterval(()=>{
+    if(screenNeeded()) requestTrackWakeLock();
+    else if(trackWakeLock) releaseTrackWakeLock();
+  }, 1500);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && screenNeeded()) requestTrackWakeLock(); });
   // الآيفون قد يوقف تحديث الموقع عند الخروج من التطبيق أو قفل الشاشة؛ نعيد تشغيله فور العودة.
   document.addEventListener('visibilitychange',()=>{
     if(document.visibilityState==='visible' && !state.tracking && (state.pos || permissionsWereReady)) startGeoWatch(true);
