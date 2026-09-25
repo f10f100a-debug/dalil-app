@@ -20,6 +20,13 @@
 <meta name="apple-mobile-web-app-title" content="دليل">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F2EFE9">
+<script>
+// تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
+(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}
+var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;
+document.documentElement.setAttribute('data-theme',t);
+var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#F2EFE9':t==='red'?'#000000':'#15120E';})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -699,9 +706,57 @@
   .push-row select{flex:1;}
   .cp-btn[hidden]{display:none;}
   .share-card{margin-bottom:4px;}
+
+  /* ===== الوضع الليلي والأحمر ===== */
+  html[data-theme="dark"], html[data-theme="red"]{
+    --bg:#15120E; --panel:#1F1B16; --panel-2:#27221B; --line:#353027;
+    --sand:#C9964F; --sand-dim:#E0B574; --sage:#7CC495; --danger:#F08A7E;
+    --text:#EFE8DC; --text-dim:#B3A996; --text-faint:#857C6D;
+    --shadow:0 8px 24px rgba(0,0,0,.4);
+    --cp-bg:#15120E; --cp-card:#1F1B16; --cp-line:#353027;
+    --cp-gold-ink:#E0B574; --cp-ink:#EFE8DC; --cp-dim:#B3A996; --cp-faint:#857C6D; --cp-soft:#27221B;
+    --cp-red:#F08A7E; --cp-red-bg:#3A1F1B; --cp-green:#7CC495; --cp-green-bg:#1C2E22;
+    color-scheme:dark;
+  }
+  html[data-theme="red"]{--bg:#000; --cp-bg:#000; --panel:#140F0C; --cp-card:#140F0C;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.cp-btn-gold, .btn-primary, .chip.active, .icon-btn.go, .install-step .num, .pl-go){color:#1C1A17;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.wx-tile, .wx-hour, .pl-card, .pl-empty, .pl-note, .tabbar, .seg-b.active){background:var(--panel);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.cp-activation, .cp-car-ic, .wx-hour.now, .pl-ic.car, .pl-ic.cat, .icon-pick.active, .ev-push){background:#2A2319;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.cp-activation, .ev-push){border-color:#4A3B26;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.cp-car.cp-empty, .ev-photo){background:#1B1813; border-color:#4A4032;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.pl-empty, .pl-note){border-color:#4A4032;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .seg{background:#0E0C09;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .seg-b.active{box-shadow:0 1px 4px rgba(0,0,0,.5);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .tabbar{box-shadow:0 -4px 18px rgba(0,0,0,.45);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-face{fill:#1C1915;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-inner{stroke:#2C2720;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-tick{stroke:#5A5245;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-tick.major{stroke:#8A8070;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-index{fill:#EFE8DC;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-l.north{color:#F07A6A;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-calib{background:#2A2319;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-source{background:#1C2E22; color:#7CC495;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.cp-btn-danger, .btn-danger, .wx-warning){border-color:#5A2A24;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-sos.armed{background:#5A2A24;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .rec-pill{background:#3A1F1B;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) :is(.ev-k-flood, .ev-k-rain, .ev-k-spring, .ev-k-dust){background:rgba(255,255,255,.94);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .ev-kind{color:#1C1A17;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .ev-tile{background:#27221B;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .seg-dot, :is(html[data-theme="dark"], html[data-theme="red"]) .tab-dot{box-shadow:0 0 0 2px var(--panel);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) body::before{background:#000;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .toast{background:#EFE8DC; color:#15120E;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .overlay{background:rgba(0,0,0,.72);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .track-map-frame{background:#1F1B16;}
+  /* الوضع الأحمر: كل ما على الشاشة بدرجات الأحمر للحفاظ على الرؤية الليلية */
+  #redTint{display:none; position:fixed; inset:0; z-index:2147483647; pointer-events:none; background:#9A0000; mix-blend-mode:multiply;}
+  html[data-theme="red"] #redTint{display:block;}
+  .theme-chips{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px;}
+  .theme-chips .chip{justify-content:center; padding:0 6px; min-height:44px;}
+  .theme-note{font-size:12.5px; color:var(--text-dim); margin:2px 2px 0; line-height:1.7;}
 </style>
 </head>
 <body class="on-compass">
+<div id="redTint" aria-hidden="true"></div>
 <div id="app">
 
   <header class="topbar app-head">
@@ -812,7 +867,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260926-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260926-3" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -912,6 +967,15 @@
         <span><b>شارك دليل مع ربعك</b><small>رابط التطبيق مع طريقة تثبيته</small></span>
         <button type="button" class="cp-btn cp-btn-gold" id="shareAppBtn">مشاركة</button>
       </div>
+      <div class="section-title">المظهر</div>
+      <div class="theme-chips" id="themeChips" role="radiogroup" aria-label="المظهر">
+        <button type="button" class="chip" data-theme-set="auto">تلقائي</button>
+        <button type="button" class="chip" data-theme-set="light">نهاري</button>
+        <button type="button" class="chip" data-theme-set="dark">ليلي</button>
+        <button type="button" class="chip" data-theme-set="red">أحمر</button>
+      </div>
+      <div class="theme-note" id="themeNote"></div>
+
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
         <div class="perm-item">📍 <span style="flex:1">إذن الموقع الجغرافي</span> <span id="permLoc">—</span></div>
@@ -2536,7 +2600,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260926-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260926-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3957,6 +4021,42 @@
     if(navigator.share){ navigator.share({title:'دليل — بوصلة البر', text, url}).catch(()=>{}); return; }
     window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text + '\n' + url);
   });
+
+
+  // ---------- المظهر: تلقائي / نهاري / ليلي / أحمر ----------
+  const THEME_KEY = 'dalil_theme';
+  const themeNotes = {
+    auto:'يتبع إعداد جوالك: فاتح نهارًا وداكن ليلًا.',
+    light:'المظهر الفاتح دائمًا.',
+    dark:'خلفية داكنة مريحة للعين في الليل.',
+    red:'كل الشاشة بالأحمر الخافت ليحافظ على رؤيتك الليلية في البر.'
+  };
+  function themePref(){ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
+  function effectiveTheme(p){ return p === 'auto' ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p; }
+  function applyTheme(){
+    const p = themePref(), t = effectiveTheme(p);
+    document.documentElement.setAttribute('data-theme', t);
+    const meta = document.querySelector('meta[name=theme-color]');
+    if(meta) meta.content = t === 'light' ? '#F2EFE9' : t === 'red' ? '#000000' : '#15120E';
+    document.querySelectorAll('[data-theme-set]').forEach(c=>{
+      const on = c.dataset.themeSet === p; c.classList.toggle('active', on); c.setAttribute('aria-checked', on ? 'true' : 'false'); c.setAttribute('role', 'radio');
+    });
+    const note = document.getElementById('themeNote'); if(note) note.textContent = themeNotes[p] || '';
+    // الخريطة داخل التطبيق تتبع المظهر نفسه (الأحمر يطبَّق فوقها من هنا).
+    const fr = document.getElementById('trackMapFrame');
+    try{ if(fr && fr.contentDocument && fr.contentDocument.documentElement) fr.contentDocument.documentElement.setAttribute('data-theme', t); }catch(e){}
+  }
+  document.querySelectorAll('[data-theme-set]').forEach(c=>c.addEventListener('click', ()=>{
+    try{ localStorage.setItem(THEME_KEY, c.dataset.themeSet); }catch(e){}
+    applyTheme();
+  }));
+  if(window.matchMedia){
+    const mq = matchMedia('(prefers-color-scheme: dark)');
+    const onChange = ()=>{ if(themePref() === 'auto') applyTheme(); };
+    if(mq.addEventListener) mq.addEventListener('change', onChange); else if(mq.addListener) mq.addListener(onChange);
+  }
+  document.getElementById('trackMapFrame').addEventListener('load', applyTheme);
+  applyTheme();
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
