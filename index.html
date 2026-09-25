@@ -550,6 +550,17 @@
   #screen-track .track-tools-toggle{position:static; box-shadow:none;}
   #screen-track .track-map-frame{height:calc(100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height:320px; border-radius:16px;}
   .perm-item{min-height:52px; font-size:14px;}
+  .trk-hint{font-size:12.5px; color:var(--text-dim); margin:10px 2px 0; line-height:1.7;}
+  .track-history-item{padding:12px 14px;}
+  .track-history-item.shown{border-color:var(--sand); box-shadow:0 0 0 1px var(--sand) inset;}
+  .th-top{gap:8px;}
+  .th-name{font-size:15px; font-weight:600;}
+  .th-badge{display:inline-block; font-size:11.5px; font-weight:600; color:var(--cp-green); background:var(--cp-green-bg); border-radius:100px; padding:1px 8px; margin-inline-start:4px;}
+  .th-rename{width:44px; height:44px; flex:0 0 auto;}
+  .th-stats{flex-wrap:wrap; gap:4px 14px; font-size:12.5px;}
+  .th-actions{grid-template-columns:1fr 1fr; gap:8px;}
+  .th-actions .btn{min-height:44px; padding:8px 6px; font-size:13px; gap:6px;}
+  .th-actions .cp-ic{width:18px; height:18px;}
   /* modal */
   .overlay{
     position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
@@ -720,7 +731,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-7" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-8" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -751,16 +762,17 @@
         📱 لتسجيل موثوق على iPhone أبقِ «دليل» ظاهرًا أثناء الحركة؛ سيحاول التطبيق منع نوم الشاشة ويحفظ نسخة استرداد تلقائيًا. الانتقال لتطبيق آخر يوقف GPS في تطبيقات الويب بأمر من iOS.
       </div>
       <div class="btn-row">
-        <button class="btn btn-primary" id="trackToggleBtn">▶ بدء تسجيل المسار</button>
+        <button class="btn btn-primary" id="trackToggleBtn">▶ بدء تسجيل مسار جديد</button>
       </div>
       <div class="btn-row">
         <button class="btn btn-sage" id="retraceBtn" disabled>↩ ارجع من نفس المسار</button>
-        <button class="btn btn-danger" id="clearTrackBtn" disabled>حذف المسار الحالي</button>
+        <button class="btn btn-ghost" id="clearTrackBtn" disabled>إخفاء المسار من الخريطة</button>
       </div>
 
-      <div class="section-title">جولات محفوظة</div>
+      <div class="trk-hint">يُحفظ المسار تلقائيًا في «المسارات المحفوظة» عند الضغط على «إيقاف وحفظ المسار».</div>
+      <div class="section-title">المسارات المحفوظة</div>
       <div class="btn-row" style="margin-bottom:10px;">
-        <button class="btn btn-primary" id="importGpxBtn">📥 استقبال مسار GPX</button>
+        <button class="btn btn-ghost" id="importGpxBtn">📥 استقبال مسار GPX</button>
         <input type="file" id="importGpxInput" accept=".gpx,application/gpx+xml,application/xml,text/xml" hidden>
       </div>
       <div id="trackHistory"></div>
@@ -2398,7 +2410,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-7&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-8&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3253,6 +3265,19 @@
     }catch(e){ return false; }
   }
 
+  // حالة أزرار المسار من مكان واحد: تسجيل / عرض مسار / لا شيء
+  function updateTrackButtons(){
+    const toggle = document.getElementById('trackToggleBtn');
+    const clear = document.getElementById('clearTrackBtn');
+    toggle.textContent = state.tracking ? '⏹ إيقاف وحفظ المسار' : '▶ بدء تسجيل مسار جديد';
+    toggle.classList.toggle('btn-danger', state.tracking);
+    toggle.classList.toggle('btn-primary', !state.tracking);
+    clear.textContent = state.tracking ? 'إلغاء التسجيل دون حفظ' : 'إخفاء المسار من الخريطة';
+    clear.classList.toggle('btn-danger', state.tracking);
+    clear.classList.toggle('btn-ghost', !state.tracking);
+    clear.disabled = !state.tracking && state.trackPoints.length === 0;
+    document.getElementById('retraceBtn').disabled = state.tracking || state.trackPoints.length < 2;
+  }
   document.getElementById('trackToggleBtn').addEventListener('click', ()=>{
     if(!state.tracking){
       if(!state.pos) return toast('بانتظار تحديد الموقع…');
@@ -3266,10 +3291,10 @@
         return toast('تعذّر بدء التسجيل لأن مساحة الحفظ ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
       }
       document.getElementById('trackGpsStatus').textContent = '🔴 التسجيل نشط — يتم الحفظ التلقائي على هذا الجهاز.';
-      document.getElementById('trackToggleBtn').textContent = '⏸ إيقاف التسجيل';
+      state.displayedTrackId = null;
       document.getElementById('recPill').style.display = 'flex';
-      document.getElementById('retraceBtn').disabled = true;
-      document.getElementById('clearTrackBtn').disabled = false;
+      updateTrackButtons();
+      renderTrackHistory();
       state.trackTimer = setInterval(updateTrackStats, 1000);
       requestTrackWakeLock();
       syncTrackMap();
@@ -3278,47 +3303,53 @@
       state.tracking = false;
       clearInterval(state.trackTimer);
       releaseTrackWakeLock();
-      document.getElementById('trackToggleBtn').textContent = '▶ بدء تسجيل المسار';
       document.getElementById('recPill').style.display = 'none';
       if(state.trackPoints.length > 1){
-        document.getElementById('retraceBtn').disabled = false;
         // auto-save to history
         const dist = trackDistance(state.trackPoints);
+        const newId = Date.now().toString(36);
+        state.displayedTrackId = newId;
         state.tracks.unshift({
-          id: Date.now().toString(36),
-          name: 'جولة ' + new Date().toLocaleDateString('ar-SA'),
+          id: newId,
+          name: 'مسار ' + new Date(state.trackStart || Date.now()).toLocaleString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short', hour:'numeric', minute:'2-digit'}),
           points: state.trackPoints,
           dist, duration: Date.now()-state.trackStart,
           createdAt: Date.now()
         });
         if(save()){
           localStorage.removeItem('dalil_track_draft');
-          document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ الجولة بنجاح في الجولات المحفوظة.';
+          document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ المسار في «المسارات المحفوظة» وهو معروض الآن على الخريطة.';
           renderTrackHistory();
-          toast('تم حفظ الجولة');
+          toast('تم حفظ المسار');
         }else{
-          document.getElementById('trackGpsStatus').textContent = '⚠️ لم تُحفظ الجولة نهائيًا؛ بقيت نسخة الاسترداد المؤقتة.';
+          document.getElementById('trackGpsStatus').textContent = '⚠️ لم يُحفظ المسار نهائيًا؛ بقيت نسخة الاسترداد المؤقتة.';
         }
+      }else{
+        document.getElementById('trackGpsStatus').textContent = 'لم يُسجَّل مسار كافٍ للحفظ (تحتاج نقطتين على الأقل).';
       }
+      updateTrackButtons();
       syncTrackMap();
     }
   });
 
   document.getElementById('clearTrackBtn').addEventListener('click', ()=>{
+    if(state.tracking && !confirm('إلغاء التسجيل الحالي دون حفظه؟')) return;
+    const wasRecording = state.tracking;
+    state.displayedTrackId = null;
     state.trackPoints = [];
     localStorage.removeItem('dalil_track_draft');
     document.getElementById('trackGpsStatus').textContent = 'حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.';
     state.tracking = false;
     clearInterval(state.trackTimer);
     releaseTrackWakeLock();
-    document.getElementById('trackToggleBtn').textContent = '▶ بدء تسجيل المسار';
     document.getElementById('recPill').style.display = 'none';
-    document.getElementById('retraceBtn').disabled = true;
-    document.getElementById('clearTrackBtn').disabled = true;
     stopRetrace();
     drawTrackSvg();
     updateTrackStats();
     syncTrackMap();
+    updateTrackButtons();
+    renderTrackHistory();
+    toast(wasRecording ? 'تم إلغاء التسجيل' : 'تم إخفاء المسار من الخريطة — ما زال محفوظًا');
   });
 
   function recordTrackPoint(){
@@ -3495,27 +3526,41 @@
   function renderTrackHistory(){
     const list = document.getElementById('trackHistory');
     if(state.tracks.length === 0){
-      list.innerHTML = `<div class="empty"><div class="big">🛣️</div><div class="t">لا توجد جولات محفوظة بعد.</div></div>`;
+      list.innerHTML = `<div class="pl-empty"><span class="cp-ic">${ico('map')}</span><b>لا توجد مسارات محفوظة بعد</b><span>اضغط «بدء تسجيل مسار جديد»، وعند الانتهاء «إيقاف وحفظ المسار».</span></div>`;
       return;
     }
     list.innerHTML = state.tracks.map(t=>{
       const km = (t.dist/1000).toFixed(2);
       const durMin = Math.round(t.duration/60000);
-      const date = new Date(t.createdAt).toLocaleDateString('ar-SA');
-      return `<div class="track-history-item">
-        <div class="th-top"><div class="th-name">${escapeHtml(t.name)}</div><div class="th-date">${date}</div></div>
-        <div class="th-stats"><span>📏 ${km} كم</span><span>⏱ ${durMin} د</span><span>📍 ${t.points.length} نقطة</span></div>
+      const date = new Date(t.createdAt).toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short', year:'numeric'});
+      const shown = state.displayedTrackId === t.id;
+      return `<div class="track-history-item${shown ? ' shown' : ''}">
+        <div class="th-top"><div class="th-name">${escapeHtml(t.name)}${shown ? ' <span class="th-badge">معروض</span>' : ''}</div>
+          <button type="button" class="cp-icon-btn th-rename" data-track-rename="${t.id}" aria-label="تعديل اسم ${escapeHtml(t.name)}">${icoSpan('edit')}</button></div>
+        <div class="th-stats"><span>${km} كم</span><span>${durMin} د</span><span>${t.points.length} نقطة</span><span>${date}</span></div>
         <div class="th-actions">
-          <button class="btn btn-ghost" data-track-view="${t.id}">🗺 عرض</button>
-          <button class="btn btn-sage" data-track-retrace="${t.id}">↩ عودة</button>
-          <button class="btn btn-ghost" data-track-gpx="${t.id}">📤 GPX</button>
-          <button class="btn btn-danger" data-track-delete="${t.id}">🗑 حذف</button>
+          <button class="btn ${shown ? 'btn-ghost' : 'btn-primary'}" data-track-view="${t.id}">${icoSpan('map')}${shown ? 'إخفاء' : 'عرض'}</button>
+          <button class="btn btn-ghost" data-track-retrace="${t.id}">${icoSpan('nav')}العودة منه</button>
+          <button class="btn btn-ghost" data-track-gpx="${t.id}">${icoSpan('send')}مشاركة GPX</button>
+          <button class="btn btn-danger" data-track-delete="${t.id}">${icoSpan('trash')}حذف</button>
         </div>
       </div>`;
     }).join('');
     list.querySelectorAll('[data-track-view]').forEach(btn=>btn.addEventListener('click', ()=>{
       const track = state.tracks.find(t=>t.id===btn.dataset.trackView);
-      if(track) loadSavedTrack(track);
+      if(!track) return;
+      if(state.displayedTrackId === track.id) document.getElementById('clearTrackBtn').click();
+      else loadSavedTrack(track);
+    }));
+    list.querySelectorAll('[data-track-rename]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackRename);
+      if(!track) return;
+      const name = prompt('اسم المسار:', track.name);
+      if(name === null || !name.trim()) return;
+      track.name = name.trim().slice(0, 60);
+      save();
+      renderTrackHistory();
+      toast('تم تعديل اسم المسار');
     }));
     list.querySelectorAll('[data-track-retrace]').forEach(btn=>btn.addEventListener('click', ()=>{
       const track = state.tracks.find(t=>t.id===btn.dataset.trackRetrace);
@@ -3529,11 +3574,12 @@
     }));
     list.querySelectorAll('[data-track-delete]').forEach(btn=>btn.addEventListener('click', ()=>{
       const track = state.tracks.find(t=>t.id===btn.dataset.trackDelete);
-      if(!track || !confirm(`حذف «${track.name}» من الجولات المحفوظة؟`)) return;
+      if(!track || !confirm(`حذف «${track.name}» نهائيًا من المسارات المحفوظة؟`)) return;
       state.tracks = state.tracks.filter(t=>t.id!==track.id);
       save();
+      if(state.displayedTrackId === track.id && !state.tracking) document.getElementById('clearTrackBtn').click();
       renderTrackHistory();
-      toast('تم حذف الجولة');
+      toast('تم حذف المسار');
     }));
   }
 
@@ -3553,9 +3599,10 @@
     document.getElementById('trkTime').textContent = fmtDuration(Number(track.duration) || 0);
     document.getElementById('trkAvg').textContent = track.duration ? (((Number(track.dist) || 0)/1000)/(track.duration/3600000)).toFixed(1) : '0.0';
     document.getElementById('trkPts').textContent = state.trackPoints.length;
-    document.getElementById('trackGpsStatus').textContent = `🗺 عرض المسار المحفوظ: ${track.name}`;
-    document.getElementById('retraceBtn').disabled = false;
-    document.getElementById('clearTrackBtn').disabled = false;
+    document.getElementById('trackGpsStatus').textContent = `🗺 معروض على الخريطة: ${track.name}`;
+    state.displayedTrackId = track.id;
+    updateTrackButtons();
+    renderTrackHistory();
     drawTrackSvg();
     syncTrackMap();
     toast('تم عرض المسار على الخريطة');
@@ -3736,6 +3783,7 @@
   renderTrackHistory();
   updateTrackStats();
   recoverTrackDraft();
+  updateTrackButtons();
   updateDiagnostics();
   window.setInterval(()=>{
     if(document.getElementById('screen-settings').classList.contains('active')) updateDiagnostics();
