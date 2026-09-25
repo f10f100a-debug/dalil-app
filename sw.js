@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v6';
+const SHELL_CACHE='dalil-shell-v7';
 const MAP_CACHE='dalil-map-tiles-v1';
 const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./events.js?v=2'];
 
