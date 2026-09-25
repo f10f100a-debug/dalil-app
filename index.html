@@ -356,6 +356,7 @@
   .cp-calib{display:flex; align-items:center; justify-content:center; gap:6px; margin:10px auto 0; padding:6px 12px; width:max-content; max-width:100%;
     border-radius:100px; background:#FBF3E6; color:var(--cp-gold-ink); font-size:12px; font-weight:600;}
   .cp-calib[hidden]{display:none;}
+  .cp-source{background:#E3F1E7; color:#2F7A4B;}
   .cp-calib .cp-ic{width:16px; height:16px;}
 
   /* الأزرار */
@@ -660,6 +661,7 @@
           </div>
         </div>
         <div class="cp-calib" id="cpCalib" hidden><span class="cp-ic" data-ico="calib"></span>حرّك جوالك على شكل 8 للمعايرة</div>
+        <div class="cp-calib cp-source" id="cpSource" hidden><span class="cp-ic" data-ico="car"></span>أثناء القيادة: يتبع اتجاه السيارة (GPS)</div>
       </div>
 
       <div class="cp-card cp-car" id="carCard"></div>
@@ -710,7 +712,7 @@
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260925-5" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1103,6 +1105,12 @@
   let lastPositionError = '';
   const GPS_COURSE_MIN_KMH = 5;
   let gpsCourseAt = 0;
+  // دمج المصدرين أثناء القيادة: GPS مرجع الاتجاه الصحيح (مرة كل ثانية تقريبًا)،
+  // والمستشعر يعطي التغيّر اللحظي بينهما. تشويش هيكل السيارة شبه ثابت، فالفرق
+  // بين القراءتين (gpsOffset) يُصحّحه.
+  let gpsOffset = null, lastCompassRaw = null, lastCompassAt = 0;
+  const angleDiff = (a, b)=>((a - b + 540) % 360) - 180;
+  const norm360 = a=>((a % 360) + 360) % 360;
   function gpsCourseActive(){
     const kmh = state.pos && Number.isFinite(state.pos.speed) ? state.pos.speed*3.6 : 0;
     return Date.now() - gpsCourseAt < 4000 && kmh > GPS_COURSE_MIN_KMH;
@@ -1251,7 +1259,7 @@
     document.getElementById('diagSecure').textContent=window.isSecureContext?'✅ HTTPS':'❌ غير آمن';
     const accuracy=state.pos?.accuracy!=null?' — دقة ±'+Math.round(state.pos.accuracy)+'م':'';
     document.getElementById('diagGps').textContent=state.pos?'✅ يعمل '+ageText(lastPositionAt)+accuracy:(lastPositionError||'⏳ لم تصل إشارة بعد');
-    const source=state.headingSource==='compass'?'مستشعر الجهاز':state.headingSource==='gps'?'اتجاه الحركة GPS':'';
+    const source=state.headingSource==='compass'?'مستشعر الجهاز':state.headingSource==='gps'?'اتجاه الحركة GPS':state.headingSource==='fused'?'GPS مع المستشعر (أثناء القيادة)':'';
     document.getElementById('diagCompass').textContent=state.heading!==null?'✅ يعمل '+ageText(lastHeadingAt)+(source?' — '+source:''):(compassStarted?'⏳ بانتظار بيانات الاتجاه':'⚠️ غير مشغّل');
     document.getElementById('diagOnline').textContent=navigator.onLine?'✅ متصل':'⚠️ أوفلاين';
   }
@@ -1502,8 +1510,17 @@
     const hasCourse = typeof gpsCourse === 'number' && Number.isFinite(gpsCourse) && gpsCourse >= 0;
     if(hasCourse && Number.isFinite(gpsSpeed) && gpsSpeed*3.6 > GPS_COURSE_MIN_KMH){
       gpsCourseAt = Date.now();
-      state.heading = gpsCourse;
-      state.headingSource = 'gps';
+      if(lastCompassRaw !== null && Date.now() - lastCompassAt < 2000){
+        const measured = angleDiff(gpsCourse, lastCompassRaw);
+        gpsOffset = gpsOffset === null || Math.abs(angleDiff(measured, gpsOffset)) > 45
+          ? measured
+          : norm360(gpsOffset + 0.35 * angleDiff(measured, gpsOffset));
+        state.heading = norm360(lastCompassRaw + gpsOffset);
+        state.headingSource = 'fused';
+      }else{
+        state.heading = gpsCourse;
+        state.headingSource = 'gps';
+      }
       lastHeadingAt = Date.now();
     }else if(hasCourse && (gpsSpeed||0) > 0.6 && state.headingSource !== 'compass'){
       state.heading = gpsCourse;
@@ -1539,6 +1556,7 @@
     if(compassStarted) return;
     compassStarted = true;
     let gotEvent = false;
+    let compassSeenOnce = false;
     function handleOrientation(e){
       const now = performance.now();
       if(e.type === 'deviceorientationabsolute') lastAbsoluteOrientationAt = now;
@@ -1553,20 +1571,29 @@
       }
       if(h !== null){
         gotEvent = true;
-        trackCompassStability((h+360)%360, e.webkitCompassAccuracy);
+        const raw = norm360(h);
+        lastCompassRaw = raw; lastCompassAt = Date.now();
+        lastHeadingAt = Date.now();
         if(gpsCourseActive()){
-          // أثناء الحركة السريعة نعتمد اتجاه GPS ونتجاهل المستشعر مؤقتًا.
-          document.getElementById('permCompass').textContent = '✅ مفعّل';
+          // أثناء القيادة: اتجاه GPS + التغيّر اللحظي من المستشعر.
+          if(gpsOffset !== null){
+            state.heading = smoothHeading(state.headingSource === 'fused' ? state.heading : null, norm360(raw + gpsOffset));
+            state.headingSource = 'fused';
+            renderCompassScreen();
+          }
           return;
         }
-        lastHeadingAt=Date.now();
-        state.heading = smoothHeading(state.headingSource === 'compass' ? state.heading : null, (h+360)%360);
+        gpsOffset = null;
+        trackCompassStability(raw, e.webkitCompassAccuracy);
+        state.heading = smoothHeading(state.headingSource === 'compass' ? state.heading : null, raw);
         state.headingSource = 'compass';
-        document.getElementById('permCompass').textContent = '✅ مفعّل';
-        document.getElementById('diagBanner').style.display = 'none';
+        if(!compassSeenOnce){
+          compassSeenOnce = true;
+          document.getElementById('permCompass').textContent = '✅ مفعّل';
+          document.getElementById('diagBanner').style.display = 'none';
+          updateNavActivation();
+        }
         renderCompassScreen();
-        updateNavActivation();
-        updateDiagnostics();
       }
     }
     compassOrientationHandler = handleOrientation;
@@ -1838,6 +1865,10 @@
     if(pos && Number.isFinite(pos.alt)) meta.push('الارتفاع ' + iso(Math.round(pos.alt)) + ' م');
     if(pos && Number.isFinite(pos.speed) && pos.speed >= 0) meta.push('السرعة ' + iso(Math.round(pos.speed*3.6)) + ' كم/س');
     setText('cpLocMeta', meta.join('  ·  '));
+    const driving = gpsCourseActive();
+    const sourceEl = document.getElementById('cpSource');
+    if(sourceEl.hidden === driving) sourceEl.hidden = !driving;
+    if(driving && !calibEl.hidden) calibEl.hidden = true; // تنبيه المعايرة لا يعني شيئًا داخل السيارة
     updateGpsBadge();
 
     // القرص يدور والأحرف تبقى معتدلة
@@ -2315,7 +2346,7 @@
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260925-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260925-5&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
