@@ -25,7 +25,7 @@
   const lsGet = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
 
-  const st = {events:[], loadedAt:0, loading:null, error:'', filter:'all', draft:null, sending:false, reported:new Set(), pendingOpen:null};
+  const st = {photoGps:null, events:[], loadedAt:0, loading:null, error:'', filter:'all', draft:null, sending:false, reported:new Set(), pendingOpen:null};
   const $ = id=>document.getElementById(id);
 
   function deviceId(){
@@ -145,15 +145,16 @@
   // ---------- إضافة حدث ----------
   function openComposer(){
     const s = $('evSheet');
-    st.draft = null;
+    st.draft = null; st.photoGps = null;
     $('evPhotoPreview').innerHTML = `<span class="cp-ic">${ico('camera')}</span><b>اختر صورة أو التقطها</b><small>تُصغَّر تلقائيًا قبل الرفع</small>`;
     $('evPhotoPreview').classList.remove('has');
     $('evCaption').value = '';
     $('evNick').value = lsGet(LS.nick) || '';
     $('evKinds').innerHTML = KINDS.map(k=>`<button type="button" class="chip" data-ev-kind="${k.id}">${esc(k.name)}</button>`).join('');
     const pos = B.getPos();
-    $('evLocRow').hidden = !pos;
-    $('evAttachLoc').checked = !!pos;
+    // لا نُرفق أي موقع افتراضيًا: يُحدَّد بعد قراءة وقت التصوير من الصورة نفسها.
+    $('evLocRow').hidden = true;
+    $('evAttachLoc').checked = false;
     $('evRegion').innerHTML = '<option value="">اختر المنطقة</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
     if(pos) B.nearestRegion(pos.lat, pos.lng).then(r=>{ if(r && !$('evRegion').value) $('evRegion').value = r; });
     setStatus('');
@@ -185,11 +186,70 @@
     // إعادة الرسم على لوحة جديدة تحذف بيانات EXIF (الموقع الدقيق ونوع الجهاز) من الملف.
     return new Promise(res=>c.toBlob(b=>res({blob:b, w, h}), 'image/jpeg', q));
   }
+  // قراءة وقت التصوير وموقعه (إن وُجد) من بيانات EXIF للصورة الأصلية، قبل حذفها.
+  async function readExif(file){
+    try{
+      const buf = new DataView(await file.slice(0, 256 * 1024).arrayBuffer());
+      if(buf.getUint16(0) !== 0xFFD8) return {};
+      let off = 2;
+      while(off + 4 < buf.byteLength){
+        const marker = buf.getUint16(off), len = buf.getUint16(off + 2);
+        if(marker === 0xFFE1 && buf.getUint32(off + 4) === 0x45786966){ // "Exif"
+          const t = off + 10, le = buf.getUint16(t) === 0x4949;
+          const u16 = o=>buf.getUint16(t + o, le), u32 = o=>buf.getUint32(t + o, le);
+          const ifd = o=>{ const n = u16(o), m = {}; for(let i = 0; i < n; i++){ const e = o + 2 + i * 12; m[u16(e)] = {type:u16(e + 2), count:u32(e + 4), val:e + 8}; } return m; };
+          const str = en=>{ const p = en.count > 4 ? u32(en.val) : en.val; let r = ''; for(let i = 0; i < en.count - 1; i++) r += String.fromCharCode(buf.getUint8(t + p + i)); return r; };
+          const rats = en=>{ const p = u32(en.val), a = []; for(let i = 0; i < en.count; i++) a.push(u32(p + i * 8) / (u32(p + i * 8 + 4) || 1)); return a; };
+          const out = {};
+          const ifd0 = ifd(u32(4));
+          if(ifd0[0x8769]){
+            const ex = ifd(u32(ifd0[0x8769].val));
+            const dt = ex[0x9003] || ex[0x9004];
+            if(dt){ const m = str(dt).match(/^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/); if(m) out.taken = new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime(); }
+          }
+          if(ifd0[0x8825]){
+            const g = ifd(u32(ifd0[0x8825].val));
+            if(g[2] && g[4]){
+              const dms = a=>a[0] + a[1] / 60 + a[2] / 3600;
+              let lat = dms(rats(g[2])), lng = dms(rats(g[4]));
+              if(g[1] && str(g[1]) === 'S') lat = -lat;
+              if(g[3] && str(g[3]) === 'W') lng = -lng;
+              if(Number.isFinite(lat) && Number.isFinite(lng) && (lat || lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) out.gps = {lat, lng};
+            }
+          }
+          return out;
+        }
+        if(marker === 0xFFDA || (marker & 0xFF00) !== 0xFF00) break;
+        off += 2 + len;
+      }
+    }catch(e){}
+    return {};
+  }
+  // يحدد موقع الحدث: موقع التصوير المخزّن في الصورة، أو موقعك الآن إن كانت الصورة ملتقطة للتو فقط.
+  function decideLocation(exif){
+    const pos = B.getPos(), row = $('evLocRow'), box = $('evAttachLoc'), txt = $('evLocText');
+    const fresh = exif.taken && Math.abs(Date.now() - exif.taken) < 30 * 60e3;
+    st.photoGps = exif.gps || null;
+    if(exif.gps){
+      row.hidden = false; box.checked = true;
+      txt.textContent = 'إرفاق موقع التصوير المحفوظ في الصورة ليتمكن الآخرون من التوجّه إليه';
+    }else if(pos){
+      row.hidden = false; box.checked = !!fresh;
+      txt.textContent = fresh
+        ? 'التُقطت الآن — إرفاق موقعي الحالي ليتمكن الآخرون من التوجّه إليه'
+        : 'الصورة من مكاني الحالي (فعّلها فقط إذا كنت في مكان الحدث الآن)';
+    }else{
+      row.hidden = true; box.checked = false;
+    }
+    const g = st.photoGps || pos;
+    if(g) B.nearestRegion(g.lat, g.lng).then(r=>{ if(r) $('evRegion').value = r; });
+  }
   async function preparePhoto(file){
     if(!file) return;
     if(!/^image\//.test(file.type || 'image/')){ setStatus('الملف ليس صورة', true); return; }
     setStatus('جارٍ تجهيز الصورة…');
     try{
+      const exif = await readExif(file);
       const {img, url} = await loadImage(file);
       let full = await toJpeg(img, 1280, 0.72);
       if(full.blob && full.blob.size > 850 * 1024) full = await toJpeg(img, 1080, 0.6);
@@ -201,6 +261,7 @@
       const p = $('evPhotoPreview');
       p.classList.add('has');
       p.innerHTML = `<img src="${st.draft.url}" alt="معاينة الصورة"><small>${Math.round(full.blob.size / 1024)} ك.ب · اضغط لتغييرها</small>`;
+      decideLocation(exif);
       setStatus(selectedKind() ? '' : 'اختر نوع الحدث');
     }catch(e){
       st.draft = null;
@@ -222,7 +283,8 @@
     fd.append('nickname', nick);
     fd.append('device', deviceId());
     fd.append('w', String(st.draft.w)); fd.append('h', String(st.draft.h));
-    if(pos && $('evAttachLoc').checked){ fd.append('lat', String(pos.lat)); fd.append('lng', String(pos.lng)); }
+    const loc = st.photoGps || pos;
+    if(loc && $('evAttachLoc').checked && !$('evLocRow').hidden){ fd.append('lat', String(loc.lat)); fd.append('lng', String(loc.lng)); }
     st.sending = true; updateSendBtn(); setStatus('جارٍ الرفع…');
     try{
       const r = await fetch(FN + 'dalil-public?a=submit', {method:'POST', body:fd});
