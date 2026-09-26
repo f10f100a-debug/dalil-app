@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v12';
+const SHELL_CACHE='dalil-shell-v13';
 const MAP_CACHE='dalil-map-tiles-v1';
 const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./events.js?v=3','./data/region-grid.json?v=1'];
 
@@ -16,6 +16,8 @@ self.addEventListener('fetch',event=>{
   if(request.method!=='GET') return;
   const url=new URL(request.url);
   if(url.origin!==self.location.origin) return;
+  // الفيديو يُطلب بأجزاء (Range)؛ نتركه للمتصفح مباشرة حتى يعمل على Safari.
+  if(url.pathname.endsWith('.mp4')) return;
 
   if(request.mode==='navigate'){
     event.respondWith(fetch(request).then(response=>{
