@@ -628,7 +628,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   /* ===== الأجواء: الطقس | الأحداث ===== */
-  .seg{display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; margin-bottom:12px; background:#E9E3D8; border-radius:16px;}
+  .seg{display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; padding:4px; margin-bottom:12px; background:#E9E3D8; border-radius:16px;}
   .seg-b{position:relative; min-height:44px; display:flex; align-items:center; justify-content:center; gap:6px; border:0; border-radius:12px; background:none;
     font-family:inherit; font-size:14.5px; font-weight:600; color:var(--cp-dim); cursor:pointer;}
   .seg-b .cp-ic{width:19px; height:19px;}
@@ -762,6 +762,42 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ad-img + .ad-txt b{padding-left:0;}
   .ad-txt span{display:block; font-size:13.5px; color:var(--text-dim); margin-top:2px; line-height:1.6;}
   .ad-go{min-height:44px;}
+
+  /* ===== الرياح ===== */
+  #windPane[hidden]{display:none;}
+  .wd-head{display:flex; align-items:center; gap:10px; padding:10px 12px;}
+  .wd-loc{flex:1; min-width:0; display:flex; align-items:center; gap:6px;}
+  .wd-loc .cp-ic{color:var(--cp-gold-ink); width:20px; height:20px;}
+  .wd-loc select{flex:1; min-width:0; min-height:44px; border:1px solid var(--line); border-radius:12px; background:var(--panel-2); color:var(--text); font:inherit; font-size:14.5px; padding:0 10px;}
+  .wd-upd{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim); white-space:nowrap;}
+  .wd-best{display:flex; gap:10px; align-items:flex-start; background:var(--cp-green-bg); color:var(--cp-green); border-radius:18px; padding:12px 14px; margin-bottom:12px; font-size:14px; line-height:1.7;}
+  .wd-best.warn{background:var(--cp-red-bg); color:var(--cp-red);}
+  .wd-best b{font-weight:700;}
+  .wd-day{background:var(--panel); border:1px solid var(--line); border-radius:18px; margin-bottom:8px; overflow:hidden;}
+  .wd-row{width:100%; display:grid; grid-template-columns:62px 1fr auto; align-items:center; gap:10px; padding:10px 12px; border:0; background:none; color:var(--text); font:inherit; text-align:right; cursor:pointer; min-height:60px;}
+  .wd-name b{display:block; font-size:14.5px; font-weight:700;} .wd-name small{font-size:11.5px; color:var(--text-dim);}
+  .wd-mid{min-width:0;}
+  .wd-bar{height:8px; border-radius:6px; background:var(--panel-2); overflow:hidden;}
+  .wd-bar i{display:block; height:100%; border-radius:6px;}
+  .wd-meta{display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:5px; font-size:12.5px; color:var(--text-dim);}
+  .wd-meta b{color:var(--text); font-variant-numeric:tabular-nums;}
+  .wd-side{display:flex; flex-direction:column; align-items:center; gap:2px; min-width:64px;}
+  .wd-side small{font-size:11.5px; color:var(--text-dim); white-space:nowrap;}
+  .wd-arrow{width:26px; height:26px; color:var(--cp-gold-ink);}
+  .wd-tag{font-size:11px; font-weight:700; border-radius:100px; padding:1px 8px;}
+  .wd-hours{display:flex; gap:4px; overflow-x:auto; padding:4px 10px 12px; scroll-snap-type:x proximity; direction:rtl;}
+  .wd-hours[hidden]{display:none;}
+  .wd-h{flex:0 0 52px; scroll-snap-align:start; text-align:center; border-radius:12px; padding:6px 2px; background:var(--panel-2); font-size:11.5px;}
+  .wd-h.now{outline:2px solid var(--cp-gold);}
+  .wd-h .t{color:var(--text-dim);} .wd-h svg{width:22px; height:22px; margin:3px auto; display:block; color:var(--text);}
+  .wd-h .v{display:block; font-size:14px; font-weight:700; border-radius:8px; margin:2px 3px; padding:1px 0; font-variant-numeric:tabular-nums;}
+  .wd-h .g{color:var(--text-dim); font-variant-numeric:tabular-nums;}
+  .wd-c0{background:#DDF0E2; color:#1F5E36;} .wd-c1{background:#F7EBC9; color:#6B4E08;} .wd-c2{background:#F8D9BE; color:#8A3E0A;} .wd-c3{background:#F4C7C1; color:#8E1E17;}
+  .wd-bar i.wd-c0{background:#5DB27A;} .wd-bar i.wd-c1{background:#E0B84A;} .wd-bar i.wd-c2{background:#E5873F;} .wd-bar i.wd-c3{background:#D0493A;}
+  .wd-legend{display:flex; flex-wrap:wrap; gap:6px; font-size:11.5px; margin:10px 2px 0;}
+  .wd-legend span{border-radius:100px; padding:2px 9px;}
+  .wd-legend span:last-child{color:var(--text-dim);}
+  .wd-empty{text-align:center; color:var(--text-dim); padding:24px 12px; font-size:14px;}
 </style>
 </head>
 <body class="on-compass">
@@ -928,6 +964,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-weather">
       <div class="seg" role="tablist" aria-label="الأجواء">
         <button type="button" class="seg-b active" role="tab" aria-selected="true" data-wxpane="wx"><span class="cp-ic" data-ico="partly"></span>الطقس</button>
+        <button type="button" class="seg-b" role="tab" aria-selected="false" data-wxpane="wind"><span class="cp-ic" data-ico="wind"></span>الرياح</button>
         <button type="button" class="seg-b" role="tab" aria-selected="false" data-wxpane="ev"><span class="cp-ic" data-ico="camera"></span>الأحداث<span class="seg-dot" hidden></span></button>
       </div>
       <div id="wxPane">
@@ -965,6 +1002,17 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button class="wx-link" type="button" id="allRadarToolsBtn"><span class="cp-ic" data-ico="map"></span><span><b>النماذج الجوية</b><small>البريطاني والأمريكي والأسترالي والهندي</small></span><span class="cp-ic wx-ext" data-ico="more"></span></button>
       </div>
       <div class="weather-source-note">بيانات الطقس من Open-Meteo. تحذيرات السلامة الرسمية مرجعها المركز الوطني للأرصاد.</div>
+      </div>
+      <div id="windPane" hidden>
+        <div class="cp-card wd-head">
+          <label class="wd-loc"><span class="cp-ic" data-ico="pin"></span><select id="windLoc" aria-label="مكان توقعات الرياح"></select></label>
+          <div class="wd-upd"><span id="windUpdated">—</span>
+            <button class="cp-icon-btn" type="button" id="windRefresh" aria-label="تحديث الرياح"><span class="cp-ic" data-ico="refresh"></span></button></div>
+        </div>
+        <div id="windBest" hidden></div>
+        <div class="wd-week" id="windWeek"></div>
+        <div class="wd-legend"><span class="wd-c0">هادئة &lt;20</span><span class="wd-c1">معتدلة 20–35</span><span class="wd-c2">قوية 35–50</span><span class="wd-c3">خطرة &gt;50</span><span>كم/س</span></div>
+        <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة التي تهبّ منها الرياح، والسهم يشير لوجهتها.</div>
       </div>
       <div id="evPane" hidden></div>
     </section>
@@ -4018,7 +4066,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     document.getElementById('wxPane').hidden = which !== 'wx';
+    document.getElementById('windPane').hidden = which !== 'wind';
     document.getElementById('evPane').hidden = which !== 'ev';
+    if(which === 'wind') showWind();
     if(which === 'ev'){
       const pane = document.getElementById('evPane');
       if(!window.DalilEvents) pane.innerHTML = '<div class="pl-note" style="text-align:center">جارٍ تحميل الأحداث…</div>';
@@ -4029,7 +4079,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   document.querySelectorAll('.seg-b').forEach(b=>b.addEventListener('click', ()=>showWxPane(b.dataset.wxpane)));
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{
-    if(tab.dataset.screen === 'weather'){ if(wxPaneShown === 'ev') showWxPane('ev'); }
+    if(tab.dataset.screen === 'weather'){ if(wxPaneShown !== 'wx') showWxPane(wxPaneShown); }
     else if(window.DalilEvents) window.DalilEvents.hide();
     if(tab.dataset.screen === 'settings') loadEvents().then(m=>m.settings()).catch(()=>{
       document.getElementById('pushStatus').textContent = 'التنبيهات تحتاج اتصالًا بالإنترنت لتفعيلها.';
@@ -4157,6 +4207,134 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(url.startsWith('tel:')) window.location.href = url; else window.open(url, '_blank', 'noopener');
   });
   function refreshAds(){ refreshMyRegion().then(loadAds).then(list=>{ if(list.length && document.getElementById('screen-places').classList.contains('active')) renderPlaces(); }).catch(()=>{}); }
+
+
+  // ---------- الرياح: 7 أيام بالساعة ----------
+  const WIND_CACHE_KEY = 'dalil_wind_cache';
+  const WIND_DIRS = ['شمالية','شمالية شرقية','شرقية','جنوبية شرقية','جنوبية','جنوبية غربية','غربية','شمالية غربية'];
+  const windDirName = d=>WIND_DIRS[Math.round(((d % 360) + 360) % 360 / 45) % 8];
+  const windClass = v=>v < 20 ? 'wd-c0' : v < 35 ? 'wd-c1' : v < 50 ? 'wd-c2' : 'wd-c3';
+  const windArrow = d=>`<svg class="wd-arrow" viewBox="0 0 24 24" style="transform:rotate(${Math.round(d + 180)}deg)" aria-hidden="true"><path d="M12 3 18 19 12 15 6 19Z" fill="currentColor"/></svg>`;
+  let windLoaded = null, windLoading = false, windOpenDay = -1;
+  function windPlaces(){
+    const out = [{key:'here', name:'موقعي الحالي'}];
+    const car = getCar(); if(car) out.push({key:'car', name:'السيارة', lat:car.lat, lng:car.lng});
+    state.places.slice(0, 60).forEach(p=>{ if(validLatLng(Number(p.lat), Number(p.lng))) out.push({key:'p:' + p.id, name:p.name, lat:Number(p.lat), lng:Number(p.lng)}); });
+    return out;
+  }
+  function fillWindLoc(){
+    const sel = document.getElementById('windLoc'), cur = sel.value || 'here';
+    const list = windPlaces();
+    sel.innerHTML = list.map(p=>`<option value="${escapeHtml(p.key)}">${escapeHtml(p.name)}</option>`).join('');
+    sel.value = list.some(p=>p.key === cur) ? cur : 'here';
+  }
+  function windPoint(){
+    const key = document.getElementById('windLoc').value || 'here';
+    if(key === 'here') return state.pos ? {lat:state.pos.lat, lng:state.pos.lng, name:'موقعي الحالي'} : null;
+    return windPlaces().find(p=>p.key === key) || null;
+  }
+  function windCacheRead(){ return readStoredJson(WIND_CACHE_KEY, {}) || {}; }
+  const windKey = pt=>pt.lat.toFixed(2) + ',' + pt.lng.toFixed(2);
+  async function loadWind(force){
+    const pt = windPoint();
+    const week = document.getElementById('windWeek');
+    if(!pt){ week.innerHTML = '<div class="wd-empty">فعّل الموقع أو اختر مكانًا محفوظًا لعرض توقعات الرياح.</div>'; setText('windUpdated', '—'); return; }
+    const cache = windCacheRead(), key = windKey(pt), hit = cache[key];
+    if(hit && (!force && Date.now() - hit.at < 30 * 60e3)){ renderWind(hit, false); return; }
+    if(hit) renderWind(hit, true);
+    if(windLoading) return; windLoading = true;
+    setText('windUpdated', 'جارٍ التحديث…');
+    try{
+      const qs = new URLSearchParams({latitude:pt.lat, longitude:pt.lng, hourly:'wind_speed_10m,wind_gusts_10m,wind_direction_10m',
+        daily:'wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunrise,sunset', timezone:'auto', forecast_days:'7', wind_speed_unit:'kmh'});
+      const dq = new URLSearchParams({latitude:pt.lat, longitude:pt.lng, hourly:'dust', timezone:'auto', forecast_days:'5'});
+      const [r, dr] = await Promise.all([fetch('https://api.open-meteo.com/v1/forecast?' + qs), fetch('https://air-quality-api.open-meteo.com/v1/air-quality?' + dq).catch(()=>null)]);
+      if(!r.ok) throw new Error('wind ' + r.status);
+      const data = await r.json();
+      let dust = null; try{ if(dr && dr.ok) dust = (await dr.json()).hourly || null; }catch(e){}
+      const bundle = {at:Date.now(), data, dust};
+      const c = windCacheRead(); c[key] = bundle;
+      const keys = Object.keys(c).sort((a, b)=>c[b].at - c[a].at).slice(0, 6);
+      try{ localStorage.setItem(WIND_CACHE_KEY, JSON.stringify(Object.fromEntries(keys.map(k=>[k, c[k]])))); }catch(e){}
+      if(windPoint() && windKey(windPoint()) === key) renderWind(bundle, false);
+    }catch(e){
+      if(!hit){ week.innerHTML = '<div class="wd-empty">تعذّر تحميل الرياح. تحقق من الإنترنت ثم اضغط زر التحديث.</div>'; setText('windUpdated', 'غير متاح'); }
+      else setText('windUpdated', 'بدون اتصال — بيانات محفوظة');
+    }finally{ windLoading = false; }
+  }
+  function windDays(bundle){
+    const h = bundle.data.hourly, d = bundle.data.daily, days = [];
+    const dustBy = {};
+    if(bundle.dust && bundle.dust.time) bundle.dust.time.forEach((t, i)=>{ const k = t.slice(0, 10), v = bundle.dust.dust[i]; if(Number.isFinite(v)) dustBy[k] = Math.max(dustBy[k] || 0, v); });
+    d.time.forEach((day, di)=>{
+      const hours = [];
+      h.time.forEach((t, i)=>{ if(t.startsWith(day)) hours.push({t, hour:+t.slice(11, 13), v:h.wind_speed_10m[i], g:h.wind_gusts_10m[i], dir:h.wind_direction_10m[i]}); });
+      days.push({day, max:d.wind_speed_10m_max[di], gmax:d.wind_gusts_10m_max[di], dir:d.wind_direction_10m_dominant[di], dust:dustBy[day], hours});
+    });
+    return days;
+  }
+  function dayLabel(iso, i){
+    if(i === 0) return 'اليوم'; if(i === 1) return 'غدًا';
+    return new Date(iso + 'T12:00:00').toLocaleDateString('ar-SA-u-nu-latn', {weekday:'long'});
+  }
+  const hourLabel = h=>h === 0 ? '12 ص' : h < 12 ? h + ' ص' : h === 12 ? '12 م' : (h - 12) + ' م';
+  function bestWindow(days){
+    // أطول فترة نهارية (5 ص – 8 م) رياحها أقل من 20 وهبّاتها أقل من 30، بدءًا من الآن.
+    const nowIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 13);
+    let best = null;
+    days.forEach((d, di)=>{
+      let run = null;
+      const close = ()=>{ if(run && (!best || run.len > best.len)) best = run; run = null; };
+      d.hours.forEach(x=>{
+        const ok = x.hour >= 5 && x.hour <= 20 && x.v < 20 && x.g < 30 && x.t.slice(0, 13) >= nowIso;
+        if(ok){ if(!run) run = {di, from:x.hour, to:x.hour, len:0}; run.to = x.hour; run.len++; } else close();
+      });
+      close();
+    });
+    return best && best.len >= 3 ? best : null;
+  }
+  function renderWind(bundle, stale){
+    const days = windDays(bundle);
+    const at = new Date(bundle.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    setText('windUpdated', (stale ? 'محفوظ ' : 'حُدّث ') + at);
+    const best = bestWindow(days), bestEl = document.getElementById('windBest');
+    const worst = days.slice(0, 3).reduce((m, d, i)=>Math.max(d.gmax, d.max * 1.2) > (m ? Math.max(m.d.gmax, m.d.max * 1.2) : 0) ? {d, i} : m, null);
+    const msgs = [];
+    if(worst && (worst.d.max >= 40 || worst.d.gmax >= 55)){
+      msgs.push(`<div class="wd-best warn">${icoSpan('wind')}<span><b>تنبيه ${escapeHtml(dayLabel(worst.d.day, worst.i))}:</b> رياح حتى ${iso(Math.round(worst.d.max))} كم/س وهبّات ${iso(Math.round(worst.d.gmax))} — ثبّت الخيام وتجنّب القيادة في الغبار.</span></div>`);
+    }
+    if(best){
+      msgs.push(`<div class="wd-best">${icoSpan('check')}<span><b>أهدأ فترة:</b> ${escapeHtml(dayLabel(days[best.di].day, best.di))} من ${escapeHtml(hourLabel(best.from))} إلى ${escapeHtml(hourLabel(best.to + 1))} — رياح أقل من ${iso(20)} كم/س.</span></div>`);
+    }
+    bestEl.innerHTML = msgs.join(''); bestEl.hidden = !msgs.length;
+    const nowH = new Date().getHours();
+    document.getElementById('windWeek').innerHTML = days.map((d, i)=>{
+      const pct = Math.min(100, Math.round(d.max / 60 * 100));
+      const tag = d.max >= 50 || d.gmax >= 65 ? '<span class="wd-tag wd-c3">خطرة</span>' : d.max >= 35 ? '<span class="wd-tag wd-c2">قوية</span>' : d.max < 20 && d.gmax < 30 ? '<span class="wd-tag wd-c0">هادئ</span>' : '';
+      const dustTag = d.dust >= 150 ? '<span class="wd-tag wd-c2">غبار محتمل</span>' : '';
+      const hours = d.hours.map(x=>`<div class="wd-h${i === 0 && x.hour === nowH ? ' now' : ''}"><div class="t">${escapeHtml(hourLabel(x.hour))}</div>${windArrow(x.dir)}<span class="v ${windClass(x.v)}">${iso(Math.round(x.v))}</span><span class="g">هبّات ${iso(Math.round(x.g))}</span></div>`).join('');
+      return `<div class="wd-day">
+        <button type="button" class="wd-row" data-wind-day="${i}" aria-expanded="${windOpenDay === i}">
+          <span class="wd-name"><b>${escapeHtml(dayLabel(d.day, i))}</b><small>${i > 2 ? 'تقريبي' : ''}</small></span>
+          <span class="wd-mid"><span class="wd-bar"><i class="${windClass(d.max)}" style="width:${pct}%"></i></span>
+            <span class="wd-meta"><span>أقصى <b>${iso(Math.round(d.max))}</b></span><span>هبّات <b>${iso(Math.round(d.gmax))}</b></span>${tag}${dustTag}</span></span>
+          <span class="wd-side">${windArrow(d.dir)}<small>${escapeHtml(windDirName(d.dir))}</small></span>
+        </button>
+        <div class="wd-hours" ${windOpenDay === i ? '' : 'hidden'}>${hours}</div>
+      </div>`;
+    }).join('');
+    const open = document.querySelector('.wd-hours:not([hidden])');
+    if(open && windOpenDay === 0){ const n = open.querySelector('.now'); if(n) n.scrollIntoView({block:'nearest', inline:'center'}); }
+  }
+  document.getElementById('windWeek').addEventListener('click', e=>{
+    const b = e.target.closest('[data-wind-day]'); if(!b) return;
+    const i = +b.dataset.windDay; windOpenDay = windOpenDay === i ? -1 : i;
+    document.querySelectorAll('#windWeek .wd-row').forEach(r=>{ const on = +r.dataset.windDay === windOpenDay; r.setAttribute('aria-expanded', on); r.nextElementSibling.hidden = !on; });
+    const open = b.nextElementSibling; if(!open.hidden){ const n = open.querySelector('.now'); (n || open.firstElementChild)?.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}); }
+  });
+  document.getElementById('windLoc').addEventListener('change', ()=>{ windOpenDay = -1; loadWind(false); });
+  document.getElementById('windRefresh').addEventListener('click', ()=>loadWind(true));
+  function showWind(){ fillWindLoc(); if(windOpenDay < 0) windOpenDay = 0; loadWind(false); }
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
