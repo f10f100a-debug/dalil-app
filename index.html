@@ -1099,7 +1099,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.2 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.3 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2697,14 +2697,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     const total = sourcePlaces.length;
     setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
-    if(q) ensureBundledCatalog();
+    if(q || state.pos) ensureBundledCatalog();
     const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
+    const near = !q && state.activeCat === 'all' && state.pos ? nearbyCatalog(state.pos.lat, state.pos.lng) : [];
+    const nearHtml = near.length ? `<div class="pl-section">بالقرب منك <small>· أقرب ${near.length} من خرائط البر خلال ${NEARBY_KM} كم</small></div>` + near.map(placeCard).join('') : '';
     const catalogHtml = found && found.items && found.items.length
       ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
       : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تعذّر تحميل مواقع خرائط البر — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
-    if(items.length === 0 && catalogHtml){
+    if(items.length === 0 && (catalogHtml || nearHtml)){
       setText('placesCount', '');
-      list.innerHTML = catalogHtml;
+      list.innerHTML = catalogHtml || nearHtml;
       return;
     }
     if(items.length === 0){
@@ -2713,7 +2715,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`;
       return;
     }
-    list.innerHTML = items.map(placeCard).join('') + catalogHtml + adHtml('places');
+    list.innerHTML = items.map(placeCard).join('') + catalogHtml + nearHtml + adHtml('places');
   }
   function placeCard(p){
     const isCar = p.id === '__car__';
@@ -2897,7 +2899,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     catalog.regions = merged.regions; catalog.cats = merged.cats; catalog.p = merged.p;
     indexCatalog();
     updateCatalogStatus();
-    if(document.getElementById('screen-places').classList.contains('active') && document.getElementById('placeSearch').value.trim()) renderPlaces();
+    if(document.getElementById('screen-places').classList.contains('active')) renderPlaces();
   }
   function ensureBundledCatalog(){
     if(bundledCatalog) return Promise.resolve();
@@ -2971,6 +2973,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function catalogItem(i){
     const x = catalog.p[i];
     return x ? {id:'k:' + i, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:catalog.cats[x[4]] || 'معلم', region:catalog.regions[x[3]] || ''} : null;
+  }
+  // أقرب مواقع خرائط البر إلى موقعك (تُعرض في الأماكن عندما يكون البحث فارغًا).
+  const NEARBY_KM = 50, NEARBY_MAX = 20;
+  function nearbyCatalog(lat, lng){
+    if(!catalog.p.length) return [];
+    const dLat = NEARBY_KM / 111, dLng = NEARBY_KM / (111 * Math.max(0.2, Math.cos(lat * Math.PI / 180)));
+    const hits = [];
+    for(let i = 0; i < catalog.p.length; i++){
+      const x = catalog.p[i];
+      if(Math.abs(x[1] - lat) > dLat || Math.abs(x[2] - lng) > dLng) continue;
+      const d = haversine(lat, lng, x[1], x[2]);
+      if(d <= NEARBY_KM * 1000) hits.push({i, d});
+    }
+    hits.sort((a,b)=>a.d - b.d);
+    return hits.slice(0, NEARBY_MAX).map(h=>catalogItem(h.i));
   }
   function searchCatalog(q){
     if(!catalog.norm || !catalog.norm.length) return [];
