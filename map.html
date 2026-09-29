@@ -1,8 +1,8 @@
 <!doctype html><html lang="ar" dir="rtl"><head>
-<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
+<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org; connect-src 'self' https://tile.openstreetmap.org https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#171717}
-#map{position:fixed;inset:0;overflow:hidden;background:#ddd;touch-action:none}#layer{position:absolute;inset:0}
+#map{position:fixed;inset:0;overflow:hidden;background:#EFE4CF;touch-action:none}#layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
 .tile{position:absolute;left:0;top:0;width:256px;height:256px;user-select:none;-webkit-user-drag:none;will-change:transform;backface-visibility:hidden}
 #trackOverlay{position:absolute;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
 #dot{position:absolute;display:none;width:18px;height:18px;border-radius:50%;background:#2688ff;border:3px solid #fff;box-shadow:0 0 0 7px #2688ff55;z-index:20;transform:translate(-50%,-50%)}
@@ -95,16 +95,16 @@ html[data-theme=dark],html[data-theme=red]{color-scheme:dark}
 #redTint{display:none;position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:#9A0000;mix-blend-mode:multiply}
 html[data-theme=red] #redTint{display:block}
 body.embed #redTint{display:none!important}
-</style></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
+</style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
 <div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-8" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
-<div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap contributors</a>
+<div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">خريطة الإنترنت</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution show" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© مساهمو OpenStreetMap · Copernicus DEM</a>
 <div class="ctrl"><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
 <div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
 <script>
 const query=new URLSearchParams(location.search);
 const isEmbedded=query.get('embed')==='1';
 if(isEmbedded)document.body.classList.add('embed');
-const S=256,minZ=7,maxZ=20,maxLocalZ=11,maxTileZ=10,maxOnlineTileZ=19,ranges={7:[76,82,52,58],8:[152,164,104,116],9:[304,329,208,233],10:[608,659,416,466]};
+const S=256,minZ=5,maxZ=20,maxLocalZ=18,maxOnlineTileZ=19;
 const GPS_COURSE_MIN_KMH=5;
 let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,touchStart=null,touchMoved=false,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationActive=false,deviceHeading=null,orientationHandler=null,lastAbsoluteOrientationAt=0,mapMode='local',missingTileWarningShown=false;
 // view: free (المستخدم يحرّك الخريطة) | fit (يُظهر موقعك والهدف معًا) | follow (يتبعك والشمال للأعلى) | heading (يتبعك واتجاهك للأعلى)
@@ -112,7 +112,6 @@ let originX=innerWidth/2,originY=innerHeight/2;
 let view='free',rot=0,geoWatch=null,gpsCourse=null,gpsCourseAt=0,headingFrame=0;
 const $=s=>document.querySelector(s);
 const map=$('#map'),stage=$('#stage'),layer=$('#layer'),dot=$('#dot'),accCircle=$('#accCircle'),marksEl=$('#marks'),targetMarker=$('#targetMarker'),trackOverlay=$('#trackOverlay'),status=$('#status'),badge=$('#badge'),navCard=$('#navCard'),navArrow=$('#navArrow'),navName=$('#navName'),navCoords=$('#navCoords'),navInfo=$('#navInfo'),navEta=$('#navEta'),startNav=$('#startNav'),compassNav=$('#compassNav'),stopNav=$('#stopNav'),localMode=$('#localMode'),onlineMode=$('#onlineMode'),googleMode=$('#googleMode'),attribution=$('#attribution'),gpsBtn=$('#gps'),northBtn=$('#northBtn'),northIcon=$('#northIcon');
-const tileNodes=new Map(),missingLocalTiles=new Set();
 let renderFrame=0;
 
 // ---------- helpers ----------
@@ -125,7 +124,8 @@ function stageToLatLng(x,y){let size=2**z*S,wx=cx+x-innerWidth/2,wy=cy+y-innerHe
 function screenToStage(x,y){const a=rot*Math.PI/180,dx=x-originX,dy=y-originY;return[originX+dx*Math.cos(a)-dy*Math.sin(a),originY+dx*Math.sin(a)+dy*Math.cos(a)]}
 function screenDeltaToStage(dx,dy){const a=rot*Math.PI/180;return[dx*Math.cos(a)-dy*Math.sin(a),dx*Math.sin(a)+dy*Math.cos(a)]}
 function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
-function inOfflineCoverage(lat,lng){let p=world(lat,lng,maxTileZ),x=Math.floor(p[0]/S),y=Math.floor(p[1]/S),r=ranges[maxTileZ];return x>=r[0]&&x<=r[1]&&y>=r[2]&&y<=r[3]}
+// داخل إحدى مناطق خريطة البر (data/maps.json)، وقبل تحميل القائمة: حدود المملكة تقريبًا
+function inOfflineCoverage(lat,lng){const list=REGIONS.length?REGIONS.map(r=>r.bbox):[[34,16,56,32.6]];return list.some(b=>lng>=b[0]&&lng<=b[2]&&lat>=b[1]&&lat<=b[3])}
 function distanceMeters(a,b){let R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
 function targetBearing(a,b){let p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360}
 function directionName(b){return['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]}
@@ -219,24 +219,14 @@ function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks){i
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
 function render(){
-  const[hw,hh]=viewHalfSize();
-  let online=mapMode==='online',tz=online?Math.min(z,maxOnlineTileZ):Math.min(z,maxTileZ),scale=2**(z-tz),ts=S*scale,r=online?[0,2**tz-1,0,2**tz-1]:ranges[tz],vx0=cx-hw-ts,vy0=cy-hh-ts,vx1=cx+hw+ts,vy1=cy+hh+ts,needed=new Set(),fragment=document.createDocumentFragment();
-  for(let x=Math.max(r[0],Math.floor(vx0/ts));x<=Math.min(r[1],Math.floor(vx1/ts));x++)for(let y=Math.max(r[2],Math.floor(vy0/ts));y<=Math.min(r[3],Math.floor(vy1/ts));y++){
-    let key=(online?'o':'l')+':'+tz+':'+x+':'+y;
-    if(!online&&missingLocalTiles.has(key))continue;
-    let im=tileNodes.get(key);needed.add(key);
-    if(!im){im=new Image();im.className='tile';im.decoding='async';im.draggable=false;
-      im.onerror=()=>{im.remove();tileNodes.delete(key);if(!online){missingLocalTiles.add(key);let c=stageToLatLng(innerWidth/2,innerHeight/2);if(!missingTileWarningShown&&!inOfflineCoverage(c.lat,c.lng)){missingTileWarningShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر المحفوظة — استخدم خريطة الإنترنت عند توفر الشبكة'}}};
-      im.src=online?'https://tile.openstreetmap.org/'+tz+'/'+x+'/'+y+'.png':'tiles/'+tz+'/'+x+'/'+y+'.png';tileNodes.set(key,im);fragment.appendChild(im)}
-    im.style.width=ts+'px';im.style.height=ts+'px';im.style.transform=`translate3d(${x*ts+innerWidth/2-cx}px,${y*ts+innerHeight/2-cy}px,0)`}
-  if(fragment.childNodes.length)layer.appendChild(fragment);
-  for(const[key,im]of tileNodes){if(!needed.has(key)){im.remove();tileNodes.delete(key)}}
+  syncEngine();
   drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
 function setMapMode(mode){if(mode==='online'&&!navigator.onLine){status.textContent='الخريطة المفتوحة تحتاج اتصالًا بالإنترنت';return}mapMode=mode;
-  if(isEmbedded&&gps&&mode==='online'){z=17;[cx,cy]=world(gps.lat,gps.lng)}else if(mode==='local'&&z>maxLocalZ){z=maxLocalZ;[cx,cy]=gps?world(gps.lat,gps.lng):[79*S*2**(z-7),55*S*2**(z-7)]}
-  if(targetPoint&&!inOfflineCoverage(targetPoint.lat,targetPoint.lng)){if(mode==='online'){z=16;[cx,cy]=world(targetPoint.lat,targetPoint.lng)}else{z=7;cx=79*S;cy=55*S}}
-  localMode.classList.toggle('active',mode==='local');onlineMode.classList.toggle('active',mode==='online');attribution.classList.toggle('show',mode==='online');
-  render();status.textContent=mode==='online'?'خريطة OpenStreetMap — تتطلب اتصالًا بالإنترنت':'خريطة البر الأوفلاين — تعمل من الملفات المحفوظة'}
+  if(mode==='local'&&z>maxLocalZ){let s2=2**(maxLocalZ-z);cx*=s2;cy*=s2;z=maxLocalZ}
+  localMode.classList.toggle('active',mode==='local');onlineMode.classList.toggle('active',mode==='online');
+  setText(attribution,mode==='online'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM');
+  if(glReady)gl.setLayoutProperty('osm','visibility',mode==='online'?'visible':'none');
+  render();status.textContent=mode==='online'?'خريطة OpenStreetMap — تتطلب اتصالًا بالإنترنت':'خريطة البر — تعمل بدون إنترنت في المناطق المحفوظة'}
 function useOnlineForDetail(){mapMode='online';localMode.classList.remove('active');onlineMode.classList.add('active');attribution.classList.add('show');status.textContent='انتقلنا إلى خريطة الإنترنت لعرض تفاصيل أدق'}
 localMode.onclick=()=>setMapMode('local');onlineMode.onclick=()=>setMapMode('online');googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
@@ -256,24 +246,12 @@ function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12;
   marksEl.innerHTML=html}
 function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
 function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
-// ---------- الأودية (مسارات OSM مبسّطة، data/wadis.json) تظهر من التكبير 9 ----------
-const WADI_MIN_Z=9;let wadis=null,wadisLoading=false;
-function loadWadis(){if(wadis||wadisLoading)return;wadisLoading=true;
-  fetch('data/wadis.json?v=1').then(r=>r.ok?r.json():null).then(d=>{if(!d||!Array.isArray(d.w))return;const k=1/(d.scale||1e4);
-    wadis=d.w.map(([name,parts])=>{let x0=Infinity,y0=Infinity,x1=-Infinity,y1=-Infinity;const ps=parts.map(a=>{let lat=0,lng=0;const out=new Float64Array(a.length);for(let i=0;i<a.length;i+=2){lat+=a[i];lng+=a[i+1];const w=world(lat*k,lng*k,0);out[i]=w[0];out[i+1]=w[1];if(w[0]<x0)x0=w[0];if(w[0]>x1)x1=w[0];if(w[1]<y0)y0=w[1];if(w[1]>y1)y1=w[1]}return out});return{name,ps,b:[x0,y0,x1,y1]}});
-    scheduleRender()}).catch(()=>{wadisLoading=false})}
-function wadiShapes(){if(z<WADI_MIN_Z)return'';if(!wadis){loadWadis();return''}
-  const[hw,hh]=viewHalfSize(),k=2**z,ox=innerWidth/2-cx,oy=innerHeight/2-cy,vx0=(cx-hw)/k,vx1=(cx+hw)/k,vy0=(cy-hh)/k,vy1=(cy+hh)/k;let d='',labels='',nl=0;
-  for(const w of wadis){const b=w.b;if(b[2]<vx0||b[0]>vx1||b[3]<vy0||b[1]>vy1)continue;
-    for(const p of w.ps){d+='M'+(p[0]*k+ox).toFixed(1)+' '+(p[1]*k+oy).toFixed(1);for(let i=2;i<p.length;i+=2)d+='L'+(p[i]*k+ox).toFixed(1)+' '+(p[i+1]*k+oy).toFixed(1)}
-    if(z>=11&&nl<60){const p=w.ps[0],m=Math.floor(p.length/4)*2,x=p[m]*k+ox,y=p[m+1]*k+oy;if(Math.abs(x-innerWidth/2)<hw&&Math.abs(y-innerHeight/2)<hh){labels+=`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" class="wadi-name">${escapeHtml(w.name)}</text>`;nl++}}}
-  return d?`<path d="${d}" fill="none" stroke="#3E86B4" stroke-opacity=".8" stroke-width="${z>=11?2.6:1.8}" stroke-linecap="round" stroke-linejoin="round"/>${labels}`:''}
-function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes=wadiShapes();
+function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
   if(trackPoints.length){let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#e0a64f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6" fill="#c1553f" stroke="#fff" stroke-width="2"/>`}
   if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
   trackOverlay.innerHTML=shapes}
-function detailZ(){return mapMode==='online'?16:maxLocalZ}
-function zoomTo(n){if(mapMode==='local'&&n>maxLocalZ){if(navigator.onLine){useOnlineForDetail()}else{status.textContent='هذا أقصى تكبير لخريطة البر المحفوظة — للتفاصيل الأدق اتصل بالإنترنت';return}}
+function detailZ(){return mapMode==='online'?16:14}
+function zoomTo(n){
   let limit=mapMode==='online'?maxZ:maxLocalZ;n=Math.max(minZ,Math.min(limit,n));if(n===z)return;let s=2**(n-z);cx*=s;cy*=s;z=n;render()}
 function fitTrackClose(){
   if(trackPoints.length<2)return;
@@ -385,12 +363,91 @@ function syncNavCardSpace(){const r=navCard.getBoundingClientRect();const visibl
 if('ResizeObserver'in window)new ResizeObserver(syncNavCardSpace).observe(navCard);
 window.addEventListener('resize',syncNavCardSpace);
 
+// ---------- محرّك الخريطة: MapLibre + خرائط المناطق (maps/*.pmtiles) ----------
+// الخريطة تُرسم داخل #layer في المسرح نفسه، فتدور وتتحرك مع العلامات والمسار كما كانت الصور.
+// كاميرا الصفحة (z, cx, cy بوحدات بلاط 256) هي المرجع، وMapLibre يتبعها (تكبيره = z − 1).
+const abs=p=>new URL(p,location.href).href;
+const OFFLINE_MAPS='dalil-offline-maps-v1';
+let REGIONS=[],glReady=false,regionTimer=0,layerBox='',outsideShown=false,unsavedShown=false;
+const savedRegions=new Set(),activeRegions=new Set();
+maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-csp-worker.js'));
+try{maplibregl.setRTLTextPlugin(abs('vendor/mapbox-gl-rtl-text.js'),true)}catch(e){}
+const pmProtocol=new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles',pmProtocol.tile);
+const TF=['Noto Sans Regular'];
+const kindColor=['match',['get','kind'],'جبل','#7A5230','مورد ماء','#1F6FA8','تجمع مياه','#3E86B4','نفود','#C98A2E','آثار','#7A4E9A','معلم رئيسي','#3B342B','سبخة','#B3261E','حرة','#B3261E','دحل','#B3261E','كهف','#B3261E','موقع خطر','#B3261E','#6F665A'];
+const roadW=(t,def)=>['interpolate',['exponential',1.6],['zoom'],6,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[0]]),def[0]],15,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[1]]),def[1]]];
+const ROAD_RANK=['match',['get','class'],'motorway',7,'trunk',6,'primary',5,'secondary',4,'tertiary',3,'minor',2,1],ROADS=['literal',['motorway','trunk','primary','secondary','tertiary','minor']];
+const TPL=[
+  {id:'sand',src:'vt',type:'fill','source-layer':'sand',paint:{'fill-color':'#F4DFAE','fill-opacity':.8}},
+  {id:'farm',src:'vt',type:'fill','source-layer':'landuse',filter:['==',['get','kind'],'farm'],paint:{'fill-color':'#CFDDA8','fill-opacity':.85}},
+  {id:'park',src:'vt',type:'fill','source-layer':'landuse',filter:['==',['get','kind'],'park'],paint:{'fill-color':'#C9DDB0','fill-opacity':.8}},
+  {id:'urban',src:'vt',type:'fill','source-layer':'landuse',filter:['in',['get','kind'],['literal',['urban','quarry']]],paint:{'fill-color':'#E3D6C3','fill-opacity':.9}},
+  {id:'hillshade',src:'hs',type:'raster',paint:{'raster-opacity':['interpolate',['linear'],['zoom'],6,.95,13,.7],'raster-fade-duration':0}},
+  {id:'water',src:'vt',type:'fill','source-layer':'water',paint:{'fill-color':'#9CC6DD'}},
+  {id:'contour',src:'vt',type:'line','source-layer':'contour',paint:{'line-color':'#9B7446','line-opacity':['case',['==',['get','idx'],1],.55,.3],'line-width':['case',['==',['get','idx'],1],.9,.45]}},
+  {id:'waterway',src:'vt',type:'line','source-layer':'waterway',paint:{'line-color':'#7FB3D5','line-width':.7}},
+  {id:'wadi',src:'vt',type:'line','source-layer':'wadi',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#3E86B4','line-width':['interpolate',['linear'],['zoom'],8,.8,14,2.4],'line-opacity':.85}},
+  {id:'cliff',src:'vt',type:'line','source-layer':'cliff',paint:{'line-color':'#6E4B26','line-width':1,'line-dasharray':[1,1]}},
+  {id:'track',src:'vt',type:'line','source-layer':'roads',filter:['==',['get','class'],'track'],paint:{'line-color':'#8A6A40','line-width':1,'line-dasharray':[3,2]}},
+  {id:'rail',src:'vt',type:'line','source-layer':'roads',filter:['==',['get','class'],'rail'],paint:{'line-color':'#6F665A','line-width':1.2,'line-dasharray':[4,3]}},
+  {id:'road-case',src:'vt',type:'line','source-layer':'roads',filter:['in',['get','class'],ROADS],layout:{'line-cap':'round','line-join':'round','line-sort-key':ROAD_RANK},paint:{'line-color':'#A89378','line-width':roadW({motorway:[1.6,14],trunk:[1.6,14],primary:[1.2,12],secondary:[1,10],tertiary:[.8,9]},[.5,7])}},
+  {id:'road',src:'vt',type:'line','source-layer':'roads',filter:['in',['get','class'],ROADS],layout:{'line-cap':'round','line-join':'round','line-sort-key':ROAD_RANK},paint:{'line-color':['match',['get','class'],'motorway','#E0823C','trunk','#E0823C','primary','#F0B45A','secondary','#F7D38B','#FFFFFF'],'line-width':roadW({motorway:[1,12],trunk:[1,12],primary:[.8,10],secondary:[.6,8],tertiary:[.5,7]},[.3,5])}},
+  {id:'contour-label',src:'vt',type:'symbol','source-layer':'contour',minzoom:11,filter:['==',['get','idx'],1],layout:{'symbol-placement':'line','text-field':['concat',['to-string',['get','ele']],' م'],'text-font':TF,'text-size':10},paint:{'text-color':'#7A5A32','text-halo-color':'#F3EADA','text-halo-width':1.2}},
+  {id:'wadi-label',src:'vt',type:'symbol','source-layer':'wadi',minzoom:10,layout:{'symbol-placement':'line','text-field':['get','name'],'text-font':TF,'text-size':12,'symbol-spacing':400},paint:{'text-color':'#1F5E86','text-halo-color':'#fff','text-halo-width':1.5}},
+  {id:'road-label',src:'vt',type:'symbol','source-layer':'roads',minzoom:12,filter:['all',['has','name'],['in',['get','class'],['literal',['motorway','trunk','primary','secondary','tertiary']]]],layout:{'symbol-placement':'line','text-field':['get','name'],'text-font':TF,'text-size':11},paint:{'text-color':'#4A3A26','text-halo-color':'#fff','text-halo-width':1.5}},
+  {id:'peak',src:'vt',type:'symbol','source-layer':'peaks',layout:{'text-field':['concat','▲ ',['coalesce',['get','name'],''],['case',['has','ele'],['concat','\n',['to-string',['get','ele']],' م'],'']],'text-font':TF,'text-size':11,'text-anchor':'top'},paint:{'text-color':'#5C3A0E','text-halo-color':'#F3EADA','text-halo-width':1.3}},
+  {id:'dalil',src:'vt',type:'circle','source-layer':'dalil',paint:{'circle-color':kindColor,'circle-radius':['interpolate',['linear'],['zoom'],11,3.5,15,7],'circle-stroke-color':'#fff','circle-stroke-width':1.3}},
+  {id:'dalil-label',src:'vt',type:'symbol','source-layer':'dalil',minzoom:12,layout:{'text-field':['get','name'],'text-font':TF,'text-size':11.5,'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':kindColor,'text-halo-color':'#fff','text-halo-width':1.5}},
+  {id:'place',src:'vt',type:'symbol','source-layer':'places',layout:{'text-field':['get','name'],'text-font':TF,'text-size':['match',['get','kind'],'city',17,'town',14,'village',12.5,'hamlet',11.5,11],'text-max-width':8},paint:{'text-color':['match',['get','kind'],'neighborhood','#6F665A','#231F1A'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.6}}
+];
+const gl=new maplibregl.Map({container:layer,interactive:false,attributionControl:false,fadeDuration:0,minZoom:2,maxZoom:19,center:[45,24],zoom:6,
+  style:{version:8,glyphs:abs('vendor/glyphs/')+'{fontstack}/{range}.pbf',
+    sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19}},
+    layers:[{id:'bg',type:'background',paint:{'background-color':'#EFE4CF'}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});
+const regionUrls=r=>[abs('maps/'+r.id+'.pmtiles?v='+r.v),abs('maps/'+r.id+'-hs.pmtiles?v='+r.v)];
+// المناطق المحفوظة (من صفحة «خرائط المناطق») تُقرأ من الجهاز مباشرة بدل الشبكة
+async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS),[u1,u2]=regionUrls(r),a=await c.match(u1),b=await c.match(u2);if(!a||!b)return;
+  for(const[u,res]of[[u1,a],[u2,b]])pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],u))));savedRegions.add(r.id)}catch(e){}}
+function addRegion(r){const[u1,u2]=regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});
+  for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id)}
+function removeRegion(id){for(const t of TPL)if(gl.getLayer(t.id+'@'+id))gl.removeLayer(t.id+'@'+id);for(const p of['vt-','hs-'])if(gl.getSource(p+id))gl.removeSource(p+id);activeRegions.delete(id)}
+const regionAt=(lng,lat)=>REGIONS.filter(r=>lng>=r.bbox[0]&&lng<=r.bbox[2]&&lat>=r.bbox[1]&&lat<=r.bbox[3]).sort((a,b)=>(a.bbox[2]-a.bbox[0])*(a.bbox[3]-a.bbox[1])-(b.bbox[2]-b.bbox[0])*(b.bbox[3]-b.bbox[1]))[0];
+function syncRegions(){
+  if(!glReady||!REGIONS.length)return;
+  const b=gl.getBounds(),v=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
+  const want=new Set(REGIONS.filter(r=>r.bbox[0]<v[2]&&r.bbox[2]>v[0]&&r.bbox[1]<v[3]&&r.bbox[3]>v[1]).map(r=>r.id));
+  for(const id of[...activeRegions])if(!want.has(id))removeRegion(id);
+  for(const r of REGIONS)if(want.has(r.id)&&!activeRegions.has(r.id))addRegion(r);
+  if(mapMode!=='local')return;
+  const c=stageToLatLng(innerWidth/2,innerHeight/2);
+  if(!inOfflineCoverage(c.lat,c.lng)){if(!outsideShown){outsideShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر — استخدم خريطة الإنترنت عند توفر الشبكة'}}
+  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;status.textContent='خريطة '+r.name+' غير محفوظة في جهازك — احفظها من الإعدادات ← خرائط البر قبل الخروج للبر'}}
+}
+function syncEngine(){
+  // عند الدوران تُرسم الخريطة في مربع يغطي الشاشة من كل الزوايا حول نقطة الدوران
+  let L=0,T=0,W=innerWidth,H=innerHeight;
+  if(isRotated()||view==='heading'){const r=Math.ceil(Math.hypot(Math.max(originX,innerWidth-originX),Math.max(originY,innerHeight-originY)))+4;L=originX-r;T=originY-r;W=H=2*r}
+  const box=L+','+T+','+W+','+H;
+  if(box!==layerBox){layerBox=box;Object.assign(layer.style,{left:L+'px',top:T+'px',width:W+'px',height:H+'px'});gl.resize()}
+  const c=stageToLatLng(L+W/2,T+H/2);
+  gl.jumpTo({center:[c.lng,c.lat],zoom:z-1});
+  clearTimeout(regionTimer);regionTimer=setTimeout(syncRegions,200);
+}
+gl.on('load',async()=>{
+  try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}
+  await Promise.all(REGIONS.map(attachSaved));
+  glReady=true;
+  if(mapMode==='online')gl.setLayoutProperty('osm','visibility','visible');
+  syncRegions();
+});
+
 // ---------- start ----------
 const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
 if(validLatLng(queryLat,queryLng)){
   targetPoint={lat:queryLat,lng:queryLng};
   navName.textContent=query.get('label')||'الموقع المحفوظ';updateNavigation();
-  if(inOfflineCoverage(queryLat,queryLng)){z=maxLocalZ;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+iso(fmtCoords(queryLat,queryLng));embeddedCentered=true}
+  if(inOfflineCoverage(queryLat,queryLng)){z=14;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+iso(fmtCoords(queryLat,queryLng));embeddedCentered=true}
   else status.textContent=navigator.onLine?'الموقع خارج نطاق خريطة البر المحفوظة — اختر «خريطة الإنترنت» لعرضه.':'الموقع خارج نطاق خريطة البر المحفوظة.';
 }else if(query.has('lat')||query.has('lng'))status.textContent='إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
 loadSavedMarks();
