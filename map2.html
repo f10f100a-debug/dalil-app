@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#1C1A17">
-<title>دليل — خرائط المناطق</title>
+<title>دليل — حفظ الخرائط للبر</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -23,7 +23,9 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 .btn:focus-visible{outline:2px solid var(--sand-ink);outline-offset:2px}
 .grow{flex:1;min-width:0}
 #dl{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);inset-inline:10px;z-index:5;display:flex;gap:10px;align-items:center}
-#dl .msg{flex:1;min-width:0;line-height:1.5}
+#dl{flex-wrap:wrap}
+#dl .msg{flex:1 1 100%;min-width:0;line-height:1.6}
+#dlSave{flex:1}
 #sheet{position:fixed;inset-inline:0;bottom:0;z-index:8;background:var(--paper);border-radius:20px 20px 0 0;box-shadow:0 -8px 30px rgba(40,25,5,.25);max-height:72%;display:flex;flex-direction:column;padding-bottom:env(safe-area-inset-bottom,0px)}
 #sheet header{display:flex;align-items:center;gap:10px;padding:14px 16px 8px}
 #sheet header b{flex:1;font-size:16px}
@@ -40,7 +42,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 #td input[type=range]{flex:1;accent-color:var(--sand)}
 #td label{display:flex;align-items:center;gap:6px}
 #td input[type=checkbox]{width:20px;height:20px;accent-color:var(--sand)}
-.maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:calc(env(safe-area-inset-bottom,0px) + 64px)}
+.maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:calc(env(safe-area-inset-bottom,0px) + 118px)}
 .maplibregl-ctrl-top-left{top:calc(env(safe-area-inset-top,0px) + 64px)}
 .maplibregl-popup-content{font-family:inherit;border-radius:14px;padding:12px 14px;direction:rtl;text-align:right;min-width:170px}
 .pop b{display:block;font-size:15px}.pop small{color:var(--dim)}
@@ -52,13 +54,13 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 <div id="map" role="application" aria-label="خريطة البر"></div>
 <div class="bar">
   <button class="btn ghost" id="back" type="button">→ رجوع</button>
-  <div class="chip title grow"><b id="title">خرائط المناطق</b><small>OpenStreetMap و Copernicus</small></div>
+  <div class="chip title grow"><b id="title">حفظ الخرائط للبر</b><small>OpenStreetMap و Copernicus</small></div>
 </div>
 <div id="td" class="chip" hidden>
   <div class="row"><span>تضخيم الارتفاع</span><input type="range" id="tdEx" min="1" max="3" step="0.1" value="1.6" aria-label="تضخيم الارتفاع"><b id="tdExV">1.6×</b></div>
   <div class="row"><label><input type="checkbox" id="tdSat">صور فضائية</label><span class="grow"></span><button class="btn ghost small" id="tdFlat" type="button">مستوٍ 2D</button></div>
 </div>
-<div id="dl" class="chip"><span class="msg" id="dlMsg">…</span><button class="btn" id="dlOpen" type="button">الخرائط المحفوظة</button></div>
+<div id="dl" class="chip"><span class="msg" id="dlMsg">…</span><button class="btn" id="dlSave" type="button" hidden>احفظها</button><button class="btn ghost" id="dlOpen" type="button">كل المناطق</button></div>
 <div id="sheet" hidden role="dialog" aria-labelledby="sheetTitle">
   <header><b id="sheetTitle">حفظ المناطق للاستخدام بدون إنترنت</b><button class="btn ghost small" id="sheetClose" type="button">إغلاق</button></header>
   <div class="note" id="sheetNote">نزّل منطقتك قبل الخروج للبر. كل منطقة تُحفظ مرة واحدة وتعمل بعدها بدون إنترنت.</div>
@@ -78,9 +80,13 @@ const mb = b => Math.max(1, Math.round(b / 1048576)) + ' MB';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // الرجوع دائمًا إلى التطبيق نفسه: سجلّ المتصفح لا يُعتمد عليه في التطبيق المثبّت أو عند الفتح من رابط
 $('back').onclick = () => {
+  // صفحة الرجوع المحددة (من زر 3D) إن كانت داخل التطبيق، ثم الصفحة السابقة، ثم الإعدادات
+  const back = new URLSearchParams(location.search).get('back');
+  if(back && /^(index|map)\.html(\?|$)/.test(back)){ location.href = back; return; }
   let ref = null;
   try{ ref = document.referrer && new URL(document.referrer); }catch(e){}
-  location.href = ref && ref.origin === location.origin && !/map2\.html/.test(ref.pathname) ? ref.href : 'index.html?screen=settings';
+  const embedded = ref && /embed=1/.test(ref.search);
+  location.href = ref && ref.origin === location.origin && !/map2\.html/.test(ref.pathname) && !embedded ? ref.href : embedded ? 'index.html?screen=track' : 'index.html?screen=settings';
 };
 
 maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-csp-worker.js'));
@@ -216,17 +222,31 @@ function start3D(){
 map.on('moveend', syncRegions);
 
 // ---------- الحالة وقائمة المناطق ----------
+// المنطقة من شبكة المناطق نفسها المستخدمة في التطبيق (data/region-grid.json)، لا من الصناديق المتداخلة
+let GRID = null;
+fetch('data/region-grid.json?v=1').then(r => r.ok ? r.json() : null).then(g => { GRID = g; updateStatus(); }).catch(() => {});
 function regionAt(x, y){
-  // أصغر منطقة يقع فيها المركز (الصناديق متداخلة عند الحدود)
+  if(GRID){
+    const i = Math.floor((y - GRID.lat0) / GRID.r), j = Math.floor((x - GRID.lng0) / GRID.r);
+    const c = i >= 0 && j >= 0 && i < GRID.rows && j < GRID.cols ? GRID.g.charCodeAt(i * GRID.cols + j) - 97 : -1;
+    const name = c >= 0 && c < GRID.regions.length ? GRID.regions[c] : null;
+    return name ? REGIONS.find(r => r.name === name) : undefined;
+  }
   return REGIONS.filter(r => inBox(r.bbox, x, y)).sort((a, b) => (a.bbox[2]-a.bbox[0])*(a.bbox[3]-a.bbox[1]) - (b.bbox[2]-b.bbox[0])*(b.bbox[3]-b.bbox[1]))[0];
 }
 function updateStatus(){
   const c = map.getCenter(), here = myPos ? regionAt(...myPos) : regionAt(c.lng, c.lat);
-  $('title').textContent = MODE3D ? 'عرض ثلاثي الأبعاد' + (here ? ' — ' + here.name : '') : here ? 'خرائط المناطق — ' + here.name : 'خرائط المناطق';
-  if(!REGIONS.length) $('dlMsg').textContent = 'تعذّر تحميل قائمة المناطق.';
-  else if(here && saved.has(here.id)) $('dlMsg').innerHTML = '<span class="ok">✓</span> ' + esc(here.name) + ' محفوظة وتعمل بدون إنترنت.';
-  else if(here) $('dlMsg').textContent = here.name + ' غير محفوظة بعد (' + mb(here.vt + here.hs) + ').';
-  else $('dlMsg').textContent = saved.size ? 'محفوظ ' + saved.size + ' من ' + REGIONS.length + ' مناطق.' : 'كبّر على منطقة لعرض تفاصيلها.';
+  const who = myPos ? 'أنت في منطقة ' : 'المنطقة المعروضة: ';
+  $('title').textContent = MODE3D ? 'عرض ثلاثي الأبعاد' + (here ? ' — ' + here.name : '') : 'حفظ الخرائط للبر';
+  $('dlSave').hidden = true;
+  if(!REGIONS.length) $('dlMsg').textContent = 'تعذّر تحميل قائمة المناطق — افتح الصفحة مع اتصال بالإنترنت.';
+  else if(here && saved.has(here.id)) $('dlMsg').innerHTML = '<span class="ok">✓</span> ' + esc(who + here.name) + '، وخريطتها محفوظة في جوالك وتعمل بدون إنترنت.';
+  else if(here){
+    $('dlMsg').textContent = who + here.name + '. خريطتها غير محفوظة في جوالك بعد.';
+    $('dlSave').hidden = false; $('dlSave').dataset.get = here.id;
+    if(!$('dlSave').disabled) $('dlSave').textContent = 'احفظ خريطة ' + here.name + ' (' + mb(here.vt + here.hs) + ')';
+  }
+  else $('dlMsg').textContent = saved.size ? 'محفوظ في جوالك ' + saved.size + ' من ' + REGIONS.length + ' مناطق.' : 'حرّك الخريطة إلى منطقة داخل المملكة، أو اختر من «كل المناطق».';
 }
 function renderList(){
   const c = map.getCenter(), here = myPos ? regionAt(...myPos) : regionAt(c.lng, c.lat);
@@ -239,19 +259,23 @@ $('dlOpen').onclick = async () => {
   try{ const e = await navigator.storage.estimate(); $('sheetNote').textContent = 'نزّل منطقتك قبل الخروج للبر. كل منطقة تُحفظ مرة واحدة وتعمل بعدها بدون إنترنت. المساحة المستخدمة: ' + mb(e.usage || 0) + '.'; }catch(e){}
 };
 $('sheetClose').onclick = () => { $('sheet').hidden = true; };
+async function downloadRegion(btn){
+  const r = REGIONS.find(x => x.id === btn.dataset.get); if(!r) return;
+  btn.disabled = true; btn.textContent = 'جارٍ حفظ ' + r.name + '…';
+  try{
+    try{ await navigator.storage.persist(); }catch(_){}
+    const c = await caches.open(OFFLINE_CACHE);
+    for(const u of urls(r)){ const res = await fetch(u, {cache:'no-store'}); if(res.status !== 200) throw new Error(res.status); await c.put(u, res); }
+    await attachCached(r);
+    if(active.has(r.id)){ removeRegion(r.id); syncRegions(); }   // تبدأ القراءة من الملف المحفوظ فورًا
+  }catch(err){ btn.disabled = false; btn.textContent = 'تعذّر الحفظ — أعد المحاولة'; return; }
+  btn.disabled = false; renderList(); updateStatus();
+}
+$('dlSave').onclick = () => downloadRegion($('dlSave'));
 $('list').onclick = async e => {
   const g = e.target.closest('[data-get]'), d = e.target.closest('[data-del]');
-  if(g){
-    const r = REGIONS.find(x => x.id === g.dataset.get); g.disabled = true; g.textContent = 'جارٍ التنزيل…';
-    try{
-      try{ await navigator.storage.persist(); }catch(_){}
-      const c = await caches.open(OFFLINE_CACHE);
-      for(const u of urls(r)){ const res = await fetch(u, {cache:'no-store'}); if(res.status !== 200) throw new Error(res.status); await c.put(u, res); }
-      await attachCached(r);
-      if(active.has(r.id)){ removeRegion(r.id); syncRegions(); }   // تبدأ القراءة من الملف المحفوظ فورًا
-    }catch(err){ g.disabled = false; g.textContent = 'تعذّر — أعد المحاولة'; return; }
-    renderList(); updateStatus();
-  }else if(d){
+  if(g) downloadRegion(g);
+  else if(d){
     const r = REGIONS.find(x => x.id === d.dataset.del), c = await caches.open(OFFLINE_CACHE);
     for(const u of urls(r)) await c.delete(u);
     saved.delete(r.id); renderList(); updateStatus();

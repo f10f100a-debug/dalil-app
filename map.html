@@ -306,7 +306,7 @@ for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],[
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
-  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'');
+  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
   if(isEmbedded)window.parent.location.href=url;else location.href=url};googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
 function drawDot(){
@@ -492,7 +492,9 @@ async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS),[u1,u2
 function addRegion(r){const[u1,u2]=regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});
   for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id);applyRegionPrefs(r.id)}
 function removeRegion(id){for(const t of TPL)if(gl.getLayer(t.id+'@'+id))gl.removeLayer(t.id+'@'+id);for(const p of['vt-','hs-'])if(gl.getSource(p+id))gl.removeSource(p+id);activeRegions.delete(id)}
-const regionAt=(lng,lat)=>REGIONS.filter(r=>lng>=r.bbox[0]&&lng<=r.bbox[2]&&lat>=r.bbox[1]&&lat<=r.bbox[3]).sort((a,b)=>(a.bbox[2]-a.bbox[0])*(a.bbox[3]-a.bbox[1])-(b.bbox[2]-b.bbox[0])*(b.bbox[3]-b.bbox[1]))[0];
+// المنطقة من شبكة المناطق (data/region-grid.json) لا من الصناديق المتداخلة
+let GRID=null;fetch('data/region-grid.json?v=1').then(r=>r.ok?r.json():null).then(g=>{GRID=g}).catch(()=>{});
+const regionAt=(lng,lat)=>{if(!GRID)return undefined;const i=Math.floor((lat-GRID.lat0)/GRID.r),j=Math.floor((lng-GRID.lng0)/GRID.r),c=i>=0&&j>=0&&i<GRID.rows&&j<GRID.cols?GRID.g.charCodeAt(i*GRID.cols+j)-97:-1,n=c>=0&&c<GRID.regions.length?GRID.regions[c]:null;return n?REGIONS.find(r=>r.name===n):undefined};
 function syncRegions(){
   if(!glReady||!REGIONS.length)return;
   const b=gl.getBounds(),v=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
@@ -502,7 +504,7 @@ function syncRegions(){
   if(mapMode!=='local')return;
   const c=stageToLatLng(innerWidth/2,innerHeight/2);
   if(!inOfflineCoverage(c.lat,c.lng)){if(!outsideShown){outsideShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر — استخدم خريطة الإنترنت عند توفر الشبكة'}}
-  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;status.textContent='خريطة '+r.name+' غير محفوظة في جهازك — احفظها من الإعدادات ← خرائط البر قبل الخروج للبر'}}
+  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;status.textContent='أنت في منطقة '+r.name+' وخريطتها غير محفوظة في جوالك — احفظها من الإعدادات ← حفظ خرائط المناطق قبل الخروج للبر'}}
 }
 function syncEngine(){
   // عند الدوران تُرسم الخريطة في مربع يغطي الشاشة من كل الزوايا حول نقطة الدوران
