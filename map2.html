@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#1C1A17">
 <title>دليل — خرائط المناطق</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
@@ -34,6 +34,12 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 .reg.here{border-color:var(--sand)}
 .ok{color:var(--green);font-weight:700}
 .maplibregl-ctrl-attrib{font-size:10px}
+/* العرض الثلاثي */
+#td{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);inset-inline:10px;z-index:5;display:grid;gap:8px;padding:10px 12px}
+#td .row{display:flex;align-items:center;gap:10px}
+#td input[type=range]{flex:1;accent-color:var(--sand)}
+#td label{display:flex;align-items:center;gap:6px}
+#td input[type=checkbox]{width:20px;height:20px;accent-color:var(--sand)}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:calc(env(safe-area-inset-bottom,0px) + 64px)}
 .maplibregl-ctrl-top-left{top:calc(env(safe-area-inset-top,0px) + 64px)}
 .maplibregl-popup-content{font-family:inherit;border-radius:14px;padding:12px 14px;direction:rtl;text-align:right;min-width:170px}
@@ -47,6 +53,10 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 <div class="bar">
   <button class="btn ghost" id="back" type="button">→ رجوع</button>
   <div class="chip title grow"><b id="title">خرائط المناطق</b><small>OpenStreetMap و Copernicus</small></div>
+</div>
+<div id="td" class="chip" hidden>
+  <div class="row"><span>تضخيم الارتفاع</span><input type="range" id="tdEx" min="1" max="3" step="0.1" value="1.6" aria-label="تضخيم الارتفاع"><b id="tdExV">1.6×</b></div>
+  <div class="row"><label><input type="checkbox" id="tdSat">صور فضائية</label><span class="grow"></span><button class="btn ghost small" id="tdFlat" type="button">مستوٍ 2D</button></div>
 </div>
 <div id="dl" class="chip"><span class="msg" id="dlMsg">…</span><button class="btn" id="dlOpen" type="button">الخرائط المحفوظة</button></div>
 <div id="sheet" hidden role="dialog" aria-labelledby="sheetTitle">
@@ -140,17 +150,23 @@ const TPL = [
     paint:{'text-color':['match',['get','kind'],'neighborhood','#6F665A','#231F1A'], 'text-halo-color':'rgba(255,255,255,.9)', 'text-halo-width':1.6}}
 ];
 // «فتحات» فارغة تحفظ ترتيب الطبقات: طبقات كل منطقة تُدرج قبل فتحة قالبها
-const style = {version:8, glyphs:abs('vendor/glyphs/') + '{fontstack}/{range}.pbf', sources:{},
-  layers:[{id:'bg', type:'background', paint:{'background-color':'#EFE4CF'}}, ...TPL.map(t => ({id:'slot:' + t.id, type:'background', layout:{visibility:'none'}}))]};
+const MODE3D = new URLSearchParams(location.search).get('mode') === '3d';
+let SAT = new URLSearchParams(location.search).get('sat') === '1';
+const style = {version:8, glyphs:abs('vendor/glyphs/') + '{fontstack}/{range}.pbf',
+  sources:{
+    sat:{type:'raster', tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'], tileSize:256, maxzoom:15},
+    // ارتفاعات AWS Terrain Tiles (بيانات مفتوحة) للعرض الثلاثي فقط
+    dem:{type:'raster-dem', tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding:'terrarium', tileSize:256, maxzoom:14}},
+  layers:[{id:'bg', type:'background', paint:{'background-color':'#EFE4CF'}}, {id:'sat', type:'raster', source:'sat', layout:{visibility:SAT ? 'visible' : 'none'}, paint:{'raster-fade-duration':0}}, ...TPL.map(t => ({id:'slot:' + t.id, type:'background', layout:{visibility:'none'}}))]};
 
 const qs = new URLSearchParams(location.search), qLat = Number(qs.get('lat')), qLng = Number(qs.get('lng')), qZ = Number(qs.get('z'));
 const hasQ = Number.isFinite(qLat) && Number.isFinite(qLng) && qs.has('lat');
 const map = new maplibregl.Map({container:'map', style, center: hasQ ? [qLng, qLat] : [45.3, 24.2], zoom: hasQ ? (qZ || 13) : 5.2,
-  minZoom:4.5, maxZoom:17, maxBounds:[[31,13],[60,35]], attributionControl:false});
+  minZoom:4.5, maxZoom:17, maxBounds:[[31,13],[60,35]], attributionControl:false, maxPitch:80, pitch: MODE3D ? 62 : 0});
 map.addControl(new maplibregl.AttributionControl({compact:true, customAttribution:'© <a href="https://www.openstreetmap.org/copyright">مساهمو OpenStreetMap</a> · Copernicus DEM © DLR/Airbus، الاتحاد الأوروبي و ESA'}), 'bottom-right');
 map.once('idle', () => { const el = document.querySelector('.maplibregl-ctrl-attrib'); if(el) el.classList.remove('maplibregl-compact-show'); });
 map.addControl(new maplibregl.ScaleControl({unit:'metric'}), 'bottom-left');
-map.addControl(new maplibregl.NavigationControl({visualizePitch:false}), 'top-left');
+map.addControl(new maplibregl.NavigationControl({visualizePitch:MODE3D}), 'top-left');
 const geo = new maplibregl.GeolocateControl({positionOptions:{enableHighAccuracy:true}, trackUserLocation:true, showAccuracyCircle:true});
 map.addControl(geo, 'top-left');
 let myPos = null;
@@ -169,6 +185,7 @@ function addRegion(r){
     map.addLayer({...def, id:id + '@' + r.id, source:(src === H ? 'hs-' : 'vt-') + r.id}, 'slot:' + id);
   }
   active.add(r.id);
+  satFills(r.id);
 }
 function removeRegion(id){
   for(const t of TPL) if(map.getLayer(t.id + '@' + id)) map.removeLayer(t.id + '@' + id);
@@ -182,7 +199,20 @@ function syncRegions(){
   for(const r of REGIONS) if(want.has(r.id) && !active.has(r.id)) addRegion(r);
   updateStatus();
 }
-map.on('load', () => { syncRegions(); if(!hasQ) try{ geo.trigger(); }catch(e){} });
+map.on('load', () => { syncRegions(); if(MODE3D) start3D(); else if(!hasQ) try{ geo.trigger(); }catch(e){} });
+// ---------- العرض الثلاثي ----------
+function satFills(id){ for(const k of ['sand','farm','park','urban','water']) if(map.getLayer(k + '@' + id)) map.setLayoutProperty(k + '@' + id, 'visibility', SAT ? 'none' : 'visible'); }
+function start3D(){
+  $('dl').hidden = true; $('td').hidden = false;
+  document.title = 'دليل — عرض ثلاثي الأبعاد';
+  const ex = () => Number($('tdEx').value);
+  map.setTerrain({source:'dem', exaggeration:ex()});
+  try{ map.setSky({'sky-color':'#BFD3E2', 'horizon-color':'#EFE4CF', 'fog-color':'#E8D9BD', 'sky-horizon-blend':.6, 'horizon-fog-blend':.6, 'fog-ground-blend':.35}); }catch(e){}
+  $('tdSat').checked = SAT;
+  $('tdEx').oninput = () => { $('tdExV').textContent = ex().toFixed(1) + '×'; map.setTerrain({source:'dem', exaggeration:ex()}); };
+  $('tdSat').onchange = e => { SAT = e.target.checked; map.setLayoutProperty('sat', 'visibility', SAT ? 'visible' : 'none'); for(const id of active) satFills(id); };
+  $('tdFlat').onclick = () => { const flat = map.getPitch() > 5; map.easeTo({pitch: flat ? 0 : 62, duration:700}); $('tdFlat').textContent = flat ? 'مائل 3D' : 'مستوٍ 2D'; };
+}
 map.on('moveend', syncRegions);
 
 // ---------- الحالة وقائمة المناطق ----------
@@ -192,7 +222,7 @@ function regionAt(x, y){
 }
 function updateStatus(){
   const c = map.getCenter(), here = myPos ? regionAt(...myPos) : regionAt(c.lng, c.lat);
-  $('title').textContent = here ? 'خرائط المناطق — ' + here.name : 'خرائط المناطق';
+  $('title').textContent = MODE3D ? 'عرض ثلاثي الأبعاد' + (here ? ' — ' + here.name : '') : here ? 'خرائط المناطق — ' + here.name : 'خرائط المناطق';
   if(!REGIONS.length) $('dlMsg').textContent = 'تعذّر تحميل قائمة المناطق.';
   else if(here && saved.has(here.id)) $('dlMsg').innerHTML = '<span class="ok">✓</span> ' + esc(here.name) + ' محفوظة وتعمل بدون إنترنت.';
   else if(here) $('dlMsg').textContent = here.name + ' غير محفوظة بعد (' + mb(here.vt + here.hs) + ').';
