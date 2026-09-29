@@ -1100,7 +1100,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 2.0 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 2.1 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -4467,6 +4467,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(requestedScreen === 'compass'){
     // روابط الرجوع والتوجيه تفتح تبويب البوصلة، مع إبقاء شاشة السماح عند الحاجة.
     document.querySelector('.tab[data-screen="compass"]').click();
+  }
+  if(requestedScreen === 'settings' || requestedScreen === 'places' || requestedScreen === 'track'){
+    // الرجوع من صفحة «خرائط المناطق» وغيرها إلى التبويب الذي فُتحت منه.
+    document.querySelector('.tab[data-screen="' + requestedScreen + '"]').click();
   }
   if(permissionsWereReady){
     // افحص الأذونات المحفوظة فعليًا قبل إخفاء شاشة البداية. إذا وصلت بيانات

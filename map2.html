@@ -17,7 +17,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 .bar>*{pointer-events:auto}
 .chip{background:rgba(251,247,239,.95);border:1px solid var(--line);border-radius:14px;padding:8px 12px;box-shadow:0 4px 14px rgba(40,25,5,.12);font-size:13px}
 .title b{display:block;font-size:14px}.title small{color:var(--dim);font-size:11.5px}
-.btn{all:unset;cursor:pointer;background:var(--sand);color:var(--ink);font-weight:700;font-size:13px;border-radius:12px;padding:9px 13px;border:1px solid #B07F3C;box-shadow:0 4px 14px rgba(40,25,5,.15);text-align:center}
+.btn{all:unset;pointer-events:auto;cursor:pointer;background:var(--sand);color:var(--ink);font-weight:700;font-size:13px;border-radius:12px;padding:9px 13px;border:1px solid #B07F3C;box-shadow:0 4px 14px rgba(40,25,5,.15);text-align:center}
 .btn.ghost{background:rgba(251,247,239,.95);border-color:var(--line);font-weight:600;box-shadow:none}
 .btn.small{padding:6px 10px;font-size:12.5px;box-shadow:none}
 .btn:focus-visible{outline:2px solid var(--sand-ink);outline-offset:2px}
@@ -66,7 +66,12 @@ const OFFLINE_CACHE = 'dalil-offline-maps-v1';
 const HAZARD = {'سبخة':'أرض رخوة قد تغرز فيها السيارة، خصوصًا بعد المطر.','حرة':'أرض بركانية وعرة تتلف الإطارات؛ خفّف السرعة.','دحل':'فتحة أو كهف في الأرض؛ احذر السقوط عند الاقتراب.','كهف':'كهف أو غار؛ لا تدخله دون إضاءة ومرافق.'};
 const mb = b => Math.max(1, Math.round(b / 1048576)) + ' MB';
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-$('back').onclick = () => { history.length > 1 ? history.back() : location.href = 'index.html'; };
+// الرجوع دائمًا إلى التطبيق نفسه: سجلّ المتصفح لا يُعتمد عليه في التطبيق المثبّت أو عند الفتح من رابط
+$('back').onclick = () => {
+  let ref = null;
+  try{ ref = document.referrer && new URL(document.referrer); }catch(e){}
+  location.href = ref && ref.origin === location.origin && !/map2\.html/.test(ref.pathname) ? ref.href : 'index.html?screen=settings';
+};
 
 maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-csp-worker.js'));
 try{ maplibregl.setRTLTextPlugin(abs('vendor/mapbox-gl-rtl-text.js'), true); }catch(e){}
