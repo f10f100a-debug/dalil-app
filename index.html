@@ -913,7 +913,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260926-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20260929-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1241,6 +1241,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
       <div class="cp-sheet-list">
         <button type="button" class="cp-sheet-item" id="placeSheetMap"><span class="cp-ic" data-ico="map"></span><span><b>عرض على الخريطة</b><small>والتوجّه عليها</small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetWadi" hidden><span class="cp-ic" data-ico="nav"></span><span><b>توجّه إلى أقرب نقطة من الوادي</b><small id="placeSheetWadiSub"></small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetSave" hidden><span class="cp-ic" data-ico="pin"></span><span><b>حفظ في أماكني</b></span></button>
@@ -2659,7 +2660,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20260926-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20260929-1&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3002,6 +3003,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('placeSheetSave').hidden = !isCatalog;
     document.getElementById('placeSheetDelete').hidden = isCatalog;
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
+    updateWadiButton(place);
     const hazardEl = document.getElementById('placeSheetHazard');
     hazardEl.textContent = isCatalog ? CATALOG_HAZARD[place.kind] || '' : '';
     hazardEl.hidden = !hazardEl.textContent;
@@ -3009,6 +3011,75 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('placeSheetDeleteLabel').textContent = isCar ? 'إزالة موقع السيارة' : 'حذف المكان';
     placeSheetOverlay.classList.add('show');
   }
+  // مسارات الأودية (data/wadis.json): التوجّه إلى أقرب نقطة من مجرى الوادي بدل نقطته الوحيدة.
+  let wadiIndex = null, wadiLoading = null;
+  const wadiKey = name=>stripAl(normAr(name)).replace(/^(وادي|واد|شعيب|شعب|خور) /, '');
+  function loadWadiIndex(){
+    if(!wadiLoading) wadiLoading = fetch('data/wadis.json?v=1').then(r=>r.ok ? r.json() : null).then(d=>{
+      const k = 1 / ((d && d.scale) || 1e4);
+      wadiIndex = d && Array.isArray(d.w) ? d.w.map(([name, parts])=>({key:wadiKey(name), parts:parts.map(a=>{
+        const pts = []; let lat = 0, lng = 0;
+        for(let i = 0; i < a.length; i += 2){ lat += a[i]; lng += a[i+1]; pts.push([lat*k, lng*k]); }
+        return pts;
+      })})) : [];
+      return wadiIndex;
+    }).catch(()=>{ wadiLoading = null; return []; });
+    return wadiLoading;
+  }
+  // أقرب نقطة على خطوط الوادي من (lat,lng) بإسقاط محلي مسطّح؛ يكفي لمسافات عشرات الكيلومترات.
+  function nearestOnLines(parts, lat, lng){
+    const kx = 111320*Math.cos(lat*Math.PI/180), ky = 110540;
+    let best = null;
+    for(const pts of parts){
+      for(let i = 0; i < pts.length; i++){
+        const ax = (pts[i][1]-lng)*kx, ay = (pts[i][0]-lat)*ky;
+        let px = ax, py = ay;
+        if(i + 1 < pts.length){
+          const bx = (pts[i+1][1]-lng)*kx, by = (pts[i+1][0]-lat)*ky, dx = bx-ax, dy = by-ay, L = dx*dx + dy*dy;
+          const t = L ? Math.max(0, Math.min(1, -(ax*dx + ay*dy)/L)) : 0;
+          px = ax + t*dx; py = ay + t*dy;
+        }
+        const d = Math.hypot(px, py);
+        if(!best || d < best.d) best = {d, lat:lat + py/ky, lng:lng + px/kx};
+      }
+    }
+    return best;
+  }
+  // الوادي المطابق: الاسم نفسه ويمر على بعد 3 كم أو أقل من نقطة المكان.
+  function wadiFor(place){
+    if(!wadiIndex) return null;
+    const key = wadiKey(place.name);
+    let best = null;
+    for(const w of wadiIndex){
+      if(w.key !== key) continue;
+      const n = nearestOnLines(w.parts, place.lat, place.lng);
+      if(n && n.d <= 3000 && (!best || n.d < best.d)) best = {d:n.d, w};
+    }
+    return best && best.w;
+  }
+  function updateWadiButton(place){
+    const btn = document.getElementById('placeSheetWadi');
+    btn.hidden = true;
+    if(!place.catalog || !/^(وادي|واد|شعيب|شعب|خور) /.test(normAr(place.name))) return;
+    loadWadiIndex().then(()=>{
+      if(sheetPlaceId !== place.id || !wadiFor(place)) return;
+      const n = state.pos ? nearestOnLines(wadiFor(place).parts, state.pos.lat, state.pos.lng) : null;
+      document.getElementById('placeSheetWadiSub').textContent = n ? 'مجرى الوادي على بُعد ' + fmtDist(n.d) + ' منك' : 'يحتاج تحديد موقعك';
+      btn.hidden = false;
+    });
+  }
+  document.getElementById('placeSheetWadi').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId), w = place && wadiFor(place);
+    if(!w) return;
+    if(!state.pos) return toast('انتظر حتى يتحدد موقعك');
+    const n = nearestOnLines(w.parts, state.pos.lat, state.pos.lng);
+    closePlaceSheet();
+    if(state.retracing) stopRetrace();
+    setNavTarget({id:'__wadi__', name:'أقرب نقطة من ' + place.name, icon:'〰️', cat:'map', lat:Number(n.lat.toFixed(6)), lng:Number(n.lng.toFixed(6)), alt:null});
+    showCompassTab();
+    renderCompassScreen();
+    toast('جارٍ التوجّه إلى أقرب نقطة من «' + place.name + '» — ' + fmtDist(n.d));
+  });
   function closePlaceSheet(){ placeSheetOverlay.classList.remove('show'); sheetPlaceId = null; }
   document.getElementById('placeSheetClose').addEventListener('click', closePlaceSheet);
   document.getElementById('placeSheetMap').addEventListener('click', ()=>{
