@@ -1099,7 +1099,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.1</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 1.2 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -3022,6 +3022,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         for(let i = 0; i < a.length; i += 2){ lat += a[i]; lng += a[i+1]; pts.push([lat*k, lng*k]); }
         return pts;
       })})) : [];
+      if(!wadiIndex.length) wadiLoading = null;   // يُعاد المحاولة في المرة القادمة
       return wadiIndex;
     }).catch(()=>{ wadiLoading = null; return []; });
     return wadiLoading;
@@ -3057,15 +3058,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     return best && best.w;
   }
+  // يظهر الزر فورًا لأي وادٍ أو شعيب (من خرائط البر أو من أماكنك)، ثم يتحدّث بعد تحميل المسارات.
   function updateWadiButton(place){
-    const btn = document.getElementById('placeSheetWadi');
-    btn.hidden = true;
-    if(!place.catalog || !/^(وادي|واد|شعيب|شعب|خور) /.test(normAr(place.name))) return;
+    const btn = document.getElementById('placeSheetWadi'), sub = document.getElementById('placeSheetWadiSub');
+    btn.hidden = true; btn.disabled = true;
+    if(place.id === '__car__' || !/^(وادي|واد|شعيب|شعب|خور) /.test(normAr(place.name))) return;
+    btn.hidden = false;
+    sub.textContent = wadiIndex ? '' : 'جارٍ تحميل مسار الوادي…';
     loadWadiIndex().then(()=>{
-      if(sheetPlaceId !== place.id || !wadiFor(place)) return;
-      const n = state.pos ? nearestOnLines(wadiFor(place).parts, state.pos.lat, state.pos.lng) : null;
-      document.getElementById('placeSheetWadiSub').textContent = n ? 'مجرى الوادي على بُعد ' + fmtDist(n.d) + ' منك' : 'يحتاج تحديد موقعك';
-      btn.hidden = false;
+      if(sheetPlaceId !== place.id) return;
+      if(!wadiIndex || !wadiIndex.length){ sub.textContent = 'تعذّر تحميل مسارات الأودية — افتح التطبيق مرة مع الإنترنت'; return; }
+      const w = wadiFor(place);
+      if(!w){ btn.hidden = true; return; }
+      const n = state.pos ? nearestOnLines(w.parts, state.pos.lat, state.pos.lng) : null;
+      sub.textContent = n ? 'مجرى الوادي على بُعد ' + fmtDist(n.d) + ' منك' : 'يحتاج تحديد موقعك';
+      btn.disabled = false;
     });
   }
   document.getElementById('placeSheetWadi').addEventListener('click', ()=>{
