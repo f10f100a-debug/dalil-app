@@ -2904,7 +2904,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(bundledLoading) return bundledLoading;
     bundledLoading = Promise.all([
       fetch('data/desert-places.json?v=3').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
-      fetch('data/osm-places.json?v=1').then(r=>r.ok ? r.json() : null).catch(()=>null)
+      fetch('data/osm-places.json?v=2').then(r=>r.ok ? r.json() : null).catch(()=>null)
     ])
       .then(([d, o])=>{ if(d && Array.isArray(d.p)){ bundledCatalog = d; osmCatalog = o && Array.isArray(o.p) ? o : null; rebuildCatalog(); } })
       .catch(()=>{ bundledLoading = null; updateCatalogStatus(); });
