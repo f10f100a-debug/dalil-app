@@ -1,5 +1,6 @@
-const SHELL_CACHE='dalil-shell-v19';
+const SHELL_CACHE='dalil-shell-v20';
 const MAP_CACHE='dalil-map-tiles-v1';
+const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./data/osm-places.json','./data/wadis.json','./events.js?v=3','./data/region-grid.json?v=1'];
 
 self.addEventListener('install',event=>{
@@ -7,7 +8,7 @@ self.addEventListener('install',event=>{
 });
 
 self.addEventListener('activate',event=>{
-  const keep=new Set([SHELL_CACHE,MAP_CACHE]);
+  const keep=new Set([SHELL_CACHE,MAP_CACHE,OFFLINE_MAPS]);
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
@@ -18,6 +19,8 @@ self.addEventListener('fetch',event=>{
   if(url.origin!==self.location.origin) return;
   // الفيديو يُطلب بأجزاء (Range)؛ نتركه للمتصفح مباشرة حتى يعمل على Safari.
   if(url.pathname.endsWith('.mp4')) return;
+  // ملفات الخرائط تُطلب بأجزاء (Range) وتحفظها map2.html بنفسها.
+  if(url.pathname.endsWith('.pmtiles')) return;
 
   if(request.mode==='navigate'){
     event.respondWith(fetch(request).then(response=>{
