@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#1C1A17">
-<title>دليل — خريطة البر الجديدة</title>
+<title>دليل — خرائط المناطق</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -46,7 +46,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 <div id="map" role="application" aria-label="خريطة البر"></div>
 <div class="bar">
   <button class="btn ghost" id="back" type="button">→ رجوع</button>
-  <div class="chip title grow"><b id="title">خريطة البر الجديدة</b><small>OpenStreetMap و Copernicus · تجريبية</small></div>
+  <div class="chip title grow"><b id="title">خرائط المناطق</b><small>OpenStreetMap و Copernicus</small></div>
 </div>
 <div id="dl" class="chip"><span class="msg" id="dlMsg">…</span><button class="btn" id="dlOpen" type="button">الخرائط المحفوظة</button></div>
 <div id="sheet" hidden role="dialog" aria-labelledby="sheetTitle">
@@ -187,7 +187,7 @@ function regionAt(x, y){
 }
 function updateStatus(){
   const c = map.getCenter(), here = myPos ? regionAt(...myPos) : regionAt(c.lng, c.lat);
-  $('title').textContent = here ? 'خريطة البر — ' + here.name : 'خريطة البر الجديدة';
+  $('title').textContent = here ? 'خرائط المناطق — ' + here.name : 'خرائط المناطق';
   if(!REGIONS.length) $('dlMsg').textContent = 'تعذّر تحميل قائمة المناطق.';
   else if(here && saved.has(here.id)) $('dlMsg').innerHTML = '<span class="ok">✓</span> ' + esc(here.name) + ' محفوظة وتعمل بدون إنترنت.';
   else if(here) $('dlMsg').textContent = here.name + ' غير محفوظة بعد (' + mb(here.vt + here.hs) + ').';

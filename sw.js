@@ -1,14 +1,14 @@
-const SHELL_CACHE='dalil-shell-v21';
-const MAP_CACHE='dalil-map-tiles-v1';
+const SHELL_CACHE='dalil-shell-v22';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
-const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./data/osm-places.json','./data/wadis.json','./events.js?v=3','./data/region-grid.json?v=1'];
+const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./data/desert-places.json','./data/osm-places.json','./data/wadis.json','./events.js?v=3','./data/region-grid.json?v=1'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener('activate',event=>{
-  const keep=new Set([SHELL_CACHE,MAP_CACHE,OFFLINE_MAPS]);
+  // ذاكرة صور الخريطة القديمة (dalil-map-tiles-v1) لم تعد في القائمة فتُحذف من الأجهزة.
+  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS]);
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
@@ -35,13 +35,12 @@ self.addEventListener('fetch',event=>{
     return;
   }
 
-  const isTile=url.pathname.includes('/tiles/')&&url.pathname.endsWith('.png');
   event.respondWith(caches.match(request,{ignoreSearch:true}).then(cached=>{
     if(cached) return cached;
     return fetch(request).then(response=>{
       if(response&&response.ok){
         const copy=response.clone();
-        caches.open(isTile?MAP_CACHE:SHELL_CACHE).then(cache=>cache.put(request,copy));
+        caches.open(SHELL_CACHE).then(cache=>cache.put(request,copy));
       }
       return response;
     });
