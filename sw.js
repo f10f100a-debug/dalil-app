@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v20';
+const SHELL_CACHE='dalil-shell-v21';
 const MAP_CACHE='dalil-map-tiles-v1';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./manifest.webmanifest','./data/desert-places.json','./data/osm-places.json','./data/wadis.json','./events.js?v=3','./data/region-grid.json?v=1'];

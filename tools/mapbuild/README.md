@@ -18,3 +18,15 @@ python3 build_hillshade.py riyadh-hillshade.pmtiles
 ```
 
 لتغيير المنطقة عدّل `X0, X1, Y0, Y1` في الملفات الثلاثة (و `LAT_HI, LON_LO` في build_hillshade.py).
+
+## كل المناطق (الطريقة المعتمدة)
+
+`build_region.py` يبني منطقة كاملة من حدودها في `data/region-grid.json` دفعة واحدة (يستخرج من Overture مباشرة، وينزّل مربعات DEM ويخفّضها إلى ~90 م ثم يحذفها):
+
+```sh
+python3 build_region.py riyadh الرياض out/     # → out/riyadh.pmtiles (z6–13) و out/riyadh-hs.pmtiles (z6–11) و out/riyadh.json
+# بعد بناء المناطق كلها:
+MAPS_V=1 python3 make_manifest.py out/ ../..    # ينسخ الخرائط إلى maps/ ويكتب data/maps.json
+```
+
+ارفع `MAPS_V` عند إعادة البناء حتى تُنزَّل النسخة الجديدة بدل المحفوظة في الأجهزة.
