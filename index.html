@@ -522,6 +522,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .pl-ic.cat{background:#FBF3E6; color:var(--cp-gold-ink);}
   .pl-note{font-size:13px; color:var(--text-dim); background:#fff; border:1px dashed #CDBFA8; border-radius:16px; padding:12px 14px; margin-top:12px; line-height:1.7;}
   .pl-sheet-coords{font-size:14px; color:var(--text-dim); text-align:right; margin:-6px 0 12px; font-variant-numeric:tabular-nums;}
+  .pl-sheet-hazard{margin:-4px 0 12px; padding:10px 12px; border-radius:14px; background:var(--cp-red-bg); border:1px solid #EFCFC9; color:var(--cp-red); font-size:13.5px; font-weight:600; line-height:1.6;}
   .pl-rename{display:flex; gap:8px; margin-bottom:12px;}
   .pl-rename[hidden]{display:none;}
   .pl-rename .cp-btn{width:auto; padding:0 18px;}
@@ -1233,6 +1234,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="sheet-handle"></div>
       <h3 id="placeSheetTitle">—</h3>
       <div class="pl-sheet-coords" id="placeSheetCoords" dir="ltr"></div>
+      <div class="pl-sheet-hazard" id="placeSheetHazard" hidden></div>
       <div class="pl-rename" id="placeRenameRow" hidden>
         <input class="text-input" id="placeRenameInput" maxlength="60" aria-label="الاسم الجديد">
         <button type="button" class="cp-btn cp-btn-gold" id="placeRenameSave">حفظ</button>
@@ -2799,8 +2801,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(/رئيس/.test(f)) return 'معلم رئيسي';
     return 'معلم';
   }
+  // تصنيفات أرض تستحق تنبيهًا عند فتحها.
+  const CATALOG_HAZARD = {
+    'سبخة':'أرض رخوة قد تغرز فيها السيارة، خصوصًا بعد المطر.',
+    'حرة':'أرض بركانية وعرة تتلف الإطارات؛ خفّف السرعة.',
+    'دحل':'فتحة أو كهف في الأرض؛ احذر السقوط عند الاقتراب.'
+  };
   function catalogIcon(kind){
-    return kind === 'جبل' ? 'mountain' : /ماء|مياه/.test(kind) ? 'drop' : kind === 'آثار' ? 'landmark' : kind === 'نفود' ? 'dust' : kind === 'موقع خطر' ? 'sos' : kind === 'طريق صحراوي' ? 'map' : 'pin';
+    return kind === 'جبل' ? 'mountain' : /ماء|مياه/.test(kind) ? 'drop' : kind === 'آثار' ? 'landmark' : kind === 'نفود' ? 'dust' : CATALOG_HAZARD[kind] || kind === 'موقع خطر' ? 'sos' : kind === 'طريق صحراوي' ? 'map' : 'pin';
   }
   // قارئ ZIP مصغّر لملفات KMZ (يعتمد DecompressionStream المتوفر في Safari 16.4+).
   async function kmzToKml(buf){
@@ -2890,7 +2898,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function ensureBundledCatalog(){
     if(bundledCatalog) return Promise.resolve();
     if(bundledLoading) return bundledLoading;
-    bundledLoading = fetch('data/desert-places.json?v=2')
+    bundledLoading = fetch('data/desert-places.json?v=3')
       .then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); })
       .then(d=>{ if(d && Array.isArray(d.p)){ bundledCatalog = d; rebuildCatalog(); } })
       .catch(()=>{ bundledLoading = null; updateCatalogStatus(); });
@@ -2988,6 +2996,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('placeSheetSave').hidden = !isCatalog;
     document.getElementById('placeSheetDelete').hidden = isCatalog;
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
+    const hazardEl = document.getElementById('placeSheetHazard');
+    hazardEl.textContent = isCatalog ? CATALOG_HAZARD[place.kind] || '' : '';
+    hazardEl.hidden = !hazardEl.textContent;
     document.getElementById('placeRenameRow').hidden = true;
     document.getElementById('placeSheetDeleteLabel').textContent = isCar ? 'إزالة موقع السيارة' : 'حذف المكان';
     placeSheetOverlay.classList.add('show');
