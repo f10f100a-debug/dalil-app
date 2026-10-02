@@ -626,6 +626,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   .onboard h2{font-size:20px; margin:6px 0 0;}
   .onboard p{font-size:13px; color:var(--text-dim); line-height:1.9; max-width:320px;}
+  .push-ask{position:fixed; inset:0; z-index:85; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; gap:14px;}
+  .push-ask[hidden]{display:none!important;}
+  .push-ask h2{font-size:20px; margin:4px 0 0;}
+  .push-ask p{font-size:13.5px; color:var(--text-dim); line-height:1.9; max-width:320px; margin:0;}
+  .push-ask .step{font-size:12px; color:var(--text-dim);}
   .perm-list{display:flex; flex-direction:column; gap:8px; width:100%; max-width:300px; margin:6px 0;}
   .perm-item{
     background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 14px;
@@ -1105,7 +1110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 2.8 (29 سبتمبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 2.9 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -1286,6 +1291,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <button class="btn btn-ghost" id="installHelpBtn" style="max-width:260px; margin-top:9px;">📲 ثبّت دليل على الآيفون — 20 ثانية</button>
     <div class="permission-note" id="onboardPermissionNote">ستظهر رسالتان من الآيفون: اختر «سماح» للبوصلة، ثم «سماح» للموقع.</div>
     <div class="developer-credit">تطوير: فهد محمد اللهيبي</div>
+  </div>
+
+  <!-- الخطوة الثانية: التنبيهات (اختيارية) -->
+  <div class="push-ask" id="pushAsk" hidden>
+    <div class="step">الخطوة الأخيرة (اختيارية)</div>
+    <div class="mark" style="width:64px;height:64px;border-radius:18px;background:linear-gradient(155deg,var(--sand),var(--sand-dim));display:flex;align-items:center;justify-content:center;font-size:32px;">🔔</div>
+    <h2>تنبيهات السيول والأمطار في منطقتك؟</h2>
+    <p id="pushAskText">نرسل لك صور السيول والأمطار والتنبيهات المهمة فور نشرها في منطقتك. لا نحفظ اسمك ولا رقمك، ويمكنك إيقافها من الإعدادات.</p>
+    <button class="btn btn-primary" id="pushAskYes" style="max-width:260px;">🔔 تفعيل التنبيهات</button>
+    <button class="btn btn-ghost" id="pushAskLater" style="max-width:260px;">لاحقًا</button>
   </div>
 
   <div class="overlay" id="installOverlay" style="z-index:1100;">
@@ -1515,6 +1530,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(result.locationGranted && result.compassGranted !== false){
       try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
       document.getElementById('onboard').style.display = 'none';
+      maybeAskPush(0);
     }else{
       const missing = [];
       if(!result.locationGranted) missing.push('الموقع');
@@ -1524,6 +1540,55 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       onboardBtn.textContent = '🔄 إعادة محاولة الأذونات';
       skipPermissionsBtn.style.display = 'block';
     }
+  });
+  // ---------- خطوة التنبيهات بعد الأذونات ----------
+  // تُعرض مرة بعد السماح بالموقع والبوصلة، ولمن ثبّت التطبيق سابقًا عند الفتح.
+  // «لاحقًا» يؤجّلها 7 أيام. على الآيفون تعمل التنبيهات فقط من التطبيق المثبّت.
+  const pushAskKey = 'dalil_push_ask_after';
+  function pushAskEligible(){
+    if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return false;
+    if(Notification.permission !== 'default') return false;
+    let after = 0; try{ after = +localStorage.getItem(pushAskKey) || 0; }catch(e){}
+    return Date.now() >= after;
+  }
+  function maybeAskPush(delay, tries=6){
+    setTimeout(()=>{
+      if(!pushAskEligible()) return;
+      // انتظر حتى تختفي شاشة البداية (وصول الموقع والبوصلة) قبل العرض.
+      if(document.getElementById('onboard').style.display !== 'none'){ if(tries > 0) maybeAskPush(3000, tries - 1); return; }
+      document.getElementById('pushAsk').hidden = false;
+      loadEvents().catch(()=>{});
+    }, delay);
+  }
+  function closePushAsk(snoozeDays){
+    document.getElementById('pushAsk').hidden = true;
+    try{ localStorage.setItem(pushAskKey, String(Date.now() + snoozeDays*86400000)); }catch(e){}
+  }
+  document.getElementById('pushAskLater').addEventListener('click', ()=>{
+    closePushAsk(7);
+    toast('يمكنك تفعيلها لاحقًا من الإعدادات ← التنبيهات');
+  });
+  document.getElementById('pushAskYes').addEventListener('click', async ()=>{
+    const btn = document.getElementById('pushAskYes');
+    btn.disabled = true;
+    let perm = 'default';
+    // اطلب الإذن مباشرة من ضغطة المستخدم (شرط Safari) ثم أكمل الاشتراك.
+    try{ perm = await Notification.requestPermission(); }catch(e){}
+    if(perm !== 'granted'){
+      btn.disabled = false;
+      closePushAsk(perm === 'denied' ? 3650 : 7);
+      toast('لم يُسمح بالتنبيهات. يمكنك تفعيلها من إعدادات الجوال');
+      return;
+    }
+    try{
+      const ev = await loadEvents();
+      await ev.subscribeNow();
+      closePushAsk(3650);
+      toast('تم تفعيل التنبيهات ✓');
+    }catch(e){
+      closePushAsk(1);
+      toast('تعذّر التفعيل الآن. جرّب من الإعدادات ← التنبيهات');
+    }finally{ btn.disabled = false; }
   });
   skipPermissionsBtn.addEventListener('click', ()=>{
     document.getElementById('onboard').style.display = 'none';
@@ -4342,7 +4407,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=3';
+      sc.src = 'events.js?v=4';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -4649,6 +4714,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     // الرجوع من صفحة «خرائط المناطق» وغيرها إلى التبويب الذي فُتحت منه.
     document.querySelector('.tab[data-screen="' + requestedScreen + '"]').click();
   }
+  if(permissionsWereReady) maybeAskPush(4000);
   if(permissionsWereReady){
     // افحص الأذونات المحفوظة فعليًا قبل إخفاء شاشة البداية. إذا وصلت بيانات
     // الموقع والاتجاه تختفي تلقائيًا، وإلا تبقى ضغطة «تفعيل» متاحة للمستخدم.

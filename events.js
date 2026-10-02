@@ -428,7 +428,14 @@
     },
     hide(){ clearInterval(timer); },
     checkNew(){ return fetchEvents(false); },
-    settings(){ refreshPushState(); }
+    settings(){ refreshPushState(); },
+    // يُستدعى بعد منح إذن الإشعارات من شاشة البداية.
+    async subscribeNow(){
+      const reg = await navigator.serviceWorker.ready;
+      const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
+      await postSub(sub, lsGet(LS.pushRegion) || '');
+      await refreshPushState();
+    }
   };
   refreshPushState();
 })();
