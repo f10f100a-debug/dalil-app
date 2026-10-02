@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v29';
+const SHELL_CACHE='dalil-shell-v30';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./data/desert-places.json','./data/osm-places.json','./data/wadis.json','./events.js?v=3','./data/region-grid.json?v=1'];
 
@@ -8,7 +8,7 @@ self.addEventListener('install',event=>{
 
 self.addEventListener('activate',event=>{
   // ذاكرة صور الخريطة القديمة (dalil-map-tiles-v1) لم تعد في القائمة فتُحذف من الأجهزة.
-  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS]);
+  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1']);  // خرائط المستخدم المستوردة
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
