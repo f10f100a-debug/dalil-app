@@ -137,6 +137,7 @@ body.embed #redTint{display:none!important}
   <label class="lp-row">خطوط الكنتور (الارتفاعات)<input type="checkbox" id="lpContour"></label>
   <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
   <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
+  <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
 <div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
@@ -522,12 +523,45 @@ function syncEngine(){
   gl.jumpTo({center:[c.lng,c.lat],zoom:z-1});
   clearTimeout(regionTimer);regionTimer=setTimeout(syncRegions,200);
 }
+// ---------- خرائط المستخدم المستوردة (PMTiles محفوظة في جواله: dalil-user-maps-v1 + dalil_user_maps) ----------
+const readUserMaps=()=>{try{const v=JSON.parse(localStorage.getItem('dalil_user_maps')||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}};
+let userMaps=[];
+async function addUserMaps(){
+  userMaps=readUserMaps();
+  let c;try{c=await caches.open('dalil-user-maps-v1')}catch(e){return}
+  for(const m of userMaps){
+    try{
+      const res=await c.match('user-maps/'+m.id);if(!res)continue;
+      const key='usermap-'+m.id;pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key))));
+      const src='um-'+m.id,vis=m.on===false?'none':'visible';
+      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0}},'slot:hillshade')}
+      else{
+        gl.addSource(src,{type:'vector',url:'pmtiles://'+key});
+        for(const sl of(m.layers&&m.layers.length?m.layers:[])){
+          const base={source:src,'source-layer':sl,layout:{visibility:vis}};
+          gl.addLayer({...base,id:src+':'+sl+':f',type:'fill',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':'#7A3FA0','fill-opacity':.18}},'slot:dalil');
+          gl.addLayer({...base,id:src+':'+sl+':l',type:'line',filter:['in',['geometry-type'],['literal',['LineString','Polygon']]],paint:{'line-color':'#7A3FA0','line-width':1.6}},'slot:dalil');
+          gl.addLayer({...base,id:src+':'+sl+':c',type:'circle',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':'#7A3FA0','circle-radius':4,'circle-stroke-color':'#fff','circle-stroke-width':1.2}},'slot:dalil');
+          gl.addLayer({...base,id:src+':'+sl+':t',type:'symbol',minzoom:11,filter:['has','name'],layout:{visibility:vis,'text-field':['get','name'],'text-font':TF,'text-size':11,'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':'#5B2C7A','text-halo-color':'#fff','text-halo-width':1.4}},'slot:dalil');
+        }
+      }
+    }catch(e){}
+  }
+  renderUserMapsPanel();
+}
+function setUserMapVisible(id,on){for(const l of gl.getStyle().layers)if(l.id.startsWith('um-'+id+':'))gl.setLayoutProperty(l.id,'visibility',on?'visible':'none')}
+function renderUserMapsPanel(){
+  const el=$('#lpUser');if(!el)return;
+  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<label class="lp-row">${escapeHtml(m.name)}<input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'}></label>`).join(''):'';
+}
+$('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]');if(!cb)return;const list=readUserMaps(),m=list.find(x=>x.id===cb.dataset.um);if(!m)return;m.on=cb.checked;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,cb.checked)});
 gl.on('load',async()=>{
   try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}
   await Promise.all(REGIONS.map(attachSaved));
   glReady=true;
   applyPrefs();
   syncRegions();
+  addUserMaps();
 });
 
 // ---------- start ----------
