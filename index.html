@@ -922,7 +922,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1079,6 +1079,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <input type="file" id="importCatalogInput" multiple hidden>
       </div>
       <div id="userMapsList" class="user-maps"></div>
+      <div id="storageInfo" class="permission-note" style="margin-top:8px"></div>
 
       <div class="section-title">التنبيهات</div>
       <div class="banner push-box" id="pushBox">
@@ -1110,7 +1111,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.5 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.6 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2732,7 +2733,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261002-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261002-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3156,10 +3157,31 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     writeUserMaps(list);
     return 1;
   }
-  function renderUserMaps(){
+  async function renderUserMaps(){
     const list = readUserMaps(), el = document.getElementById('userMapsList');
     const mb = b=>Math.max(1, Math.round(b / 1048576)).toLocaleString('ar-SA-u-nu-latn') + ' MB';
-    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور'} · ${mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button></div>`).join('') : '';
+    // بعد استرجاع نسخة احتياطية على جوال آخر تبقى أسماء الخرائط بلا ملفاتها (الملفات لا تدخل النسخة لكبرها)
+    const missing = new Set();
+    try{ const c = await caches.open(USER_MAPS_CACHE); for(const m of list) if(!(await c.match('user-maps/' + m.id))) missing.add(m.id); }catch(e){}
+    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${missing.has(m.id) ? '<span style="color:#B3261E">غير موجودة في هذا الجوال — أعد استيراد الملف</span>' : (m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور') + ' · ' + mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button></div>`).join('') : '';
+    renderStorage(missing);
+  }
+  // المساحة: خرائط المناطق المحفوظة + الخرائط المستوردة + ما يتيحه الجوال
+  async function renderStorage(missing = new Set()){
+    const el = document.getElementById('storageInfo'); if(!el) return;
+    const mb = b=>b > 0 && b < 1048576 ? 'أقل من 1 MB' : Math.round(b / 1048576).toLocaleString('ar-SA-u-nu-latn') + ' MB';
+    let regions = 0, imported = 0, n = 0;
+    for(const m of readUserMaps()) if(!missing.has(m.id)) imported += m.size || 0;
+    try{
+      const c = await caches.open('dalil-offline-maps-v1'), keys = await c.keys();
+      if(keys.length){
+        const man = await (await fetch('data/maps.json?v=1')).json();
+        for(const r of man.regions || []) if(keys.some(k=>k.url.includes('/maps/' + r.id + '.pmtiles'))){ regions += (r.vt || 0) + (r.hs || 0); n++; }
+      }
+    }catch(e){}
+    let free = '';
+    try{ const est = await navigator.storage.estimate(); if(est && est.quota) free = ' · المتاح لدليل في الجوال تقريبًا ' + mb(Math.max(0, est.quota - (est.usage || 0))); }catch(e){}
+    el.textContent = 'المساحة: خرائط المناطق ' + mb(regions) + (n ? ' (' + n.toLocaleString('ar-SA-u-nu-latn') + ' منطقة)' : '') + ' · الخرائط المستوردة ' + mb(imported) + free;
   }
   document.getElementById('userMapsList').addEventListener('click', async e=>{
     const b = e.target.closest('[data-um-del]'); if(!b) return;

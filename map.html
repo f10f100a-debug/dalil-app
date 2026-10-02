@@ -122,7 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
-.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -550,14 +550,15 @@ function syncEngine(){
 const readUserMaps=()=>{try{const v=JSON.parse(localStorage.getItem('dalil_user_maps')||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}};
 let userMaps=[];
 async function addUserMaps(){
-  userMaps=readUserMaps();
+  const all=readUserMaps();userMaps=[];
   let c;try{c=await caches.open('dalil-user-maps-v1')}catch(e){return}
-  for(const m of userMaps){
+  for(const m of all){
     try{
-      const res=await c.match('user-maps/'+m.id);if(!res)continue;
+      const res=await c.match('user-maps/'+m.id);if(!res)continue;   // غير موجودة في هذا الجوال (بعد استرجاع نسخة احتياطية)
+      userMaps.push(m);
       const key='usermap-'+m.id;pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key))));
       const src='um-'+m.id,vis=m.on===false?'none':'visible';
-      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0}},m.overlay?'slot:dalil':'slot:hillshade')}
+      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':m.op??1}},m.overlay?'slot:dalil':'slot:hillshade')}
       else{
         gl.addSource(src,{type:'vector',url:'pmtiles://'+key});
         for(const sl of(m.layers&&m.layers.length?m.layers:[])){
@@ -575,7 +576,7 @@ async function addUserMaps(){
 function setUserMapVisible(id,on){for(const l of gl.getStyle().layers)if(l.id.startsWith('um-'+id+':'))gl.setLayoutProperty(l.id,'visibility',on?'visible':'none')}
 function renderUserMapsPanel(){
   const el=$('#lpUser');if(!el)return;
-  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`).join(''):'';
+  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`+(m.type==='raster'?`<label class="lp-row um-op"><span>الشفافية</span><input type="range" min="0.2" max="1" step="0.05" value="${m.op??1}" data-umop="${escapeHtml(m.id)}" aria-label="شفافية ${escapeHtml(m.name)}"></label>`:'')).join(''):'';
 }
 // الانتقال إلى مكان الخريطة المستوردة بتكبير تظهر فيه بلاطاتها
 function goToUserMap(m){
@@ -585,6 +586,9 @@ function goToUserMap(m){
   setView('free');const[wx,wy]=world(lat,lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;
   layersPanel.classList.remove('show');render();
 }
+$('#lpUser').addEventListener('input',e=>{const r=e.target.closest('[data-umop]');if(!r)return;const v=Number(r.value),id=r.dataset.umop;
+  if(gl.getLayer('um-'+id+':r'))gl.setPaintProperty('um-'+id+':r','raster-opacity',v);
+  clearTimeout(r._t);r._t=setTimeout(()=>{const list=readUserMaps(),m=list.find(x=>x.id===id);if(!m)return;m.op=v;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=userMaps.map(x=>x.id===id?{...x,op:v}:x)},300)});
 $('#lpUser').addEventListener('click',e=>{const g=e.target.closest('[data-umgo]');if(!g)return;const m=readUserMaps().find(x=>x.id===g.dataset.umgo);if(!m)return;
   if(m.on===false){const list=readUserMaps(),mm=list.find(x=>x.id===m.id);mm.on=true;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,true);renderUserMapsPanel()}
   goToUserMap(m)});
