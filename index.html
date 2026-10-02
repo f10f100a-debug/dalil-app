@@ -1072,7 +1072,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         يتضمن التطبيق أكثر من 30 ألف موقع بري في 13 منطقة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);"></div>
         <div style="margin-top:8px; font-weight:700;">مصدر المواقع المدمجة</div>
-        <div class="btn-row" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button><button type="button" class="chip" data-places-src="osm">المصادر المفتوحة (OSM + GeoNames)</button></div>
+        <div class="btn-row" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="osm">المصادر المفتوحة (OSM + GeoNames)</button><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button></div>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملف (خرائط، مواقع، مسارات)</button>
@@ -1128,7 +1128,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.8 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.9 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -3013,7 +3013,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   // مصدر المواقع المدمجة: «خرائط البر» (sites.google.com/view/desertmaps) مع إضافات OSM، أو المصادر المفتوحة
   // وحدها (data/open-places.json: OpenStreetMap برخصة ODbL + GeoNames بـ CC BY 4.0). نسخة المتجر تستخدم المفتوحة ما لم يأذن صاحب «خرائط البر».
-  const PLACES_SRC_DEFAULT = 'barr';
+  const PLACES_SRC_DEFAULT = 'osm';
   let placesSrc = PLACES_SRC_DEFAULT;
   try{ placesSrc = localStorage.getItem('dalil_places_src') || PLACES_SRC_DEFAULT; }catch(e){}
   if(placesSrc !== 'osm') placesSrc = 'barr';
