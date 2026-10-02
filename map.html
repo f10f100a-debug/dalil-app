@@ -122,6 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
+.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -574,8 +575,22 @@ async function addUserMaps(){
 function setUserMapVisible(id,on){for(const l of gl.getStyle().layers)if(l.id.startsWith('um-'+id+':'))gl.setLayoutProperty(l.id,'visibility',on?'visible':'none')}
 function renderUserMapsPanel(){
   const el=$('#lpUser');if(!el)return;
-  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<label class="lp-row">${escapeHtml(m.name)}<input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'}></label>`).join(''):'';
+  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`).join(''):'';
 }
+// الانتقال إلى مكان الخريطة المستوردة بتكبير تظهر فيه بلاطاتها
+function goToUserMap(m){
+  const b=m.bounds;if(!b||!b.every(Number.isFinite))return;
+  const lat=(b[1]+b[3])/2,lng=(b[0]+b[2])/2,fit=Math.floor(Math.log2(Math.min(innerWidth*360/(Math.max(1e-6,b[2]-b[0])*S),innerHeight*360/(Math.max(1e-6,b[3]-b[1])*S*1.3))));
+  z=Math.max(3,Math.min(19,Math.max((m.minzoom||0)+1,Math.min((m.maxzoom||18)+1,fit))));
+  setView('free');const[wx,wy]=world(lat,lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;
+  layersPanel.classList.remove('show');render();
+}
+$('#lpUser').addEventListener('click',e=>{const g=e.target.closest('[data-umgo]');if(!g)return;const m=readUserMaps().find(x=>x.id===g.dataset.umgo);if(!m)return;
+  if(m.on===false){const list=readUserMaps(),mm=list.find(x=>x.id===m.id);mm.on=true;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,true);renderUserMapsPanel()}
+  goToUserMap(m)});
+// خريطة استوردها المستخدم والخريطة مفتوحة (داخل التطبيق): تُضاف فورًا دون إعادة فتح
+function removeUserMaps(){const st=gl.getStyle();for(const l of st.layers)if(l.id.startsWith('um-'))gl.removeLayer(l.id);for(const k of Object.keys(st.sources))if(k.startsWith('um-'))gl.removeSource(k)}
+window.addEventListener('storage',e=>{if(e.key==='dalil_user_maps'&&glReady){try{removeUserMaps()}catch(err){}addUserMaps()}});
 $('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]');if(!cb)return;const list=readUserMaps(),m=list.find(x=>x.id===cb.dataset.um);if(!m)return;m.on=cb.checked;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,cb.checked)});
 gl.on('load',async()=>{
   try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}

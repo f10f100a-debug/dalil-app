@@ -922,7 +922,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-3" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1110,7 +1110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.4 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.5 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2732,7 +2732,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261002-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261002-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3286,7 +3286,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(pts) parts.push(fmt(pts) + ' موقعًا');
       if(lines) parts.push(fmt(lines) + ' مسارًا');
       if(maps) parts.push(fmt(maps) + ' خريطة');
-      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' : '') : notes.length ? 'تعذّر الاستيراد: ' + notes[0] : 'كل ما في الملف موجود مسبقًا');
+      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (maps ? ' — تجدها في الخريطة ← زر الطبقات ← «خرائطي المستوردة» ← «اذهب إليها»' : '') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' : '') : notes.length ? 'تعذّر الاستيراد: ' + notes[0] : 'كل ما في الملف موجود مسبقًا');
     }catch(err){
       toast('تعذّر الحفظ على الجهاز — قد تكون المساحة ممتلئة');
     }
