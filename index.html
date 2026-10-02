@@ -1110,7 +1110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.0 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.1 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2886,6 +2886,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function catalogIcon(kind){
     return kind === 'جبل' ? 'mountain' : /ماء|مياه/.test(kind) ? 'drop' : kind === 'آثار' ? 'landmark' : kind === 'نفود' ? 'dust' : CATALOG_HAZARD[kind] || kind === 'موقع خطر' ? 'sos' : kind === 'طريق صحراوي' ? 'map' : 'pin';
   }
+  // قراءة XML متسامحة: ملفات كثيرة من تطبيقات الملاحة فيها «&» غير مهرّبة أو بادئات (gx: وغيرها)
+  // غير معرّفة أو محارف تحكّم؛ نصلحها ونعيد المحاولة بدل رفض الملف كاملًا.
+  function parseXml(text){
+    const P = t=>{ const d = new DOMParser().parseFromString(t, 'application/xml'); return d.getElementsByTagName('parsererror').length ? null : d; };
+    let doc = P(text); if(doc) return doc;
+    let t = text.replace(/^[\s\S]*?(?=<\?xml|<[A-Za-z])/, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+      .replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;');
+    const declared = new Set([...t.matchAll(/xmlns:([\w.-]+)=/g)].map(m=>m[1]));
+    const used = new Set([...t.matchAll(/<\/?([A-Za-z_][\w.-]*):[\w.-]+/g)].map(m=>m[1]).filter(x=>x !== 'xml' && !declared.has(x)));
+    if(used.size) t = t.replace(/<((?!\?|!)[A-Za-z_][\w.:-]*)/, m=>m + [...used].map(x=>' xmlns:' + x + '="urn:dalil:' + x + '"').join(''));
+    doc = P(t); if(doc) return doc;
+    throw new Error('xml');
+  }
+  // نص الملف: UTF-8 أو UTF-16 (بعض برامج ويندوز تحفظ بها)
+  function decodeText(buf){
+    const b = new Uint8Array(buf, 0, Math.min(2, buf.byteLength));
+    if(b[0] === 0xFF && b[1] === 0xFE) return new TextDecoder('utf-16le').decode(buf);
+    if(b[0] === 0xFE && b[1] === 0xFF) return new TextDecoder('utf-16be').decode(buf);
+    return new TextDecoder().decode(buf);
+  }
   // قارئ ZIP مصغّر لملفات KMZ (يعتمد DecompressionStream المتوفر في Safari 16.4+).
   async function kmzToKml(buf){
     const dv = new DataView(buf);
@@ -2903,21 +2923,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const local = dv.getUint32(off + 42, true);
       const name = new TextDecoder().decode(new Uint8Array(buf, off + 46, nameLen));
       off += 46 + nameLen + extraLen + commentLen;
-      if(!/\.kml$/i.test(name)) continue;
+      if(!/\.(kml|gpx|geojson|json|osm|csv)$/i.test(name) || /^__MACOSX\//.test(name)) continue;
       const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
       const bytes = new Uint8Array(buf, start, size);
-      if(method === 0) return new TextDecoder().decode(bytes);
+      if(method === 0) return decodeText(bytes.slice().buffer);
       if(method === 8 && typeof DecompressionStream !== 'undefined'){
         const out = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer();
-        return new TextDecoder().decode(out);
+        return decodeText(out);
       }
-      throw new Error('unsupported');
+      throw new Error('zipmethod');
     }
-    throw new Error('no kml');
+    throw new Error('emptyzip');
   }
   function parseKmlInto(text, into, fallbackName){
-    const doc = new DOMParser().parseFromString(text, 'application/xml');
-    if(doc.getElementsByTagName('parsererror').length) throw new Error('kml');
+    const doc = parseXml(text);
     const docEl = doc.getElementsByTagName('Document')[0];
     const docNameEl = docEl && [...docEl.children].find(el=>el.localName === 'name');
     const region = (docNameEl ? docNameEl.textContent : fallbackName).replace('خريطة','').replace('البرية','').replace(/\s+/g,' ').trim() || fallbackName;
@@ -2930,15 +2949,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const nameEl = [...pm.children].find(el=>el.localName === 'name');
       const name = (nameEl ? nameEl.textContent : '').replace(/\s+/g,' ').trim();
       const [lng, lat] = coordsEl.textContent.trim().split(',').map(Number);
-      if(!name || !validLatLng(lat, lng)) continue;
+      if(!validLatLng(lat, lng)) continue;
+      const nm0 = name || fallbackName + ' — نقطة ' + (added + 1);
       const folder = pm.parentElement && pm.parentElement.localName === 'Folder' ? [...pm.parentElement.children].find(el=>el.localName === 'name')?.textContent : '';
       const kind = catalogCategory(folder);
       let ci = into.cats.indexOf(kind);
       if(ci < 0){ into.cats.push(kind); ci = into.cats.length - 1; }
-      const key = name + '|' + lat.toFixed(3) + '|' + lng.toFixed(3);
+      const key = nm0 + '|' + lat.toFixed(3) + '|' + lng.toFixed(3);
       if(into.seen.has(key)) continue;
       into.seen.add(key);
-      into.p.push([name, Number(lat.toFixed(5)), Number(lng.toFixed(5)), ri, ci]);
+      into.p.push([nm0, Number(lat.toFixed(5)), Number(lng.toFixed(5)), ri, ci]);
       added++;
     }
     return added;
@@ -3017,7 +3037,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function addPoint(into, region, kind, name, lat, lng){
     name = String(name || '').replace(/\s+/g, ' ').trim();
-    if(!name || !validLatLng(lat, lng)) return 0;
+    if(!validLatLng(lat, lng)) return 0;
+    if(!name) name = region + ' — نقطة ' + (into.p.length + 1);
     let ri = into.regions.indexOf(region); if(ri < 0){ into.regions.push(region); ri = into.regions.length - 1; }
     let ci = into.cats.indexOf(kind); if(ci < 0){ into.cats.push(kind); ci = into.cats.length - 1; }
     const key = catalogKey(name, lat, lng);
@@ -3027,7 +3048,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   // خطوط KML (LineString و gx:Track) إلى مسارات
   function kmlLines(text, base){
-    const doc = new DOMParser().parseFromString(text, 'application/xml'); let n = 0;
+    let doc; try{ doc = parseXml(text); }catch(e){ return 0; } let n = 0;
     for(const pm of doc.getElementsByTagName('Placemark')){
       const nm = [...pm.children].find(el=>el.localName === 'name')?.textContent?.trim() || base;
       for(const ls of pm.getElementsByTagName('LineString')){
@@ -3040,8 +3061,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return n;
   }
   function importGpxText(text, base, into){
-    const xml = new DOMParser().parseFromString(text, 'application/xml');
-    if(xml.querySelector('parsererror')) throw new Error('xml');
+    const xml = parseXml(text);
     let pts = 0, lines = 0;
     const nameOf = el=>[...el.children].find(c=>c.localName === 'name')?.textContent?.trim();
     for(const w of xml.getElementsByTagNameNS('*', 'wpt')) pts += addPoint(into, base, 'معلم', nameOf(w), Number(w.getAttribute('lat')), Number(w.getAttribute('lon')));
@@ -3090,8 +3110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return 'معلم';
   }
   function importOsm(text, base, into){
-    const xml = new DOMParser().parseFromString(text, 'application/xml');
-    if(xml.querySelector('parsererror')) throw new Error('xml');
+    const xml = parseXml(text);
     const tagsOf = el=>{ const t = {}; for(const c of el.children) if(c.localName === 'tag') t[c.getAttribute('k')] = c.getAttribute('v'); return t; };
     const nodes = new Map(); let pts = 0, lines = 0, skipped = 0;
     for(const nd of xml.getElementsByTagName('node')){
@@ -3170,18 +3189,25 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         if(/\.pmtiles$/.test(name)){ maps += await importPmtiles(file); continue; }
         const buf = await file.arrayBuffer();
         const isZip = buf.byteLength > 4 && new DataView(buf).getUint32(0, true) === 0x04034b50;
-        const text = isZip ? await kmzToKml(buf) : new TextDecoder().decode(buf), head = text.slice(0, 600);
+        const text = isZip ? await kmzToKml(buf) : decodeText(buf), head = text.replace(/^\uFEFF/, '').slice(0, 600);
+        if(/^\s*<!doctype html|^\s*<html[\s>]/i.test(head)) throw new Error('html');
         let r;
-        if(isZip || /\.kml$/.test(name) || /<kml[\s>]/i.test(head)){ pts += parseKmlInto(text, into, base); lines += kmlLines(text, base); continue; }
+        if(/<kml[\s>]/i.test(head) || (/\.km[lz]$/.test(name) && !/<(gpx|osm)[\s>]/i.test(head))){ pts += parseKmlInto(text, into, base); lines += kmlLines(text, base); continue; }
         if(/\.gpx$/.test(name) || /<gpx[\s>]/i.test(head)) r = importGpxText(text, base, into);
         else if(/\.osm$/.test(name) || /<osm[\s>]/i.test(head)) r = importOsm(text, base, into);
         else if(/\.plt$/.test(name) || /^OziExplorer Track/i.test(head)) r = importOzi(text, base, into, true);
         else if(/\.wpt$/.test(name) || /^OziExplorer Waypoint/i.test(head)) r = importOzi(text, base, into, false);
         else if(/\.(geo)?json$/.test(name) || /^\s*[{\[]/.test(text)) r = importGeoJson(JSON.parse(text), base, into);
         else if(/\.(csv|txt)$/.test(name)) r = importCsv(text, base, into);
+        else if(/<[A-Za-z]/.test(head) && /[\d.]+\s*,\s*[\d.]+/.test(text)) r = {pts:parseKmlInto(text, into, base), lines:kmlLines(text, base)};
         else throw new Error('type');
         pts += r.pts; lines += r.lines; skipped += r.skipped || 0;
-      }catch(err){ failed++; }
+        if(!r.pts && !r.lines) notes.push('«' + file.name + '» لا يحوي نقاطًا أو مسارات بإحداثيات');
+      }catch(err){
+        failed++;
+        const why = {html:'الملف صفحة ويب وليس ملف خرائط (نزّله من خيار «تنزيل/تصدير» لا من المتصفح)', xml:'محتواه تالف أو غير مكتمل', type:'صيغته غير معروفة', emptyzip:'ملف مضغوط لا يحوي KML أو GPX', zipmethod:'ضغطه غير مدعوم في هذا الجهاز', zip:'الملف المضغوط تالف'}[err && err.message] || (err instanceof SyntaxError ? 'محتواه تالف أو غير مكتمل' : 'تعذّرت قراءته');
+        notes.push('«' + file.name + '»: ' + why);
+      }
     }
     delete into.seen;
     try{
@@ -3192,7 +3218,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(pts) parts.push(fmt(pts) + ' موقعًا');
       if(lines) parts.push(fmt(lines) + ' مسارًا');
       if(maps) parts.push(fmt(maps) + ' خريطة');
-      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' : '') : notes[0] || (failed ? 'تعذّر قراءة الملف — الصيغ المدعومة: KML، KMZ، GPX، GeoJSON، CSV، OSM، PLT، WPT، PMTiles' : 'كل ما في الملف موجود مسبقًا'));
+      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' : '') : notes.length ? 'تعذّر الاستيراد: ' + notes[0] : 'كل ما في الملف موجود مسبقًا');
     }catch(err){
       toast('تعذّر الحفظ على الجهاز — قد تكون المساحة ممتلئة');
     }
