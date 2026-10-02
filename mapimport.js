@@ -103,7 +103,57 @@ async function fromMbtiles(file, progress){
     try{ vector_layers = JSON.parse(meta.json || '{}').vector_layers || []; }catch(e){}
     progress && progress(1, 'حفظ');
     return {blob:await writePmtiles(tiles, {tileType, tileCompression:gz ? 2 : 1, minZoom:minZ, maxZoom:maxZ, bounds,
-      meta:{name:meta.name || '', format:kind, vector_layers, attribution:meta.attribution || ''}}), name:meta.name || ''};
+      meta:{name:meta.name || '', format:kind, vector_layers, attribution:meta.attribution || '', overlay:meta.type === 'overlay' || hasAlpha(first)}}), name:meta.name || ''};
+  }finally{ db.close(); }
+}
+
+// صورة PNG فيها شفافية (طبقة أسماء/حدود فوق الخريطة) أم خريطة أساس معتمة
+function hasAlpha(d){
+  if(!(d && d[0] === 0x89 && d[1] === 0x50)) return false;
+  const ct = d[25]; if(ct === 4 || ct === 6) return true;
+  for(let i = 33; i < Math.min(d.length - 4, 4096); i++) if(d[i] === 0x74 && d[i + 1] === 0x52 && d[i + 2] === 0x4E && d[i + 3] === 0x53) return true;
+  return false;
+}
+// ---------- OsmAnd ‎.sqlitedb (بلاطات صور في SQLite) ----------
+async function fromSqlitedb(file, progress){
+  if(file.size > 450 * 1048576) throw fail('ملف ‎.sqlitedb أكبر من 450 MB؛ قسّمه على الكمبيوتر');
+  progress && progress(0, 'قراءة خريطة OsmAnd');
+  const SQL = await loadSql();
+  let db;
+  try{ db = new SQL.Database(new Uint8Array(await file.arrayBuffer())); }catch(e){ throw fail('ملف ‎.sqlitedb تالف أو أكبر من ذاكرة الجوال'); }
+  try{
+    const info = {};
+    try{ const r = db.exec('SELECT * FROM info LIMIT 1'); if(r[0]) r[0].columns.forEach((c, i)=>{ info[c.toLowerCase()] = r[0].values[0][i]; }); }catch(e){}
+    let total = 0, zr;
+    try{ total = db.exec('SELECT count(*) FROM tiles')[0].values[0][0]; zr = db.exec('SELECT z, max(x), max(y) FROM tiles GROUP BY z')[0]; }catch(e){ throw fail('الملف ليس خريطة بلاطات من OsmAnd'); }
+    if(!total || !zr) throw fail('خريطة OsmAnd فارغة');
+    // ترقيم BigPlanet يخزّن 17 − التكبير؛ نتحقق أي التفسيرين يطابق أرقام البلاطات
+    const fits = f=>zr.values.every(([z, mx, my])=>{ const zz = f(z); return zz >= 0 && zz <= 24 && mx < Math.pow(2, zz) && my < Math.pow(2, zz); });
+    const tn = String(info.tilenumbering || '').toLowerCase();
+    // بلا عمود tilenumbering يفترض OsmAnd ترقيم BigPlanet؛ وعند التعارض نفضّل ما يقع في جزيرة العرب
+    const inArabia = f=>zr.values.some(([z, mx, my])=>{ const zz = f(z); const lng = tileLng(mx, zz), lat = tileLat(my, zz); return lng > 30 && lng < 62 && lat > 8 && lat < 36; });
+    const fb = fits(z=>17 - z), fd = fits(z=>z);
+    const big = tn === 'bigplanet' ? true : tn ? false : fb && !fd ? true : fd && !fb ? false : inArabia(z=>z) && !inArabia(z=>17 - z) ? false : true;
+    const zoomOf = z=>big ? 17 - z : z, inv = Number(info.inverted_y || info.invertedy || 0) === 1;
+    const st = db.prepare('SELECT x, y, z, image FROM tiles');
+    const tiles = []; let minZ = 99, maxZ = 0, n = 0, first = null, alpha = false;
+    while(st.step()){
+      const [x, y0, zs, d] = st.get();
+      n++; if(n % 500 === 0){ progress && progress(n / total, 'تحويل البلاطات'); await new Promise(r=>setTimeout(r)); }
+      if(!d || !d.length) continue;
+      const z = zoomOf(zs), y = inv ? Math.pow(2, z) - 1 - y0 : y0;
+      if(!first) first = d; if(!alpha && n < 50) alpha = hasAlpha(d);
+      tiles.push({z, x, y, data:new Blob([d])});
+      if(z < minZ) minZ = z; if(z > maxZ) maxZ = z;
+    }
+    st.free();
+    if(!tiles.length) throw fail('خريطة OsmAnd فارغة');
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for(const t of tiles) if(t.z === maxZ){ x0 = Math.min(x0, t.x); x1 = Math.max(x1, t.x); y0 = Math.min(y0, t.y); y1 = Math.max(y1, t.y); }
+    const bounds = [tileLng(x0, maxZ), tileLat(y1 + 1, maxZ), tileLng(x1 + 1, maxZ), tileLat(y0, maxZ)];
+    const kind = first[0] === 0xFF ? 'jpg' : first[0] === 0x52 ? 'webp' : 'png';
+    progress && progress(1, 'حفظ');
+    return {blob:await writePmtiles(tiles, {tileType:{png:2, jpg:3, webp:4}[kind], minZoom:minZ, maxZoom:maxZ, bounds, meta:{format:kind, overlay:alpha}}), name:'', overlay:alpha};
   }finally{ db.close(); }
 }
 
@@ -426,5 +476,5 @@ async function zipEntries(buf){
   return out;
 }
 
-window.DalilMapImport = {fromMbtiles, fromGeoTiff, fromWorldFile, fromOzi, parseOziMap, fromGroundOverlays, zipEntries, writePmtiles, _utm:{utmFwd, utmInv}};
+window.DalilMapImport = {fromSqlitedb, fromMbtiles, fromGeoTiff, fromWorldFile, fromOzi, parseOziMap, fromGroundOverlays, zipEntries, writePmtiles, _utm:{utmFwd, utmInv}};
 })();

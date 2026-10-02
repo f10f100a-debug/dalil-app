@@ -922,7 +922,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-2" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1069,7 +1069,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">خرائط البر</div>
       <div class="banner">
-        يتضمن التطبيق مواقع «خرائط البر» (أكثر من 40 ألف موقع في 13 منطقة) للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
+        يتضمن التطبيق مواقع «خرائط البر» (أكثر من 40 ألف موقع في 13 منطقة) للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);"></div>
       </div>
       <div class="btn-row">
@@ -1110,7 +1110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.3 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.4 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2732,7 +2732,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261002-1&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261002-2&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3150,7 +3150,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     await c.put('user-maps/' + id, new Response(file, {headers:{'content-type':'application/octet-stream'}}));
     try{ await navigator.storage.persist(); }catch(e){}
     const list = readUserMaps();
-    list.push({id, name:displayName || fileBase(file.name), size:file.size, type:h.tileType === 1 ? 'vector' : 'raster', fmt:{2:'png', 3:'jpg', 4:'webp'}[h.tileType] || '', layers, minzoom:h.minZoom, maxzoom:h.maxZoom,
+    let overlay = false; try{ overlay = !!(await arc.getMetadata()).overlay; }catch(e){}
+    list.push({id, name:displayName || fileBase(file.name), size:file.size, overlay, type:h.tileType === 1 ? 'vector' : 'raster', fmt:{2:'png', 3:'jpg', 4:'webp'}[h.tileType] || '', layers, minzoom:h.minZoom, maxzoom:h.maxZoom,
       bounds:[h.minLon, h.minLat, h.maxLon, h.maxLat], on:true, addedAt:Date.now()});
     writeUserMaps(list);
     return 1;
@@ -3184,7 +3185,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const IMG_RE = /\.(jpe?g|png|gif|bmp|webp)$/, SIDE_RE = /\.(jgw|jpgw|pgw|pngw|wld|tfw|tfwx|gfw|bpw|bmpw|webpw|prj|aux\.xml|ovr)$/;
     const byName = new Map(files.map(f=>[f.name.toLowerCase(), f])), used = new Set();
     const findFile = n=>{ n = String(n || '').toLowerCase().replace(/^\.\//, ''); return byName.get(n) || byName.get(n.split('/').pop()) || null; };
-    const loadMI = async()=>{ await loadPm(); if(!window.DalilMapImport) await new Promise((res, rej)=>{ const sc = document.createElement('script'); sc.src = 'mapimport.js?v=1'; sc.onload = res; sc.onerror = ()=>rej(new Error('net')); document.head.appendChild(sc); }); return window.DalilMapImport; };
+    const loadMI = async()=>{ await loadPm(); if(!window.DalilMapImport) await new Promise((res, rej)=>{ const sc = document.createElement('script'); sc.src = 'mapimport.js?v=2'; sc.onload = res; sc.onerror = ()=>rej(new Error('net')); document.head.appendChild(sc); }); return window.DalilMapImport; };
     const progress = (f, stage)=>{ btn.textContent = (stage || 'جارٍ التجهيز') + '… ' + Math.round(f * 100) + '%'; };
     const addMap = async(blob, name)=>{ name = name.replace(/\.(mbtiles|tiff?|geotiff|map|jpe?g|png|gif|bmp|webp)$/i, ''); maps += await importPmtiles(new File([blob], name + '.pmtiles'), name); };
     const rank = f=>/\.(map|kml|kmz)$/i.test(f.name) ? 0 : IMG_RE.test(f.name.toLowerCase()) ? 2 : 1;
@@ -3195,7 +3196,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       try{
         if(/\.osm\.pbf$|\.pbf$/.test(name)){ notes.push('«' + file.name + '» بصيغة PBF المضغوطة غير مدعومة — حوّله إلى ‎.osm أو PMTiles'); failed++; continue; }
         if(/\.obf(\.zip)?$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق OsmAnd ولا تُقرأ خارجه. خريطة البر في دليل مبنية من نفس بيانات OpenStreetMap: احفظ منطقتك من «حفظ خرائط المناطق». ولنقل نقاطك ومساراتك من OsmAnd صدّرها GPX ثم استوردها هنا'); failed++; continue; }
-        if(/\.(mwm|sqlitedb)$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق آخر (Maps.me/OsmAnd) ولا تُقرأ خارجه. صدّر نقاطك ومساراتك منه بصيغة GPX أو KML ثم استوردها هنا'); failed++; continue; }
+        if(/\.mwm$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق Maps.me ولا تُقرأ خارجه. صدّر نقاطك ومساراتك منه بصيغة GPX أو KML ثم استوردها هنا'); failed++; continue; }
+        if(/\.sqlitedb$/.test(name)){ const MI = await loadMI(), r = await MI.fromSqlitedb(file, progress); await addMap(r.blob, base.replace(/\.sqlitedb$/i, '')); continue; }
+        if(/\.(osf|zip)$/.test(name)){
+          // ملف تصدير OsmAnd (‎.osf) أو ZIP: نستخرج ما بداخله من خرائط ونقاط ومسارات ونستورده
+          const MI = await loadMI(), zip = await MI.zipEntries(await file.arrayBuffer()), inner = [], seen = [];
+          for(const [k, get] of zip){
+            const nm = k.split('/').pop(); if(!nm || /^__macosx\//.test(k) || nm === 'items.json') continue;
+            seen.push(nm);
+            if(/\.(gpx|kml|kmz|geojson|csv|osm|plt|wpt|sqlitedb|mbtiles|pmtiles|tiff?|map|jpe?g|png|jgw|pgw|prj|obf)$/.test(nm)){ const bl = await get(); if(bl) inner.push(new File([bl], nm)); }
+          }
+          if(!inner.length){ notes.push('«' + file.name + '» لا يحوي خرائط أو نقاطًا يمكن قراءتها' + (seen.length ? ' (يحوي: ' + seen.slice(0, 6).join('، ') + ')' : '')); failed++; continue; }
+          inner.sort((x, y)=>rank(x) - rank(y));
+          for(const f of inner){ files.push(f); byName.set(f.name.toLowerCase(), f); }
+          continue;
+        }
         if(/\.(ozf2?|ozfx3|ozf4)$/.test(name)){ notes.push('«' + file.name + '» صورة OziExplorer مشفّرة لا تُقرأ خارجه. من OziExplorer أو MapMerge صدّرها صورة JPG/PNG مع ملف ‎.map ثم اخترهما معًا'); failed++; continue; }
         if(/\.(ecw|sid|jp2|j2k)$/.test(name)){ notes.push('«' + file.name + '» صيغة صور مضغوطة خاصة (ECW/MrSID/JPEG2000)؛ حوّلها إلى GeoTIFF أو MBTiles ثم استوردها'); failed++; continue; }
         if(/\.mbtiles$/.test(name)){ const MI = await loadMI(), r = await MI.fromMbtiles(file, progress); await addMap(r.blob, r.name || base); continue; }

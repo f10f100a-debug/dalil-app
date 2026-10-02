@@ -556,7 +556,7 @@ async function addUserMaps(){
       const res=await c.match('user-maps/'+m.id);if(!res)continue;
       const key='usermap-'+m.id;pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key))));
       const src='um-'+m.id,vis=m.on===false?'none':'visible';
-      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0}},'slot:hillshade')}
+      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0}},m.overlay?'slot:dalil':'slot:hillshade')}
       else{
         gl.addSource(src,{type:'vector',url:'pmtiles://'+key});
         for(const sl of(m.layers&&m.layers.length?m.layers:[])){
