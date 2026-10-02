@@ -1110,7 +1110,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.1 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.2 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -1491,7 +1491,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     t.textContent = msg;
     t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=> t.classList.remove('show'), 2400);
+    toastTimer = setTimeout(()=> t.classList.remove('show'), Math.min(12000, Math.max(2400, String(msg).length * 70)));
   }
 
   // ---------- tabs ----------
@@ -3184,6 +3184,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const name = file.name.toLowerCase(), base = fileBase(file.name);
       try{
         if(/\.osm\.pbf$|\.pbf$/.test(name)){ notes.push('«' + file.name + '» بصيغة PBF المضغوطة غير مدعومة — حوّله إلى ‎.osm أو PMTiles'); failed++; continue; }
+        if(/\.obf(\.zip)?$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق OsmAnd ولا تُقرأ خارجه. خريطة البر في دليل مبنية من نفس بيانات OpenStreetMap: احفظ منطقتك من «حفظ خرائط المناطق». ولنقل نقاطك ومساراتك من OsmAnd صدّرها GPX ثم استوردها هنا'); failed++; continue; }
+        if(/\.(mwm|sqlitedb)$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق آخر (Maps.me/OsmAnd) ولا تُقرأ خارجه. صدّر نقاطك ومساراتك منه بصيغة GPX أو KML ثم استوردها هنا'); failed++; continue; }
         if(/\.mbtiles$/.test(name)){ notes.push('MBTiles غير مدعومة في الجوال — حوّلها إلى PMTiles (أداة pmtiles convert)'); failed++; continue; }
         if(/\.(ozf2?|ozfx3|map|ecw|tif|tiff|jpg|jpeg|png)$/.test(name)){ notes.push('«' + file.name + '» صورة خريطة ممسوحة؛ حوّلها إلى PMTiles لتظهر في الخريطة'); failed++; continue; }
         if(/\.pmtiles$/.test(name)){ maps += await importPmtiles(file); continue; }
