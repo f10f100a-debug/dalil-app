@@ -903,7 +903,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ PLACES SCREEN ============ -->
     <section class="screen" id="screen-places">
       <div class="pl-toolbar">
-        <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك وخرائط البر" autocomplete="off"></label>
+        <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك والمواقع البرية" autocomplete="off"></label>
         <button class="cp-btn cp-btn-gold pl-add" type="button" id="addPlaceBtn"><span class="cp-ic" data-ico="plus"></span>مكان جديد</button>
       </div>
       <div class="chips" id="filterChips" role="tablist" aria-label="تصفية حسب التصنيف">
@@ -1069,8 +1069,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">خرائط البر</div>
       <div class="banner">
-        يتضمن التطبيق مواقع «خرائط البر» (أكثر من 40 ألف موقع في 13 منطقة) للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
+        يتضمن التطبيق أكثر من 30 ألف موقع بري في 13 منطقة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text);"></div>
+        <div style="margin-top:8px; font-weight:700;">مصدر المواقع المدمجة</div>
+        <div class="btn-row" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button><button type="button" class="chip" data-places-src="osm">OpenStreetMap فقط</button></div>
       </div>
       <div class="btn-row">
         <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملف (خرائط، مواقع، مسارات)</button>
@@ -1109,9 +1111,23 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
       <button class="btn btn-danger" style="margin-top:10px;" id="wipeBtn">مسح كل البيانات المحفوظة</button>
 
+      <div class="section-title">المصادر والتراخيص</div>
+      <details class="banner licenses">
+        <summary style="font-weight:700; cursor:pointer;">مصادر البيانات والمكتبات المستخدمة</summary>
+        <ul style="margin:8px 0 0; padding-inline-start:18px; line-height:1.9; font-size:12.5px;">
+          <li>خريطة البر والطرق والأودية والمعالم: © مساهمو <b>OpenStreetMap</b> — رخصة ODbL (openstreetmap.org/copyright)، عبر Overture Maps.</li>
+          <li>التضاريس وخطوط الارتفاع: Copernicus DEM GLO-30 © DLR e.V. 2010-2014 و © Airbus Defence and Space GmbH 2014-2018، ضمن برنامج Copernicus.</li>
+          <li>مواقع «خرائط البر» (عند اختيارها مصدرًا): sites.google.com/view/desertmaps.</li>
+          <li>العرض الثلاثي: تضاريس AWS Terrain Tiles، وصور Sentinel-2 cloudless من EOX IT Services (CC BY 4.0).</li>
+          <li>الطقس وجودة الهواء: Open-Meteo.com (CC BY 4.0)، ونموذج CAMS من Copernicus.</li>
+          <li>المكتبات: MapLibre GL (BSD-3)، PMTiles (BSD-3)، mapbox-gl-rtl-text (BSD-2)، sql.js (MIT)، geotiff.js (MIT)، خط Noto Sans (SIL OFL 1.1).</li>
+          <li>الملفات التي تستوردها تبقى ملكًا لك وتُحفظ في جوالك فقط.</li>
+        </ul>
+      </details>
+
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.6 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.7 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2773,10 +2789,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(q || state.pos) ensureBundledCatalog();
     const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
     const near = !q && state.activeCat === 'all' && state.pos ? nearbyCatalog(state.pos.lat, state.pos.lng) : [];
-    const nearHtml = near.length ? `<div class="pl-section">بالقرب منك <small>· أقرب ${near.length} من خرائط البر خلال ${NEARBY_KM} كم</small></div>` + near.map(placeCard).join('') : '';
+    const nearHtml = near.length ? `<div class="pl-section">بالقرب منك <small>· أقرب ${near.length} من المواقع البرية خلال ${NEARBY_KM} كم</small></div>` + near.map(placeCard).join('') : '';
     const catalogHtml = found && found.items && found.items.length
-      ? `<div class="pl-section">من خرائط البر <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
-      : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تعذّر تحميل مواقع خرائط البر — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
+      ? `<div class="pl-section">من المواقع البرية <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
+      : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل المواقع البرية…' : 'تعذّر تحميل المواقع البرية — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
     if(items.length === 0 && (catalogHtml || nearHtml)){
       setText('placesCount', '');
       list.innerHTML = catalogHtml || nearHtml;
@@ -2994,10 +3010,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     updateCatalogStatus();
     if(document.getElementById('screen-places').classList.contains('active')) renderPlaces();
   }
+  // مصدر المواقع المدمجة: «خرائط البر» (sites.google.com/view/desertmaps) مع إضافات OSM، أو قائمة
+  // OpenStreetMap الكاملة وحدها (data/osm-full.json، رخصة ODbL). نسخة المتجر تستخدم OSM ما لم يأذن صاحب «خرائط البر».
+  const PLACES_SRC_DEFAULT = 'barr';
+  let placesSrc = PLACES_SRC_DEFAULT;
+  try{ placesSrc = localStorage.getItem('dalil_places_src') || PLACES_SRC_DEFAULT; }catch(e){}
+  if(placesSrc !== 'osm') placesSrc = 'barr';
   function ensureBundledCatalog(){
     if(bundledCatalog) return Promise.resolve();
     if(bundledLoading) return bundledLoading;
-    bundledLoading = Promise.all([
+    bundledLoading = Promise.all(placesSrc === 'osm' ? [
+      fetch('data/osm-full.json?v=1').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
+      Promise.resolve(null)
+    ] : [
       fetch('data/desert-places.json?v=3').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
       fetch('data/osm-places.json?v=2').then(r=>r.ok ? r.json() : null).catch(()=>null)
     ])
@@ -3010,12 +3035,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const fmt = n=>n.toLocaleString('ar-SA-u-nu-latn');
     const lines = [];
     const regionsWord = n=>n > 10 ? 'منطقة' : n > 2 ? 'مناطق' : 'منطقة';
-    if(bundledCatalog) lines.push('مدمج في التطبيق: ' + fmt(bundledCatalog.p.length) + ' موقعًا من ' + bundledCatalog.regions.length + ' ' + regionsWord(bundledCatalog.regions.length) + '.');
+    if(bundledCatalog) lines.push(placesSrc === 'osm'
+      ? 'مدمج في التطبيق: ' + fmt(bundledCatalog.p.length) + ' موقعًا من OpenStreetMap في ' + bundledCatalog.regions.length + ' ' + regionsWord(bundledCatalog.regions.length) + ' (© مساهمو OpenStreetMap).'
+      : 'مدمج في التطبيق: ' + fmt(bundledCatalog.p.length) + ' موقعًا من ' + bundledCatalog.regions.length + ' ' + regionsWord(bundledCatalog.regions.length) + ' — المصدر: «خرائط البر» (sites.google.com/view/desertmaps).');
     if(osmCatalog) lines.push('من OpenStreetMap: ' + fmt(osmCatalog.p.length) + ' معلمًا إضافيًا (© مساهمو OpenStreetMap).');
-    if(!bundledCatalog) lines.push(bundledLoading ? 'جارٍ تحميل مواقع خرائط البر…' : 'تُحمَّل مواقع خرائط البر عند أول بحث.');
+    if(!bundledCatalog) lines.push(bundledLoading ? 'جارٍ تحميل المواقع البرية…' : 'تُحمَّل المواقع البرية عند أول بحث.');
     lines.push(userCatalog.p.length ? 'مستورد منك: ' + fmt(userCatalog.p.length) + (userCatalog.p.length > 2 && userCatalog.p.length < 11 ? ' مواقع (' : ' موقعًا (') + '' + userCatalog.regions.join('، ') + ').' : 'لم تستورد ملفات إضافية.');
     el.textContent = lines.join(' ');
   }
+  function renderPlacesSrc(){ document.querySelectorAll('[data-places-src]').forEach(b=>b.classList.toggle('active', b.dataset.placesSrc === placesSrc)); }
+  document.getElementById('placesSrc').addEventListener('click', e=>{
+    const b = e.target.closest('[data-places-src]'); if(!b || b.dataset.placesSrc === placesSrc) return;
+    placesSrc = b.dataset.placesSrc;
+    try{ localStorage.setItem('dalil_places_src', placesSrc); }catch(err){}
+    bundledCatalog = null; osmCatalog = null; bundledLoading = null;
+    renderPlacesSrc(); updateCatalogStatus();
+    ensureBundledCatalog().then(()=>toast(placesSrc === 'osm' ? 'تُستخدم الآن مواقع OpenStreetMap وحدها' : 'تُستخدم الآن مواقع خرائط البر مع OpenStreetMap'));
+  });
+  renderPlacesSrc();
   async function loadCatalog(){
     try{
       const saved = await catalogGet();
@@ -3317,7 +3354,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('clearCatalogBtn').addEventListener('click', async ()=>{
     if(!userCatalog.p.length) return toast('لا توجد ملفات مستوردة منك');
-    if(!confirm('حذف المواقع التي استوردتها من ملفاتك؟ مواقع خرائط البر المدمجة وأماكنك الخاصة لن تتأثر.')) return;
+    if(!confirm('حذف المواقع التي استوردتها من ملفاتك؟ المواقع البرية المدمجة وأماكنك الخاصة لن تتأثر.')) return;
     userCatalog = {regions:[], cats:[], p:[]};
     try{ await catalogPut(userCatalog); }catch(e){}
     rebuildCatalog();
