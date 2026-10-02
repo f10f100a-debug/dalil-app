@@ -122,8 +122,16 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
+#saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
+#saveCard[hidden]{display:none!important}
+#saveCard b{display:block;font-size:14px}
+#saveCard .sc-row{display:flex;gap:8px;margin-top:8px}
+#saveCard button{flex:1;height:38px;border-radius:10px;border:1px solid #D9C29A;background:#fff;font:inherit;font-weight:700;color:#3A2A12;cursor:pointer}
+#saveCard button.sc-main{background:#C8964E;border-color:#C8964E;color:#fff}
+body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px}
 </style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
 <div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><div class="top-actions"><a href="index.html?screen=compass&amp;v=20260925-8" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
+<div id="saveCard" hidden role="alert"><b id="scTitle"></b><span id="scText"></span><div class="sc-row"><button type="button" class="sc-main" id="scSave">احفظها الآن</button><button type="button" id="scLater">لاحقًا</button></div></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">فضائي</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution show" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© مساهمو OpenStreetMap · Copernicus DEM</a>
 <div class="ctrl"><button id="layersBtn" type="button" aria-label="طبقات الخريطة وإعداداتها" title="طبقات الخريطة"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 13 10 5 10-5"/></svg></button><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
 <div id="layersPanel" role="dialog" aria-label="طبقات الخريطة">
@@ -511,7 +519,21 @@ function syncRegions(){
   if(mapMode!=='local')return;
   const c=stageToLatLng(innerWidth/2,innerHeight/2);
   if(!inOfflineCoverage(c.lat,c.lng)){if(!outsideShown){outsideShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر — استخدم خريطة الإنترنت عند توفر الشبكة'}}
-  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;status.textContent='أنت في منطقة '+r.name+' وخريطتها غير محفوظة في جوالك — احفظها من الإعدادات ← حفظ خرائط المناطق قبل الخروج للبر'}}
+  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;showSaveCard(r)}}
+}
+// تنبيه واضح عندما تكون خريطة منطقة المستخدم غير محفوظة: بدونها لا تظهر الخريطة في البر بلا شبكة.
+// «لاحقًا» يؤجّل التنبيه لهذه المنطقة يومًا واحدًا.
+const SNOOZE_KEY='dalil_unsaved_snooze';
+function readSnooze(){try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'{}')||{}}catch(e){return{}}}
+function showSaveCard(r){
+  if((readSnooze()[r.id]||0)>Date.now())return;
+  const online=navigator.onLine!==false;
+  $('#scTitle').textContent='خريطة منطقة '+r.name+' غير محفوظة في جوالك';
+  $('#scText').textContent=online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
+  $('#scSave').hidden=!online;
+  $('#saveCard').hidden=false;
+  $('#scSave').onclick=()=>{const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
+  $('#scLater').onclick=()=>{const o=readSnooze();o[r.id]=Date.now()+86400000;try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(o))}catch(e){}$('#saveCard').hidden=true};
 }
 function syncEngine(){
   // عند الدوران تُرسم الخريطة في مربع يغطي الشاشة من كل الزوايا حول نقطة الدوران
