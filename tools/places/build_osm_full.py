@@ -1,7 +1,7 @@
 # يبني data/osm-full.json: كل معالم OpenStreetMap البرية المسمّاة في السعودية (جبال، رمال، أودية،
 # عيون وآبار، كهوف، قرى وهجر) — بديل نظامي كامل لمواقع «خرائط البر» (رخصة ODbL مع ذكر المصدر).
 # المدخل: osm.pkl من مستخرج Overture Maps (انظر tools/mapbuild/README.md).
-# الاستعمال: python3 build_osm_full.py osm.pkl ../../data/osm-full.json
+# الاستعمال: python3 build_osm_full.py osm.pkl osm-full.json
 import json, pickle, re, collections, sys
 feats = pickle.load(open(sys.argv[1], 'rb')); OUT = sys.argv[2]
 AR = re.compile(r'^[ء-ي٠-٩ٰٱ\s\-\'’()0-9]+$')
