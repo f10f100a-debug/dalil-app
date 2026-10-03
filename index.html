@@ -1018,7 +1018,6 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">أدوات خارجية</div>
       <div class="cp-card wx-links">
-        <a class="wx-link" id="springRadarMainLink" target="_blank" rel="noopener" href="https://browser.dataspace.copernicus.eu/?zoom=9&amp;lat=27.22692&amp;lng=42.20947&amp;themeId=DEFAULT-THEME&amp;visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&amp;datasetId=S2_L2A_CDAS&amp;fromTime=2026-09-19T00%3A00%3A00.000Z&amp;toTime=2026-09-19T23%3A59%3A59.999Z&amp;layerId=2_FALSE_COLOR&amp;demSource3D=%22MAPZEN%22&amp;cloudCoverage=30&amp;dateMode=SINGLE"><span class="cp-ic" data-ico="sun"></span><span><b>كشف مواقع الربيع</b><small>Sentinel-2 بدقة 10 م · حول موقعك · آخر 10 أيام</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <a class="wx-link" target="_blank" rel="noopener" href="https://apps.apple.com/sa/app/%D8%A3%D9%86%D9%88%D8%A7%D8%A1/id1612841473?l=ar"><span class="cp-ic" data-ico="sos"></span><span><b>أنواء</b><small>الإنذارات الرسمية للأرصاد</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <a class="wx-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <a class="wx-link" target="_blank" rel="noopener" href="https://www.rainviewer.com/"><span class="cp-ic" data-ico="cloud"></span><span><b>حركة المطر</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
@@ -1155,7 +1154,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.17 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.18 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -3998,10 +3997,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     updateWeather(true);
   });
   const radarOverlay=document.getElementById('radarOverlay');
-  const springRadarLink=document.getElementById('springRadarMainLink');
+
   const saudiDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   // Copernicus Browser (Sentinel-2، دقة 10 م): على المكان المطلوب، بآخر 10 أيام (القمر يمر كل ~5 أيام فيوم واحد يكون فارغًا غالبًا)
-  const COPERNICUS_BASE=springRadarLink.href;
+  const COPERNICUS_BASE='https://browser.dataspace.copernicus.eu/?zoom=9&lat=27.22692&lng=42.20947&themeId=DEFAULT-THEME&visualizationUrl=U2FsdGVkX19TiG5eG64kYMnGAj42aKwt2MeMSyIJBan5agBqFyQlXmaUaFwQyTBLe6iKNuDKAe5u8kVFV%2FrBHm1sS2TTEZ%2FsxASH1UoL8Tf9mC6aYcuPR3yZdiyI0OYQ&datasetId=S2_L2A_CDAS&fromTime=2026-09-19T00%3A00%3A00.000Z&toTime=2026-09-19T23%3A59%3A59.999Z&layerId=2_FALSE_COLOR&demSource3D=%22MAPZEN%22&cloudCoverage=30&dateMode=SINGLE';
   window.copernicusUrl=(lat,lng,zoom,layer)=>{
     const u=new URL(COPERNICUS_BASE),from=new Date(Date.now()-10*864e5);
     const d=x=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(x);
@@ -4010,8 +4009,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     u.searchParams.set('fromTime',d(from)+'T00:00:00.000Z');u.searchParams.set('toTime',saudiDate+'T23:59:59.999Z');
     return u.toString();
   };
-  springRadarLink.addEventListener('click',()=>{const q=state.pos||{lat:27.22692,lng:42.20947};springRadarLink.href=copernicusUrl(q.lat,q.lng,state.pos?11:9)});
-  springRadarLink.href=copernicusUrl(27.22692,42.20947,9);
+
   document.getElementById('allRadarToolsBtn').addEventListener('click',()=>radarOverlay.classList.add('show'));
   document.getElementById('closeRadarBtn').addEventListener('click',()=>radarOverlay.classList.remove('show'));
   radarOverlay.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>radarOverlay.classList.remove('show')));
