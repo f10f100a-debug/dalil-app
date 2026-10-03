@@ -23,7 +23,7 @@
 <script>
 // تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
 (function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}
-var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;
+var t=p==='auto'?(function(){var q={lat:24.71,lng:46.68};try{var v=JSON.parse(localStorage.getItem('dalil_sun_pos')||'null');if(v&&isFinite(v.lat)&&isFinite(v.lng))q=v}catch(e){}return (function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w})(q.lat,q.lng,new Date())?'dark':'light'})():p;
 document.documentElement.setAttribute('data-theme',t);
 var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light'?'#F2EFE9':t==='red'?'#000000':'#15120E';})();
 </script>
@@ -923,7 +923,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261002-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261003-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1129,7 +1129,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.10 (2 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.11 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2751,7 +2751,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261002-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261003-1&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -4610,13 +4610,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- المظهر: تلقائي / نهاري / ليلي / أحمر ----------
   const THEME_KEY = 'dalil_theme';
   const themeNotes = {
-    auto:'يتبع إعداد جوالك: فاتح نهارًا وداكن ليلًا.',
+    auto:'يتبع الشمس في موقعك: فاتح من الشروق إلى الغروب، وداكن بعد الغروب.',
     light:'المظهر الفاتح دائمًا.',
     dark:'خلفية داكنة مريحة للعين في الليل.',
     red:'كل الشاشة بالأحمر الخافت ليحافظ على رؤيتك الليلية في البر.'
   };
   function themePref(){ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
-  function effectiveTheme(p){ return p === 'auto' ? (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : p; }
+  // «تلقائي» حسب شروق الشمس وغروبها في آخر موقع معروف (الرياض إن لم يُعرف بعد)، لا حسب مظهر الجوال
+  const sunDark = function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w};
+  function sunPos(){ try{ const v = JSON.parse(localStorage.getItem('dalil_sun_pos') || 'null'); if(v && isFinite(v.lat) && isFinite(v.lng)) return v; }catch(e){} return {lat:24.71, lng:46.68}; }
+  function effectiveTheme(p){ if(p !== 'auto') return p; const q = sunPos(); return sunDark(q.lat, q.lng, new Date()) ? 'dark' : 'light'; }
   function applyTheme(){
     const p = themePref(), t = effectiveTheme(p);
     document.documentElement.setAttribute('data-theme', t);
@@ -4634,11 +4637,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     try{ localStorage.setItem(THEME_KEY, c.dataset.themeSet); }catch(e){}
     applyTheme();
   }));
-  if(window.matchMedia){
-    const mq = matchMedia('(prefers-color-scheme: dark)');
-    const onChange = ()=>{ if(themePref() === 'auto') applyTheme(); };
-    if(mq.addEventListener) mq.addEventListener('change', onChange); else if(mq.addListener) mq.addListener(onChange);
-  }
+  // يتبدّل تلقائيًا عند الشروق والغروب، ويحفظ موقعًا تقريبيًا للحساب (يكفي فرق نصف درجة)
+  setInterval(()=>{
+    if(state.pos){ const q = sunPos(); if(Math.abs(q.lat - state.pos.lat) > 0.5 || Math.abs(q.lng - state.pos.lng) > 0.5){ try{ localStorage.setItem('dalil_sun_pos', JSON.stringify({lat:+state.pos.lat.toFixed(2), lng:+state.pos.lng.toFixed(2)})); }catch(e){} } }
+    if(themePref() === 'auto' && document.documentElement.getAttribute('data-theme') !== effectiveTheme('auto')) applyTheme();
+  }, 30000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && themePref() === 'auto') applyTheme(); });
   document.getElementById('trackMapFrame').addEventListener('load', applyTheme);
   applyTheme();
 
