@@ -122,7 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
-.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+.lp-sub{font-size:11.5px;color:#7A6E60;margin:-4px 0 6px;line-height:1.6}:is(html[data-theme=dark],html[data-theme=red]) .lp-sub{color:#A89B88}.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -147,6 +147,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
   <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
   <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
   <label class="lp-row"><span>الربيع — الغطاء النباتي <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpNdvi"></label>
+  <div class="lp-sub">الأخضر = نبات حالي · دقة 250 م · تتحدث كل 8 أيام · أوضح مع التصغير</div>
   <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
@@ -321,7 +322,7 @@ $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()};
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
 for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpNdvi','ndvi']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
-  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — كبّر وصغّر لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
+  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — صغّر الخريطة لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
@@ -653,7 +654,7 @@ gl.on('load',async()=>{
   await Promise.all(REGIONS.map(attachSaved));
   glReady=true;
   gl.addSource('ndvi',{type:'raster',tiles:['ndvi://{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
-  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':.6,'raster-fade-duration':0}},'slot:dalil');
+  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.6,11,.45,13,.25,15,.12],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
   applyPrefs();
   syncRegions();
   addUserMaps();
