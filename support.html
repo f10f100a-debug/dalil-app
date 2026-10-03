@@ -16,9 +16,11 @@ h1{font-size:26px;margin:8px 0 4px}h2{font-size:19px;margin:26px 0 8px;color:var
 .meta{color:var(--dim);font-size:14px}b.c{font-size:18px}
 details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin:8px 0}summary{font-weight:700;cursor:pointer}
 .en{direction:ltr;text-align:left}a{color:var(--sand)}
+.topbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 16px;border-bottom:1px solid var(--line)}.back{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-weight:700;text-decoration:none}
 </style>
 </head>
 <body>
+<nav class="topbar"><a class="back" href="index.html?screen=settings" onclick="if(history.length>1&&document.referrer.indexOf(location.host)>-1){history.back();return false}">← رجوع إلى دليل</a></nav>
 <main>
 <h1>الدعم والتواصل — دليل</h1>
 <p class="meta">تطبيق «دليل — بوصلة البر» · تصميم وتطوير: أبو مالك اللهيبي</p>
