@@ -198,6 +198,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   #trackSvg{display:none;}
   .pl-more{display:block;width:100%;margin:2px 0 12px;padding:11px;border:1px dashed var(--line);border-radius:14px;background:transparent;color:var(--sand);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
   .seg-b{font-size:13.5px; gap:4px;}
+  .sp-loc{margin-bottom:8px;} .sp-search{display:flex; gap:6px; margin-bottom:10px;} .sp-search input{flex:1; min-width:0;} .sp-search button{width:auto; padding:0 14px;}
+  .sp-hits{display:grid; gap:6px; margin-bottom:8px;} .sp-hits:empty{display:none;} .sp-hits button{all:unset; cursor:pointer; padding:9px 12px; border:1px solid var(--line); border-radius:12px; font-size:14px;} .sp-hits small{color:var(--text-dim);}
   .sp-head{display:flex; align-items:center; gap:8px; margin-bottom:10px;} .sp-head b{flex:1; font-size:16px;}
   .sp-level{display:flex; align-items:center; gap:12px; padding:12px; border-radius:14px; background:var(--sp-bg,#F1ECE2); margin-bottom:10px;}
   .sp-level .big{font-size:20px; font-weight:800;} .sp-level small{display:block; color:var(--text-dim); font-size:12.5px; margin-top:2px;}
@@ -933,7 +935,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261003-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261003-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1038,7 +1040,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
       <div id="springPane" hidden>
         <div class="cp-card sp-card">
-          <div class="sp-head"><span class="cp-ic" data-ico="leaf"></span><b>حالة الربيع حولك</b><button class="cp-icon-btn" type="button" id="springRefresh" aria-label="تحديث"><span class="cp-ic" data-ico="refresh"></span></button></div>
+          <div class="sp-head"><span class="cp-ic" data-ico="leaf"></span><b id="springTitle">حالة الربيع حولك</b><button class="cp-icon-btn" type="button" id="springRefresh" aria-label="تحديث"><span class="cp-ic" data-ico="refresh"></span></button></div>
+          <label class="wd-loc sp-loc"><span class="cp-ic" data-ico="pin"></span><select id="springLoc" aria-label="مكان الربيع"></select></label>
+          <form id="springSearch" class="sp-search"><input class="search-box" id="springQ" type="search" placeholder="أو ابحث عن مكان: نفود، روضة، وادي…" autocomplete="off"><button type="submit" class="cp-btn cp-btn-white">بحث</button></form>
+          <div id="springHits" class="sp-hits"></div>
           <div id="springBody"><div class="pl-note">جارٍ التحميل…</div></div>
         </div>
         <button type="button" class="cp-btn cp-btn-gold" id="springMap" style="width:100%;margin-top:10px">اعرض الربيع على الخريطة</button>
@@ -1149,7 +1154,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.14 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.15 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2771,7 +2776,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261003-3&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261003-4&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -4603,7 +4608,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- الربيع: نسبة الاخضرار حولك (NASA GIBS NDVI) + أمطار آخر 30 يومًا (Open-Meteo) ----------
   const NDVI_LAYERS = ['MODIS_Terra_NDVI_8Day', 'MODIS_Aqua_NDVI_8Day', 'VIIRS_SNPP_NDVI_8Day', 'VIIRS_NOAA20_NDVI_8Day'];
   let springCache = null;
+  // المكان: موقعي، السيارة، أماكني، مراكز المناطق، أو مكان من البحث
+  let springCustom = null, springRegions = [];
+  fetch('data/maps.json?v=1').then(r=>r.json()).then(j=>{ springRegions = (j.regions || []).map(r=>({key:'r:' + r.id, name:'منطقة ' + r.name, lat:(r.bbox[1] + r.bbox[3]) / 2, lng:(r.bbox[0] + r.bbox[2]) / 2})); fillSpringLoc(); }).catch(()=>{});
+  function springPlaces(){ return [...windPlaces(), ...springRegions, ...(springCustom ? [springCustom] : [])]; }
+  function fillSpringLoc(){
+    const sel = document.getElementById('springLoc'), cur = sel.value || 'here', list = springPlaces();
+    const opt = p=>`<option value="${escapeHtml(p.key)}">${escapeHtml(p.name)}</option>`;
+    const mine = list.filter(p=>!p.key.startsWith('r:') && p.key !== 'q'), regs = list.filter(p=>p.key.startsWith('r:'));
+    sel.innerHTML = (springCustom ? opt(springCustom) : '') + `<optgroup label="أماكني">${mine.map(opt).join('')}</optgroup>` + (regs.length ? `<optgroup label="المناطق">${regs.map(opt).join('')}</optgroup>` : '');
+    sel.value = list.some(p=>p.key === cur) ? cur : 'here';
+  }
   function springPos(){
+    const key = document.getElementById('springLoc').value || 'here';
+    if(key !== 'here'){ const p = springPlaces().find(x=>x.key === key); if(p) return {lat:p.lat, lng:p.lng, live:false, name:p.name}; }
     if(state.pos) return {lat:state.pos.lat, lng:state.pos.lng, live:true};
     try{ const v = JSON.parse(localStorage.getItem('dalil_sun_pos') || 'null'); if(v && isFinite(v.lat)) return {lat:v.lat, lng:v.lng, live:false}; }catch(e){}
     return null;
@@ -4639,12 +4657,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   async function showSpring(force){
     const body = document.getElementById('springBody'), q = springPos();
+    document.getElementById('springTitle').textContent = q && q.name ? 'حالة الربيع في ' + q.name.replace(/^منطقة /, 'منطقة ') : 'حالة الربيع حولك';
     if(!q){ body.innerHTML = '<div class="pl-note">فعّل الموقع حتى نعرض حالة الربيع حولك.</div>'; return; }
     if(!force && springCache && Date.now() - springCache.at < 3 * 3600e3 && Math.abs(springCache.lat - q.lat) < 0.05 && Math.abs(springCache.lng - q.lng) < 0.05){ renderSpring(springCache); return; }
     if(navigator.onLine === false){ body.innerHTML = '<div class="pl-note">حالة الربيع تحتاج اتصالًا بالإنترنت.</div>'; return; }
     body.innerHTML = '<div class="pl-note">جارٍ قراءة صور الأقمار الصناعية والأمطار…</div>';
     const [g, rain] = await Promise.all([greenAround(q.lat, q.lng).catch(()=>undefined), rainLast30(q.lat, q.lng).catch(()=>undefined)]);
-    springCache = {at:Date.now(), lat:q.lat, lng:q.lng, live:q.live, g, rain};
+    springCache = {at:Date.now(), lat:q.lat, lng:q.lng, live:q.live, name:q.name, g, rain};
     renderSpring(springCache);
   }
   function renderSpring(c){
@@ -4668,11 +4687,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>نسبة الاخضرار ضمن نحو 5 كم: ${fmt(g.pct)}٪</small>` : ''}</div></div>`
       + (rain ? `<div class="sp-row"><span>أمطار آخر 30 يومًا</span><b>${fmt(rain.sum30)} مم</b></div><div class="sp-row"><span>آخر مطر يُذكر</span><b>${rain.daysSince === null ? 'لا يوجد خلال 45 يومًا' : rain.daysSince === 0 ? 'اليوم' : rain.daysSince === 1 ? 'أمس' : rain.daysSince === 2 ? 'قبل يومين' : 'قبل ' + fmt(rain.daysSince) + (rain.daysSince <= 10 ? ' أيام' : ' يومًا')}</b></div>` : '<div class="sp-row"><span>الأمطار</span><b>تعذّر التحميل</b></div>')
       + (tip ? `<div class="sp-tip">${tip}</div>` : '')
-      + `<div class="pl-note" style="margin-top:8px">${c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
+ + `<div class="pl-note" style="margin-top:8px">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
   }
   document.getElementById('springRefresh').addEventListener('click', ()=>showSpring(true));
+  document.getElementById('springLoc').addEventListener('change', ()=>{ document.getElementById('springHits').innerHTML = ''; showSpring(false); });
+  document.getElementById('springSearch').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const q = document.getElementById('springQ').value.trim(), box = document.getElementById('springHits');
+    if(q.length < 2) return;
+    await ensureBundledCatalog();
+    const found = searchCatalog(q), items = (found.items || []).slice(0, 6);
+    box.innerHTML = items.length ? items.map((p, i)=>`<button type="button" data-sp-hit="${i}"><b>${escapeHtml(p.name)}</b> <small>· ${escapeHtml(p.kind || '')} · ${escapeHtml(p.region || '')}</small></button>`).join('') : '<div class="pl-note">لا نتائج؛ جرّب اسمًا آخر.</div>';
+    box.onclick = ev=>{ const b = ev.target.closest('[data-sp-hit]'); if(!b) return; const p = items[+b.dataset.spHit];
+      springCustom = {key:'q', name:p.name, lat:Number(p.lat), lng:Number(p.lng)}; fillSpringLoc(); document.getElementById('springLoc').value = 'q'; box.innerHTML = ''; showSpring(false); };
+  });
   document.getElementById('springMap').addEventListener('click', ()=>{
     try{ const lp = JSON.parse(localStorage.getItem('dalil_map_layers') || '{}'); lp.ndvi = true; localStorage.setItem('dalil_map_layers', JSON.stringify(lp)); }catch(e){}
+    const q = springPos();
+    if(q && !q.live){ location.href = 'map.html?v=20261003-4&view=spring&lat=' + q.lat.toFixed(5) + '&lng=' + q.lng.toFixed(5) + '&z=' + (q.name && q.name.startsWith('منطقة') ? 8 : 10) + '&label=' + encodeURIComponent(q.name || 'الربيع'); return; }
     document.querySelector('.tab[data-screen="track"]').click();
     toast('طبقة الربيع مفعّلة — صغّر الخريطة لترى الأخضر حولك');
   });
@@ -4688,7 +4720,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('evPane').hidden = which !== 'ev';
     document.getElementById('springPane').hidden = which !== 'spring';
     if(which === 'wind') showWind();
-    if(which === 'spring') showSpring(false);
+    if(which === 'spring'){ fillSpringLoc(); showSpring(false); }
     if(which === 'ev'){
       const pane = document.getElementById('evPane');
       if(!window.DalilEvents) pane.innerHTML = '<div class="pl-note" style="text-align:center">جارٍ تحميل الأحداث…</div>';

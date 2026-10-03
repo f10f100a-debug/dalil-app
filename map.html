@@ -661,7 +661,11 @@ gl.on('load',async()=>{
 
 // ---------- start ----------
 const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
-if(validLatLng(queryLat,queryLng)){
+const queryZ=Number(query.get('z'));
+if(query.get('view')==='spring'&&validLatLng(queryLat,queryLng)){
+  // من قسم «الربيع»: عرض المكان مع طبقة الاخضرار، دون وجهة
+  z=queryZ>=3&&queryZ<=19?queryZ:9;[cx,cy]=world(queryLat,queryLng);embeddedCentered=true;status.textContent='الربيع حول '+(query.get('label')||'المكان')+' — الأخضر حيث يوجد نبات';
+}else if(validLatLng(queryLat,queryLng)){
   targetPoint={lat:queryLat,lng:queryLng};
   navName.textContent=query.get('label')||'الموقع المحفوظ';updateNavigation();
   if(inOfflineCoverage(queryLat,queryLng)){z=14;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+iso(fmtCoords(queryLat,queryLng));embeddedCentered=true}
@@ -674,6 +678,6 @@ updateOrigin();updateGpsBtn();
 // بدون نافذة إذن: يعمل مباشرة في أندرويد، وفي iOS إن سبق منح الإذن.
 if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();
-locateUser(false,!targetPoint);
+locateUser(false,!targetPoint&&query.get('view')!=='spring');
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>
