@@ -1156,7 +1156,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.22 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.23 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -4834,8 +4834,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     dalilPost('ping', {region:myRegion}).then(r=>{ if(r.ok) try{ localStorage.setItem('dalil_ping_day', day); }catch(e){} }).catch(()=>{});
   }, 8000);
 
+  // الإعلانات معطّلة: التطبيق بلا إعلانات (قرار نسخة المتجر). لإعادتها: ADS_ENABLED = true
+  const ADS_ENABLED = false;
   let adsCache = null, adsAt = 0, adsLoading = null;
   function loadAds(){
+    if(!ADS_ENABLED) return Promise.resolve([]);
     if(navigator.onLine === false) return Promise.resolve(adsCache || []);
     if(adsCache && Date.now() - adsAt < 10 * 60e3) return Promise.resolve(adsCache);
     if(!adsLoading) adsLoading = fetch(DALIL_SB + '/rest/v1/ads?select=id,title,body,image_path,cta_label,cta_url,region,placement', {headers:{apikey:DALIL_KEY}})
@@ -4853,6 +4856,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   const adSafeUrl = u=>/^(https:\/\/|tel:)/.test(u || '') ? u : '';
   function adHtml(placement){
+    if(!ADS_ENABLED) return '';
     const a = pickAd(placement);
     if(!a || !adSafeUrl(a.cta_url)) return '';
     const img = a.image_path ? `<img class="ad-img" src="${escapeHtml(DALIL_SB + '/storage/v1/object/public/ads/' + a.image_path)}" alt="" loading="lazy">` : '';
