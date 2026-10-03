@@ -310,9 +310,9 @@ function applyPrefs(){
   setText(attribution,(LP.base==='sat'?'Sentinel-2 cloudless 2016 © EOX (CC BY 4.0) · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':''));
   for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
   $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpNdvi').checked=LP.ndvi;
-  if(glReady){vis('ndvi',LP.ndvi);vis('clouds',LP.clouds);RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain))}
+  if(glReady){vis('ndvi',LP.ndvi);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain))}
   $('#lpClouds').checked=LP.clouds;
-  $('#lpRain').checked=LP.rain;$('#rainBar').classList.toggle('show',!!LP.rain);if(!LP.rain)stopRain();else if(!rainTimer&&glReady)showRainFrame(rainFrame);
+  $('#lpRain').checked=LP.rain;const anim=LP.rain||LP.clouds;$('#rainBar').classList.toggle('show',!!anim);stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showFrame(playSet().frames.length-1)}
 }
 function setBase(b){
   if((b==='sat'||b==='osm')&&!navigator.onLine){status.textContent='هذا النمط يحتاج اتصالًا بالإنترنت — البر وطبوغرافي يعملان بدونه';return}
@@ -329,7 +329,7 @@ $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()};
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
 for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpNdvi','ndvi'],['#lpRain','rain'],['#lpClouds','clouds']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
-  if(key==='clouds'&&LP.clouds){status.textContent=navigator.onLine?'السحب الآن من القمر الأوروبي — تتحدث كل 15 دقيقة تقريبًا. الأزرق الداكن سحب رعدية غالبًا':'طبقة السحب تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
+  if(key==='clouds'&&LP.clouds){status.textContent=navigator.onLine?'السحب الآن من القمر الأوروبي — اضغط ▶ لترى حركتها واتجاهها لآخر 3 ساعات. الأزرق الداكن سحب رعدية غالبًا':'طبقة السحب تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='rain'&&LP.rain){status.textContent=navigator.onLine?'المطر من أقمار NASA لآخر الساعات — اضغط ▶ لترى اتجاه السحب الممطرة. صغّر الخريطة لترى المملكة':'طبقة المطر تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — صغّر الخريطة لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
@@ -505,13 +505,13 @@ maplibregl.addProtocol('ndvi',async params=>{
 });
 // طبقة السحب الآن: صورة الأشعة تحت الحمراء من EUMETSAT (WMS). الأرض الدافئة تصير شفافة، وتبقى السحب الباردة
 // بيضاء/زرقاء حسب برودتها (الأبرد = أعلى = رعدية غالبًا). أسماء بديلة: MTG ثم Meteosat المحيط الهندي ثم 0°.
-const CLOUD_LAYERS=['mtg_fd:ir105_hrfi','msg_iodc:ir108','msg_fes:ir108'];let cloudIdx=0,cloudStamp=Math.floor(Date.now()/600e3);
+const CLOUD_LAYERS=['mtg_fd:ir105_hrfi','msg_iodc:ir108','msg_fes:ir108'];let cloudIdx=0;
 maplibregl.addProtocol('clouds',async params=>{
-  const m=/^clouds:\/\/[^/]*\/([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)/.exec(params.url);
+  const m=/^clouds:\/\/([^/]*)\/([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)/.exec(params.url),tm=m?decodeURIComponent(m[1]):'';
   const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d',{willReadFrequently:true});
   if(m)for(let i=cloudIdx;i<CLOUD_LAYERS.length;i++){
     try{
-      const r=await fetch('https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&crs=EPSG:3857&width=256&height=256&layers='+CLOUD_LAYERS[i]+'&bbox='+m[1]+','+m[2]+','+m[3]+','+m[4]);
+      const r=await fetch('https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&crs=EPSG:3857&width=256&height=256&layers='+CLOUD_LAYERS[i]+'&bbox='+m[2]+','+m[3]+','+m[4]+','+m[5]+(/^\d{4}-/.test(tm)?'&time='+tm:''));
       if(!r.ok||!/image/.test(r.headers.get('content-type')||'')){if(i===cloudIdx&&i<CLOUD_LAYERS.length-1)cloudIdx=i+1;continue}
       const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
       const im=ctx.getImageData(0,0,256,256),d=im.data;
@@ -523,8 +523,11 @@ maplibregl.addProtocol('clouds',async params=>{
   }
   const bl=await new Promise(res=>cv.toBlob(res,'image/png'));return{data:await bl.arrayBuffer()};
 });
-// تحديث تلقائي كل 10 دقائق ما دامت الطبقة ظاهرة
-setInterval(()=>{if(!LP.clouds||!glReady||!gl.getSource('clouds'))return;cloudStamp=Math.floor(Date.now()/600e3);gl.getSource('clouds').setTiles(['clouds://'+cloudStamp+'/{bbox-epsg-3857}'])},60000);
+// لقطات السحب للتحريك: كل 30 دقيقة لآخر 3 ساعات (المسح كل 10–15 دقيقة ويتأخر ~30 دقيقة) + «الآن»
+const cloudFrameTimes=()=>{const out=[],b=Math.floor((Date.now()-40*60e3)/1800e3)*1800e3;for(let k=5;k>=0;k--)out.push(new Date(b-k*1800e3).toISOString().slice(0,16)+':00Z');out.push('latest:'+Math.floor(Date.now()/600e3));return out};
+let CLOUD_FRAMES=cloudFrameTimes();
+// تحديث تلقائي كل 10 دقائق ما دامت الطبقة ظاهرة (والتحريك متوقف)
+setInterval(()=>{if(!LP.clouds||!glReady||playTimer)return;const nf=cloudFrameTimes();if(nf[nf.length-1]===CLOUD_FRAMES[CLOUD_FRAMES.length-1])return;CLOUD_FRAMES=nf;CLOUD_FRAMES.forEach((t,k)=>{const sc=gl.getSource('clouds-'+k);if(sc)sc.setTiles(['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'])})},60000);
 // طبقة المطر: معدل الهطول من IMERG (NASA GIBS، كل 30 دقيقة، دقة ~10 كم). الصور شفافة حيث لا مطر.
 // ست لقطات: خمس ساعات معروفة الوقت + «الأحدث» (default)، للتحريك ومعرفة اتجاه السحب الممطرة.
 const RAIN_TMS=['GoogleMapsCompatible_Level6','GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level8','GoogleMapsCompatible_Level9'];let rainTms=0;
@@ -542,11 +545,16 @@ maplibregl.addProtocol('rain',async params=>{
   return{data:ndviEmpty.slice(0)};
 });
 const RAIN_FRAMES=(()=>{const out=[],h=Math.floor(Date.now()/3600e3)*3600e3;for(let k=9;k>=5;k--)out.push(new Date(h-k*3600e3).toISOString().slice(0,19)+'Z');out.push('default');return out})();
-let rainFrame=RAIN_FRAMES.length-1,rainTimer=0;
-const rainLabel=t=>t==='default'?'الأحدث':new Date(t).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
-function showRainFrame(i){rainFrame=i;RAIN_FRAMES.forEach((t,k)=>{if(gl.getLayer('rain-'+k))gl.setPaintProperty('rain-'+k,'raster-opacity',k===i?.8:0)});setText($('#rainTime'),'المطر: '+rainLabel(RAIN_FRAMES[i])+(i===RAIN_FRAMES.length-1?'':' ('+(i+1)+'/'+RAIN_FRAMES.length+')'))}
-function stopRain(){clearInterval(rainTimer);rainTimer=0;setText($('#rainPlay'),'▶')}
-$('#rainPlay').onclick=()=>{if(rainTimer){stopRain();showRainFrame(RAIN_FRAMES.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;showRainFrame(0);rainTimer=setInterval(()=>{i=(i+1)%RAIN_FRAMES.length;showRainFrame(i)},1100)};
+let playTimer=0;
+const frameLabel=t=>t==='default'||String(t).startsWith('latest')?'الأحدث':new Date(t).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
+// المشغّل يحرّك السحب إن كانت ظاهرة (الأقرب للحظي)، وإلا المطر. الطبقة الأخرى تبقى على أحدث لقطة.
+const playSet=()=>LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
+function showSetFrame(set,i){set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
+function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
+  if(set.id==='clouds')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
+  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?'':' ('+(i+1)+'/'+n+')'))}
+function stopRain(){clearInterval(playTimer);playTimer=0;setText($('#rainPlay'),'▶')}
+$('#rainPlay').onclick=()=>{if(playTimer){stopRain();showFrame(playSet().frames.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;showFrame(0);playTimer=setInterval(()=>{const n=playSet().frames.length;i=(i+1)%n;showFrame(i)},1100)};
 // خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
 const umArch={};
 maplibregl.addProtocol('umshift',async params=>{
@@ -707,8 +715,8 @@ gl.on('load',async()=>{
   await Promise.all(REGIONS.map(attachSaved));
   glReady=true;
   gl.addSource('ndvi',{type:'raster',tiles:['ndvi://{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
-  gl.addSource('clouds',{type:'raster',tiles:['clouds://'+cloudStamp+'/{bbox-epsg-3857}'],tileSize:256,minzoom:3,maxzoom:8});
-  gl.addLayer({id:'clouds',type:'raster',source:'clouds',layout:{visibility:LP.clouds?'visible':'none'},paint:{'raster-opacity':.85,'raster-fade-duration':0}},'slot:dalil');
+  CLOUD_FRAMES.forEach((t,k)=>{gl.addSource('clouds-'+k,{type:'raster',tiles:['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'],tileSize:256,minzoom:3,maxzoom:8});
+    gl.addLayer({id:'clouds-'+k,type:'raster',source:'clouds-'+k,layout:{visibility:LP.clouds?'visible':'none'},paint:{'raster-opacity':k===CLOUD_FRAMES.length-1?.85:0,'raster-fade-duration':0}},'slot:dalil')});
   RAIN_FRAMES.forEach((t,k)=>{gl.addSource('rain-'+k,{type:'raster',tiles:['rain://'+encodeURIComponent(t)+'/{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:6});
     gl.addLayer({id:'rain-'+k,type:'raster',source:'rain-'+k,layout:{visibility:'none'},paint:{'raster-opacity':k===RAIN_FRAMES.length-1?.8:0,'raster-fade-duration':0,'raster-resampling':'linear'}},'slot:dalil')});
   gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.6,11,.45,13,.25,15,.12],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
