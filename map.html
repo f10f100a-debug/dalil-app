@@ -1,6 +1,6 @@
 <!doctype html><html lang="ar" dir="rtl"><head>
 <meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://tiles.maps.eox.at; connect-src 'self' https://tile.openstreetmap.org https://tiles.maps.eox.at https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(function(){var q={lat:24.71,lng:46.68};try{var v=JSON.parse(localStorage.getItem('dalil_sun_pos')||'null');if(v&&isFinite(v.lat)&&isFinite(v.lng))q=v}catch(e){}return (function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w})(q.lat,q.lng,new Date())?'dark':'light'})():p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#171717}
 #map{position:fixed;inset:0;overflow:hidden;background:#EFE4CF;touch-action:none}#layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
 .tile{position:absolute;left:0;top:0;width:256px;height:256px;user-select:none;-webkit-user-drag:none;will-change:transform;backface-visibility:hidden}
@@ -18,7 +18,7 @@ button{width:52px;height:52px;border:0;border-radius:15px;background:#fff;color:
 .map-modes button{width:auto;height:34px;border-radius:9px;padding:0 11px;background:transparent;box-shadow:none;font-size:12px;color:#5d6965}.map-modes button.active{background:#dda652;color:#17251f}
 .attribution{display:none;position:fixed;z-index:64;right:8px;bottom:5px;background:#ffffffd9;color:#34443e;border-radius:5px;padding:2px 5px;font-size:9px;text-decoration:none}.attribution.show{display:block}body.has-target .attribution{bottom:calc(var(--nav-top,160px) + 6px)}
 .nav-card{display:none;position:fixed;z-index:70;right:14px;left:14px;bottom:max(14px,env(safe-area-inset-bottom));background:#fffef8ed;border:1px solid #dca453;border-radius:18px;padding:12px;box-shadow:0 5px 22px #0004;color:#183129}
-.nav-card.show{display:block}.nav-head{display:flex;align-items:center;gap:10px}.nav-arrow{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#f3dfb8;color:#b97822;font-size:34px;line-height:1;transform:rotate(0deg)}
+.nav-card.show{display:block}.nav-close{all:unset;pointer-events:auto;cursor:pointer;position:absolute;top:8px;left:8px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#efe9df;color:#5c5246;font-size:16px;font-weight:700;z-index:2}.nav-head{display:flex;align-items:center;gap:10px}.nav-arrow{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#f3dfb8;color:#b97822;font-size:34px;line-height:1;transform:rotate(0deg)}
 .nav-copy{min-width:0;flex:1}.nav-name{font-weight:900;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-coords{font-size:12px;font-weight:800;margin-top:3px;color:#1e493d;direction:ltr;text-align:right;unicode-bidi:plaintext}.nav-info{font-size:14px;margin-top:3px;color:#52615c}.nav-actions{display:flex;gap:7px;margin-top:10px}.nav-actions button{height:44px;width:auto;flex:1;border-radius:12px;padding:0 5px;font-size:12px;box-shadow:none;white-space:nowrap}.start-nav{background:#dda652;color:#17251f}.compass-nav{background:#e7f0ec;color:#183129;border:1px solid #b9cbc4}.stop-nav{display:none;background:#fff;color:#a33;border:1px solid #e0c3bc}.google-nav{background:#fff;color:#183129;border:1px solid #d9dedb}
 body.has-target .ctrl,body.has-target .badge{bottom:calc(var(--nav-top,170px) + 12px)}
 body.embed .top,body.embed .back-to-dalil{display:none!important}body.embed .map-modes{top:7px;bottom:auto}body.embed .nav-card{right:8px;left:8px;bottom:8px;padding:9px;border-radius:14px}body.embed .nav-head{gap:7px}body.embed .nav-arrow{width:42px;height:42px;font-size:29px}body.embed .nav-name{font-size:14px}body.embed .nav-coords{font-size:10px}body.embed .nav-info{font-size:11px}body.embed .nav-actions{margin-top:7px;gap:5px}body.embed .nav-actions button{height:38px;font-size:10px}body.embed .attribution{right:auto;left:50%;transform:translateX(-50%);bottom:3px;font-size:8px;white-space:nowrap}body.embed.has-target .attribution{bottom:calc(var(--nav-top,148px) + 4px)}body.embed.has-target .ctrl,body.embed.has-target .badge{bottom:calc(var(--nav-top,155px) + 8px)}
@@ -122,7 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
-.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -149,7 +149,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
   <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
-<div id="navCard" class="nav-card"><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
+<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
 <script>
 const query=new URLSearchParams(location.search);
 const isEmbedded=query.get('embed')==='1';
@@ -425,6 +425,8 @@ startNav.onclick=async()=>{
   if(gps){fitNavigation();updateNavigation();render()}
 };
 compassNav.onclick=()=>{if(!targetPoint)return;const label=navName.textContent||'نقطة محددة على الخريطة',url='index.html?screen=compass&navLat='+encodeURIComponent(targetPoint.lat)+'&navLng='+encodeURIComponent(targetPoint.lng)+'&navLabel='+encodeURIComponent(label);if(isEmbedded)window.parent.location.href=url;else location.href=url};
+// إغلاق بطاقة الوجهة: يلغي التوجيه ويخفي الوجهة والبطاقة
+$('#navClose').onclick=()=>{if(navigationActive)stopNav.onclick();targetPoint=null;navCard.classList.remove('show');document.body.classList.remove('has-target');syncNavCardSpace();status.textContent='أُغلقت الوجهة';render()};
 stopNav.onclick=()=>{navigationActive=false;releaseScreen();if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
 
 // ---------- embedded in the app (track tab) ----------
@@ -469,6 +471,21 @@ maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-csp-worker.js'));
 try{maplibregl.setRTLTextPlugin(abs('vendor/mapbox-gl-rtl-text.js'),true)}catch(e){}
 const pmProtocol=new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles',pmProtocol.tile);
+// خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
+const umArch={};
+maplibregl.addProtocol('umshift',async params=>{
+  const m=/^umshift:\/\/([^/]+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),id=m[1],Z=+m[2],X=+m[3],Y=+m[4],arc=umArch[id],um=readUserMaps().find(u=>u.id===id);
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d');
+  if(arc&&um){
+    const n=2**Z,lat=Math.atan(Math.sinh(Math.PI*(1-2*(Y+.5)/n)))*180/Math.PI,mpp=40075016.686*Math.cos(lat*Math.PI/180)/(n*256);
+    const X0=X*256-(um.dx||0)/mpp,Y0=Y*256+(um.dy||0)/mpp;
+    for(let ty=Math.floor(Y0/256);ty<=Math.floor((Y0+255)/256);ty++)for(let tx=Math.floor(X0/256);tx<=Math.floor((X0+255)/256);tx++){
+      if(ty<0||ty>=n)continue;const t=await arc.getZxy(Z,((tx%n)+n)%n,ty);if(!t||!t.data)continue;
+      try{const bm=await createImageBitmap(new Blob([t.data]));ctx.drawImage(bm,tx*256-X0,ty*256-Y0,256,256);bm.close&&bm.close()}catch(e){}
+    }
+  }
+  const bl=await new Promise(r=>cv.toBlob(r,'image/png'));return{data:await bl.arrayBuffer()};
+});
 const TF=['Noto Sans Regular'];
 const kindColor=['match',['get','kind'],'جبل','#7A5230','مورد ماء','#1F6FA8','تجمع مياه','#3E86B4','نفود','#C98A2E','آثار','#7A4E9A','معلم رئيسي','#3B342B','سبخة','#B3261E','حرة','#B3261E','دحل','#B3261E','كهف','#B3261E','موقع خطر','#B3261E','#6F665A'];
 const roadW=(t,def)=>['interpolate',['exponential',1.6],['zoom'],6,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[0]]),def[0]],15,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[1]]),def[1]]];
@@ -556,9 +573,9 @@ async function addUserMaps(){
     try{
       const res=await c.match('user-maps/'+m.id);if(!res)continue;   // غير موجودة في هذا الجوال (بعد استرجاع نسخة احتياطية)
       userMaps.push(m);
-      const key='usermap-'+m.id;pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key))));
+      const key='usermap-'+m.id,arc=new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key)));pmProtocol.add(arc);umArch[m.id]=arc;
       const src='um-'+m.id,vis=m.on===false?'none':'visible';
-      if(m.type==='raster'){gl.addSource(src,{type:'raster',url:'pmtiles://'+key,tileSize:256});gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':m.op??1}},m.overlay?'slot:dalil':'slot:hillshade')}
+      if(m.type==='raster'){gl.addSource(src,umSourceDef(m));gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':m.op??1}},m.overlay?'slot:dalil':'slot:hillshade')}
       else{
         gl.addSource(src,{type:'vector',url:'pmtiles://'+key});
         for(const sl of(m.layers&&m.layers.length?m.layers:[])){
@@ -573,11 +590,16 @@ async function addUserMaps(){
   }
   renderUserMapsPanel();
 }
+function umSourceDef(m){return m.dx||m.dy?{type:'raster',tiles:['umshift://'+m.id+'/{z}/{x}/{y}'],tileSize:256,minzoom:m.minzoom||0,maxzoom:m.maxzoom||18,bounds:m.bounds}:{type:'raster',url:'pmtiles://usermap-'+m.id,tileSize:256}}
+// إعادة بناء مصدر خريطة صور واحدة بعد تغيير إزاحتها
+function rebuildUserRaster(m){const src='um-'+m.id,lid=src+':r';if(!gl.getLayer(lid))return;const before=m.overlay?'slot:dalil':'slot:hillshade',vis=gl.getLayoutProperty(lid,'visibility'),op=gl.getPaintProperty(lid,'raster-opacity');
+  gl.removeLayer(lid);gl.removeSource(src);gl.addSource(src,umSourceDef(m));gl.addLayer({id:lid,type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':op??1}},before)}
 function setUserMapVisible(id,on){for(const l of gl.getStyle().layers)if(l.id.startsWith('um-'+id+':'))gl.setLayoutProperty(l.id,'visibility',on?'visible':'none')}
 function renderUserMapsPanel(){
   const el=$('#lpUser');if(!el)return;
-  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`+(m.type==='raster'?`<label class="lp-row um-op"><span>الشفافية</span><input type="range" min="0.2" max="1" step="0.05" value="${m.op??1}" data-umop="${escapeHtml(m.id)}" aria-label="شفافية ${escapeHtml(m.name)}"></label>`:'')).join(''):'';
+  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`+(m.type==='raster'?`<label class="lp-row um-op"><span>الشفافية</span><input type="range" min="0" max="1" step="0.05" value="${m.op??1}" data-umop="${escapeHtml(m.id)}" aria-label="شفافية ${escapeHtml(m.name)}"></label><div class="lp-row um-op um-shift"><span>ضبط الموضع <small data-umoff="${escapeHtml(m.id)}">${umOffText(m)}</small></span><span class="um-arrows"><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="w" aria-label="غربًا">◀</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="n" aria-label="شمالًا">▲</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="s" aria-label="جنوبًا">▼</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="e" aria-label="شرقًا">▶</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="0" aria-label="إعادة الموضع">↺</button></span></div>`:'')).join(''):'';
 }
+function umOffText(m){const a=[];if(m.dx)a.push((m.dx>0?'شرق ':'غرب ')+Math.abs(Math.round(m.dx))+' م');if(m.dy)a.push((m.dy>0?'شمال ':'جنوب ')+Math.abs(Math.round(m.dy))+' م');return a.length?'· '+a.join(' · '):''}
 // الانتقال إلى مكان الخريطة المستوردة بتكبير تظهر فيه بلاطاتها
 function goToUserMap(m){
   const b=m.bounds;if(!b||!b.every(Number.isFinite))return;
@@ -589,6 +611,13 @@ function goToUserMap(m){
 $('#lpUser').addEventListener('input',e=>{const r=e.target.closest('[data-umop]');if(!r)return;const v=Number(r.value),id=r.dataset.umop;
   if(gl.getLayer('um-'+id+':r'))gl.setPaintProperty('um-'+id+':r','raster-opacity',v);
   clearTimeout(r._t);r._t=setTimeout(()=>{const list=readUserMaps(),m=list.find(x=>x.id===id);if(!m)return;m.op=v;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=userMaps.map(x=>x.id===id?{...x,op:v}:x)},300)});
+$('#lpUser').addEventListener('click',e=>{const sb=e.target.closest('[data-umsh]');if(!sb)return;e.preventDefault();
+  const list=readUserMaps(),m=list.find(x=>x.id===sb.dataset.umsh);if(!m)return;
+  const c=stageToLatLng(innerWidth/2,innerHeight/2),step=Math.max(2,Math.round(metersPerPixel(c.lat)*4)),d=sb.dataset.d;   // 4 بكسل على الشاشة في كل ضغطة
+  if(d==='0'){m.dx=0;m.dy=0}else{m.dx=(m.dx||0)+(d==='e'?step:d==='w'?-step:0);m.dy=(m.dy||0)+(d==='n'?step:d==='s'?-step:0)}
+  try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}
+  userMaps=userMaps.map(x=>x.id===m.id?{...x,dx:m.dx,dy:m.dy}:x);const o=$('[data-umoff="'+CSS.escape(m.id)+'"]');if(o)o.textContent=umOffText(m);
+  clearTimeout(sb._t);sb._t=setTimeout(()=>rebuildUserRaster(m),250)});
 $('#lpUser').addEventListener('click',e=>{const g=e.target.closest('[data-umgo]');if(!g)return;const m=readUserMaps().find(x=>x.id===g.dataset.umgo);if(!m)return;
   if(m.on===false){const list=readUserMaps(),mm=list.find(x=>x.id===m.id);mm.on=true;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,true);renderUserMapsPanel()}
   goToUserMap(m)});
