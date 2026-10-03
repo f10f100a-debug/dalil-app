@@ -645,6 +645,7 @@ $('#lpUser').addEventListener('click',e=>{const g=e.target.closest('[data-umgo]'
   goToUserMap(m)});
 // خريطة استوردها المستخدم والخريطة مفتوحة (داخل التطبيق): تُضاف فورًا دون إعادة فتح
 function removeUserMaps(){const st=gl.getStyle();for(const l of st.layers)if(l.id.startsWith('um-'))gl.removeLayer(l.id);for(const k of Object.keys(st.sources))if(k.startsWith('um-'))gl.removeSource(k)}
+window.addEventListener('storage',e=>{if(e.key==='dalil_map_layers'){try{LP=Object.assign({},LP_DEF,JSON.parse(e.newValue||'{}'))}catch(err){}applyPrefs();if(LP.ndvi&&z>9){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=8;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}});
 window.addEventListener('storage',e=>{if(e.key==='dalil_user_maps'&&glReady){try{removeUserMaps()}catch(err){}addUserMaps()}});
 $('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]');if(!cb)return;const list=readUserMaps(),m=list.find(x=>x.id===cb.dataset.um);if(!m)return;m.on=cb.checked;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,cb.checked)});
 gl.on('load',async()=>{
