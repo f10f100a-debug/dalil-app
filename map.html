@@ -1,5 +1,5 @@
 <!doctype html><html lang="ar" dir="rtl"><head>
-<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://tiles.maps.eox.at; connect-src 'self' https://tile.openstreetmap.org https://tiles.maps.eox.at https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://tiles.maps.eox.at https://gibs.earthdata.nasa.gov; connect-src 'self' https://tile.openstreetmap.org https://tiles.maps.eox.at https://gibs.earthdata.nasa.gov https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(function(){var q={lat:24.71,lng:46.68};try{var v=JSON.parse(localStorage.getItem('dalil_sun_pos')||'null');if(v&&isFinite(v.lat)&&isFinite(v.lng))q=v}catch(e){}return (function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w})(q.lat,q.lng,new Date())?'dark':'light'})():p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#171717}
 #map{position:fixed;inset:0;overflow:hidden;background:#EFE4CF;touch-action:none}#layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
@@ -122,7 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
-.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -146,6 +146,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
   <label class="lp-row">خطوط الكنتور (الارتفاعات)<input type="checkbox" id="lpContour"></label>
   <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
   <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
+  <label class="lp-row"><span>الربيع — الغطاء النباتي <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpNdvi"></label>
   <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
@@ -272,7 +273,7 @@ function render(){
   syncEngine();
   drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
 // ---------- طبقات الخريطة وإعداداتها (تُحفظ في dalil_map_layers) ----------
-const LP_DEF={base:'barr',hs:true,hsOp:90,contour:true,wadi:true,dalil:true};
+const LP_DEF={base:'barr',hs:true,hsOp:90,contour:true,wadi:true,dalil:true,ndvi:false};
 let LP=(()=>{try{return Object.assign({},LP_DEF,JSON.parse(localStorage.getItem('dalil_map_layers')||'{}'))}catch(e){return{...LP_DEF}}})();
 if(!['barr','topo','sat','osm'].includes(LP.base))LP.base='barr';
 if(LP.base==='osm')mapMode='online';
@@ -300,9 +301,10 @@ function applyRegionPrefs(rid){
 function applyPrefs(){
   if(glReady){vis('osm',LP.base==='osm');vis('sat',LP.base==='sat');for(const id of activeRegions)applyRegionPrefs(id)}
   localMode.classList.toggle('active',LP.base==='barr'||LP.base==='topo');onlineMode.classList.toggle('active',LP.base==='sat');
-  setText(attribution,LP.base==='sat'?'Sentinel-2 cloudless 2016 © EOX (CC BY 4.0) · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM');
+  setText(attribution,(LP.base==='sat'?'Sentinel-2 cloudless 2016 © EOX (CC BY 4.0) · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':''));
   for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
-  $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;
+  $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpNdvi').checked=LP.ndvi;
+  if(glReady)vis('ndvi',LP.ndvi);
 }
 function setBase(b){
   if((b==='sat'||b==='osm')&&!navigator.onLine){status.textContent='هذا النمط يحتاج اتصالًا بالإنترنت — البر وطبوغرافي يعملان بدونه';return}
@@ -318,7 +320,8 @@ const layersPanel=$('#layersPanel');
 $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()};
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
-for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs()};
+for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpNdvi','ndvi']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
+  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — كبّر وصغّر لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
@@ -471,6 +474,25 @@ maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-csp-worker.js'));
 try{maplibregl.setRTLTextPlugin(abs('vendor/mapbox-gl-rtl-text.js'),true)}catch(e){}
 const pmProtocol=new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles',pmProtocol.tile);
+// طبقة الربيع: مؤشر الغطاء النباتي NDVI من NASA GIBS (مركّب كل 8 أيام، 250 م). نُبقي البكسلات الخضراء فقط
+// ونجعل الأرض الجرداء شفافة حتى تبقى خريطة البر ظاهرة. أسماء بديلة إن توقف أحد الأقمار.
+const NDVI_LAYERS=['MODIS_Terra_NDVI_8Day','MODIS_Aqua_NDVI_8Day','VIIRS_SNPP_NDVI_8Day','VIIRS_NOAA20_NDVI_8Day'];let ndviIdx=0,ndviEmpty=null;
+maplibregl.addProtocol('ndvi',async params=>{
+  const m=/^ndvi:\/\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),Z=+m[1],X=+m[2],Y=+m[3];
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d',{willReadFrequently:true});
+  for(let i=ndviIdx;i<NDVI_LAYERS.length;i++){
+    try{
+      const r=await fetch('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/'+NDVI_LAYERS[i]+'/default/default/GoogleMapsCompatible_Level9/'+Z+'/'+Y+'/'+X+'.png');
+      if(r.status===404||r.status===400){if(i===ndviIdx&&i<NDVI_LAYERS.length-1)ndviIdx=i+1;continue}
+      if(!r.ok)break;
+      const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
+      const im=ctx.getImageData(0,0,256,256),d=im.data;
+      for(let k=0;k<d.length;k+=4){const g=d[k+1]-Math.max(d[k],d[k+2]);d[k+3]=g>6?Math.min(255,d[k+3]*Math.min(1,(g+20)/70)):0}
+      ctx.putImageData(im,0,0);break;
+    }catch(e){break}
+  }
+  const bl=await new Promise(res=>cv.toBlob(res,'image/png'));return{data:await bl.arrayBuffer()};
+});
 // خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
 const umArch={};
 maplibregl.addProtocol('umshift',async params=>{
@@ -629,6 +651,8 @@ gl.on('load',async()=>{
   try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}
   await Promise.all(REGIONS.map(attachSaved));
   glReady=true;
+  gl.addSource('ndvi',{type:'raster',tiles:['ndvi://{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
+  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':.6,'raster-fade-duration':0}},'slot:dalil');
   applyPrefs();
   syncRegions();
   addUserMaps();
