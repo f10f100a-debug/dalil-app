@@ -122,7 +122,7 @@ body.embed .lp-note{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
 :is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
 body.embed #redTint{display:none!important}
-.lp-sub{font-size:11.5px;color:#7A6E60;margin:-4px 0 6px;line-height:1.6}:is(html[data-theme=dark],html[data-theme=red]) .lp-sub{color:#A89B88}.lp-tag-b{color:#1E5FA8!important;background:#E3EEF9!important}.rain-bar{position:fixed;z-index:63;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-top,170px) + 60px);display:none;align-items:center;gap:8px;background:#fffffff2;border:1px solid #cfdcea;border-radius:999px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px #0003;font-size:12.5px;font-weight:700;color:#1E3A5F;direction:rtl;white-space:nowrap}.rain-bar.show{display:flex}.rain-bar button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#1E5FA8;color:#fff;font-size:13px}body:not(.has-target) .rain-bar{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 50px)}:is(html[data-theme=dark],html[data-theme=red]) .rain-bar{background:#1b2230f2;color:#cfe0f5;border-color:#2c3a50}.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+.lp-sub{font-size:11.5px;color:#7A6E60;margin:-4px 0 6px;line-height:1.6}:is(html[data-theme=dark],html[data-theme=red]) .lp-sub{color:#A89B88}.lp-tag-b{color:#1E5FA8!important;background:#E3EEF9!important}.rain-bar{position:fixed;z-index:63;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-top,170px) + 60px);display:none;align-items:center;gap:8px;background:#fffffff2;border:1px solid #cfdcea;border-radius:999px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px #0003;font-size:12.5px;font-weight:700;color:#1E3A5F;direction:rtl;max-width:calc(100vw - 110px)}#rainTime{line-height:1.45}.rain-bar.show{display:flex}.rain-bar button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#1E5FA8;color:#fff;font-size:13px}body:not(.has-target) .rain-bar{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 50px)}:is(html[data-theme=dark],html[data-theme=red]) .rain-bar{background:#1b2230f2;color:#cfe0f5;border-color:#2c3a50}.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
 #saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
 #saveCard[hidden]{display:none!important}
 #saveCard b{display:block;font-size:14px}
@@ -506,23 +506,30 @@ maplibregl.addProtocol('ndvi',async params=>{
 // طبقة السحب الآن: صورة الأشعة تحت الحمراء من EUMETSAT (WMS). الأرض الدافئة تصير شفافة، وتبقى السحب الباردة
 // بيضاء/زرقاء حسب برودتها (الأبرد = أعلى = رعدية غالبًا). أسماء بديلة: MTG ثم Meteosat المحيط الهندي ثم 0°.
 const CLOUD_LAYERS=['mtg_fd:ir105_hrfi','msg_iodc:ir108','msg_fes:ir108'];let cloudIdx=0;
+// تشخيص يظهر في شريط التحريك: هل وصلت الصور؟ وهل فيها سحب؟ وإن فشلت فلماذا؟
+const cloudDiag={ok:0,px:0,maxV:0,err:''};
 maplibregl.addProtocol('clouds',async params=>{
   const m=/^clouds:\/\/([^/]*)\/([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)/.exec(params.url),tm=m?decodeURIComponent(m[1]):'';
   const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d',{willReadFrequently:true});
   if(m)for(let i=cloudIdx;i<CLOUD_LAYERS.length;i++){
     try{
       const r=await fetch('https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&crs=EPSG:3857&width=256&height=256&layers='+CLOUD_LAYERS[i]+'&bbox='+m[2]+','+m[3]+','+m[4]+','+m[5]+(/^\d{4}-/.test(tm)?'&time='+tm:''));
-      if(!r.ok||!/image/.test(r.headers.get('content-type')||'')){if(i===cloudIdx&&i<CLOUD_LAYERS.length-1)cloudIdx=i+1;continue}
+      if(!r.ok||!/image/.test(r.headers.get('content-type')||'')){cloudDiag.err='رد الخادم '+r.status+' للطبقة '+CLOUD_LAYERS[i];if(i===cloudIdx&&i<CLOUD_LAYERS.length-1)cloudIdx=i+1;continue}
       const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
       const im=ctx.getImageData(0,0,256,256),d=im.data;
+      cloudDiag.ok++;cloudDiag.err='';
       for(let k=0;k<d.length;k+=4){const v=(d[k]+d[k+1]+d[k+2])/3;   // ساطع = بارد = سحاب
+        if(d[k+3]>0&&v>cloudDiag.maxV)cloudDiag.maxV=Math.round(v);
         if(v<150){d[k+3]=0;continue}
+        cloudDiag.px++;
         const t=Math.min(1,(v-150)/90);d[k]=215-t*150;d[k+1]=222-t*100;d[k+2]=235-t*5;d[k+3]=Math.round(80+t*160)}
       ctx.putImageData(im,0,0);break;
-    }catch(e){break}
+    }catch(e){cloudDiag.err=navigator.onLine?'الخادم لا يسمح بالجلب من التطبيق (CORS) أو محجوب':'لا يوجد اتصال';break}
   }
   const bl=await new Promise(res=>cv.toBlob(res,'image/png'));return{data:await bl.arrayBuffer()};
 });
+function cloudDiagText(){if(cloudDiag.ok)return cloudDiag.px?'':' · سماء صافية حاليًا';return cloudDiag.err?' · تعذّر: '+cloudDiag.err:' · جارٍ التحميل…'}
+setInterval(()=>{if(LP.clouds&&!playTimer&&glReady)showFrame(playSet().frames.length-1)},3000);
 // لقطات السحب للتحريك: كل 30 دقيقة لآخر 3 ساعات (المسح كل 10–15 دقيقة ويتأخر ~30 دقيقة) + «الآن»
 const cloudFrameTimes=()=>{const out=[],b=Math.floor((Date.now()-40*60e3)/1800e3)*1800e3;for(let k=5;k>=0;k--)out.push(new Date(b-k*1800e3).toISOString().slice(0,16)+':00Z');out.push('latest:'+Math.floor(Date.now()/600e3));return out};
 let CLOUD_FRAMES=cloudFrameTimes();
@@ -552,7 +559,7 @@ const playSet=()=>LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,o
 function showSetFrame(set,i){set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id==='clouds')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
-  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?'':' ('+(i+1)+'/'+n+')'))}
+  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():''):' ('+(i+1)+'/'+n+')'))}
 function stopRain(){clearInterval(playTimer);playTimer=0;setText($('#rainPlay'),'▶')}
 $('#rainPlay').onclick=()=>{if(playTimer){stopRain();showFrame(playSet().frames.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;showFrame(0);playTimer=setInterval(()=>{const n=playSet().frames.length;i=(i+1)%n;showFrame(i)},1100)};
 // خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
