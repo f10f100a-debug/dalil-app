@@ -69,7 +69,7 @@
 Dalil is a free offline navigation app for desert trips in Saudi Arabia. No account or login is required.
 - Location is used on-device for the map, compass and track recording.
 - To test offline maps: Settings → "حفظ خرائط المناطق" → save a region, then enable Airplane Mode.
-- The "Events" section shows user-submitted flood/rain photos. Users can report any photo (Report button); reported content is reviewed and removed by the developer, and photos expire automatically.
+- The "Events" section shows user-submitted flood/rain photos. Every photo is reviewed and approved by the developer before it becomes public. Users can report any photo (auto-hidden after 3 reports) and block its poster ("Block this poster" hides all their photos immediately and sends a report). Photos expire automatically after 3 days. Contact: see the support URL.
 - Weather: Open-Meteo. Imagery layers: NASA GIBS and EUMETSAT. Map data: © OpenStreetMap contributors.
 ```
 
@@ -97,4 +97,4 @@ Dalil is a free offline navigation app for desert trips in Saudi Arabia. No acco
 
 ## نقاط تُحسم قبل الإرسال
 1. تصحيح اسم البائع (اللقب) لدى أبل — طلب الدعم مُرسل.
-2. أبل تطلب في التطبيقات ذات المحتوى من المستخدمين (البند 1.2): فلترة، وإبلاغ، و**حظر المستخدم المسيء**، ووسيلة تواصل. الإبلاغ والتواصل موجودان؛ الحظر يتم من لوحة الإدارة بحذف المحتوى — قد يطلب المراجع زر «حظر» داخل التطبيق.
+2. ✅ متطلبات البند 1.2 (المحتوى من المستخدمين) مكتملة: مراجعة مسبقة قبل النشر، وإبلاغ (إخفاء تلقائي بعد 3 بلاغات)، و«حظر هذا الناشر» داخل التطبيق (منذ 3.24)، ووسيلة تواصل في صفحة الدعم.

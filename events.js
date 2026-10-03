@@ -20,11 +20,14 @@
   ];
   const KIND = Object.fromEntries(KINDS.map(k=>[k.id, k]));
   const REGIONS = ['الرياض','مكة','المدينة','القصيم','الشرقية','عسير','تبوك','حائل','الحدود الشمالية','جازان','نجران','الباحة','الجوف'];
-  const LS = {device:'dalil_device_id', nick:'dalil_nickname', seen:'dalil_events_seen', pushRegion:'dalil_push_region'};
+  const LS = {device:'dalil_device_id', nick:'dalil_nickname', seen:'dalil_events_seen', pushRegion:'dalil_push_region', blocked:'dalil_blocked_posters'};
   const esc = B.escapeHtml, ico = B.ico;
   const lsGet = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
 
+  // الناشرون المحظورون (بصمة مجهولة من الخادم) — لا تظهر صورهم لهذا المستخدم
+  const blocked = new Set((()=>{ try{ return JSON.parse(lsGet(LS.blocked) || '[]'); }catch(e){ return []; } })());
+  const visible = list=>list.filter(e=>!e.poster || !blocked.has(e.poster));
   const st = {photoGps:null, events:[], loadedAt:0, loading:null, error:'', filter:'all', draft:null, sending:false, reported:new Set(), pendingOpen:null};
   const $ = id=>document.getElementById(id);
 
@@ -51,10 +54,10 @@
   function fetchEvents(force){
     if(st.loading) return st.loading;
     if(!force && Date.now() - st.loadedAt < 60000) return Promise.resolve(st.events);
-    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height';
+    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster';
     st.loading = fetch(`${SB}/rest/v1/events?select=${cols}&order=created_at.desc&limit=120`, {headers:{apikey:KEY}, cache:'no-store'})
       .then(r=>{ if(!r.ok) throw new Error('http ' + r.status); return r.json(); })
-      .then(list=>{ st.events = Array.isArray(list) ? list : []; st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
+      .then(list=>{ st.events = visible(Array.isArray(list) ? list : []); st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
       .catch(()=>{ st.error = navigator.onLine === false ? 'offline' : 'failed'; return st.events; })
       .finally(()=>{ st.loading = null; });
     return st.loading;
@@ -88,7 +91,7 @@
       <div class="chips ev-chips">${chips}</div>
       ${body}
       ${B.adHtml ? B.adHtml('events') : ''}
-      <p class="ev-note">الصور من المشتركين، تُراجع قبل نشرها وتُحذف تلقائيًا بعد 3 أيام. لا تصوّر وأنت تقود.</p>`;
+      <p class="ev-note">الصور من المشتركين، تُراجع قبل نشرها وتُحذف تلقائيًا بعد 3 أيام. يمكنك الإبلاغ عن أي صورة أو حظر ناشرها من داخلها. لا تصوّر وأنت تقود.${blocked.size ? ` <button type="button" class="ev-unblock" data-ev-act="unblock">إلغاء حظر ${blocked.size.toLocaleString('ar-SA-u-nu-latn')} ناشر</button>` : ''}</p>`;
     if(paneVisible()) markSeen();
   }
   function tile(e){
@@ -122,6 +125,7 @@
           <button type="button" class="cp-btn cp-btn-white" data-ev-act="map" data-id="${esc(e.id)}">${ico('map')}على الخريطة</button>
         </div>` : '<p class="ev-v-meta">لم يُرفق المشترك موقع الصورة.</p>'}
         <button type="button" class="ev-report" data-ev-act="report" data-id="${esc(e.id)}"${st.reported.has(e.id) ? ' disabled' : ''}>${ico('flag')}${st.reported.has(e.id) ? 'تم الإبلاغ' : 'إبلاغ عن صورة غير مناسبة'}</button>
+        ${e.poster ? `<button type="button" class="ev-report" data-ev-act="block" data-id="${esc(e.id)}">${ico('sos')}حظر هذا الناشر</button>` : ''}
       </div>`;
     v.classList.add('show');
     v.setAttribute('aria-hidden', 'false');
@@ -141,6 +145,21 @@
       B.toast('شكرًا، وصل البلاغ وسنراجعه');
       openViewer(id);
     }catch(e){ B.toast('تعذّر إرسال البلاغ، حاول لاحقًا'); }
+  }
+
+  // حظر الناشر: تختفي كل صوره عند هذا المستخدم، ويُبلَّغ عن الصورة للمراجعة
+  function block(id){
+    const e = st.events.find(x=>x.id === id); if(!e || !e.poster) return;
+    if(!confirm('حظر هذا الناشر؟ لن تظهر لك صوره بعد الآن، ويُرسل بلاغ عن هذه الصورة للمراجعة.')) return;
+    blocked.add(e.poster); lsSet(LS.blocked, JSON.stringify([...blocked]));
+    if(!st.reported.has(id)) fetch(FN + 'dalil-public?a=report', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id})}).then(()=>st.reported.add(id)).catch(()=>{});
+    st.events = visible(st.events);
+    closeViewer(); render();
+    B.toast('تم حظر الناشر — لن تظهر لك صوره');
+  }
+  function unblockAll(){
+    if(!confirm('إلغاء حظر كل الناشرين المحظورين (' + blocked.size + ')؟')) return;
+    blocked.clear(); lsSet(LS.blocked, '[]'); fetchEvents(true).then(render); B.toast('أُلغي الحظر');
   }
 
   // ---------- إضافة حدث ----------
@@ -400,6 +419,8 @@
       case 'go': if(e){ closeViewer(); B.navigateTo(eventPlace(e)); } break;
       case 'map': if(e){ closeViewer(); B.openOnMap(eventPlace(e)); } break;
       case 'report': report(t.dataset.id); break;
+      case 'block': block(t.dataset.id); break;
+      case 'unblock': unblockAll(); break;
       case 'push-settings': B.openSettings('pushBox'); break;
     }
   });
