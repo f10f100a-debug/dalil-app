@@ -14,6 +14,7 @@
 | رابط سياسة الخصوصية | https://f10f100a-debug.github.io/dalil-app/privacy.html |
 | رابط الدعم | https://f10f100a-debug.github.io/dalil-app/support.html |
 | حقوق النشر | © 2026 أبو مالك اللهيبي |
+| بريد الدعم (App Review → Contact) | dalilbarr.app@gmail.com |
 
 ## الكلمات المفتاحية (100 حرف، مفصولة بفواصل بلا مسافات)
 ```
