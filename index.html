@@ -935,7 +935,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261003-6" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261003-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1146,6 +1146,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           <li>مواقع «خرائط البر» (عند اختيارها مصدرًا): sites.google.com/view/desertmaps.</li>
           <li>طبقة الربيع (الغطاء النباتي): NASA GIBS — منتجات MODIS/VIIRS NDVI، بيانات مفتوحة.</li>
           <li>طبقة المطر: NASA GPM IMERG عبر GIBS، بيانات مفتوحة.</li>
+          <li>طبقة السحب الآن: صور الأشعة تحت الحمراء © EUMETSAT (Meteosat/MTG).</li>
           <li>العرض الثلاثي: تضاريس AWS Terrain Tiles، وصور Sentinel-2 cloudless من EOX IT Services (CC BY 4.0).</li>
           <li>الطقس وجودة الهواء: Open-Meteo.com (CC BY 4.0)، ونموذج CAMS من Copernicus.</li>
           <li>المكتبات: MapLibre GL (BSD-3)، PMTiles (BSD-3)، mapbox-gl-rtl-text (BSD-2)، sql.js (MIT)، geotiff.js (MIT)، خط Noto Sans (SIL OFL 1.1).</li>
@@ -1155,7 +1156,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">عن هذا النموذج</div>
       <div class="banner">
-        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.19 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
+        <div style="text-align:center; line-height:2;"><div style="font-weight:900; color:var(--sand); font-size:16px;">دليل — بوصلة البر</div><div>الإصدار 3.20 (3 أكتوبر 2026)</div><div style="margin-top:6px;">تصميم وتطوير: <b>أبو مالك اللهيبي</b></div><div>للتواصل: <b dir="ltr">f22f22a</b> — جميع تطبيقات التواصل الاجتماعي</div><div>© 2026 أبو مالك اللهيبي — جميع الحقوق محفوظة</div></div>
       </div>
     </section>
 
@@ -2777,7 +2778,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('placeSearch').addEventListener('input', renderPlaces);
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261003-6&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261003-7&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -4716,7 +4717,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.getElementById('springMap').addEventListener('click', ()=>{
     try{ const lp = JSON.parse(localStorage.getItem('dalil_map_layers') || '{}'); lp.ndvi = true; localStorage.setItem('dalil_map_layers', JSON.stringify(lp)); }catch(e){}
     const q = springPos();
-    if(q && !q.live){ location.href = 'map.html?v=20261003-6&view=spring&lat=' + q.lat.toFixed(5) + '&lng=' + q.lng.toFixed(5) + '&z=' + (q.name && q.name.startsWith('منطقة') ? 8 : 10) + '&label=' + encodeURIComponent(q.name || 'الربيع'); return; }
+    if(q && !q.live){ location.href = 'map.html?v=20261003-7&view=spring&lat=' + q.lat.toFixed(5) + '&lng=' + q.lng.toFixed(5) + '&z=' + (q.name && q.name.startsWith('منطقة') ? 8 : 10) + '&label=' + encodeURIComponent(q.name || 'الربيع'); return; }
     document.querySelector('.tab[data-screen="track"]').click();
     toast('طبقة الربيع مفعّلة — صغّر الخريطة لترى الأخضر حولك');
   });
