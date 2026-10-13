@@ -1,0 +1,739 @@
+<!doctype html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://tiles.maps.eox.at https://gibs.earthdata.nasa.gov; connect-src 'self' https://tile.openstreetmap.org https://tiles.maps.eox.at https://gibs.earthdata.nasa.gov https://view.eumetsat.int https://api.open-meteo.com https://air-quality-api.open-meteo.com; frame-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="stylesheet" href="vendor/maplibre-gl.css"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet"><title>دليل — خريطة البر الأوفلاين</title><script>(function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}var t=p==='auto'?(function(){var q={lat:24.71,lng:46.68};try{var v=JSON.parse(localStorage.getItem('dalil_sun_pos')||'null');if(v&&isFinite(v.lat)&&isFinite(v.lng))q=v}catch(e){}return (function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w})(q.lat,q.lng,new Date())?'dark':'light'})():p;document.documentElement.setAttribute('data-theme',t)})();</script><style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui;background:#171717}
+#map{position:fixed;inset:0;overflow:hidden;background:#F4F0E6;touch-action:none}#layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+.tile{position:absolute;left:0;top:0;width:256px;height:256px;user-select:none;-webkit-user-drag:none;will-change:transform;backface-visibility:hidden}
+#trackOverlay{position:absolute;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
+#dot{position:absolute;display:none;width:18px;height:18px;border-radius:50%;background:#2688ff;border:3px solid #fff;box-shadow:0 0 0 7px #2688ff55;z-index:20;transform:translate(-50%,-50%)}
+#targetMarker{position:absolute;display:none;z-index:21;transform:translate(-50%,-100%);font-size:34px;filter:drop-shadow(0 3px 3px #0007)}
+.top{position:fixed;z-index:50;top:max(12px,env(safe-area-inset-top));right:12px;left:12px;background:#113329e8;color:#fff;border-radius:16px;padding:10px 12px}
+.top-row{display:flex;align-items:center;justify-content:space-between;gap:8px}.top-actions{display:flex;align-items:center;gap:6px}.back-link{height:38px;padding:0 10px;border-radius:11px;background:#0b211be8;color:#fff;display:flex;align-items:center;text-decoration:none;font-size:12px;font-weight:900;white-space:nowrap;box-shadow:0 2px 8px #0004}
+.title{font-weight:900;font-size:18px}.status{font-size:12px;margin-top:5px;opacity:.9}
+.ctrl{position:fixed;z-index:60;left:14px;bottom:max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:9px}
+button{width:52px;height:52px;border:0;border-radius:15px;background:#fff;color:#183129;font-size:25px;font-weight:900;box-shadow:0 2px 12px #0005}
+#gps{background:#e8b858;font-size:21px}.badge{position:fixed;z-index:55;right:14px;bottom:max(20px,env(safe-area-inset-bottom));background:#113329e8;color:#fff;padding:9px 12px;border-radius:12px;font-size:12px}
+.google-link{width:auto;height:38px;padding:0 12px;border-radius:11px;font-size:12px;white-space:nowrap;background:#fff;color:#183129}
+.map-modes{position:fixed;z-index:65;top:max(116px,calc(env(safe-area-inset-top) + 104px));left:50%;transform:translateX(-50%);display:flex;direction:rtl;background:#fffffff0;border:1px solid #d7ddd9;border-radius:12px;padding:3px;box-shadow:0 2px 10px #0003;white-space:nowrap}
+.map-modes button{width:auto;height:34px;border-radius:9px;padding:0 11px;background:transparent;box-shadow:none;font-size:12px;color:#5d6965}.map-modes button.active{background:#dda652;color:#17251f}
+.attribution{display:none;position:fixed;z-index:64;right:8px;bottom:5px;background:#ffffffd9;color:#34443e;border-radius:5px;padding:2px 5px;font-size:9px;text-decoration:none}.attribution.show{display:block}body.has-target .attribution{bottom:calc(var(--nav-top,160px) + 6px)}
+.nav-card{display:none;position:fixed;z-index:70;right:14px;left:14px;bottom:max(14px,env(safe-area-inset-bottom));background:#fffef8ed;border:1px solid #dca453;border-radius:18px;padding:12px;box-shadow:0 5px 22px #0004;color:#183129}
+.nav-card.show{display:block}.nav-close{all:unset;pointer-events:auto;cursor:pointer;position:absolute;top:8px;left:8px;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#efe9df;color:#5c5246;font-size:16px;font-weight:700;z-index:2}.nav-head{display:flex;align-items:center;gap:10px}.nav-arrow{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:#f3dfb8;color:#b97822;font-size:34px;line-height:1;transform:rotate(0deg)}
+.nav-copy{min-width:0;flex:1}.nav-name{font-weight:900;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nav-coords{font-size:12px;font-weight:800;margin-top:3px;color:#1e493d;direction:ltr;text-align:right;unicode-bidi:plaintext}.nav-info{font-size:14px;margin-top:3px;color:#52615c}.nav-actions{display:flex;gap:7px;margin-top:10px}.nav-actions button{height:44px;width:auto;flex:1;border-radius:12px;padding:0 5px;font-size:12px;box-shadow:none;white-space:nowrap}.start-nav{background:#dda652;color:#17251f}.compass-nav{background:#e7f0ec;color:#183129;border:1px solid #b9cbc4}.stop-nav{display:none;background:#fff;color:#a33;border:1px solid #e0c3bc}.google-nav{background:#fff;color:#183129;border:1px solid #d9dedb}
+body.has-target .ctrl,body.has-target .badge{bottom:calc(var(--nav-top,170px) + 12px)}
+body.embed .top,body.embed .back-to-dalil{display:none!important}body.embed .map-modes{top:7px;bottom:auto}body.embed .nav-card{right:8px;left:8px;bottom:8px;padding:9px;border-radius:14px}body.embed .nav-head{gap:7px}body.embed .nav-arrow{width:42px;height:42px;font-size:29px}body.embed .nav-name{font-size:14px}body.embed .nav-coords{font-size:10px}body.embed .nav-info{font-size:11px}body.embed .nav-actions{margin-top:7px;gap:5px}body.embed .nav-actions button{height:38px;font-size:10px}body.embed .attribution{right:auto;left:50%;transform:translateX(-50%);bottom:3px;font-size:8px;white-space:nowrap}body.embed.has-target .attribution{bottom:calc(var(--nav-top,148px) + 4px)}body.embed.has-target .ctrl,body.embed.has-target .badge{bottom:calc(var(--nav-top,155px) + 8px)}
+
+/* ===== هوية دليل الموحّدة ===== */
+html,body{font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;background:#F2EFE9}
+button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18);border:1px solid #E4DED3}
+#gps{background:#C9964F;border-color:#C9964F;display:grid;place-items:center}
+.top{background:#FFFFFFf2;color:#1C1A17;border:1px solid #E4DED3;box-shadow:0 4px 16px rgba(60,45,20,.12)}
+.title{font-weight:700}.status{color:#6B645A;opacity:1}
+.back-link{background:#F7F4EE;color:#1C1A17;border:1px solid #E4DED3;box-shadow:none;font-weight:600;min-height:44px}
+.badge{background:#FFFFFFf0;color:#1C1A17;border:1px solid #E4DED3;display:flex;align-items:center;gap:8px;font-weight:600}
+.scale-bar{display:block;height:6px;border:2px solid #1C1A17;border-top:0}
+.map-modes{border-color:#E4DED3;border-radius:14px}.map-modes button{height:40px;border:0;color:#6B645A;font-weight:600}.map-modes button.active{background:#C9964F;color:#1C1A17}
+#googleMode{border-inline-start:1px solid #E4DED3;border-radius:0 9px 9px 0}
+#dot{background:#2688ff;box-shadow:0 0 0 4px #ffffffcc,0 2px 6px #0005}
+#accCircle{position:absolute;display:none;border-radius:50%;background:rgba(38,136,255,.12);border:1px solid rgba(38,136,255,.4);transform:translate(-50%,-50%);z-index:19;pointer-events:none}
+#marks{position:absolute;inset:0;z-index:18;pointer-events:none}
+.mk{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center}
+.mk-dot{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;border:2px solid #C9964F;font-size:17px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.mk.car .mk-dot{background:#C9964F;border-color:#5C3A0E;color:#1C1A17}.mk.car .mk-dot svg{width:20px;height:20px}
+.mk-name{margin-top:3px;padding:1px 7px;border-radius:8px;background:#FFFFFFe8;color:#1C1A17;font-size:11px;font-weight:600;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
+.nav-card{background:#FFFFFFf5;border-color:#E4DED3;color:#1C1A17}.nav-arrow{background:#FBF3E6;color:#7A4E14}.nav-coords{color:#6B645A}.nav-info{color:#6B645A}
+
+/* ===== دوران الخريطة، سهم الموقع، أزرار ===== */
+#stage{position:absolute;inset:0;transform-origin:50% 50%;will-change:transform}
+#trackOverlay{overflow:visible}
+.wadi-name{font:600 12px 'IBM Plex Sans Arabic',system-ui,sans-serif;fill:#1F5E86;stroke:#fff;stroke-width:3px;paint-order:stroke;stroke-opacity:.85;text-anchor:middle;direction:rtl}
+.mk{transform:translate(-50%,-50%) rotate(calc(var(--rot,0) * 1deg))}
+#targetMarker{font-size:0;line-height:0;transform:translate(-50%,-100%) rotate(calc(var(--rot,0) * 1deg));transform-origin:50% 100%}
+#targetMarker svg{display:block}
+#dot .dot-arrow{display:none;position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;transform:rotate(calc(var(--hdg,0) * 1deg));overflow:visible}
+#dot .dot-arrow path{fill:#2688ff;stroke:#fff;stroke-width:2.2;stroke-linejoin:round;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#dot.has-heading{background:transparent;border-color:transparent;box-shadow:none}
+#dot.has-heading .dot-arrow{display:block}
+.ctrl button[hidden]{display:none}
+#gps.on{background:#1C1A17;border-color:#1C1A17;color:#F2C27A}
+#northBtn{display:grid;place-items:center;background:#fff}
+#northBtn[hidden]{display:none}
+#northIcon{}
+.nav-arrow{width:52px;height:52px}
+.nav-arrow svg{transition:transform .2s ease-out}
+.nav-coords{display:block;border:0;background:none;box-shadow:none;padding:0;width:auto;height:auto;font:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:right}
+.nav-eta{font-size:12.5px;color:#7A4E14;margin-top:2px;font-weight:600}
+.nav-eta:empty{display:none}
+body.embed .nav-actions button{height:44px}
+body.embed .nav-arrow{width:44px;height:44px}
+
+/* ===== الوضع الليلي والأحمر ===== */
+html[data-theme=dark],html[data-theme=red]{color-scheme:dark}
+:is(html[data-theme=dark],html[data-theme=red]) :is(html,body){background:#15120E}
+:is(html[data-theme=dark],html[data-theme=red]) #map{background:#1a1a1a}
+:is(html[data-theme=dark],html[data-theme=red]) #layer{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92)}
+:is(html[data-theme=dark],html[data-theme=red]) button{background:#1F1B16;color:#EFE8DC;border-color:#353027;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+:is(html[data-theme=dark],html[data-theme=red]) #gps{background:#C9964F;color:#1C1A17;border-color:#C9964F}
+:is(html[data-theme=dark],html[data-theme=red]) #gps.on{background:#EFE8DC;color:#1C1A17;border-color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) #northBtn{background:#1F1B16}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.top,.badge,.nav-card){background:#1F1B16f2;color:#EFE8DC;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.status,.nav-coords,.nav-info){color:#B3A996}
+:is(html[data-theme=dark],html[data-theme=red]) .nav-eta{color:#E0B574}
+:is(html[data-theme=dark],html[data-theme=red]) .nav-arrow{background:#2A2319;color:#E0B574}
+:is(html[data-theme=dark],html[data-theme=red]) .back-link{background:#27221B;color:#EFE8DC;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .scale-bar{border-color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes{background:#1F1B16f0;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes button{background:transparent;color:#B3A996;box-shadow:none}
+:is(html[data-theme=dark],html[data-theme=red]) .map-modes button.active{background:#C9964F;color:#1C1A17}
+:is(html[data-theme=dark],html[data-theme=red]) #googleMode{border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .attribution{background:#1F1B16d9;color:#B3A996}
+:is(html[data-theme=dark],html[data-theme=red]) .mk-dot{background:#1F1B16}
+:is(html[data-theme=dark],html[data-theme=red]) .mk-name{background:#1F1B16e8;color:#EFE8DC}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.start-nav){background:#C9964F;color:#1C1A17}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.compass-nav,.google-nav,.stop-nav){background:#27221B;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .stop-nav{color:#F08A7E}
+#redTint{display:none;position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:#9A0000;mix-blend-mode:multiply}
+html[data-theme=red] #redTint{display:block}
+/* ===== لوحة الطبقات ===== */
+#layersBtn{display:grid;place-items:center}
+#layersPanel{display:none;position:fixed;z-index:75;left:78px;right:14px;bottom:max(20px,env(safe-area-inset-bottom));max-height:calc(100% - 150px);overflow:auto;background:#FFFFFFf7;border:1px solid #E4DED3;border-radius:18px;padding:12px 14px;box-shadow:0 6px 24px rgba(60,45,20,.22);color:#1C1A17;font-size:14px}
+#layersPanel.show{display:block}
+body.has-target #layersPanel{bottom:calc(var(--nav-top,170px) + 12px)}
+.lp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}.lp-head b{font-size:15px}
+.lp-close{width:34px;height:34px;border-radius:10px;font-size:16px;box-shadow:none}
+.lp-sec{font-size:12px;color:#6B645A;font-weight:600;margin:10px 0 6px}
+.lp-base{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.lp-base button{width:auto;height:40px;border-radius:11px;font-size:12.5px;box-shadow:none;padding:0 4px}
+.lp-base button.active{background:#C9964F;border-color:#C9964F}
+.lp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid #EFE9DF}
+.lp-row input[type=checkbox]{width:22px;height:22px;accent-color:#C9964F}
+.lp-row input[type=range]{flex:1;accent-color:#C9964F}
+.lp-note{font-size:11.5px;color:#8A8174;margin-top:4px}
+.lp-tools{display:flex;gap:6px;align-items:center}
+#lp3d{width:auto;height:34px;padding:0 14px;border-radius:10px;font-size:14px;font-weight:700;background:#1C1A17;color:#F2C27A;border-color:#1C1A17;box-shadow:none}
+/* داخل التطبيق (تبويب الخريطة) المساحة أقصر: اللوحة من أعلى الخريطة إلى أسفلها، أصغر، وتُمرَّر */
+body.embed #layersPanel{top:8px;bottom:auto;left:70px;right:8px;max-height:calc(100% - 16px);padding:8px 10px;font-size:13px;-webkit-overflow-scrolling:touch}
+body.embed .lp-sec{margin:6px 0 4px}
+body.embed .lp-row{padding:4px 0}
+body.embed .lp-base button{height:34px}
+body.embed .lp-note{display:none}
+:is(html[data-theme=dark],html[data-theme=red]) #layersPanel{background:#1F1B16f5;color:#EFE8DC;border-color:#353027}
+:is(html[data-theme=dark],html[data-theme=red]) .lp-row{border-color:#2E2820}
+:is(html[data-theme=dark],html[data-theme=red]) :is(.lp-sec,.lp-note){color:#B3A996}
+:is(html[data-theme=dark],html[data-theme=red]) .lp-base button.active{background:#C9964F;color:#1C1A17}
+body.embed #redTint{display:none!important}
+.lp-sub{font-size:11.5px;color:#7A6E60;margin:-4px 0 6px;line-height:1.6}:is(html[data-theme=dark],html[data-theme=red]) .lp-sub{color:#A89B88}.lp-tag-b{color:#1E5FA8!important;background:#E3EEF9!important}.rain-bar{position:fixed;z-index:63;left:50%;transform:translateX(-50%);bottom:calc(var(--nav-top,170px) + 60px);display:none;align-items:center;gap:8px;background:#fffffff2;border:1px solid #cfdcea;border-radius:999px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px #0003;font-size:12.5px;font-weight:700;color:#1E3A5F;direction:rtl;max-width:calc(100vw - 110px)}#rainTime{line-height:1.45}.rain-bar.show{display:flex}.rain-bar button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#1E5FA8;color:#fff;font-size:13px}body:not(.has-target) .rain-bar{bottom:calc(max(20px,env(safe-area-inset-bottom)) + 50px)}:is(html[data-theme=dark],html[data-theme=red]) .rain-bar{background:#1b2230f2;color:#cfe0f5;border-color:#2c3a50}.lp-tag{font-size:10.5px;font-weight:700;color:#2E7D32;background:#E6F2E2;border-radius:6px;padding:1px 5px;margin-inline-start:4px}.um-op{border-top:0;padding-top:0;font-size:12px;color:#6B6155}.um-shift small{color:#7A3FA0;font-weight:700}.um-arrows{display:flex;gap:4px;direction:ltr}.um-arrows button{all:unset;pointer-events:auto;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border:1px solid #D9CFC0;border-radius:8px;background:#fff;font-size:13px;color:#3A2A12}.um-act{display:flex;align-items:center;gap:8px}.um-go{all:unset;pointer-events:auto;cursor:pointer;font-size:12px;font-weight:700;color:#7A3FA0;border:1px solid #CDB6DD;border-radius:8px;padding:3px 8px;background:#fff}
+#saveCard{position:fixed;left:10px;right:10px;top:max(162px,calc(env(safe-area-inset-top) + 150px));z-index:66;background:#FFF8EC;border:1px solid #E2C99A;border-radius:14px;padding:10px 12px;box-shadow:0 4px 16px rgba(60,40,10,.18);font-size:13px;line-height:1.7;color:#3A2A12;direction:rtl}
+#saveCard[hidden]{display:none!important}
+#saveCard b{display:block;font-size:14px}
+#saveCard .sc-row{display:flex;gap:8px;margin-top:8px}
+#saveCard button{flex:1;height:38px;border-radius:10px;border:1px solid #D9C29A;background:#fff;font:inherit;font-weight:700;color:#3A2A12;cursor:pointer}
+#saveCard button.sc-main{background:#C8964E;border-color:#C8964E;color:#fff}
+body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px}
+@font-face{font-family:"AL Mohanad Guide";src:url("fonts/ALMohanadGuide.ttf") format("truetype");font-display:swap}
+.wadi-name{font-family:"AL Mohanad Guide",sans-serif}html[data-theme=dark] #layer,html[data-theme=red] #layer{filter:none}html[data-theme=red] #redTint{display:none}
+</style><script src="vendor/pmtiles.js"></script></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
+<div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><select id="v63Profile" aria-label="الوضع"><option value="general">أبو مالك عام</option><option value="private">أبو مالك خاص</option></select><div class="top-actions"><a href="../index.html?screen=compass&amp;v=20260925-8" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
+<div id="saveCard" hidden role="alert"><b id="scTitle"></b><span id="scText"></span><div class="sc-row"><button type="button" class="sc-main" id="scSave">احفظها الآن</button><button type="button" id="scLater">لاحقًا</button></div></div>
+<div id="rainBar" class="rain-bar" role="group" aria-label="تحريك المطر"><span id="rainTime">المطر</span><button id="rainPlay" type="button" aria-label="تشغيل">▶</button></div>
+<div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">فضائي</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution show" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© مساهمو OpenStreetMap · SRTM / Mapzen</a>
+<div class="ctrl"><button id="layersBtn" type="button" aria-label="طبقات الخريطة وإعداداتها" title="طبقات الخريطة"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 13 10 5 10-5"/></svg></button><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
+<div id="layersPanel" role="dialog" aria-label="طبقات الخريطة">
+  <div class="lp-head"><b>طبقات الخريطة</b><span class="lp-tools"><button type="button" id="lp3d" title="عرض ثلاثي الأبعاد (يحتاج إنترنت)">3D</button><button class="lp-close" id="lpClose" type="button" aria-label="إغلاق">✕</button></span></div>
+  <div class="lp-sec">نمط الخريطة</div>
+  <div class="lp-base" id="lpBase"><button type="button" data-base="barr">البر</button><button type="button" data-base="topo">طبوغرافي</button><button type="button" data-base="sat">فضائي</button><button type="button" data-base="osm">OSM</button></div>
+  <div class="lp-note" id="lpBaseNote">البر وطبوغرافي يعملان بدون إنترنت في المناطق المحفوظة.</div>
+  <div class="lp-sec">الطبقات</div>
+  <label class="lp-row">تظليل التضاريس<input type="checkbox" id="lpHs"></label>
+  <label class="lp-row">شدة التظليل<input type="range" id="lpHsOp" min="20" max="100" step="5"></label>
+  <label class="lp-row">خطوط الكنتور (الارتفاعات)<input type="checkbox" id="lpContour"></label>
+  <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
+  <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
+  <label class="lp-row"><span>الربيع — الغطاء النباتي <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpNdvi"></label>
+  <div class="lp-sub">الأخضر = نبات حالي · دقة 250 م · تتحدث كل 8 أيام · أوضح مع التصغير</div>
+  <label class="lp-row"><span>السحب الآن <small class="lp-tag lp-tag-b">إنترنت</small></span><input type="checkbox" id="lpClouds"></label>
+  <div class="lp-sub">القمر الأوروبي الثابت فوق المنطقة (EUMETSAT) · تتحدث كل 15 دقيقة تقريبًا · الفاتح سحب عادية، والأزرق الداكن سحب عالية باردة (رعدية غالبًا)</div>
+  <label class="lp-row"><span>المطر — آخر 6 ساعات <small class="lp-tag lp-tag-b">إنترنت</small></span><input type="checkbox" id="lpRain"></label>
+  <div class="lp-sub">من أقمار NASA (IMERG) لكل المملكة · متأخرة 4–6 ساعات (ليست لحظية) · الأزرق خفيف والأحمر غزير · التحذيرات الرسمية من الأرصاد</div>
+  <div id="lpUser"></div>
+  <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
+</div>
+<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
+<script type="module">
+import * as maplibregl from "./vendor/maplibre-gl.mjs";
+import {V63_LAYERS} from "./v63-layers.js";
+
+const query=new URLSearchParams(location.search);
+const isEmbedded=query.get('embed')==='1';
+if(isEmbedded)document.body.classList.add('embed');
+const S=256,minZ=5,maxZ=20,maxLocalZ=18,maxOnlineTileZ=19;
+const GPS_COURSE_MIN_KMH=5;
+let z=7,cx=79*S,cy=55*S,gps=null,targetPoint=null,drag=false,last=null,pinch0=null,touchStart=null,touchMoved=false,trackPoints=[],embeddedCentered=false,lastTrackSignature='',navigationActive=false,deviceHeading=null,orientationHandler=null,lastAbsoluteOrientationAt=0,mapMode='local',missingTileWarningShown=false;
+// view: free (المستخدم يحرّك الخريطة) | fit (يُظهر موقعك والهدف معًا) | follow (يتبعك والشمال للأعلى) | heading (يتبعك واتجاهك للأعلى)
+let originX=innerWidth/2,originY=innerHeight/2;
+let view='free',rot=0,geoWatch=null,gpsCourse=null,gpsCourseAt=0,headingFrame=0;
+const $=s=>document.querySelector(s);
+const map=$('#map'),stage=$('#stage'),layer=$('#layer'),dot=$('#dot'),accCircle=$('#accCircle'),marksEl=$('#marks'),targetMarker=$('#targetMarker'),trackOverlay=$('#trackOverlay'),status=$('#status'),badge=$('#badge'),navCard=$('#navCard'),navArrow=$('#navArrow'),navName=$('#navName'),navCoords=$('#navCoords'),navInfo=$('#navInfo'),navEta=$('#navEta'),startNav=$('#startNav'),compassNav=$('#compassNav'),stopNav=$('#stopNav'),localMode=$('#localMode'),onlineMode=$('#onlineMode'),googleMode=$('#googleMode'),attribution=$('#attribution'),gpsBtn=$('#gps'),northBtn=$('#northBtn'),northIcon=$('#northIcon');
+let renderFrame=0;
+
+// ---------- helpers ----------
+const iso=v=>'⁦'+v+'⁩';
+const setText=(el,v)=>{if(el.textContent!==v)el.textContent=v}; // يمنع انقلاب الأرقام والرموز داخل النص العربي
+function world(lat,lng,Z=z){let n=2**Z,x=(lng+180)/360*n*S,r=lat*Math.PI/180,y=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n*S;return[x,y]}
+// إحداثيات «المسرح» (قبل الدوران) إلى خط عرض وطول
+function stageToLatLng(x,y){let size=2**z*S,wx=cx+x-innerWidth/2,wy=cy+y-innerHeight/2,lng=wx/size*360-180,merc=Math.PI*(1-2*wy/size),lat=Math.atan(Math.sinh(merc))*180/Math.PI;return{lat:Math.max(-85.0511,Math.min(85.0511,lat)),lng:((lng+540)%360)-180}}
+// نقطة على الشاشة إلى إحداثيات المسرح، مع مراعاة دوران الخريطة
+function screenToStage(x,y){const a=rot*Math.PI/180,dx=x-originX,dy=y-originY;return[originX+dx*Math.cos(a)-dy*Math.sin(a),originY+dx*Math.sin(a)+dy*Math.cos(a)]}
+function screenDeltaToStage(dx,dy){const a=rot*Math.PI/180;return[dx*Math.cos(a)-dy*Math.sin(a),dx*Math.sin(a)+dy*Math.cos(a)]}
+function validLatLng(lat,lng){return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&!(Math.abs(lat)<.000001&&Math.abs(lng)<.000001)}
+// داخل إحدى مناطق خريطة البر (data/maps.json)، وقبل تحميل القائمة: حدود المملكة تقريبًا
+function inOfflineCoverage(lat,lng){const list=REGIONS.length?REGIONS.map(r=>r.bbox):[[34,16,56,32.6]];return list.some(b=>lng>=b[0]&&lng<=b[2]&&lat>=b[1]&&lat<=b[3])}
+function distanceMeters(a,b){let R=6371000,p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dp=(b.lat-a.lat)*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,h=Math.sin(dp/2)**2+Math.cos(p1)*Math.cos(p2)*Math.sin(dl/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
+function targetBearing(a,b){let p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function directionName(b){return['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]}
+function fmtDistance(d){return d>=1000?iso((d/1000).toFixed(d<10000?1:0))+' كم':iso(Math.round(d))+' م'}
+function fmtDuration(sec){const m=Math.round(sec/60);if(m<1)return'أقل من دقيقة';if(m<60)return iso(m)+' د';const h=Math.floor(m/60),r=m%60;return iso(h)+' س'+(r?' '+iso(r)+' د':'')}
+function coordFormat(){try{const f=localStorage.getItem('dalil_fmt');return f==='dd'||f==='dms'?f:'ddm'}catch(e){return'ddm'}}
+function fmtCoords(lat,lng){const fmt=coordFormat();
+  const part=(v,isLat)=>{const a=Math.abs(v),d=Math.floor(a),dir=isLat?(v>=0?'N':'S'):(v>=0?'E':'W');if(fmt==='dms'){const mf=(a-d)*60,m=Math.floor(mf);return`${d}°${m}'${((mf-m)*60).toFixed(1)}"${dir}`}return`${d}°${((a-d)*60).toFixed(3)}'${dir}`};
+  return fmt==='dd'?lat.toFixed(6)+', '+lng.toFixed(6):part(lat,true)+' '+part(lng,false)}
+function smoothHeading(previous,next){if(previous===null)return next;let delta=((next-previous+540)%360)-180,distance=Math.abs(delta);if(distance<.3)return previous;let factor=distance>=30?.95:distance>=8?.85:.7;return(previous+delta*factor+360)%360}
+function normRot(){return((rot%360)+360)%360}
+function isRotated(){const n=normRot();return n>.5&&n<359.5}
+
+// ---------- heading: GPS course when driving, compass otherwise ----------
+// أثناء القيادة: GPS مرجع الاتجاه (كل ثانية تقريبًا) والمستشعر يعطي التغيّر اللحظي
+// بين القراءات؛ الفرق الثابت الناتج عن هيكل السيارة يُصحَّح بـ courseOffset.
+let courseOffset=null,deviceHeadingAt=0;
+const angleDiff=(a,b)=>((a-b+540)%360)-180,norm360=a=>((a%360)+360)%360;
+function isDriving(){return gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH}
+function currentHeading(){
+  if(isDriving()){
+    if(courseOffset!==null&&deviceHeading!==null&&Date.now()-deviceHeadingAt<2000)return norm360(deviceHeading+courseOffset);
+    return gpsCourse;
+  }
+  return deviceHeading;
+}
+function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide}
+function onHeadingChanged(){
+  if(headingFrame)return;
+  headingFrame=requestAnimationFrame(()=>{headingFrame=0;
+    const h=currentHeading();
+    if(dot.classList.contains('has-heading')!==(h!==null))dot.classList.toggle('has-heading',h!==null);
+    if(h!==null)dot.style.setProperty('--hdg',h.toFixed(1));
+    if(view==='heading'&&h!==null){const wasRotated=isRotated();setRot(h);if(!wasRotated)render()}
+    updateNavigation()});
+}
+function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
+function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){deviceHeading=smoothHeading(deviceHeading,(h+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
+// على iOS يجب أن يأتي طلب الإذن من ضغطة المستخدم؛ إن سبق منحه لا تظهر نافذة.
+async function ensureOrientation(){try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){if(await DeviceOrientationEvent.requestPermission()!=='granted')return false}}catch(e){return false}bindOrientation();return true}
+
+// ---------- navigation card ----------
+function updateNavigation(){
+  if(!targetPoint)return;
+  if(!navCard.classList.contains('show')){navCard.classList.add('show');document.body.classList.add('has-target');syncNavCardSpace()}
+  setText(navCoords,fmtCoords(targetPoint.lat,targetPoint.lng));
+  if(!gps){setText(navInfo,'جارٍ تحديد موقعك وحساب المسافة…');setText(navEta,'');return}
+  const d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),h=currentHeading();
+  setText(navInfo,'يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b));
+  const speed=Number(gps.speed);
+  setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
+  const relative=h!==null?b-h:b-rot;
+  navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
+}
+navCoords.onclick=async()=>{if(!targetPoint)return;const text=fmtCoords(targetPoint.lat,targetPoint.lng);try{await navigator.clipboard.writeText(text);status.textContent='تم نسخ الإحداثيات'}catch(e){status.textContent=text}};
+
+// ---------- location button: follow → heading-up → follow ----------
+const ICON_LOCATE='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>';
+const ICON_FOLLOW='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>';
+const ICON_HEADING='<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M12 2.5 19 21l-7-4-7 4z"/></svg>';
+function updateGpsBtn(){
+  gpsBtn.innerHTML=view==='heading'?ICON_HEADING:view==='follow'?ICON_FOLLOW:ICON_LOCATE;
+  gpsBtn.classList.toggle('on',view==='follow'||view==='heading');
+  const label=view==='follow'?'يتبع موقعك — اضغط ليتبع اتجاهك':view==='heading'?'الخريطة تدور مع اتجاهك — اضغط لإرجاع الشمال للأعلى':'إظهار موقعي ومتابعته';
+  gpsBtn.setAttribute('aria-label',label);gpsBtn.title=label;
+  northBtn.hidden=!isRotated()&&view!=='heading';
+}
+// تفضيل اتجاه الخريطة: 'auto' تدور مع السيارة تلقائيًا أثناء القيادة، 'north' الشمال للأعلى دائمًا.
+let headingPref=(()=>{try{return localStorage.getItem('dalil_map_heading')==='north'?'north':'auto'}catch(e){return'auto'}})();
+function setHeadingPref(v){headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
+// إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
+let screenLock=null;
+async function keepScreenOn(){if(!navigationActive||!('wakeLock' in navigator)||document.visibilityState!=='visible'||(screenLock&&!screenLock.released))return;try{screenLock=await navigator.wakeLock.request('screen');screenLock.addEventListener('release',()=>{screenLock=null})}catch(e){screenLock=null}}
+function releaseScreen(){if(screenLock){screenLock.release().catch(()=>{});screenLock=null}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepScreenOn()});
+function setView(v){view=v;updateOrigin();updateGpsBtn()}
+function enterHeading(){setView('heading');const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
+function releaseView(){if(view!=='free')setView('free')}
+gpsBtn.onclick=()=>{
+  ensureOrientation();
+  startWatch();
+  if(view==='follow'||(view!=='heading'&&isDriving()&&headingPref!=='north')){setHeadingPref('auto');setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
+  else{if(view==='heading')setHeadingPref('north');setRot(0);setView('follow')}
+  if(gps){z=Math.max(z,detailZ());centerOnGps();render()}
+  else locateUser(true,true);
+};
+northBtn.onclick=()=>{setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
+
+// ---------- rendering ----------
+function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»'}
+function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
+function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
+function render(){
+  syncEngine();
+  drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
+// ---------- طبقات الخريطة وإعداداتها (تُحفظ في dalil_map_layers) ----------
+const LP_DEF={base:'barr',hs:true,hsOp:100,contour:true,wadi:true,dalil:true,ndvi:false,rain:false,clouds:false};
+let LP=(()=>{try{return Object.assign({},LP_DEF,JSON.parse(localStorage.getItem('dalil_v63_layers')||'{}'))}catch(e){return{...LP_DEF}}})();
+if(!['barr','topo','sat','osm'].includes(LP.base))LP.base='barr';
+if(LP.base==='osm')mapMode='online';
+function saveLP(){try{localStorage.setItem('dalil_v63_layers',JSON.stringify(LP))}catch(e){}}
+const FILLS={sand:.8,farm:.85,park:.8,urban:.9};
+function vis(id,on){if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility',on?'visible':'none')}
+function applyRegionPrefs(rid){
+ const osm=LP.base==='osm',sat=LP.base==='sat';
+ for(const t of TPL){const id=t.id+'@'+rid,tag=t.metadata?.v63tag||'';let on=!osm;
+  if(t.src==='hs')on=LP.hs&&!osm;else if(tag.includes('contours'))on=on&&LP.contour;
+  else if(tag.includes('network')&&String(t.metadata.v63value).startsWith('water'))on=on&&LP.wadi;
+  else if(tag.includes('display')||tag.includes('points'))on=on&&LP.dalil;
+  if(sat&&t.type==='fill')on=false;vis(id,on);
+  if(t.src==='hs'&&gl.getLayer(id))gl.setPaintProperty(id,'raster-opacity',LP.hsOp/100);
+ }
+}
+function applyPrefs(){
+  if(glReady){vis('osm',LP.base==='osm');vis('sat',LP.base==='sat');for(const id of activeRegions)applyRegionPrefs(id)}
+  localMode.classList.toggle('active',LP.base==='barr'||LP.base==='topo');onlineMode.classList.toggle('active',LP.base==='sat');
+  setText(attribution,(LP.base==='sat'?'Sentinel-2 cloudless 2016 © EOX (CC BY 4.0) · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · SRTM / Mapzen')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':''));
+  for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
+  $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpNdvi').checked=LP.ndvi;
+  if(glReady){vis('ndvi',LP.ndvi);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain))}
+  $('#lpClouds').checked=LP.clouds;
+  $('#lpRain').checked=LP.rain;const anim=LP.rain||LP.clouds;$('#rainBar').classList.toggle('show',!!anim);stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showFrame(playSet().frames.length-1)}
+}
+function setBase(b){
+  if((b==='sat'||b==='osm')&&!navigator.onLine){status.textContent='هذا النمط يحتاج اتصالًا بالإنترنت — البر وطبوغرافي يعملان بدونه';return}
+  LP.base=b;saveLP();mapMode=b==='osm'?'online':'local';
+  if(mapMode==='local'&&z>maxLocalZ){let s2=2**(maxLocalZ-z);cx*=s2;cy*=s2;z=maxLocalZ}
+  applyPrefs();render();
+  status.textContent={barr:'خريطة البر — تعمل بدون إنترنت في المناطق المحفوظة',topo:'طبوغرافي: خطوط الارتفاع والتضاريس أوضح — تعمل بدون إنترنت',sat:'صور فضائية (Sentinel-2 2016) — تحتاج اتصالًا بالإنترنت',osm:'خريطة OpenStreetMap — تتطلب اتصالًا بالإنترنت'}[b];
+}
+function setMapMode(mode){setBase(mode==='online'?'osm':'barr')}
+function useOnlineForDetail(){mapMode='online';localMode.classList.remove('active');onlineMode.classList.add('active');attribution.classList.add('show');status.textContent='انتقلنا إلى خريطة الإنترنت لعرض تفاصيل أدق'}
+localMode.onclick=()=>setBase(LP.base==='topo'?'topo':'barr');onlineMode.onclick=()=>setBase('sat');
+const layersPanel=$('#layersPanel');
+$('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()};
+$('#lpClose').onclick=()=>layersPanel.classList.remove('show');
+$('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
+for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpNdvi','ndvi'],['#lpRain','rain'],['#lpClouds','clouds']])$(id).onchange=e=>{LP[key]=e.target.checked;try{localStorage.setItem('dalil_v63_layers',JSON.stringify(LP))}catch(e){}applyPrefs();
+  if(key==='clouds'&&LP.clouds){status.textContent=navigator.onLine?'السحب الآن من القمر الأوروبي — اضغط ▶ لترى حركتها واتجاهها لآخر 3 ساعات. الأزرق الداكن سحب رعدية غالبًا':'طبقة السحب تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
+  if(key==='rain'&&LP.rain){status.textContent=navigator.onLine?'المطر من أقمار NASA لآخر الساعات — اضغط ▶ لترى اتجاه السحب الممطرة. صغّر الخريطة لترى المملكة':'طبقة المطر تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
+  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — صغّر الخريطة لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
+$('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
+$('#lp3d').onclick=()=>{
+  if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
+  const c=stageToLatLng(originX,originY),url='../map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
+  if(isEmbedded)window.parent.location.href=new URL(url,location.href).href;else location.href=url};googleMode.onclick=openGoogleMap;
+function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
+function drawDot(){
+  if(!gps){dot.style.display='none';accCircle.style.display='none';return}
+  let p=world(gps.lat,gps.lng),x=(p[0]+innerWidth/2-cx)+'px',y=(p[1]+innerHeight/2-cy)+'px';dot.style.display='block';dot.style.left=x;dot.style.top=y;
+  let r=Number.isFinite(gps.acc)?gps.acc/metersPerPixel(gps.lat):0;
+  if(r>=12&&r<3000){accCircle.style.display='block';accCircle.style.left=x;accCircle.style.top=y;accCircle.style.width=accCircle.style.height=(2*r)+'px'}else accCircle.style.display='none'}
+let savedMarks=[];
+function loadSavedMarks(){let out=[];try{let car=JSON.parse(localStorage.getItem('dalil_car'));if(car&&validLatLng(Number(car.lat),Number(car.lng)))out.push({lat:Number(car.lat),lng:Number(car.lng),name:'السيارة',car:true})}catch(e){}try{let places=JSON.parse(localStorage.getItem('dalil_places'));if(Array.isArray(places))places.forEach(p=>{if(p&&validLatLng(Number(p.lat),Number(p.lng)))out.push({lat:Number(p.lat),lng:Number(p.lng),name:String(p.name||'مكان'),icon:String(p.icon||'📍')})})}catch(e){}savedMarks=out}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+const CAR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15.5v-4l2-5A2 2 0 0 1 8.9 5h6.2A2 2 0 0 1 17 6.5l2 5v4"/><path d="M3.5 15.5h17v3h-17z"/></svg>';
+function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12;
+  for(const m of savedMarks){let p=world(m.lat,m.lng),x=p[0]+innerWidth/2-cx,y=p[1]+innerHeight/2-cy;m.sx=null;
+    if(Math.abs(x-innerWidth/2)>hw+60||Math.abs(y-innerHeight/2)>hh+60)continue;m.sx=x;m.sy=y;
+    html+=`<div class="mk${m.car?' car':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot">${m.car?CAR_SVG:escapeHtml(m.icon)}</span>${showNames?`<span class="mk-name">${escapeHtml(m.name)}</span>`:''}</div>`}
+  marksEl.innerHTML=html}
+function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
+function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
+function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
+  if(trackPoints.length){let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${line}" fill="none" stroke="#E0231B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6.5" fill="#1C1A17" stroke="#fff" stroke-width="2.2"/>`}
+  if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
+  trackOverlay.innerHTML=shapes}
+function detailZ(){return mapMode==='online'?16:14}
+function zoomTo(n){
+  let limit=mapMode==='online'?maxZ:maxLocalZ;n=Math.max(minZ,Math.min(limit,n));if(n===z)return;let s=2**(n-z);cx*=s;cy*=s;z=n;render()}
+function fitTrackClose(){
+  if(trackPoints.length<2)return;
+  let target=13,limit=mapMode==='online'?maxZ:maxLocalZ,minLat=Math.min(...trackPoints.map(p=>p.lat)),maxLat=Math.max(...trackPoints.map(p=>p.lat)),minLng=Math.min(...trackPoints.map(p=>p.lng)),maxLng=Math.max(...trackPoints.map(p=>p.lng));
+  for(let test=limit;test>=minZ;test--){let a=world(minLat,minLng,test),b=world(maxLat,maxLng,test);if(Math.abs(b[0]-a[0])<innerWidth*.72&&Math.abs(b[1]-a[1])<innerHeight*.72){target=test;break}}
+  z=Math.max(Math.min(11,limit),target);let midLat=(minLat+maxLat)/2,midLng=(minLng+maxLng)/2;[cx,cy]=world(midLat,midLng);embeddedCentered=true;
+}
+function clearArea(){
+  // المساحة الظاهرة فعلًا بين الأشرطة العلوية وبطاقة التوجيه
+  let top=0,bottom=innerHeight;
+  for(const el of document.querySelectorAll('.top,.map-modes')){const r=el.getBoundingClientRect();if(r.height&&getComputedStyle(el).display!=='none')top=Math.max(top,r.bottom)}
+  if(navCard.classList.contains('show')){const r=navCard.getBoundingClientRect();if(r.height)bottom=Math.min(bottom,r.top)}
+  top+=36;bottom-=36; // هامش لرأس الدبوس والسهم
+  if(bottom-top<120){top=innerHeight*.2;bottom=innerHeight*.7}
+  return{top,bottom,left:44,right:innerWidth-44};
+}
+// الخريطة تدور حول نقطة ثابتة في منتصف المساحة الظاهرة. عند التتبّع يوضع موقعك
+// على هذه النقطة، فيكفي عند الالتفات تغيير زاوية الدوران فقط دون إعادة رسم.
+function updateOrigin(){if(isRotated())return;const area=clearArea();originX=(area.left+area.right)/2;originY=view==='heading'?area.top+(area.bottom-area.top)*.66:(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
+function centerOnGps(){if(!gps)return;const[wx,wy]=world(gps.lat,gps.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
+function fitNavigation(){
+  if(!gps||!targetPoint)return;
+  const area=clearArea(),w=area.right-area.left,h=area.bottom-area.top;
+  let limit=mapMode==='online'?maxOnlineTileZ:maxLocalZ,target=minZ;
+  for(let test=limit;test>=minZ;test--){let a=world(gps.lat,gps.lng,test),b=world(targetPoint.lat,targetPoint.lng,test);if(Math.abs(b[0]-a[0])<=w&&Math.abs(b[1]-a[1])<=h){target=test;break}}
+  z=target;
+  const a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng);
+  // مركز المسرح بحيث يقع منتصف النقطتين في منتصف المساحة الظاهرة
+  cx=(a[0]+b[0])/2-((area.left+area.right)/2-innerWidth/2);
+  cy=(a[1]+b[1])/2-((area.top+area.bottom)/2-innerHeight/2);
+  embeddedCentered=true;
+}
+$('#plus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z+1)};$('#minus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z-1)};
+
+// ---------- GPS ----------
+function statusForPosition(){const acc=Number.isFinite(gps.acc)?' — دقة GPS '+iso('±'+Math.round(gps.acc))+' م':'';return navigationActive?'التوجيه على الخريطة نشط'+acc:iso(fmtCoords(gps.lat,gps.lng))+acc}
+function acceptPosition(p,center=true){
+  const c=p.coords;gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
+  if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){
+    gpsCourse=c.heading;gpsCourseAt=Date.now();
+    if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
+  }else if(!isDriving())courseOffset=null;
+  // عند بدء القيادة وأنت تتابع موقعك: الخريطة تدور تلقائيًا مع اتجاه السيارة.
+  if(view==='follow'&&headingPref!=='north'&&isDriving()){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
+  if(view==='fit'&&navigationActive)fitNavigation();
+  else if(view==='follow'||view==='heading')centerOnGps();
+  else if(center&&!navigationActive){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}
+  render();onHeadingChanged();updateNavigation();status.textContent=statusForPosition()}
+function geoError(e,showError){status.textContent=showError?'تعذّر تحديد الموقع: '+(e.code===1?'الإذن مرفوض — فعّله من إعدادات الجوال':'حاول في مكان مكشوف'):'اضغط زر الموقع لإظهار مكانك على الخريطة.'}
+function locateUser(showError=true,center=true){
+  if(!navigator.geolocation){if(showError)status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  if(showError)status.textContent='جارٍ تحديد الموقع…';
+  navigator.geolocation.getCurrentPosition(p=>acceptPosition(p,center),e=>geoError(e,showError),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
+}
+// مراقبة مستمرة بعد أول ضغطة على زر الموقع أو بدء التوجيه
+function startWatch(){if(geoWatch!==null||!navigator.geolocation)return;geoWatch=navigator.geolocation.watchPosition(p=>acceptPosition(p,false),e=>{if(navigationActive)status.textContent='التوجيه مستمر، لكن تعذّر تحديث GPS الآن'},{enableHighAccuracy:true,maximumAge:2000,timeout:20000})}
+
+// ---------- Google / compass hand-off ----------
+function openGoogleMap(){
+  if(!navigator.onLine){status.textContent='خرائط Google تحتاج اتصالًا بالإنترنت';return}
+  const point=targetPoint||gps;
+  const url=point?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(point.lat+','+point.lng):'https://www.google.com/maps';
+  if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url;
+}
+function openGoogle(){let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في خرائط Google';return}if(!navigator.onLine){status.textContent='خرائط Google تحتاج اتصالًا بالإنترنت';return}const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(point.lat+','+point.lng);if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url}
+$('#googleNav').onclick=openGoogle;
+startNav.onclick=async()=>{
+  if(!targetPoint)return;
+  if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  navigationActive=true;keepScreenOn();setRot(0);setView('fit');
+  startNav.style.display='none';compassNav.style.display='none';stopNav.style.display='block';
+  status.textContent='التوجيه على الخريطة نشط — جارٍ تشغيل الاتجاه وGPS';
+  const oriented=await ensureOrientation();
+  if(!oriented)status.textContent='التوجيه يعمل، لكن مستشعر اتجاه الجوال غير متاح؛ السهم حسب أعلى الخريطة';
+  startWatch();
+  if(gps){fitNavigation();updateNavigation();render()}
+};
+compassNav.onclick=()=>{if(!targetPoint)return;const label=navName.textContent||'نقطة محددة على الخريطة',url='../index.html?screen=compass&navLat='+encodeURIComponent(targetPoint.lat)+'&navLng='+encodeURIComponent(targetPoint.lng)+'&navLabel='+encodeURIComponent(label);if(isEmbedded)window.parent.location.href=new URL(url,location.href).href;else location.href=url};
+// إغلاق بطاقة الوجهة: يلغي التوجيه ويخفي الوجهة والبطاقة
+$('#navClose').onclick=()=>{if(navigationActive)stopNav.onclick();targetPoint=null;navCard.classList.remove('show');document.body.classList.remove('has-target');syncNavCardSpace();status.textContent='أُغلقت الوجهة';render()};
+stopNav.onclick=()=>{navigationActive=false;releaseScreen();if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
+
+// ---------- embedded in the app (track tab) ----------
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;
+  loadSavedMarks();
+  let pos=e.data.position,mode=e.data.mode||'view';
+  if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng)&&geoWatch===null)gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:null};
+  trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];
+  let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');
+  if(view==='follow'||view==='heading'){if(gps)centerOnGps()}
+  else if((mode==='record'||mode==='retrace')&&gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
+  else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}
+  else if(gps&&!embeddedCentered){z=detailZ();[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
+  lastTrackSignature=signature;render();updateNavigation()});
+
+// ---------- gestures ----------
+function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
+map.addEventListener('touchstart',e=>{if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];touchStart={x:t.clientX,y:t.clientY,time:performance.now()};touchMoved=false}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false;touchStart=null;touchMoved=true}},{passive:false});
+map.addEventListener('touchmove',e=>{e.preventDefault();
+  if(e.touches.length===1&&drag&&last){let x=e.touches[0].clientX,y=e.touches[0].clientY;
+    if(touchStart&&Math.hypot(x-touchStart.x,y-touchStart.y)>8){touchMoved=true;releaseView()}
+    if(touchMoved){const[dx,dy]=screenDeltaToStage(x-last[0],y-last[1]);cx-=dx;cy-=dy;scheduleRender()}
+    last=[x,y]}
+  else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
+map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
+map.addEventListener('click',e=>{if(!('ontouchstart'in window)){const[sx,sy]=screenToStage(e.clientX,e.clientY);selectMapPoint(sx,sy)}});
+window.addEventListener('resize',()=>{updateOrigin();if(view==='follow'||view==='heading')centerOnGps();render()});
+
+// ---------- keep controls above the navigation card ----------
+function syncNavCardSpace(){const r=navCard.getBoundingClientRect();const visible=navCard.classList.contains('show')&&r.height>0;document.body.style.setProperty('--nav-top',visible?Math.round(innerHeight-r.top)+'px':'0px');updateOrigin()}
+if('ResizeObserver'in window)new ResizeObserver(syncNavCardSpace).observe(navCard);
+window.addEventListener('resize',syncNavCardSpace);
+
+// ---------- محرّك الخريطة: MapLibre + خرائط المناطق (maps/*.pmtiles) ----------
+// الخريطة تُرسم داخل #layer في المسرح نفسه، فتدور وتتحرك مع العلامات والمسار كما كانت الصور.
+// كاميرا الصفحة (z, cx, cy بوحدات بلاط 256) هي المرجع، وMapLibre يتبعها (تكبيره = z − 1).
+const abs=p=>new URL(p,location.href).href;
+const activeV63=(()=>{try{const maps=JSON.parse(localStorage.getItem('dalil_user_maps')||'[]');return maps.find(m=>m.bundleVersion===63&&m.on!==false&&/^dalil-v63-bundle-[a-z0-9-]+$/.test(m.cacheName||''))||null;}catch(e){return null;}})();
+const OFFLINE_MAPS=activeV63?.cacheName||'dalil-v63-map-data';
+let REGIONS=[],glReady=false,regionTimer=0,layerBox='',outsideShown=false,unsavedShown=false;
+const savedRegions=new Set(),activeRegions=new Set();
+maplibregl.setWorkerUrl(abs('vendor/maplibre-gl-worker.mjs'));
+
+const pmProtocol=new pmtiles.Protocol();
+maplibregl.addProtocol('pmtiles',pmProtocol.tile);
+// طبقة الربيع: مؤشر الغطاء النباتي NDVI من NASA GIBS (مركّب كل 8 أيام، 250 م). نُبقي البكسلات الخضراء فقط
+// ونجعل الأرض الجرداء شفافة حتى تبقى خريطة البر ظاهرة. أسماء بديلة إن توقف أحد الأقمار.
+const NDVI_LAYERS=['MODIS_Terra_NDVI_8Day','MODIS_Aqua_NDVI_8Day','VIIRS_SNPP_NDVI_8Day','VIIRS_NOAA20_NDVI_8Day'];let ndviIdx=0,ndviEmpty=null;
+maplibregl.addProtocol('ndvi',async params=>{
+  const m=/^ndvi:\/\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),Z=+m[1],X=+m[2],Y=+m[3];
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d',{willReadFrequently:true});
+  for(let i=ndviIdx;i<NDVI_LAYERS.length;i++){
+    try{
+      const r=await fetch('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/'+NDVI_LAYERS[i]+'/default/default/GoogleMapsCompatible_Level9/'+Z+'/'+Y+'/'+X+'.png');
+      if(r.status===404||r.status===400){if(i===ndviIdx&&i<NDVI_LAYERS.length-1)ndviIdx=i+1;continue}
+      if(!r.ok)break;
+      const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
+      const im=ctx.getImageData(0,0,256,256),d=im.data;
+      for(let k=0;k<d.length;k+=4){const g=d[k+1]-Math.max(d[k],d[k+2]);d[k+3]=g>6?Math.min(255,d[k+3]*Math.min(1,(g+20)/70)):0}
+      ctx.putImageData(im,0,0);break;
+    }catch(e){break}
+  }
+  const bl=await new Promise(res=>cv.toBlob(res,'image/png'));return{data:await bl.arrayBuffer()};
+});
+// طبقة السحب الآن: صورة الأشعة تحت الحمراء من EUMETSAT (WMS). الأرض الدافئة تصير شفافة، وتبقى السحب الباردة
+// بيضاء/زرقاء حسب برودتها (الأبرد = أعلى = رعدية غالبًا). أسماء بديلة: MTG ثم Meteosat المحيط الهندي ثم 0°.
+const CLOUD_LAYERS=['mtg_fd:ir105_hrfi','msg_iodc:ir108','msg_fes:ir108'];let cloudIdx=0;
+// تشخيص يظهر في شريط التحريك: هل وصلت الصور؟ وهل فيها سحب؟ وإن فشلت فلماذا؟
+const cloudDiag={ok:0,px:0,maxV:0,err:''};
+maplibregl.addProtocol('clouds',async params=>{
+  const m=/^clouds:\/\/([^/]*)\/([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)/.exec(params.url),tm=m?decodeURIComponent(m[1]):'';
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d',{willReadFrequently:true});
+  if(m)for(let i=cloudIdx;i<CLOUD_LAYERS.length;i++){
+    try{
+      const r=await fetch('https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&crs=EPSG:3857&width=256&height=256&layers='+CLOUD_LAYERS[i]+'&bbox='+m[2]+','+m[3]+','+m[4]+','+m[5]+(/^\d{4}-/.test(tm)?'&time='+tm:''));
+      if(!r.ok||!/image/.test(r.headers.get('content-type')||'')){cloudDiag.err='رد الخادم '+r.status+' للطبقة '+CLOUD_LAYERS[i];if(i===cloudIdx&&i<CLOUD_LAYERS.length-1)cloudIdx=i+1;continue}
+      const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
+      const im=ctx.getImageData(0,0,256,256),d=im.data;
+      cloudDiag.ok++;cloudDiag.err='';
+      for(let k=0;k<d.length;k+=4){const v=(d[k]+d[k+1]+d[k+2])/3;   // ساطع = بارد = سحاب
+        if(d[k+3]>0&&v>cloudDiag.maxV)cloudDiag.maxV=Math.round(v);
+        if(v<150){d[k+3]=0;continue}
+        cloudDiag.px++;
+        const t=Math.min(1,(v-150)/90);d[k]=215-t*150;d[k+1]=222-t*100;d[k+2]=235-t*5;d[k+3]=Math.round(80+t*160)}
+      ctx.putImageData(im,0,0);break;
+    }catch(e){cloudDiag.err=navigator.onLine?'الخادم لا يسمح بالجلب من التطبيق (CORS) أو محجوب':'لا يوجد اتصال';break}
+  }
+  const bl=await new Promise(res=>cv.toBlob(res,'image/png'));return{data:await bl.arrayBuffer()};
+});
+function cloudDiagText(){if(cloudDiag.ok)return cloudDiag.px?'':' · سماء صافية حاليًا';return cloudDiag.err?' · تعذّر: '+cloudDiag.err:' · جارٍ التحميل…'}
+setInterval(()=>{if(LP.clouds&&!playTimer&&glReady)showFrame(playSet().frames.length-1)},3000);
+// لقطات السحب للتحريك: كل 30 دقيقة لآخر 3 ساعات (المسح كل 10–15 دقيقة ويتأخر ~30 دقيقة) + «الآن»
+const cloudFrameTimes=()=>{const out=[],b=Math.floor((Date.now()-40*60e3)/1800e3)*1800e3;for(let k=5;k>=0;k--)out.push(new Date(b-k*1800e3).toISOString().slice(0,16)+':00Z');out.push('latest:'+Math.floor(Date.now()/600e3));return out};
+let CLOUD_FRAMES=cloudFrameTimes();
+// تحديث تلقائي كل 10 دقائق ما دامت الطبقة ظاهرة (والتحريك متوقف)
+setInterval(()=>{if(!LP.clouds||!glReady||playTimer)return;const nf=cloudFrameTimes();if(nf[nf.length-1]===CLOUD_FRAMES[CLOUD_FRAMES.length-1])return;CLOUD_FRAMES=nf;CLOUD_FRAMES.forEach((t,k)=>{const sc=gl.getSource('clouds-'+k);if(sc)sc.setTiles(['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'])})},60000);
+// طبقة المطر: معدل الهطول من IMERG (NASA GIBS، كل 30 دقيقة، دقة ~10 كم). الصور شفافة حيث لا مطر.
+// ست لقطات: خمس ساعات معروفة الوقت + «الأحدث» (default)، للتحريك ومعرفة اتجاه السحب الممطرة.
+const RAIN_TMS=['GoogleMapsCompatible_Level6','GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level8','GoogleMapsCompatible_Level9'];let rainTms=0;
+maplibregl.addProtocol('rain',async params=>{
+  const m=/^rain:\/\/([^/]+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),t=decodeURIComponent(m[1]),Z=+m[2],X=+m[3],Y=+m[4];
+  for(let i=rainTms;i<RAIN_TMS.length;i++){
+    try{
+      const r=await fetch('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/IMERG_Precipitation_Rate/default/'+t+'/'+RAIN_TMS[i]+'/'+Z+'/'+Y+'/'+X+'.png');
+      if(r.status===400){if(i===rainTms&&i<RAIN_TMS.length-1)rainTms=i+1;continue}
+      if(r.ok)return{data:await r.arrayBuffer()};
+      break;
+    }catch(e){break}
+  }
+  if(!ndviEmpty){const cv=document.createElement('canvas');cv.width=cv.height=1;ndviEmpty=await(await new Promise(res=>cv.toBlob(res,'image/png'))).arrayBuffer()}
+  return{data:ndviEmpty.slice(0)};
+});
+const RAIN_FRAMES=(()=>{const out=[],h=Math.floor(Date.now()/3600e3)*3600e3;for(let k=9;k>=5;k--)out.push(new Date(h-k*3600e3).toISOString().slice(0,19)+'Z');out.push('default');return out})();
+let playTimer=0;
+const frameLabel=t=>t==='default'||String(t).startsWith('latest')?'الأحدث':new Date(t).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
+// المشغّل يحرّك السحب إن كانت ظاهرة (الأقرب للحظي)، وإلا المطر. الطبقة الأخرى تبقى على أحدث لقطة.
+const playSet=()=>LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
+function showSetFrame(set,i){set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
+function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
+  if(set.id==='clouds')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
+  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():''):' ('+(i+1)+'/'+n+')'))}
+function stopRain(){clearInterval(playTimer);playTimer=0;setText($('#rainPlay'),'▶')}
+$('#rainPlay').onclick=()=>{if(playTimer){stopRain();showFrame(playSet().frames.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;showFrame(0);playTimer=setInterval(()=>{const n=playSet().frames.length;i=(i+1)%n;showFrame(i)},1100)};
+// خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
+const umArch={};
+maplibregl.addProtocol('umshift',async params=>{
+  const m=/^umshift:\/\/([^/]+)\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),id=m[1],Z=+m[2],X=+m[3],Y=+m[4],arc=umArch[id],um=readUserMaps().find(u=>u.id===id);
+  const cv=document.createElement('canvas');cv.width=cv.height=256;const ctx=cv.getContext('2d');
+  if(arc&&um){
+    const n=2**Z,lat=Math.atan(Math.sinh(Math.PI*(1-2*(Y+.5)/n)))*180/Math.PI,mpp=40075016.686*Math.cos(lat*Math.PI/180)/(n*256);
+    const X0=X*256-(um.dx||0)/mpp,Y0=Y*256+(um.dy||0)/mpp;
+    for(let ty=Math.floor(Y0/256);ty<=Math.floor((Y0+255)/256);ty++)for(let tx=Math.floor(X0/256);tx<=Math.floor((X0+255)/256);tx++){
+      if(ty<0||ty>=n)continue;const t=await arc.getZxy(Z,((tx%n)+n)%n,ty);if(!t||!t.data)continue;
+      try{const bm=await createImageBitmap(new Blob([t.data]));ctx.drawImage(bm,tx*256-X0,ty*256-Y0,256,256);bm.close&&bm.close()}catch(e){}
+    }
+  }
+  const bl=await new Promise(r=>cv.toBlob(r,'image/png'));return{data:await bl.arrayBuffer()};
+});
+const TF=['AL Mohanad Guide'];
+const kindColor=['match',['get','kind'],'جبل','#7A5230','مورد ماء','#1F6FA8','تجمع مياه','#3E86B4','نفود','#C98A2E','آثار','#7A4E9A','معلم رئيسي','#3B342B','سبخة','#B3261E','حرة','#B3261E','دحل','#B3261E','كهف','#B3261E','موقع خطر','#B3261E','#6F665A'];
+const roadW=(t,def)=>['interpolate',['exponential',1.6],['zoom'],6,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[0]]),def[0]],15,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[1]]),def[1]]];
+const ROAD_RANK=['match',['get','class'],'motorway',7,'trunk',6,'primary',5,'secondary',4,'tertiary',3,'minor',2,1],ROADS=['literal',['motorway','trunk','primary','secondary','tertiary','minor']];
+const TPL=[{id:'hillshade',src:'hs',type:'raster',paint:{'raster-opacity':1,'raster-fade-duration':0}},...V63_LAYERS];
+const gl=new maplibregl.Map({container:layer,interactive:false,attributionControl:false,fadeDuration:0,minZoom:2,maxZoom:19,center:[45,24],zoom:6,
+  style:{version:8,'font-faces':{'AL Mohanad Guide':[{url:abs('fonts/ALMohanadGuide.ttf')}]},
+    sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19},
+      sat:{type:'raster',tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],tileSize:256,maxzoom:15}},
+    layers:[{id:'bg',type:'background',paint:{'background-color':'#F4F0E6'}},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'},paint:{'raster-fade-duration':0}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});
+const regionUrls=r=>[abs('maps/'+r.id+'.pmtiles?v='+r.v),abs('maps/'+r.id+'-hs.pmtiles?v='+r.v)];
+// المناطق المحفوظة (من صفحة «خرائط المناطق») تُقرأ من الجهاز مباشرة بدل الشبكة
+async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS),[u1,u2]=regionUrls(r),a=await c.match(u1),b=await c.match(u2);if(!a||!b)return;
+  const us=abs('maps/abumalik-v63-signature.pmtiles?v=63'),sg=await c.match(us);if(!sg)return;for(const[u,res]of[[u1,a],[u2,b],[us,sg]])pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],u))));savedRegions.add(r.id);return true;}catch(e){return false;}}
+function addRegion(r){const[u1,u2]=regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});gl.addSource('signature-'+r.id,{type:'vector',url:'pmtiles://'+abs('maps/abumalik-v63-signature.pmtiles?v=63')});
+  for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id);applyRegionPrefs(r.id)}
+function removeRegion(id){for(const t of TPL)if(gl.getLayer(t.id+'@'+id))gl.removeLayer(t.id+'@'+id);for(const p of['vt-','hs-','signature-'])if(gl.getSource(p+id))gl.removeSource(p+id);activeRegions.delete(id)}
+// المنطقة من شبكة المناطق (data/region-grid.json) لا من الصناديق المتداخلة
+let GRID=null;
+const regionAt=(lng,lat)=>{if(!GRID)return REGIONS.find(r=>lng>=r.bbox[0]&&lng<=r.bbox[2]&&lat>=r.bbox[1]&&lat<=r.bbox[3]);const i=Math.floor((lat-GRID.lat0)/GRID.r),j=Math.floor((lng-GRID.lng0)/GRID.r),c=i>=0&&j>=0&&i<GRID.rows&&j<GRID.cols?GRID.g.charCodeAt(i*GRID.cols+j)-97:-1,n=c>=0&&c<GRID.regions.length?GRID.regions[c]:null;return n?REGIONS.find(r=>r.name===n):undefined};
+function syncRegions(){
+  if(!glReady||!REGIONS.length)return;
+  const b=gl.getBounds(),v=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
+  const want=new Set(REGIONS.filter(r=>r.bbox[0]<v[2]&&r.bbox[2]>v[0]&&r.bbox[1]<v[3]&&r.bbox[3]>v[1]).map(r=>r.id));
+  for(const id of[...activeRegions])if(!want.has(id))removeRegion(id);
+  for(const r of REGIONS)if(want.has(r.id)&&!activeRegions.has(r.id))addRegion(r);
+  if(mapMode!=='local')return;
+  const c=stageToLatLng(innerWidth/2,innerHeight/2);
+  if(!inOfflineCoverage(c.lat,c.lng)){if(!outsideShown){outsideShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر — استخدم خريطة الإنترنت عند توفر الشبكة'}}
+  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;showSaveCard(r)}}
+}
+// تنبيه واضح عندما تكون خريطة منطقة المستخدم غير محفوظة: بدونها لا تظهر الخريطة في البر بلا شبكة.
+// «لاحقًا» يؤجّل التنبيه لهذه المنطقة يومًا واحدًا.
+const SNOOZE_KEY='dalil_unsaved_snooze';
+function readSnooze(){try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'{}')||{}}catch(e){return{}}}
+function showSaveCard(r){
+  if((readSnooze()[r.id]||0)>Date.now())return;
+  const online=navigator.onLine!==false;
+  $('#scTitle').textContent='خريطة منطقة '+r.name+' غير محفوظة في جوالك';
+  $('#scText').textContent=online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
+  $('#scSave').hidden=!online;
+  $('#saveCard').hidden=false;
+  $('#scSave').onclick=()=>{const url=abs('../index.html?screen=places');if(isEmbedded)window.parent.location.href=new URL(url,location.href).href;else location.href=url};
+  $('#scLater').onclick=()=>{const o=readSnooze();o[r.id]=Date.now()+86400000;try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(o))}catch(e){}$('#saveCard').hidden=true};
+}
+function syncEngine(){
+  // عند الدوران تُرسم الخريطة في مربع يغطي الشاشة من كل الزوايا حول نقطة الدوران
+  let L=0,T=0,W=innerWidth,H=innerHeight;
+  if(isRotated()||view==='heading'){const r=Math.ceil(Math.hypot(Math.max(originX,innerWidth-originX),Math.max(originY,innerHeight-originY)))+4;L=originX-r;T=originY-r;W=H=2*r}
+  const box=L+','+T+','+W+','+H;
+  if(box!==layerBox){layerBox=box;Object.assign(layer.style,{left:L+'px',top:T+'px',width:W+'px',height:H+'px'});gl.resize()}
+  const c=stageToLatLng(L+W/2,T+H/2);
+  gl.jumpTo({center:[c.lng,c.lat],zoom:z-1});
+  clearTimeout(regionTimer);regionTimer=setTimeout(syncRegions,200);
+}
+// ---------- خرائط المستخدم المستوردة (PMTiles محفوظة في جواله: dalil-user-maps-v1 + dalil_user_maps) ----------
+const readUserMaps=()=>{try{const v=JSON.parse(localStorage.getItem('dalil_user_maps')||'[]');return Array.isArray(v)?v:[]}catch(e){return[]}};
+let userMaps=[];
+async function addUserMaps(){
+  const all=readUserMaps().filter(m=>m.bundleVersion!==63);userMaps=[];
+  let c;try{c=await caches.open('dalil-user-maps-v1')}catch(e){return}
+  for(const m of all){
+    try{
+      const res=await c.match('user-maps/'+m.id);if(!res)continue;   // غير موجودة في هذا الجوال (بعد استرجاع نسخة احتياطية)
+      userMaps.push(m);
+      const key='usermap-'+m.id,arc=new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],key)));pmProtocol.add(arc);umArch[m.id]=arc;
+      const src='um-'+m.id,vis=m.on===false?'none':'visible';
+      if(m.type==='raster'){gl.addSource(src,umSourceDef(m));gl.addLayer({id:src+':r',type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':m.op??1}},m.overlay?'osm':'slot:hillshade')}
+      else{
+        gl.addSource(src,{type:'vector',url:'pmtiles://'+key});
+        for(const sl of(m.layers&&m.layers.length?m.layers:[])){
+          const base={source:src,'source-layer':sl,layout:{visibility:vis}};
+          gl.addLayer({...base,id:src+':'+sl+':f',type:'fill',filter:['==',['geometry-type'],'Polygon'],paint:{'fill-color':'#7A3FA0','fill-opacity':.18}},'osm');
+          gl.addLayer({...base,id:src+':'+sl+':l',type:'line',filter:['in',['geometry-type'],['literal',['LineString','Polygon']]],paint:{'line-color':'#7A3FA0','line-width':1.6}},'osm');
+          gl.addLayer({...base,id:src+':'+sl+':c',type:'circle',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':'#7A3FA0','circle-radius':4,'circle-stroke-color':'#fff','circle-stroke-width':1.2}},'osm');
+          gl.addLayer({...base,id:src+':'+sl+':t',type:'symbol',minzoom:11,filter:['has','name'],layout:{visibility:vis,'text-field':['get','name'],'text-font':TF,'text-size':11,'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':'#5B2C7A','text-halo-color':'#fff','text-halo-width':1.4}},'osm');
+        }
+      }
+    }catch(e){}
+  }
+  renderUserMapsPanel();
+}
+function umSourceDef(m){return m.dx||m.dy?{type:'raster',tiles:['umshift://'+m.id+'/{z}/{x}/{y}'],tileSize:256,minzoom:m.minzoom||0,maxzoom:m.maxzoom||18,bounds:m.bounds}:{type:'raster',url:'pmtiles://usermap-'+m.id,tileSize:256}}
+// إعادة بناء مصدر خريطة صور واحدة بعد تغيير إزاحتها
+function rebuildUserRaster(m){const src='um-'+m.id,lid=src+':r';if(!gl.getLayer(lid))return;const before=m.overlay?'osm':'slot:hillshade',vis=gl.getLayoutProperty(lid,'visibility'),op=gl.getPaintProperty(lid,'raster-opacity');
+  gl.removeLayer(lid);gl.removeSource(src);gl.addSource(src,umSourceDef(m));gl.addLayer({id:lid,type:'raster',source:src,layout:{visibility:vis},paint:{'raster-fade-duration':0,'raster-opacity':op??1}},before)}
+function setUserMapVisible(id,on){for(const l of gl.getStyle().layers)if(l.id.startsWith('um-'+id+':'))gl.setLayoutProperty(l.id,'visibility',on?'visible':'none')}
+function renderUserMapsPanel(){
+  const el=$('#lpUser');if(!el)return;
+  el.innerHTML=userMaps.length?'<div class="lp-sec">خرائطي المستوردة</div>'+userMaps.map(m=>`<div class="lp-row"><span>${escapeHtml(m.name)}</span><span class="um-act"><button type="button" class="um-go" data-umgo="${escapeHtml(m.id)}">اذهب إليها</button><input type="checkbox" data-um="${escapeHtml(m.id)}"${m.on===false?'':' checked'} aria-label="إظهار ${escapeHtml(m.name)}"></span></div>`+(m.type==='raster'?`<label class="lp-row um-op"><span>الشفافية</span><input type="range" min="0" max="1" step="0.05" value="${m.op??1}" data-umop="${escapeHtml(m.id)}" aria-label="شفافية ${escapeHtml(m.name)}"></label><div class="lp-row um-op um-shift"><span>ضبط الموضع <small data-umoff="${escapeHtml(m.id)}">${umOffText(m)}</small></span><span class="um-arrows"><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="w" aria-label="غربًا">◀</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="n" aria-label="شمالًا">▲</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="s" aria-label="جنوبًا">▼</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="e" aria-label="شرقًا">▶</button><button type="button" data-umsh="${escapeHtml(m.id)}" data-d="0" aria-label="إعادة الموضع">↺</button></span></div>`:'')).join(''):'';
+}
+function umOffText(m){const a=[];if(m.dx)a.push((m.dx>0?'شرق ':'غرب ')+Math.abs(Math.round(m.dx))+' م');if(m.dy)a.push((m.dy>0?'شمال ':'جنوب ')+Math.abs(Math.round(m.dy))+' م');return a.length?'· '+a.join(' · '):''}
+// الانتقال إلى مكان الخريطة المستوردة بتكبير تظهر فيه بلاطاتها
+function goToUserMap(m){
+  const b=m.bounds;if(!b||!b.every(Number.isFinite))return;
+  const lat=(b[1]+b[3])/2,lng=(b[0]+b[2])/2,fit=Math.floor(Math.log2(Math.min(innerWidth*360/(Math.max(1e-6,b[2]-b[0])*S),innerHeight*360/(Math.max(1e-6,b[3]-b[1])*S*1.3))));
+  z=Math.max(3,Math.min(19,Math.max((m.minzoom||0)+1,Math.min((m.maxzoom||18)+1,fit))));
+  setView('free');const[wx,wy]=world(lat,lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;
+  layersPanel.classList.remove('show');render();
+}
+$('#lpUser').addEventListener('input',e=>{const r=e.target.closest('[data-umop]');if(!r)return;const v=Number(r.value),id=r.dataset.umop;
+  if(gl.getLayer('um-'+id+':r'))gl.setPaintProperty('um-'+id+':r','raster-opacity',v);
+  clearTimeout(r._t);r._t=setTimeout(()=>{const list=readUserMaps(),m=list.find(x=>x.id===id);if(!m)return;m.op=v;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=userMaps.map(x=>x.id===id?{...x,op:v}:x)},300)});
+$('#lpUser').addEventListener('click',e=>{const sb=e.target.closest('[data-umsh]');if(!sb)return;e.preventDefault();
+  const list=readUserMaps(),m=list.find(x=>x.id===sb.dataset.umsh);if(!m)return;
+  const c=stageToLatLng(innerWidth/2,innerHeight/2),step=Math.max(2,Math.round(metersPerPixel(c.lat)*4)),d=sb.dataset.d;   // 4 بكسل على الشاشة في كل ضغطة
+  if(d==='0'){m.dx=0;m.dy=0}else{m.dx=(m.dx||0)+(d==='e'?step:d==='w'?-step:0);m.dy=(m.dy||0)+(d==='n'?step:d==='s'?-step:0)}
+  try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}
+  userMaps=userMaps.map(x=>x.id===m.id?{...x,dx:m.dx,dy:m.dy}:x);const o=$('[data-umoff="'+CSS.escape(m.id)+'"]');if(o)o.textContent=umOffText(m);
+  clearTimeout(sb._t);sb._t=setTimeout(()=>rebuildUserRaster(m),250)});
+$('#lpUser').addEventListener('click',e=>{const g=e.target.closest('[data-umgo]');if(!g)return;const m=readUserMaps().find(x=>x.id===g.dataset.umgo);if(!m)return;
+  if(m.on===false){const list=readUserMaps(),mm=list.find(x=>x.id===m.id);mm.on=true;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,true);renderUserMapsPanel()}
+  goToUserMap(m)});
+// خريطة استوردها المستخدم والخريطة مفتوحة (داخل التطبيق): تُضاف فورًا دون إعادة فتح
+function removeUserMaps(){const st=gl.getStyle();for(const l of st.layers)if(l.id.startsWith('um-'))gl.removeLayer(l.id);for(const k of Object.keys(st.sources))if(k.startsWith('um-'))gl.removeSource(k)}
+window.addEventListener('storage',e=>{if(e.key==='dalil_v63_layers'){try{LP=Object.assign({},LP_DEF,JSON.parse(e.newValue||'{}'))}catch(err){}applyPrefs();if(LP.ndvi&&z>9){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=8;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}});
+window.addEventListener('storage',e=>{if(e.key==='dalil_user_maps'&&glReady){try{removeUserMaps()}catch(err){}addUserMaps()}});
+$('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]');if(!cb)return;const list=readUserMaps(),m=list.find(x=>x.id===cb.dataset.um);if(!m)return;m.on=cb.checked;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,cb.checked)});
+gl.on('load',async()=>{
+  try{REGIONS=(await(await fetch('data/maps-v63.json?v=63')).json()).regions||[]}catch(e){REGIONS=[]}
+  const attached=await Promise.all(REGIONS.map(attachSaved));if(attached.some(ok=>!ok)){status.textContent='أعد استيراد ملف خريطة v63 من تبويب الأماكن';return;}
+for(const name of ["man_made_water_well", "natural_cave_entrance", "natural_spring", "natural_volcano_map"]){try{const result=await gl.loadImage(abs('icons/'+name+'.png'));gl.addImage(name,result.data);}catch(error){console.warn('Map icon unavailable',name,error);}}
+  glReady=true;
+  gl.addSource('ndvi',{type:'raster',tiles:['ndvi://{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
+  CLOUD_FRAMES.forEach((t,k)=>{gl.addSource('clouds-'+k,{type:'raster',tiles:['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'],tileSize:256,minzoom:3,maxzoom:8});
+    gl.addLayer({id:'clouds-'+k,type:'raster',source:'clouds-'+k,layout:{visibility:LP.clouds?'visible':'none'},paint:{'raster-opacity':k===CLOUD_FRAMES.length-1?.85:0,'raster-fade-duration':0}},'osm')});
+  RAIN_FRAMES.forEach((t,k)=>{gl.addSource('rain-'+k,{type:'raster',tiles:['rain://'+encodeURIComponent(t)+'/{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:6});
+    gl.addLayer({id:'rain-'+k,type:'raster',source:'rain-'+k,layout:{visibility:'none'},paint:{'raster-opacity':k===RAIN_FRAMES.length-1?.8:0,'raster-fade-duration':0,'raster-resampling':'linear'}},'osm')});
+  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.6,11,.45,13,.25,15,.12],'raster-fade-duration':0}},'osm');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
+  applyPrefs();
+  syncRegions();
+  addUserMaps();
+});
+
+let v63Profiles={};let v63Profile='general';try{v63Profile=localStorage.getItem('dalil_v63_profile')||'general'}catch(e){}
+const profileSelect=document.querySelector('#v63Profile');if(profileSelect)profileSelect.value=v63Profile;
+function applyV63Profile(key){if(!v63Profiles[key])return;v63Profile=key;try{localStorage.setItem('dalil_v63_profile',key)}catch(e){}LP={...LP_DEF};try{localStorage.setItem('dalil_v63_layers',JSON.stringify(LP))}catch(e){}applyPrefs();if(isEmbedded)parent.postMessage({type:'DALIL_V63_PROFILE',key,settings:v63Profiles[key]},location.origin);}
+fetch('profiles-v63.json').then(r=>r.json()).then(p=>{v63Profiles=p;if(profileSelect)profileSelect.onchange=()=>applyV63Profile(profileSelect.value)}).catch(()=>{});
+
+window.addEventListener('storage',e=>{if(e.key==='dalil_user_maps'){const next=readUserMaps().find(m=>m.bundleVersion===63&&m.on!==false);if(next?.cacheName!==activeV63?.cacheName)location.replace('../map.html'+location.search);}});
+// ---------- start ----------
+const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
+const queryZ=Number(query.get('z'));
+if(query.get('view')==='spring'&&validLatLng(queryLat,queryLng)){
+  // من قسم «الربيع»: عرض المكان مع طبقة الاخضرار، دون وجهة
+  z=queryZ>=3&&queryZ<=19?queryZ:9;[cx,cy]=world(queryLat,queryLng);embeddedCentered=true;status.textContent='الربيع حول '+(query.get('label')||'المكان')+' — الأخضر حيث يوجد نبات';
+}else if(validLatLng(queryLat,queryLng)){
+  targetPoint={lat:queryLat,lng:queryLng};
+  navName.textContent=query.get('label')||'الموقع المحفوظ';updateNavigation();
+  if(inOfflineCoverage(queryLat,queryLng)){z=14;[cx,cy]=world(queryLat,queryLng);status.textContent=(query.get('label')||'الموقع المحفوظ')+' — '+iso(fmtCoords(queryLat,queryLng));embeddedCentered=true}
+  else status.textContent=navigator.onLine?'الموقع خارج نطاق خريطة البر المحفوظة — اختر «خريطة الإنترنت» لعرضه.':'الموقع خارج نطاق خريطة البر المحفوظة.';
+}else if(query.has('lat')||query.has('lng'))status.textContent='إحداثية الموقع المحفوظ غير صالحة — ارجع إلى دليل واحفظ الموقع من جديد.';
+loadSavedMarks();
+window.addEventListener('storage',()=>{loadSavedMarks();render()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){loadSavedMarks();render()}});
+updateOrigin();updateGpsBtn();
+// بدون نافذة إذن: يعمل مباشرة في أندرويد، وفي iOS إن سبق منح الإذن.
+if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
+render();
+locateUser(false,!targetPoint&&query.get('view')!=='spring');
+
+</script></body></html>

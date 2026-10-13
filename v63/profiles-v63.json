@@ -1,0 +1,26 @@
+{
+  "general": {
+    "name": "أبو مالك عام",
+    "font": "AL Mohanad Guide",
+    "textScale": 1.25,
+    "relief": true,
+    "dayMode": true,
+    "coordinates": "DDM",
+    "speedUnit": "km/h",
+    "voiceMuted": true,
+    "recordingAutoStart": false,
+    "recordingIntervalMs": 3000
+  },
+  "private": {
+    "name": "أبو مالك خاص",
+    "font": "AL Mohanad Guide",
+    "textScale": 1.25,
+    "relief": true,
+    "dayMode": true,
+    "coordinates": "DDM",
+    "speedUnit": "km/h",
+    "voiceMuted": false,
+    "recordingAutoStart": false,
+    "recordingIntervalMs": 3000
+  }
+}

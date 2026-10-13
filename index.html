@@ -1095,7 +1095,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">خرائط البر</div>
       <div class="banner">
-        يتضمن التطبيق أكثر من 40 ألف موقع بري في 13 منطقة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
+        يتضمن التطبيق أكثر من 40 ألف موقع بري في 13 منطقة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (حزمة دليل DLMap · PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). خريطة أبو مالك v63 تُستورد باختيار ملف DLMap واحد. اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text); white-space:pre-line;"></div>
         <div style="margin-top:8px; font-weight:700;">مصدر المواقع المدمجة</div>
         <div class="btn-row places-src" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="osm">المصادر المفتوحة (OSM + GeoNames)</button><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button></div>
@@ -3107,6 +3107,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const USER_MAPS_CACHE = 'dalil-user-maps-v1';
   const readUserMaps = ()=>{ try{ const v = JSON.parse(localStorage.getItem('dalil_user_maps') || '[]'); return Array.isArray(v) ? v : []; }catch(e){ return []; } };
   const writeUserMaps = list=>{ try{ localStorage.setItem('dalil_user_maps', JSON.stringify(list)); }catch(e){} };
+  let v63BundlePromise=null;
+  function loadV63Bundle(){return v63BundlePromise||(v63BundlePromise=new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='v63/import-bundle.js?v=1';script.onload=()=>resolve(window.DalilV63Bundle);script.onerror=()=>{v63BundlePromise=null;reject(new Error('تعذر تحميل قارئ حزمة الخريطة'));};document.head.appendChild(script);}));}
   const fileBase = name=>String(name || 'ملف').replace(/\.(kml|kmz|gpx|geojson|json|csv|txt|osm|pmtiles|plt|wpt)$/i, '').trim() || 'ملف';
   function importTrack(name, pts){
     pts = pts.filter(p=>validLatLng(p.lat, p.lng));
@@ -3240,8 +3242,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const mb = b=>Math.max(1, Math.round(b / 1048576)).toLocaleString('ar-SA-u-nu-latn') + ' MB';
     // بعد استرجاع نسخة احتياطية على جوال آخر تبقى أسماء الخرائط بلا ملفاتها (الملفات لا تدخل النسخة لكبرها)
     const missing = new Set();
-    try{ const c = await caches.open(USER_MAPS_CACHE); for(const m of list) if(!(await c.match('user-maps/' + m.id))) missing.add(m.id); }catch(e){}
-    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${missing.has(m.id) ? '<span style="color:#B3261E">غير موجودة في هذا الجوال — أعد استيراد الملف</span>' : (m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور') + ' · ' + mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button></div>`).join('') : '';
+    try{ const c = await caches.open(USER_MAPS_CACHE); for(const m of list){const present=m.bundleVersion===63?await(await loadV63Bundle()).isInstalled(m):!!(await c.match('user-maps/'+m.id));if(!present)missing.add(m.id);} }catch(e){}
+    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${missing.has(m.id) ? '<span style="color:#B3261E">غير موجودة في هذا الجوال — أعد استيراد الملف</span>' : (m.bundleVersion===63?'خريطة متكاملة':m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور') + ' · ' + mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button></div>`).join('') : '';
     renderStorage(missing);
   }
   // المساحة: خرائط المناطق المحفوظة + الخرائط المستوردة + ما يتيحه الجوال
@@ -3265,7 +3267,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const b = e.target.closest('[data-um-del]'); if(!b) return;
     const id = b.dataset.umDel, list = readUserMaps(), m = list.find(x=>x.id === id);
     if(!m || !confirm('حذف الخريطة «' + m.name + '» من جوالك؟')) return;
-    try{ await (await caches.open(USER_MAPS_CACHE)).delete('user-maps/' + id); }catch(err){}
+    try{if(m.bundleVersion===63)await(await loadV63Bundle()).remove(m);else await(await caches.open(USER_MAPS_CACHE)).delete('user-maps/'+id);}catch(err){toast('تعذر حذف ملف الخريطة');return;}
     writeUserMaps(list.filter(x=>x.id !== id)); renderUserMaps(); toast('حُذفت الخريطة');
   });
   renderUserMaps();
@@ -3294,6 +3296,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const name = file.name.toLowerCase(), base = fileBase(file.name);
       if(used.has(file)) continue;
       try{
+        if(/\.(dlmap|zip)$/.test(name)){
+          try{const bundle=await(await loadV63Bundle()).importFile(file,progress);if(bundle){maps++;continue;}if(name.endsWith('.dlmap'))throw Object.assign(new Error('الملف ليس حزمة خريطة دليل'),{userMessage:'الملف ليس حزمة خريطة دليل'});}
+          catch(error){if(name.endsWith('.dlmap')||error.v63Bundle)throw error;}
+        }
         if(/\.osm\.pbf$|\.pbf$/.test(name)){ notes.push('«' + file.name + '» بصيغة PBF المضغوطة غير مدعومة — حوّله إلى ‎.osm أو PMTiles'); failed++; continue; }
         if(/\.obf(\.zip)?$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق OsmAnd ولا تُقرأ خارجه. خريطة البر في دليل مبنية من نفس بيانات OpenStreetMap: احفظ منطقتك من «حفظ خرائط المناطق». ولنقل نقاطك ومساراتك من OsmAnd صدّرها GPX ثم استوردها هنا'); failed++; continue; }
         if(/\.mwm$/.test(name)){ notes.push('«' + file.name + '» خريطة خاصة بتطبيق Maps.me ولا تُقرأ خارجه. صدّر نقاطك ومساراتك منه بصيغة GPX أو KML ثم استوردها هنا'); failed++; continue; }

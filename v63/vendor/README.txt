@@ -1,0 +1,1 @@
+MapLibre GL JS 6.14.0: official npm, BSD-3-Clause. PMTiles JS: existing dalil-app vendor distribution. Point icons: official OsmAnd-resources map icons. Mohanad font: user-supplied font adapted for Unicode, recovered from the embedded approved guide font. Map geometry and paints derived from the provided map data/style; terrain imagery retained unchanged.
