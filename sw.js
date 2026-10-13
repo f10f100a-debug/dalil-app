@@ -1,6 +1,7 @@
-const SHELL_CACHE='dalil-shell-v58';
+const SHELL_CACHE='dalil-shell-v59';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./data/open-places.json','./data/wadis.json','./events.js?v=5','./privacy.html','./support.html','./mapimport.js','./vendor/sql-wasm.js','./vendor/sql-wasm.wasm','./vendor/geotiff.js','./data/region-grid.json?v=1'];
+SHELL.push(...["./v63/data/maps-v63.json", "./v63/fonts/ALMohanadGuide.ttf", "./v63/icons/man_made_water_well.png", "./v63/icons/natural_cave_entrance.png", "./v63/icons/natural_spring.png", "./v63/icons/natural_volcano_map.png", "./v63/import-bundle.js", "./v63/map-v63.html", "./v63/profiles-v63.json", "./v63/v63-layers.js", "./v63/v63-layers.json", "./v63/vendor/maplibre-gl-shared.mjs", "./v63/vendor/maplibre-gl-worker.mjs", "./v63/vendor/maplibre-gl.css", "./v63/vendor/maplibre-gl.mjs", "./v63/vendor/pmtiles.js"]);
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting()));
@@ -9,7 +10,7 @@ self.addEventListener('install',event=>{
 self.addEventListener('activate',event=>{
   // ذاكرة صور الخريطة القديمة (dalil-map-tiles-v1) لم تعد في القائمة فتُحذف من الأجهزة.
   const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1']);  // خرائط المستخدم المستوردة
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
+  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)&&!/^dalil-v63-bundle-[a-z0-9-]+$/.test(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
 self.addEventListener('fetch',event=>{
