@@ -117,7 +117,11 @@ jobs:
           import os, re, time, base64, json, urllib.request, urllib.error, jwt
           kid=os.environ["KEY_ID"].strip(); iss=os.environ["ISSUER_ID"].strip(); raw=os.environ["KEY_P8"]
           if "BEGIN PRIVATE KEY" not in raw:
-              try: raw=base64.b64decode(raw).decode()
+              body="".join(raw.split())
+              try:
+                  dec=base64.b64decode(body)
+                  if dec[:1]==b"0": raw="-----BEGIN PRIVATE KEY-----\n"+"\n".join(body[i:i+64] for i in range(0,len(body),64))+"\n-----END PRIVATE KEY-----\n"   # نص المفتاح بدون سطري BEGIN/END
+                  else: raw=dec.decode()
               except Exception: pass
           def shape(v):
               v=v or ""
@@ -160,7 +164,13 @@ jobs:
           done
           KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
           # يقبل نص الملف كما هو (BEGIN PRIVATE KEY) أو بصيغة Base64
-          if printf '%s' "$KEY_P8" | grep -q "BEGIN PRIVATE KEY"; then printf '%s\n' "$KEY_P8" > "$KEY_PATH"; else printf '%s' "$KEY_P8" | base64 --decode > "$KEY_PATH"; fi
+          if printf '%s' "$KEY_P8" | grep -q "BEGIN PRIVATE KEY"; then printf '%s\n' "$KEY_P8" > "$KEY_PATH"
+          else
+            BODY="$(printf '%s' "$KEY_P8" | tr -d ' \r\n\t')"
+            if printf '%s' "$BODY" | base64 --decode 2>/dev/null | head -c1 | grep -q '0'; then
+              { echo "-----BEGIN PRIVATE KEY-----"; printf '%s' "$BODY" | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > "$KEY_PATH"
+            else printf '%s' "$BODY" | base64 --decode > "$KEY_PATH"; fi
+          fi
           echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
