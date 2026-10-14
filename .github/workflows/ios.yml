@@ -61,8 +61,11 @@ jobs:
 
       - name: Generate iOS project
         run: |
-          npx cap add ios --packagemanager SPM
-          npx cap sync ios
+          # نعرض آخر سطور الخطأ كتنبيه حتى يُقرأ من صفحة التشغيل
+          run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | tr '\n' '¶')"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
+          run_logged npx cap --version
+          run_logged npx cap add ios --packagemanager SPM
+          run_logged npx cap sync ios
 
       - name: Icon, splash and Info.plist
         run: |
@@ -98,7 +101,8 @@ jobs:
             -destination 'generic/platform=iOS' \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             TARGETED_DEVICE_FAMILY=1 CODE_SIGNING_ALLOWED=NO \
-            build | tail -40
+            build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E "error:|warning: .*fail" "$RUNNER_TEMP/build.log" | head -20; echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/build.log" | head -12 | tr '\n' '¶')"; tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build.log"
 
       - name: Archive (signed)
         if: env.DO_UPLOAD == 'true'
@@ -123,7 +127,8 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             TARGETED_DEVICE_FAMILY=1 \
-            archive | tail -40
+            archive > "$RUNNER_TEMP/archive.log" 2>&1 || { echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/archive.log" | head -12 | tr '\n' '¶')"; tail -60 "$RUNNER_TEMP/archive.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/archive.log"
 
       - name: Upload to TestFlight
         if: env.DO_UPLOAD == 'true'
