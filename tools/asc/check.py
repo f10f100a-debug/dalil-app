@@ -43,6 +43,14 @@ battr = build["attributes"] if build else {}
 note("Version", f"{va.get('versionString')} state={va.get('appStoreState') or va.get('appVersionState')} release={va.get('releaseType')} copyright={va.get('copyright')} build={battr.get('version')} processing={battr.get('processingState')} encryption={battr.get('usesNonExemptEncryption')} expired={battr.get('expired')}")
 
 bl = get(f"/v1/builds?filter[app]={aid}&limit=10&sort=-uploadedDate").get("data", [])
+want = os.environ.get("SET_BUILD", "").strip()
+if want:
+    tgt = next((x for x in bl if x["attributes"].get("version") == want and not x["attributes"].get("expired")), None)
+    if tgt:
+        st = patch(f"/v1/appStoreVersions/{vid}/relationships/build", {"data": {"type": "builds", "id": tgt["id"]}})
+        note("Build attached", f"{want}: status {st}")
+    else:
+        note("Build attached", f"{want}: not found or expired")
 note("Builds", " ; ".join(f"{x['attributes'].get('version')}: {x['attributes'].get('processingState')} expired={x['attributes'].get('expired')} exp={str(x['attributes'].get('expirationDate'))[:10]}" for x in bl))
 locs = get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:

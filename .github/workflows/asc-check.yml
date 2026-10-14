@@ -7,6 +7,10 @@ on:
         description: "رتّب صور الشاشة حسب اسم الملف (01..06)"
         type: boolean
         default: false
+      set_build:
+        description: "رقم البناء لربطه بالنسخة (اختياري)"
+        type: string
+        default: ""
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -21,4 +25,5 @@ jobs:
           ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
           FIX_ORDER: ${{ inputs.fix_order }}
+          SET_BUILD: ${{ inputs.set_build }}
         run: python3 tools/asc/check.py
