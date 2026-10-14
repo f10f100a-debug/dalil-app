@@ -130,8 +130,8 @@ body.embed #redTint{display:none!important}
 #saveCard button{flex:1;height:38px;border-radius:10px;border:1px solid #D9C29A;background:#fff;font:inherit;font-weight:700;color:#3A2A12;cursor:pointer}
 #saveCard button.sc-main{background:#C8964E;border-color:#C8964E;color:#fff}
 body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px}
-@font-face{font-family:"AL Mohanad Guide";src:url("fonts/ALMohanadGuide.ttf") format("truetype");font-display:swap}
-.wadi-name{font-family:"AL Mohanad Guide",sans-serif}html[data-theme=dark] #layer,html[data-theme=red] #layer{filter:none}html[data-theme=red] #redTint{display:none}
+@font-face{font-family:"Tajawal Map";src:url("fonts/Tajawal-Bold.ttf") format("truetype");font-display:swap}
+.wadi-name{font-family:"Tajawal Map",sans-serif}html[data-theme=dark] #layer,html[data-theme=red] #layer{filter:none}html[data-theme=red] #redTint{display:none}
 </style><script src="vendor/pmtiles.js"></script></head><body><div id="redTint" aria-hidden="true"></div><div id="map"><div id="stage"><div id="layer"></div><svg id="trackOverlay" aria-hidden="true"></svg><div id="accCircle"></div><div id="marks"></div><div id="dot"><svg class="dot-arrow" viewBox="-14 -14 28 28" aria-hidden="true"><path d="M0 -12 L9 10 L0 5 L-9 10 Z"/></svg></div><div id="targetMarker"><svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true"><path d="M12 23s-7.5-6.9-7.5-12.5a7.5 7.5 0 0 1 15 0C19.5 16.1 12 23 12 23z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.4"/><circle cx="12" cy="10.5" r="2.8" fill="#fff"/></svg></div></div></div>
 <div class="top"><div class="top-row"><div class="title">دليل — خريطة البر</div><select id="v63Profile" aria-label="الوضع"><option value="general">أبو مالك عام</option><option value="private">أبو مالك خاص</option></select><div class="top-actions"><a href="../index.html?screen=compass&amp;v=20260925-8" class="back-link">← رجوع إلى البوصلة</a></div></div><div id="status" class="status">اضغط زر الموقع لإظهار مكانك، أو المس الخريطة لاختيار وجهة.</div></div>
 <div id="saveCard" hidden role="alert"><b id="scTitle"></b><span id="scText"></span><div class="sc-row"><button type="button" class="sc-main" id="scSave">احفظها الآن</button><button type="button" id="scLater">لاحقًا</button></div></div>
@@ -575,13 +575,13 @@ maplibregl.addProtocol('umshift',async params=>{
   }
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));return{data:await bl.arrayBuffer()};
 });
-const TF=['AL Mohanad Guide'];
+const TF=['Tajawal Map'];
 const kindColor=['match',['get','kind'],'جبل','#7A5230','مورد ماء','#1F6FA8','تجمع مياه','#3E86B4','نفود','#C98A2E','آثار','#7A4E9A','معلم رئيسي','#3B342B','سبخة','#B3261E','حرة','#B3261E','دحل','#B3261E','كهف','#B3261E','موقع خطر','#B3261E','#6F665A'];
 const roadW=(t,def)=>['interpolate',['exponential',1.6],['zoom'],6,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[0]]),def[0]],15,['match',['get','class'],...Object.entries(t).flatMap(([k,v])=>[k,v[1]]),def[1]]];
 const ROAD_RANK=['match',['get','class'],'motorway',7,'trunk',6,'primary',5,'secondary',4,'tertiary',3,'minor',2,1],ROADS=['literal',['motorway','trunk','primary','secondary','tertiary','minor']];
 const TPL=[{id:'hillshade',src:'hs',type:'raster',paint:{'raster-opacity':1,'raster-fade-duration':0}},...V63_LAYERS];
 const gl=new maplibregl.Map({container:layer,interactive:false,attributionControl:false,fadeDuration:0,minZoom:2,maxZoom:19,center:[45,24],zoom:6,
-  style:{version:8,'font-faces':{'AL Mohanad Guide':[{url:abs('fonts/ALMohanadGuide.ttf')}]},
+  style:{version:8,'font-faces':{'Tajawal Map':[{url:abs('fonts/Tajawal-Bold.ttf')}]},
     sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19},
       sat:{type:'raster',tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],tileSize:256,maxzoom:15}},
     layers:[{id:'bg',type:'background',paint:{'background-color':'#F4F0E6'}},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'},paint:{'raster-fade-duration':0}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});

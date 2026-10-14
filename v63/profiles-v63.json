@@ -1,7 +1,7 @@
 {
   "general": {
     "name": "أبو مالك عام",
-    "font": "AL Mohanad Guide",
+    "font": "Tajawal Map",
     "textScale": 1.25,
     "relief": true,
     "dayMode": true,
@@ -13,7 +13,7 @@
   },
   "private": {
     "name": "أبو مالك خاص",
-    "font": "AL Mohanad Guide",
+    "font": "Tajawal Map",
     "textScale": 1.25,
     "relief": true,
     "dayMode": true,
