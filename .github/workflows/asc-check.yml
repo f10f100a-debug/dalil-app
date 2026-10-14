@@ -1,0 +1,17 @@
+# فحص للقراءة فقط لصفحة التطبيق في App Store Connect قبل الإرسال للمراجعة.
+name: App Store check
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/asc }
+      - run: pip install --quiet pyjwt cryptography
+      - name: Read App Store Connect (read-only)
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+        run: python3 tools/asc/check.py
