@@ -36,7 +36,7 @@ async function entryStream(file,e,{tileType,onBytes}={}){
  const v=new DataView(raw);if(v.getUint32(0,true)!==0x04034b50||v.getUint16(8,true)!==e.method)throw fail('جزء الخريطة تالف');
  const offset=e.offset+30+v.getUint16(26,true)+v.getUint16(28,true);if(offset+e.compressed>file.size)throw fail('جزء الخريطة غير مكتمل');
  let stream=file.slice(offset,offset+e.compressed).stream();
- if(e.method===8){try{stream=stream.pipeThrough(new root.DecompressionStream('deflate-raw'));}catch(error){throw fail('تعذر فك حزمة الخريطة؛ جرّب Safari محدثًا');}}
+ if(e.method===8){try{stream=stream.pipeThrough(new root.DecompressionStream('deflate-raw'));}catch(error){throw fail('تعذر فك حزمة الخريطة؛ حدّث نظام الجوال ثم حاول مرة أخرى');}}
  else if(e.method!==0)throw fail('طريقة ضغط الحزمة غير مدعومة');
  let size=0,crc=0xFFFFFFFF,header=new Uint8Array(127),headerSize=0;
  return stream.pipeThrough(new root.TransformStream({transform(chunk,controller){

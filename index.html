@@ -1115,7 +1115,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div id="userMapsList" class="user-maps"></div>
       <div id="storageInfo" class="permission-note" style="margin-top:8px"></div>
 
-      <div class="section-title">التنبيهات</div>
+      <div class="section-title" id="pushTitle">التنبيهات</div>
       <div class="banner push-box" id="pushBox">
         <div id="pushStatus">جارٍ التحقق…</div>
         <label class="push-row"><span>منطقتي</span><select class="text-input" id="pushRegion" aria-label="منطقة التنبيهات"></select></label>
@@ -2485,7 +2485,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       storeCar(state.pos);
       return;
     }
-    if(!navigator.geolocation) return toast('تحديد الموقع غير مدعوم في هذا المتصفح');
+    if(!navigator.geolocation) return toast('تحديد الموقع غير مدعوم على هذا الجهاز');
     toast('جارٍ تحديد موقع السيارة…');
     navigator.geolocation.getCurrentPosition(
       p=>storeCar({lat:p.coords.latitude, lng:p.coords.longitude}),
@@ -2577,7 +2577,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(!state.pos) return toast('لا يوجد موقع بعد');
     const text = formatCoords(state.pos.lat, state.pos.lng, state.coordFmt);
     try{ await navigator.clipboard.writeText(text); toast('تم نسخ الإحداثيات'); }
-    catch(e){ toast('تعذّر النسخ في هذا المتصفح'); }
+    catch(e){ toast('تعذّر النسخ'); }
   });
 
   // ---------- save place flow ----------
@@ -3564,7 +3564,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const place = findPlace(sheetPlaceId);
     if(!place) return;
     try{ await navigator.clipboard.writeText(formatCoords(place.lat, place.lng, state.coordFmt)); toast('تم نسخ الإحداثيات'); }
-    catch(e){ toast('تعذّر النسخ في هذا المتصفح'); }
+    catch(e){ toast('تعذّر النسخ'); }
   });
   document.getElementById('placeSheetRename').addEventListener('click', ()=>{
     const place = findPlace(sheetPlaceId);
@@ -3764,7 +3764,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       document.getElementById('pasteText').value = text;
       parsePastedText(text);
     }catch(e){
-      toast('امنح المتصفح إذن الحافظة، أو الصق يدويًا في الحقل');
+      toast('اسمح بالوصول للحافظة، أو الصق يدويًا في الحقل');
     }
   });
   document.getElementById('pasteText').addEventListener('input', (e)=> parsePastedText(e.target.value));
@@ -4620,7 +4620,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=5';
+      sc.src = 'events.js?v=6';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

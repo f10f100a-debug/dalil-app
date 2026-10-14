@@ -407,7 +407,7 @@ function acceptPosition(p,center=true){
   render();onHeadingChanged();updateNavigation();status.textContent=statusForPosition()}
 function geoError(e,showError){status.textContent=showError?'تعذّر تحديد الموقع: '+(e.code===1?'الإذن مرفوض — فعّله من إعدادات الجوال':'حاول في مكان مكشوف'):'اضغط زر الموقع لإظهار مكانك على الخريطة.'}
 function locateUser(showError=true,center=true){
-  if(!navigator.geolocation){if(showError)status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  if(!navigator.geolocation){if(showError)status.textContent='تحديد الموقع غير مدعوم على هذا الجهاز';return}
   if(showError)status.textContent='جارٍ تحديد الموقع…';
   navigator.geolocation.getCurrentPosition(p=>acceptPosition(p,center),e=>geoError(e,showError),{enableHighAccuracy:true,timeout:15000,maximumAge:30000});
 }
@@ -425,7 +425,7 @@ function openGoogle(){let point=targetPoint||gps;if(!point){status.textContent='
 $('#googleNav').onclick=openGoogle;
 startNav.onclick=async()=>{
   if(!targetPoint)return;
-  if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم في هذا المتصفح';return}
+  if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم على هذا الجهاز';return}
   navigationActive=true;keepScreenOn();setRot(0);setView('fit');
   startNav.style.display='none';compassNav.style.display='none';stopNav.style.display='block';
   status.textContent='التوجيه على الخريطة نشط — جارٍ تشغيل الاتجاه وGPS';

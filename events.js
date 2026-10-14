@@ -335,7 +335,7 @@
   let pushOn = false;
   async function refreshPushState(){ pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
   function pushBanner(){
-    if(pushOn) return '';
+    if(pushOn || (window.DALIL_NATIVE && !pushSupported())) return '';
     return `<div class="ev-push"><span class="cp-ic">${ico('bell')}</span><span><b>نبّهني عند السيول والأمطار</b><small>تصلك صور منطقتك فور نشرها</small></span><button type="button" class="cp-btn cp-btn-white" data-ev-act="push-settings">تفعيل</button></div>`;
   }
   function renderPushSettings(){
@@ -347,6 +347,7 @@
     }
     const status = $('pushStatus'), btn = $('pushToggle');
     if(!pushSupported()){
+      if(window.DALIL_NATIVE){ const t=$('pushTitle'); if(t) t.hidden=true; box.hidden=true; return; }   // تطبيق الآيفون: تنبيهات الويب غير متاحة داخله
       status.textContent = isIOS && !standalone()
         ? 'على الآيفون: افتح دليل في Safari ← زر المشاركة ← «إضافة إلى الشاشة الرئيسية»، ثم افتحه من الأيقونة وفعّل التنبيهات من هنا.'
         : 'هذا المتصفح لا يدعم التنبيهات.';
