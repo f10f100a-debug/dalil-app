@@ -12,6 +12,13 @@ if "BEGIN PRIVATE KEY" not in raw:
 tok = jwt.encode({"iss": iss, "iat": int(time.time()), "exp": int(time.time()) + 1100, "aud": "appstoreconnect-v1"}, raw, algorithm="ES256", headers={"kid": kid, "typ": "JWT"})
 API = "https://api.appstoreconnect.apple.com"
 
+def patch(path, payload):
+    req = urllib.request.Request(API + path, data=json.dumps(payload).encode(), method="PATCH", headers={"Authorization": "Bearer " + tok, "Content-Type": "application/json"})
+    try:
+        r = urllib.request.urlopen(req, timeout=40); return r.status
+    except urllib.error.HTTPError as e:
+        return f"{e.code} {e.read()[:200].decode(errors='ignore')}"
+
 def get(path):
     req = urllib.request.Request(API + path, headers={"Authorization": "Bearer " + tok})
     try:
@@ -47,6 +54,11 @@ for l in locs:
         ids = [x["id"] for x in s["relationships"]["appScreenshots"]["data"]]
         names = [ (shots.get(i, {}).get("fileName") or "?") + ":" + str((shots.get(i, {}).get("assetDeliveryState") or {}).get("state")) for i in ids]
         desc.append(f"{s['attributes']['screenshotDisplayType']} x{len(ids)} -> " + ", ".join(names))
+        if os.environ.get("FIX_ORDER") == "true":
+            ordered = sorted(ids, key=lambda i: shots.get(i, {}).get("fileName") or "")
+            if ordered != ids:
+                st = patch(f"/v1/appScreenshotSets/{s['id']}/relationships/appScreenshots", {"data": [{"type": "appScreenshots", "id": i} for i in ordered]})
+                note("Screenshot order fixed", f"{s['attributes']['screenshotDisplayType']}: status {st}")
     note("Screenshots " + la["locale"], " ; ".join(desc) or "NONE")
 
 rd = get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail")
@@ -79,5 +91,9 @@ else:
     note("Availability", f"not set / error {av.get('error')} {av.get('detail','')[:120]}")
 ps = get(f"/v1/apps/{aid}/appPriceSchedule?include=manualPrices,baseTerritory")
 note("Price schedule", "set" if "data" in ps else f"MISSING {ps.get('error')} {ps.get('detail','')[:120]}")
+
+for x in get(f"/v1/builds?filter[app]={aid}&limit=10&sort=-uploadedDate").get("data", []):
+    b = x["attributes"]
+    note("Build " + str(b.get("version")), f"uploaded={b.get('uploadedDate')} processing={b.get('processingState')} expired={b.get('expired')} expires={b.get('expirationDate')}")
 
 open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a").write("\n\n".join(out))
