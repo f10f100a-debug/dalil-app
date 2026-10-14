@@ -11,5 +11,6 @@
     "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": true,
     "backgroundColor": "#F2EFE9"
-  }
+  },
+  "appendUserAgent": "DalilApp/1.0"
 }

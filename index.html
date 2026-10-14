@@ -21,6 +21,12 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F2EFE9">
 <script>
+// داخل تطبيق الآيفون (Capacitor): نخفي عبارات المتصفح والتثبيت من Safari.
+window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
+if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
+</script>
+<style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning{display:none!important}</style>
+<script>
 // تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
 (function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}
 var t=p==='auto'?(function(){var q={lat:24.71,lng:46.68};try{var v=JSON.parse(localStorage.getItem('dalil_sun_pos')||'null');if(v&&isFinite(v.lat)&&isFinite(v.lng))q=v}catch(e){}return (function(a,b,d){var r=Math.PI/180,J=+d/864e5+2440587.5,s=2451545.0009-b/360+Math.round(J-2451545.0009+b/360),M=(357.5291+.98560028*(s-2451545))%360,L=(M+102.9372+1.9148*Math.sin(M*r)+.02*Math.sin(2*M*r)+180)%360,t=s+.0053*Math.sin(M*r)-.0069*Math.sin(2*L*r),e=Math.asin(Math.sin(L*r)*Math.sin(23.44*r)),w=Math.acos((Math.sin(-.833*r)-Math.sin(a*r)*Math.sin(e))/(Math.cos(a*r)*Math.cos(e)))/(2*Math.PI);return J<t-w||J>t+w})(q.lat,q.lng,new Date())?'dark':'light'})():p;
@@ -1641,10 +1647,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('onboard').style.display = 'none';
     toast('يمكنك تفعيل الأذونات لاحقًا من الإعدادات');
   });
-  const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+  const isStandalone = window.DALIL_NATIVE || window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
   const ua = navigator.userAgent || '';
   const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|WhatsApp|FBAN|FBAV|Instagram|GSA/.test(ua);
+  const isSafari = window.DALIL_NATIVE || /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|WhatsApp|FBAN|FBAV|Instagram|GSA/.test(ua);
   const installOverlay = document.getElementById('installOverlay');
   const installUrl = location.origin + location.pathname + '?install=1';
   function ageText(time){
@@ -1654,7 +1660,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function updateDiagnostics(){
     const embedded=(()=>{try{return window.self!==window.top}catch(e){return true}})();
-    document.getElementById('diagMode').textContent=isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
+    document.getElementById('diagMode').textContent=window.DALIL_NATIVE?'تطبيق الآيفون':isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
     document.getElementById('diagSecure').textContent=window.isSecureContext?'✅ HTTPS':'❌ غير آمن';
     const accuracy=state.pos?.accuracy!=null?' — دقة ±'+Math.round(state.pos.accuracy)+'م':'';
     document.getElementById('diagGps').textContent=state.pos?'✅ يعمل '+ageText(lastPositionAt)+accuracy:(lastPositionError||'⏳ لم تصل إشارة بعد');
@@ -1791,7 +1797,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         // أعد ربط المستمع بعد الموافقة؛ بعض إصدارات iOS لا ترسل أحداثًا
         // للمستمع الذي أضيف قبل منح الإذن.
         if(res === 'granted') startCompass(true);
-        else diagText('تشخيص البوصلة: المتصفح رفض إذن مستشعر الحركة (iOS). اذهب لإعدادات الجوال ← Safari ← إعادة ضبط تحذيرات المواقع، أو جرّب فتح الرابط في تبويب مستقل بدل المعاينة المصغّرة.');
+        else diagText(window.DALIL_NATIVE ? 'تشخيص البوصلة: رُفض إذن الحركة. أغلق دليل تمامًا ثم افتحه من جديد، واضغط «تفعيل الموقع والبوصلة» واختر «سماح».' : 'تشخيص البوصلة: المتصفح رفض إذن مستشعر الحركة (iOS). اذهب لإعدادات الجوال ← Safari ← إعادة ضبط تحذيرات المواقع، أو جرّب فتح الرابط في تبويب مستقل بدل المعاينة المصغّرة.');
       } else if('DeviceOrientationEvent' in window){
         startCompass(true);
         compassGranted = true;
@@ -1899,7 +1905,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     lastPositionError='❌ '+detail;
     updateGpsBadge();
     document.getElementById('permLoc').textContent = '❌ مرفوض/غير متاح';
-    showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.' : ''));
+    showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? (window.DALIL_NATIVE ? ' — افتح إعدادات الجوال ← دليل ← الموقع، واختر «أثناء استخدام التطبيق»، ثم أعد فتح دليل.' : ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.') : ''));
     updateDiagnostics();
   }
 
