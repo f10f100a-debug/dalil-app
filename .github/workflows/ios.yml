@@ -64,7 +64,7 @@ jobs:
           # نعرض آخر سطور الخطأ كتنبيه حتى يُقرأ من صفحة التشغيل
           run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
           run_logged npx cap --version
-          run_logged npx cap add ios --packagemanager SPM
+          run_logged npx cap add ios
           run_logged npx cap sync ios
 
       - name: Icon, splash and Info.plist
@@ -97,7 +97,7 @@ jobs:
       - name: Build check (unsigned)
         if: env.DO_UPLOAD != 'true'
         run: |
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             TARGETED_DEVICE_FAMILY=1 CODE_SIGNING_ALLOWED=NO \
@@ -119,7 +119,7 @@ jobs:
           KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
           echo "$KEY_P8" | base64 --decode > "$KEY_PATH"
           echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
-          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Dalil.xcarchive" \
             -allowProvisioningUpdates \
