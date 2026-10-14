@@ -25,7 +25,7 @@
 window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
 if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
 </script>
-<style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning{display:none!important}</style>
+<style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning,.in-app #pushTitle,.in-app #pushBox,.in-app #pushAsk{display:none!important}</style>
 <script>
 // تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
 (function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}
@@ -1599,6 +1599,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // «لاحقًا» يؤجّلها 7 أيام. على الآيفون تعمل التنبيهات فقط من التطبيق المثبّت.
   const pushAskKey = 'dalil_push_ask_after';
   function pushAskEligible(){
+    if(window.DALIL_NATIVE) return false;   // تنبيهات الويب لا تعمل داخل تطبيق الآيفون
     if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return false;
     if(Notification.permission !== 'default') return false;
     let after = 0; try{ after = +localStorage.getItem(pushAskKey) || 0; }catch(e){}
@@ -4620,7 +4621,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=6';
+      sc.src = 'events.js?v=7';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

@@ -333,13 +333,14 @@
     try{ const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; }catch(e){ return null; }
   }
   let pushOn = false;
-  async function refreshPushState(){ pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
+  async function refreshPushState(){ if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
   function pushBanner(){
-    if(pushOn || (window.DALIL_NATIVE && !pushSupported())) return '';
+    if(pushOn || window.DALIL_NATIVE) return '';
     return `<div class="ev-push"><span class="cp-ic">${ico('bell')}</span><span><b>نبّهني عند السيول والأمطار</b><small>تصلك صور منطقتك فور نشرها</small></span><button type="button" class="cp-btn cp-btn-white" data-ev-act="push-settings">تفعيل</button></div>`;
   }
   function renderPushSettings(){
     const box = $('pushBox'); if(!box) return;
+    if(window.DALIL_NATIVE){ const t=$('pushTitle'); if(t) t.hidden=true; box.hidden=true; return; }
     const sel = $('pushRegion');
     if(sel && !sel.options.length){
       sel.innerHTML = '<option value="">كل المناطق</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
