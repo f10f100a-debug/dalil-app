@@ -119,6 +119,12 @@ jobs:
           if "BEGIN PRIVATE KEY" not in raw:
               try: raw=base64.b64decode(raw).decode()
               except Exception: pass
+          def shape(v):
+              v=v or ""
+              return f"len={len(v)} dashes={v.count('-')} spaces={sum(c.isspace() for c in v)} upper={sum(c.isupper() for c in v)} looksUUID={bool(re.search(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',v))} looksP8={'PRIVATE KEY' in v}"
+          print("::notice::ISSUER shape: "+shape(iss)); print("::notice::P8 shape: "+shape(raw if len(raw)<80 else raw[:0]+'x'*len(raw)) if 'PRIVATE KEY' not in raw else "::notice::P8 shape: looksP8=True len="+str(len(raw)))
+          m=re.search(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',iss)
+          if m: iss=m.group(0).lower()
           notes=[]
           notes.append(f"KEY_ID: {len(kid)} chars, {'OK' if re.fullmatch(r'[A-Z0-9]{10}',kid) else 'BAD format (expected 10 uppercase letters/digits)'}")
           notes.append(f"ISSUER_ID: {'OK uuid' if re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',iss) else 'BAD format (expected uuid)'}")
