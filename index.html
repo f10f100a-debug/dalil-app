@@ -728,6 +728,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ev-form-row .field-label{display:block;}
   .ev-check{display:flex; align-items:center; gap:8px; min-height:44px; margin-top:10px; font-size:13.5px; color:var(--cp-dim);}
   .ev-check[hidden]{display:none;}
+  .ev-terms{align-items:flex-start; line-height:1.6; font-size:12.5px;} .ev-terms input{margin-top:2px; flex:none;} .ev-terms a{color:var(--cp-gold-ink);} .ev-terms[hidden]{display:none;}
   .ev-check input{width:20px; height:20px; accent-color:var(--cp-gold);}
   .ev-status{min-height:20px; margin:8px 2px; font-size:13px; color:var(--cp-dim);}
   .ev-status.err{color:var(--cp-red);}
@@ -1285,6 +1286,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <label><span class="field-label">اسمك (اختياري)</span><input class="text-input" id="evNick" maxlength="24" autocomplete="nickname" placeholder="اسم مستعار"></label>
       </div>
       <label class="ev-check" id="evLocRow" hidden><input type="checkbox" id="evAttachLoc"> <span id="evLocText">إرفاق موقعي</span></label>
+      <label class="ev-check ev-terms" id="evTermsRow"><input type="checkbox" id="evTerms"> <span>أتعهد بعدم نشر أي محتوى مسيء أو غير لائق أو مخالف، وأعلم أنه <b>لا تسامح</b> مع ذلك: يُحذف المحتوى ويُحظر ناشره. (<a href="support.html#terms" id="evTermsLink">شروط النشر</a>)</span></label>
       <div class="ev-status" id="evStatus" role="status"></div>
       <button type="button" class="cp-btn cp-btn-gold cp-btn-lg" id="evSend" disabled>إرسال للمراجعة</button>
       <button type="button" class="cp-btn cp-btn-white" id="evCancel" style="margin-top:8px;">إلغاء</button>
@@ -4621,7 +4623,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=7';
+      sc.src = 'events.js?v=8';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

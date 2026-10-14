@@ -20,7 +20,7 @@
   ];
   const KIND = Object.fromEntries(KINDS.map(k=>[k.id, k]));
   const REGIONS = ['الرياض','مكة','المدينة','القصيم','الشرقية','عسير','تبوك','حائل','الحدود الشمالية','جازان','نجران','الباحة','الجوف'];
-  const LS = {device:'dalil_device_id', nick:'dalil_nickname', seen:'dalil_events_seen', pushRegion:'dalil_push_region', blocked:'dalil_blocked_posters'};
+  const LS = {device:'dalil_device_id', nick:'dalil_nickname', seen:'dalil_events_seen', pushRegion:'dalil_push_region', blocked:'dalil_blocked_posters', terms:'dalil_ugc_terms_v1'};
   const esc = B.escapeHtml, ico = B.ico;
   const lsGet = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
@@ -170,6 +170,9 @@
     $('evPhotoPreview').classList.remove('has');
     $('evCaption').value = '';
     $('evNick').value = lsGet(LS.nick) || '';
+    // شروط النشر (متطلب أبل 1.2): تُطلب مرة واحدة ثم تُحفظ على الجهاز.
+    const agreed = lsGet(LS.terms) === '1';
+    $('evTerms').checked = agreed; $('evTermsRow').hidden = agreed;
     $('evKinds').innerHTML = KINDS.map(k=>`<button type="button" class="chip" data-ev-kind="${k.id}">${esc(k.name)}</button>`).join('');
     const pos = B.getPos();
     // لا نُرفق أي موقع افتراضيًا: يُحدَّد بعد قراءة وقت التصوير من الصورة نفسها.
@@ -183,7 +186,7 @@
   }
   function closeComposer(){ $('evSheet').classList.remove('show'); if(st.draft && st.draft.url) URL.revokeObjectURL(st.draft.url); st.draft = null; }
   function selectedKind(){ const c = document.querySelector('#evKinds .chip.active'); return c ? c.dataset.evKind : ''; }
-  function updateSendBtn(){ $('evSend').disabled = st.sending || !st.draft || !selectedKind(); }
+  function updateSendBtn(){ $('evSend').disabled = st.sending || !st.draft || !selectedKind() || !$('evTerms').checked; }
   function setStatus(t, err){ const el = $('evStatus'); el.textContent = t; el.classList.toggle('err', !!err); }
 
   function loadImage(file){
@@ -290,7 +293,8 @@
     updateSendBtn();
   }
   async function send(){
-    if(st.sending || !st.draft || !selectedKind()) return;
+    if(st.sending || !st.draft || !selectedKind() || !$('evTerms').checked) return;
+    lsSet(LS.terms, '1');
     const pos = B.getPos();
     const fd = new FormData();
     fd.append('photo', st.draft.photo, 'photo.jpg');
@@ -430,6 +434,7 @@
   $('evPhotoPreview').addEventListener('click', ()=>$('evPhotoInput').click());
   $('evSend').addEventListener('click', send);
   $('evCancel').addEventListener('click', closeComposer);
+  $('evTerms').addEventListener('change', updateSendBtn);
   $('evSheet').addEventListener('click', e=>{ if(e.target === $('evSheet')) closeComposer(); });
   $('evViewer').addEventListener('click', e=>{ if(e.target === $('evViewer') || e.target.classList.contains('ev-v-img')) closeViewer(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && $('evViewer').classList.contains('show')) closeViewer(); });
