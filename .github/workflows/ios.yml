@@ -54,7 +54,7 @@ jobs:
           ls -d /Applications/Xcode_*.app
           XCODE="$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|rc' | sort -V | tail -1)"
           sudo xcode-select -s "$XCODE"
-          xcodebuild -version
+          echo "::notice::$(xcodebuild -version | paste -sd ' ' -) — iOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
 
       - name: Install Capacitor
         run: npm install --no-audit --no-fund
