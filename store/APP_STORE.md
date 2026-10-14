@@ -66,12 +66,29 @@
 - **Promotional text:** Offline desert maps of Saudi Arabia, an accurate compass, track recording and backtracking, plus vegetation, rain and live cloud layers — everything for your trip in one app.
 
 ## ملاحظات للمراجع (App Review Information → Notes)
+انسخ النص الإنجليزي كما هو. لا يحتاج حساب تجربة: اختر **Sign-in required: No**.
 ```
-Dalil is a free offline navigation app for desert trips in Saudi Arabia. No account or login is required.
-- Location is used on-device for the map, compass and track recording.
-- To test offline maps: Settings → "حفظ خرائط المناطق" → save a region, then enable Airplane Mode.
-- The "Events" section shows user-submitted flood/rain photos. Every photo is reviewed and approved by the developer before it becomes public. Users can report any photo (auto-hidden after 3 reports) and block its poster ("Block this poster" hides all their photos immediately and sends a report). Photos expire automatically after 3 days. Contact: see the support URL.
-- Weather: Open-Meteo. Imagery layers: NASA GIBS and EUMETSAT. Map data: © OpenStreetMap contributors.
+Dalil is a free offline navigation app for desert trips in Saudi Arabia (the app UI is in Arabic). No account, no ads, no in-app purchases.
+
+Demo video (60 s): https://f10f100a-debug.github.io/dalil-app/assets/dalil-demo.mp4
+
+Native, on-device features to test (tab bar, right to left):
+1. Compass (البوصلة): live device compass with Qibla direction; tap "حفظ موقعي" to save the current spot, then navigate back to it with distance/bearing/ETA.
+2. Places (الأماكن): 40,000+ offline desert places (wadis, mountains, wells) with search and "nearby"; tap "توجّه" to navigate to one.
+3. Map (الخريطة): offline vector maps with terrain and contours; record a GPS track under "تسجيل المسار" and follow it back ("ارجع من نفس المسار"); export as GPX.
+4. Offline mode: Settings (الإعدادات) → "حفظ خرائط المناطق للاستخدام بدون إنترنت" → save one region, then enable Airplane Mode: map, compass, places and tracking keep working.
+5. Weather (الأجواء): 7-day weather and wind (Open-Meteo), vegetation and rain layers (NASA GIBS).
+
+Location is used on-device only (When In Use). Motion is used for the compass. Camera/Photos are used only if the user chooses to post an event photo.
+
+User-generated content (Weather → Events / الأحداث): users can post flood/rain photos. Safeguards (Guideline 1.2):
+- Users must agree to posting terms with zero tolerance for objectionable content before their first post (terms: https://f10f100a-debug.github.io/dalil-app/support.html#terms).
+- Every photo is reviewed and approved by the developer before it becomes visible.
+- Any user can report a photo (auto-hidden after 3 reports) and "Block this poster" (hides all their photos immediately and notifies the developer).
+- Reports are handled within 24 hours; photos expire automatically after 3 days.
+- Contact: dalilbarr.app@gmail.com
+
+Data sources: © OpenStreetMap contributors, Copernicus DEM, NASA GIBS, EUMETSAT, Open-Meteo.
 ```
 
 ## نموذج الخصوصية في App Store Connect (App Privacy)
@@ -92,7 +109,7 @@ Dalil is a free offline navigation app for desert trips in Saudi Arabia. No acco
 - المتوقع: **+12** غالبًا بسبب المحتوى من المستخدمين (أو 4+ إن لم تعتبره أبل كذلك).
 
 ## المواد المطلوبة
-- [x] أيقونة 1024×1024 بلا شفافية: `store/icon-1024.png` (مكبّرة من 512 — يُفضّل لاحقًا تصميم أصلي بدقة 1024).
+- [x] أيقونة 1024×1024 بلا شفافية: `store/icon-1024.png` (مرسومة بدقة 1024).
 - [ ] لقطات شاشة آيفون 6.9 بوصة (1320×2868) — 3 إلى 10 لقطات: البوصلة، الخريطة، الأماكن، الأجواء/الربيع، الاستيراد.
 - [ ] (اختياري) لقطات آيباد 13 بوصة إن دعمنا الآيباد.
 
