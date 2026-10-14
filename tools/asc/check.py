@@ -42,6 +42,8 @@ build = next((x for x in vers.get("included", []) if x["type"] == "builds"), Non
 battr = build["attributes"] if build else {}
 note("Version", f"{va.get('versionString')} state={va.get('appStoreState') or va.get('appVersionState')} release={va.get('releaseType')} copyright={va.get('copyright')} build={battr.get('version')} processing={battr.get('processingState')} encryption={battr.get('usesNonExemptEncryption')} expired={battr.get('expired')}")
 
+bl = get(f"/v1/builds?filter[app]={aid}&limit=10&sort=-uploadedDate").get("data", [])
+note("Builds", " ; ".join(f"{x['attributes'].get('version')}: {x['attributes'].get('processingState')} expired={x['attributes'].get('expired')} exp={str(x['attributes'].get('expirationDate'))[:10]}" for x in bl))
 locs = get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:
     la = l["attributes"]
@@ -91,9 +93,5 @@ else:
     note("Availability", f"not set / error {av.get('error')} {av.get('detail','')[:120]}")
 ps = get(f"/v1/apps/{aid}/appPriceSchedule?include=manualPrices,baseTerritory")
 note("Price schedule", "set" if "data" in ps else f"MISSING {ps.get('error')} {ps.get('detail','')[:120]}")
-
-for x in get(f"/v1/builds?filter[app]={aid}&limit=10&sort=-uploadedDate").get("data", []):
-    b = x["attributes"]
-    note("Build " + str(b.get("version")), f"uploaded={b.get('uploadedDate')} processing={b.get('processingState')} expired={b.get('expired')} expires={b.get('expirationDate')}")
 
 open(os.environ.get("GITHUB_STEP_SUMMARY", "/dev/null"), "a").write("\n\n".join(out))
