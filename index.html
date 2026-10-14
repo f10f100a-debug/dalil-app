@@ -1063,7 +1063,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-settings">
       <div class="ev-push share-card">
         <span class="cp-ic" data-ico="send"></span>
-        <span><b>شارك دليل مع ربعك</b><small>رابط التطبيق مع طريقة تثبيته</small></span>
+        <span><b>شارك دليل مع ربعك</b><small id="shareAppSub">رابط التطبيق مع طريقة تثبيته</small></span>
         <button type="button" class="cp-btn cp-btn-gold" id="shareAppBtn">مشاركة</button>
       </div>
       <div class="section-title">المظهر</div>
@@ -4766,8 +4766,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
 
   // ---------- مشاركة التطبيق ----------
+  // بعد نشر دليل في App Store ضع رابطه هنا ليُشارك بدل صفحة التثبيت من Safari.
+  const APP_STORE_URL = '';
+  if(window.DALIL_NATIVE){
+    document.getElementById('shareAppSub').textContent = 'أرسل رابط دليل لأصحابك';
+    const sec = document.getElementById('diagSecure'); if(sec && sec.parentElement) sec.parentElement.style.display = 'none';
+  }
   document.getElementById('shareAppBtn').addEventListener('click', ()=>{
-    const url = new URL('welcome.html', location.href).href.split('?')[0];
+    const url = APP_STORE_URL || new URL('welcome.html', location.href).href.split('?')[0];
     const text = 'دليل — بوصلة البر: ترجع لسيارتك، وتعرف وين السيل الآن، بدون إنترنت. مجاني وبدون تسجيل 👇';
     if(navigator.share){ navigator.share({title:'دليل — بوصلة البر', text, url}).catch(()=>{}); return; }
     window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text + '\n' + url);
