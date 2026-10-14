@@ -4766,8 +4766,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
 
   // ---------- مشاركة التطبيق ----------
-  // بعد نشر دليل في App Store ضع رابطه هنا ليُشارك بدل صفحة التثبيت من Safari.
-  const APP_STORE_URL = '';
+  // داخل تطبيق الآيفون نشارك رابط دليل في App Store (رقم التطبيق من App Store Connect)؛
+  // ومن المتصفح تبقى صفحة الترحيب كما هي.
+  const APP_STORE_URL = window.DALIL_NATIVE ? 'https://apps.apple.com/sa/app/id6822651903' : '';
   if(window.DALIL_NATIVE){
     document.getElementById('shareAppSub').textContent = 'أرسل رابط دليل لأصحابك';
     const sec = document.getElementById('diagSecure'); if(sec && sec.parentElement) sec.parentElement.style.display = 'none';
