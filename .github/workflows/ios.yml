@@ -1,7 +1,7 @@
 # بناء تطبيق دليل للآيفون على أجهزة Mac سحابية من GitHub، ورفعه إلى TestFlight.
 # - كل دفع (push) يغيّر مجلد native/ أو هذا الملف: بناء تجريبي بدون توقيع للتأكد أن المشروع سليم.
 # - التشغيل اليدوي (Actions → iOS → Run workflow) مع خيار "upload": بناء موقّع ورفعه إلى App Store Connect.
-#   يحتاج أسرار المستودع: APPLE_TEAM_ID و ASC_KEY_ID و ASC_ISSUER_ID و ASC_KEY_P8_BASE64.
+#   يحتاج أسرار المستودع: APPLE_TEAM_ID و ASC_KEY_ID و ASC_ISSUER_ID و ASC_KEY_P8 (نص ملف .p8 كما هو).
 name: iOS
 
 on:
@@ -110,14 +110,15 @@ jobs:
           TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
         run: |
           set -e
           for v in TEAM_ID KEY_ID ISSUER_ID KEY_P8; do
             if [ -z "${!v}" ]; then echo "::error::السر $v غير موجود في إعدادات المستودع (Settings → Secrets → Actions)"; exit 1; fi
           done
           KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
-          echo "$KEY_P8" | base64 --decode > "$KEY_PATH"
+          # يقبل نص الملف كما هو (BEGIN PRIVATE KEY) أو بصيغة Base64
+          if printf '%s' "$KEY_P8" | grep -q "BEGIN PRIVATE KEY"; then printf '%s\n' "$KEY_P8" > "$KEY_PATH"; else printf '%s' "$KEY_P8" | base64 --decode > "$KEY_PATH"; fi
           echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
