@@ -1,0 +1,15 @@
+{
+  "appId": "com.alluhaybi.dalil",
+  "appName": "دليل",
+  "webDir": "www",
+  "backgroundColor": "#F2EFE9",
+  "server": {
+    "url": "https://f10f100a-debug.github.io/dalil-app/",
+    "errorPath": "offline.html"
+  },
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": true,
+    "backgroundColor": "#F2EFE9"
+  }
+}
