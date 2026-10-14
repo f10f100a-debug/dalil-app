@@ -104,6 +104,42 @@ jobs:
             build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E "error:|warning: .*fail" "$RUNNER_TEMP/build.log" | head -20; echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/build.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build.log"
 
+      - name: Verify App Store Connect key
+        if: env.DO_UPLOAD == 'true'
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          # فحص المفتاح قبل البناء: يطبع الشكل فقط (بدون القيم السرية) ونتيجة الاتصال بأبل
+          python3 -m pip install --quiet --break-system-packages pyjwt cryptography >/dev/null 2>&1 || python3 -m pip install --quiet pyjwt cryptography
+          python3 - <<'PY'
+          import os, re, time, base64, json, urllib.request, urllib.error, jwt
+          kid=os.environ["KEY_ID"].strip(); iss=os.environ["ISSUER_ID"].strip(); raw=os.environ["KEY_P8"]
+          if "BEGIN PRIVATE KEY" not in raw:
+              try: raw=base64.b64decode(raw).decode()
+              except Exception: pass
+          notes=[]
+          notes.append(f"KEY_ID: {len(kid)} chars, {'OK' if re.fullmatch(r'[A-Z0-9]{10}',kid) else 'BAD format (expected 10 uppercase letters/digits)'}")
+          notes.append(f"ISSUER_ID: {'OK uuid' if re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',iss) else 'BAD format (expected uuid)'}")
+          notes.append(f"P8: {'has BEGIN/END' if ('BEGIN PRIVATE KEY' in raw and 'END PRIVATE KEY' in raw) else 'MISSING BEGIN/END lines'}")
+          status="not tried"
+          try:
+              tok=jwt.encode({"iss":iss,"iat":int(time.time()),"exp":int(time.time())+600,"aud":"appstoreconnect-v1"},raw,algorithm="ES256",headers={"kid":kid,"typ":"JWT"})
+              req=urllib.request.Request("https://api.appstoreconnect.apple.com/v1/apps?fields[apps]=bundleId,name",headers={"Authorization":"Bearer "+tok})
+              try:
+                  r=urllib.request.urlopen(req,timeout=30); d=json.load(r)
+                  status="HTTP 200 apps="+",".join(a["attributes"]["bundleId"] for a in d.get("data",[]))
+              except urllib.error.HTTPError as e:
+                  status=f"HTTP {e.code} {e.read()[:300].decode(errors='ignore')}"
+          except Exception as e:
+              status="key error: "+type(e).__name__+" "+str(e)[:150]
+          msg=" | ".join(notes+["Apple API: "+status])
+          print(msg)
+          print(("::notice::" if status.startswith("HTTP 200") else "::error::")+msg)
+          if not status.startswith("HTTP 200"): raise SystemExit(1)
+          PY
+
       - name: Archive (signed)
         if: env.DO_UPLOAD == 'true'
         env:
