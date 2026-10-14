@@ -970,7 +970,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.
       </div>
       <div class="banner" style="margin-top:-4px;margin-bottom:8px;font-size:11px;line-height:1.65;">
-        📱 لتسجيل موثوق على iPhone أبقِ «دليل» ظاهرًا أثناء الحركة؛ سيحاول التطبيق منع نوم الشاشة ويحفظ نسخة استرداد تلقائيًا. الانتقال لتطبيق آخر يوقف GPS في تطبيقات الويب بأمر من iOS.
+        📱 لتسجيل موثوق على iPhone أبقِ «دليل» ظاهرًا أثناء الحركة؛ سيحاول التطبيق منع نوم الشاشة ويحفظ نسخة استرداد تلقائيًا. الانتقال لتطبيق آخر أو قفل الشاشة يوقف GPS مؤقتًا (قيود iOS).
       </div>
       <div class="btn-row">
         <button class="btn btn-primary" id="trackToggleBtn">▶ بدء تسجيل مسار جديد</button>
@@ -3334,7 +3334,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         }
         if(/\.map$/.test(name)){
           const head = await file.slice(0, 64).text();
-          if(/^mapsforge binary/i.test(head)){ notes.push('«' + file.name + '» خريطة Mapsforge خاصة بتطبيقات أندرويد ولا تُقرأ هنا؛ استخدم خريطة البر في دليل أو MBTiles'); failed++; continue; }
+          if(/^mapsforge binary/i.test(head)){ notes.push('«' + file.name + '» خريطة Mapsforge لا تُقرأ في دليل؛ استخدم خريطة البر في دليل أو MBTiles'); failed++; continue; }
           const MI = await loadMI(), text = await file.text(), om = MI.parseOziMap(text);
           let img = findFile(om.image);
           if(!img){ const st = om.image.toLowerCase().replace(/\.[^.]+$/, ''); img = files.find(f=>!used.has(f) && IMG_RE.test(f.name.toLowerCase()) && (f.name.toLowerCase().startsWith(st + '.') || f.name.toLowerCase().startsWith(name.replace(/\.map$/, '') + '.'))); }
@@ -3781,7 +3781,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return;
     }
     if(/maps\.app\.goo\.gl|goo\.gl\/maps/.test(text)){
-      resultEl.innerHTML = `⚠️ هذا رابط مختصر، لا يمكن فك تشفيره داخل هذا النموذج التجريبي. الصق الرابط الكامل (طويل) أو نص الإحداثيات مباشرة.`;
+      resultEl.innerHTML = `⚠️ هذا رابط مختصر، لا يمكن فتحه بدون إنترنت. الصق الرابط الكامل (طويل) أو نص الإحداثيات مباشرة.`;
     } else {
       resultEl.innerHTML = `لم يتم العثور على إحداثيات صالحة بعد.`;
     }
