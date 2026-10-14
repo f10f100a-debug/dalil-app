@@ -1,0 +1,158 @@
+# بناء تطبيق دليل للآيفون على أجهزة Mac سحابية من GitHub، ورفعه إلى TestFlight.
+# - كل دفع (push) يغيّر مجلد native/ أو هذا الملف: بناء تجريبي بدون توقيع للتأكد أن المشروع سليم.
+# - التشغيل اليدوي (Actions → iOS → Run workflow) مع خيار "upload": بناء موقّع ورفعه إلى App Store Connect.
+#   يحتاج أسرار المستودع: APPLE_TEAM_ID و ASC_KEY_ID و ASC_ISSUER_ID و ASC_KEY_P8_BASE64.
+name: iOS
+
+on:
+  push:
+    paths:
+      - "native/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: "ارفع النسخة إلى TestFlight"
+        type: boolean
+        default: true
+      version:
+        description: "رقم الإصدار الظاهر للمستخدم"
+        type: string
+        default: "1.0"
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      MARKETING_VERSION: ${{ inputs.version || '1.0' }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      DO_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && inputs.upload }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            native
+            .github
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Select Xcode
+        run: |
+          # أبل تشترط البناء بأحدث SDK، فنختار أحدث Xcode مستقر على الجهاز السحابي
+          ls -d /Applications/Xcode_*.app
+          XCODE="$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|rc' | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          echo "::notice::$(xcodebuild -version | paste -sd ' ' -) — iOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Install Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Generate iOS project
+        run: |
+          # نعرض آخر سطور الخطأ كتنبيه حتى يُقرأ من صفحة التشغيل
+          run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
+          run_logged npx cap --version
+          run_logged npx cap add ios
+          run_logged npx cap sync ios
+
+      - name: Icon, splash and Info.plist
+        run: |
+          set -e
+          XC=ios/App/App/Assets.xcassets
+          # الأيقونة (1024 بلا شفافية) تحل محل أيقونة Capacitor الافتراضية
+          ICONSET="$XC/AppIcon.appiconset"
+          for f in "$ICONSET"/*.png; do cp resources/icon-1024.png "$f"; done
+          # شاشة البداية بلون دليل
+          for f in "$XC"/Splash.imageset/*.png; do cp resources/splash-2732x2732.png "$f"; done
+
+          P=ios/App/App/Info.plist
+          PB=/usr/libexec/PlistBuddy
+          set_str () { $PB -c "Delete :$1" "$P" 2>/dev/null || true; $PB -c "Add :$1 string $2" "$P"; }
+          set_str CFBundleDisplayName "دليل"
+          set_str CFBundleDevelopmentRegion "ar"
+          set_str NSLocationWhenInUseUsageDescription "يستخدم دليل موقعك لعرضه على الخريطة وتشغيل البوصلة والتوجيه وتسجيل مسارك. موقعك يبقى في جوالك."
+          set_str NSMotionUsageDescription "يستخدم دليل مستشعرات الحركة لتشغيل البوصلة وتحديد اتجاهك."
+          set_str NSCameraUsageDescription "لالتقاط صورة حدث (سيل أو مطر) ونشرها لمستخدمي منطقتك إن اخترت ذلك."
+          set_str NSPhotoLibraryUsageDescription "لاختيار صورة حدث من ألبومك أو استيراد ملفات خرائطك."
+          $PB -c "Delete :ITSAppUsesNonExemptEncryption" "$P" 2>/dev/null || true
+          $PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$P"
+          # النطاق الوحيد الذي يعمل داخله التطبيق (يسمح بعمل Service Worker والخرائط بدون إنترنت)
+          $PB -c "Delete :WKAppBoundDomains" "$P" 2>/dev/null || true
+          $PB -c "Add :WKAppBoundDomains array" "$P"
+          $PB -c "Add :WKAppBoundDomains:0 string f10f100a-debug.github.io" "$P"
+          plutil -lint "$P"
+
+      - name: Build check (unsigned)
+        if: env.DO_UPLOAD != 'true'
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            TARGETED_DEVICE_FAMILY=1 CODE_SIGNING_ALLOWED=NO \
+            build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E "error:|warning: .*fail" "$RUNNER_TEMP/build.log" | head -20; echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/build.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build.log"
+
+      - name: Archive (signed)
+        if: env.DO_UPLOAD == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -e
+          for v in TEAM_ID KEY_ID ISSUER_ID KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::السر $v غير موجود في إعدادات المستودع (Settings → Secrets → Actions)"; exit 1; fi
+          done
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          echo "$KEY_P8" | base64 --decode > "$KEY_PATH"
+          echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Dalil.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            TARGETED_DEVICE_FAMILY=1 \
+            archive > "$RUNNER_TEMP/archive.log" 2>&1 || { echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/archive.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/archive.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/archive.log"
+
+      - name: Upload to TestFlight
+        if: env.DO_UPLOAD == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -e
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Dalil.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID"
+          echo "✅ رُفعت النسخة $MARKETING_VERSION ($BUILD_NUMBER) إلى App Store Connect — تظهر في TestFlight بعد المعالجة (10–30 دقيقة)."
