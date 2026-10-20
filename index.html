@@ -4122,6 +4122,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     trackToolsToggle.setAttribute('aria-expanded',String(open));
     trackToolsToggle.textContent=open?'⌄ إخفاء أدوات المسار':'⌃ تسجيل المسار وأدواته';
   });
+  // الخريطة تملأ المساحة المتاحة فوق زر الأدوات بالضبط (بدل ارتفاع تقريبي يترك فراغًا أسفلها)
+  function fitTrackMap(){
+    const scr = document.getElementById('screen-track'), f = document.getElementById('trackMapFrame'), bar = document.querySelector('.tabbar');
+    if(!scr || !scr.classList.contains('active') || !f || !bar) return;
+    const scrolled = window.scrollY || 0;
+    const frameTop = f.getBoundingClientRect().top + scrolled;   // موضعها والصفحة في الأعلى
+    const h = Math.max(320, Math.round(bar.getBoundingClientRect().top - frameTop - trackToolsToggle.offsetHeight - 30));
+    if(Math.abs((parseFloat(f.style.height) || 0) - h) > 2) f.style.height = h + 'px';
+  }
+  window.addEventListener('resize', ()=>setTimeout(fitTrackMap, 60));
+  document.querySelectorAll('.tab[data-screen]').forEach(t=>t.addEventListener('click', ()=>{ if(t.dataset.screen === 'track') requestAnimationFrame(()=>requestAnimationFrame(fitTrackMap)); }));
+  setTimeout(fitTrackMap, 300);
 
   function fmtDuration(ms){
     const s = Math.floor(ms/1000);
