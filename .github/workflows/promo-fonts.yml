@@ -10,6 +10,8 @@ jobs:
           for w in Regular Medium SemiBold Bold; do curl -sfL -o IBMPlexSansArabic-$w.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-$w.ttf" || echo "miss $w"; done
           for w in Regular Medium Bold ExtraBold Black; do curl -sfL -o Tajawal-$w.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-$w.ttf" || echo "miss $w"; done
           curl -sfL -o ReemKufi.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/reemkufi/ReemKufi%5Bwght%5D.ttf" || echo miss reem
+          pip install --quiet qrcode
+          python3 -c "import qrcode,qrcode.image.svg;qrcode.make('https://apps.apple.com/sa/app/id6822651903',image_factory=qrcode.image.svg.SvgPathImage,box_size=10,border=1).save('qr-appstore.svg')"
           ls -la
           git init -q && git checkout -q -b promo-fonts && git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm fonts && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" promo-fonts
