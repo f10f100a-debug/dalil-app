@@ -5,6 +5,7 @@ on:
     inputs:
       version: { description: "رقم الإصدار", type: string, default: "1.1" }
       build: { description: "رقم البناء", type: string, default: "" }
+      beta_only: { description: "فحص TestFlight فقط", type: boolean, default: false }
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -19,4 +20,4 @@ jobs:
           KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
-        run: python3 tools/asc/prepare_version.py
+        run: if [ "${{ inputs.beta_only }}" = "true" ]; then python3 tools/asc/beta_check.py; else python3 tools/asc/prepare_version.py; fi
