@@ -492,6 +492,30 @@
   .rm-play{min-width:44px; height:34px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--text); font:inherit; font-size:12.5px; cursor:pointer}
   .rm-v.playing .rm-play{background:var(--sand); color:#1C1A17}
   .rm-foot[hidden]{display:none}
+  .rm-info{gap:12px}
+  .rm-sosnote{background:var(--cp-red-bg); color:var(--cp-red); border-color:#EFCFC9}
+  .rm-radar{display:block; position:relative; width:100%; padding:0; border:1px solid var(--line); background:var(--panel-2); border-radius:18px; cursor:pointer; overflow:hidden; min-height:120px; font:inherit; color:var(--text)}
+  .rm-radar svg{display:block; width:100%; height:auto}
+  .rr-ring{fill:none; stroke:var(--line); stroke-width:1.3}
+  .rr-lab{font-size:10px; fill:var(--text-faint); direction:ltr}
+  .rr-n{font-size:12px; font-weight:800; fill:#C0392B; text-anchor:middle}
+  .rr-ch{font-size:12px; font-weight:800; fill:#fff; text-anchor:middle}
+  .rr-flag{font-size:16px; text-anchor:middle}
+  .rr-me{fill:#2688ff; stroke:#fff; stroke-width:3}
+  .rr-stale{opacity:.45}
+  .rr-sos{fill:rgba(192,57,43,.35); animation:rmBlink 1s ease-in-out infinite}
+  @keyframes rmBlink{50%{opacity:.2}}
+  .rm-radar-go{position:absolute; top:8px; left:8px; display:inline-flex; align-items:center; gap:4px; font-size:12px; font-weight:700; color:var(--sand-dim); background:var(--panel); border:1px solid var(--line); border-radius:100px; padding:3px 10px}
+  .rm-radar-go svg{width:14px; height:14px}
+  .rm-radar-wait{display:block; padding:44px 12px; text-align:center; font-size:13px; color:var(--text-dim)}
+  .rm-radar-wait.bottom{position:absolute; inset:auto 0 6px; padding:0; font-size:12px}
+  .rm-rally.empty{background:var(--panel-2); border-color:var(--line); margin-top:14px; padding:8px 12px}
+  .rm-rally.empty b{font-size:13.5px}
+  .rm-invite{display:flex; align-items:center; gap:10px; margin-top:14px; padding:10px 12px; border:1px solid var(--line); background:var(--panel-2); border-radius:16px}
+  .rm-invite .grow{flex:1; min-width:0}
+  .rm-invite small{display:block; font-size:11.5px; color:var(--text-dim)}
+  .rm-invite .cp-btn{width:auto; min-height:44px; padding:0 14px; font-size:14px}
+  .rm-leave{display:block; margin:4px auto 6px; border:0; background:none; color:var(--danger); font:inherit; font-size:13.5px; font-weight:600; text-decoration:underline; cursor:pointer; padding:8px}
   .rm-foot{border-top:1px solid var(--line); padding:12px 0 calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center}
   .rm-ptt{flex:1; min-height:64px; border-radius:22px; border:0; background:var(--sand); color:#1C1A17; font:inherit; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:8px;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:none; cursor:pointer}
@@ -611,26 +635,28 @@
     const room = R.room || {};
     $('rmTitle').textContent = room.name || 'غرفة الرحلة';
     const left = room.expires_at ? Math.max(0, (new Date(room.expires_at) - Date.now()) / 3600e3) : null;
+    const nm = R.members.size;
     $('rmBody').innerHTML = `
       <div class="rm-info">
         <span class="rm-live" id="rmLive"><i></i><span></span></span>
-        <span>رقم الغرفة <span class="rm-code">${esc(R.sess.code)}</span></span>
+        <span id="rmCount">${nm} ${nm === 1 ? 'عضو' : nm === 2 ? 'عضوان' : nm <= 10 ? 'أعضاء' : 'عضوًا'}</span>
         ${left != null ? `<span>تنتهي بعد ${left >= 1 ? Math.floor(left) + ' س' : Math.ceil(left * 60) + ' د'}</span>` : ''}
-        <button class="rm-chip" type="button" data-rm="share">دعوة أصحابك</button>
       </div>
-      ${R.mySos ? `<div class="rm-note" style="background:var(--cp-red-bg);color:var(--cp-red);border-color:#EFCFC9"><b>🆘 استغاثتك مرسلة</b> — يتجدد موقعك للأعضاء كل 20 ثانية. اضغط زر «استغاثة» للإلغاء.</div>` : ''}
-      <div class="rm-title">نقطة التجمع</div>
-      <div id="rmRally"></div>
+      ${R.mySos ? `<div class="rm-note rm-sosnote"><b>🆘 استغاثتك مرسلة</b> — يتجدد موقعك للأعضاء كل 20 ثانية. اضغط «إلغاء» بالأسفل لإيقافها.</div>` : ''}
+      <button type="button" class="rm-radar" data-rm="map" aria-label="عرض الأعضاء على الخريطة" id="rmRadar"></button>
       <div class="rm-title" id="rmMemTitle">الأعضاء</div>
       <div id="rmMembers"></div>
       <div class="rm-title">الرسائل الصوتية</div>
       <div id="rmVoice"></div>
-      <div class="cp-btn-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
-        <button class="cp-btn cp-btn-white" type="button" data-rm="map"><span class="cp-ic">${ico('map')}</span>على الخريطة</button>
-        <button class="cp-btn cp-btn-danger" type="button" data-rm="leave">مغادرة الغرفة</button>
+      <div id="rmRally"></div>
+      <div class="rm-invite">
+        <div class="grow"><small>رقم الغرفة</small><b class="rm-code">${esc(R.sess.code)}</b></div>
+        <div class="grow"><small>الرمز السري</small><b class="rm-code">${esc(R.sess.pin || '••••')}</b></div>
+        <button class="cp-btn cp-btn-gold" type="button" data-rm="share">دعوة أصحابك</button>
       </div>
-      <div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية.</div>`;
-    renderRally(); renderMembers(); renderVoice(); renderStatus(); renderPtt();
+      <div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية.</div>
+      <button type="button" class="rm-leave" data-rm="leave">مغادرة الغرفة</button>`;
+    renderRadar(); renderRally(); renderMembers(); renderVoice(); renderStatus(); renderPtt();
     $('rmSos').classList.toggle('on', !!R.mySos);
     $('rmSos').textContent = R.mySos ? 'إلغاء' : 'استغاثة';
   }
@@ -642,22 +668,55 @@
   function renderRally(){
     const el = $('rmRally'); if(!el) return;
     if(!R.rally){
-      el.innerHTML = `<div class="rm-rally"><div class="grow"><b>لم تُحدَّد بعد</b><small>أي عضو يقدر يحددها، وآخر تحديد هو المعتمد</small></div>
+      el.innerHTML = `<div class="rm-rally empty"><span>🚩</span><div class="grow"><b>نقطة التجمع</b><small>لم تُحدَّد — أي عضو يقدر يحددها</small></div>
         <button class="rm-chip" type="button" data-rm="rally-set">حدّدها</button></div>`;
       return;
     }
     const a = B.getPos(), d = a ? B.haversine(a.lat, a.lng, R.rally.lat, R.rally.lng) : null;
-    el.innerHTML = `<div class="rm-rally"><span style="font-size:22px">🚩</span><div class="grow"><b>${esc(R.rally.label || 'نقطة التجمع')}</b>
-      <small>${d != null ? 'على بُعد ' + B.fmtDist(d) + ' · ' + B.directionWord(B.bearing(a.lat, a.lng, R.rally.lat, R.rally.lng)) + ' · ' : ''}حدّدها ${esc(R.rally.by || '')}</small></div>
+    el.innerHTML = `<div class="rm-title">نقطة التجمع</div><div class="rm-rally"><span style="font-size:22px">🚩</span><div class="grow"><b>${esc(R.rally.label || 'نقطة التجمع')}</b>
+      <small>${d != null ? B.fmtDist(d) + ' · ' + B.directionWord(B.bearing(a.lat, a.lng, R.rally.lat, R.rally.lng)) + ' · ' : ''}حدّدها ${esc(R.rally.by || '')}</small></div>
       <button class="rm-ib" type="button" data-rm="nav" data-id="rally" aria-label="توجّه لنقطة التجمع">${ico('nav')}</button>
       <button class="rm-ib" type="button" data-rm="rally-set" aria-label="تغيير نقطة التجمع">${ico('edit')}</button></div>`;
   }
+
+  // رادار: مواقع الأعضاء حولك (الشمال للأعلى) بحلقات مسافة تتكيّف تلقائيًا
+  function renderRadar(){
+    const el = $('rmRadar'); if(!el) return;
+    const a = B.getPos();
+    if(!a){ el.innerHTML = '<span class="rm-radar-wait">بانتظار موقعك لعرض الأعضاء حولك…</span>'; return; }
+    const pts = [];
+    for(const [id, m] of R.members){
+      if(id === me()) continue;
+      const p = R.pos.get(id); if(!p) continue;
+      pts.push({lat:p.lat, lng:p.lng, color:m.color, ch:(m.name || '؟').trim().charAt(0), stale:Date.now() - p.t > STALE_MS, sos:R.sos.has(id)});
+    }
+    if(R.rally) pts.push({lat:R.rally.lat, lng:R.rally.lng, rally:true});
+    const k = Math.cos(a.lat * Math.PI / 180);
+    pts.forEach(p=>{ p.dx = (p.lng - a.lng) * 111320 * k; p.dy = (p.lat - a.lat) * 110540; p.d = Math.hypot(p.dx, p.dy); });
+    const max = Math.max(60, ...pts.map(p=>p.d));
+    const steps = [20, 50, 100, 200, 250, 500, 1000, 2000, 2500, 5000, 10000, 20000, 25000, 50000, 100000, 200000, 500000];
+    const step = steps.find(v=>v * 3 >= max * 1.08) || steps[steps.length - 1];
+    const W = 340, H = 210, cx = W / 2, cy = H / 2, Rm = 92, sc = Rm / (step * 3);
+    const lab = v=>v >= 1000 ? (v / 1000) + ' كم' : v + ' م';
+    let svg = `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">`;
+    for(let i = 1; i <= 3; i++) svg += `<circle cx="${cx}" cy="${cy}" r="${Rm * i / 3}" class="rr-ring"/><text x="${cx + 4}" y="${cy - Rm * i / 3 + 11}" class="rr-lab">${lab(step * i)}</text>`;
+    svg += `<text x="${cx}" y="${cy - Rm - 4}" class="rr-n">ش</text>`;
+    // نقطة التجمع أولًا ثم الأعضاء فوقها
+    for(const p of pts.sort((x, y)=>(y.rally ? 1 : 0) - (x.rally ? 1 : 0))){
+      const x = cx + p.dx * sc, y = cy - p.dy * sc;
+      if(p.rally) svg += `<text x="${x}" y="${y + 6}" class="rr-flag">🚩</text>`;
+      else svg += `<g class="${p.stale ? 'rr-stale' : ''}">${p.sos ? `<circle cx="${x}" cy="${y}" r="17" class="rr-sos"/>` : ''}<circle cx="${x}" cy="${y}" r="12" fill="${esc(p.color)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 5}" class="rr-ch">${esc(p.ch)}</text></g>`;
+    }
+    svg += `<circle cx="${cx}" cy="${cy}" r="7" class="rr-me"/></svg><span class="rm-radar-go">${ico('map')}الخريطة</span>`;
+    if(!pts.some(p=>!p.rally)) svg += '<span class="rm-radar-wait bottom">بانتظار مواقع الأعضاء…</span>';
+    el.innerHTML = svg;
+  }
   let memTimer = null;
-  function renderMembersSoon(){ if(R.open && !memTimer) memTimer = setTimeout(()=>{ memTimer = null; renderMembers(); renderRally(); }, 700); }
+  function renderMembersSoon(){ if(R.open && !memTimer) memTimer = setTimeout(()=>{ memTimer = null; renderMembers(); renderRally(); renderRadar(); }, 700); }
   function renderMembers(){
     const el = $('rmMembers'); if(!el) return;
     const a = B.getPos(), list = [...R.members.values()];
-    $('rmMemTitle').textContent = 'الأعضاء (' + list.length + '/15)';
+    $('rmMemTitle').textContent = 'الأعضاء (' + list.length + '/15) · الأقرب أولًا';
     list.sort((x, y)=>(x.member_id === me() ? -1 : y.member_id === me() ? 1 : (distTo(x.member_id) ?? 1e12) - (distTo(y.member_id) ?? 1e12)));
     el.innerHTML = list.map(m=>{
       const mine = m.member_id === me(), p = R.pos.get(m.member_id), stale = p && Date.now() - p.t > STALE_MS;
@@ -681,7 +740,7 @@
   function renderVoiceSoon(){ if(!voiceTimer) voiceTimer = setTimeout(()=>{ voiceTimer = null; renderVoice(); }, 120); }
   function renderVoice(){
     const el = $('rmVoice'); if(!el) return;
-    const list = R.voice.slice(-10).reverse();
+    const list = R.voice.slice(-6).reverse();
     if(!list.length){ el.innerHTML = '<div class="rm-note" style="margin:0">لا توجد رسائل بعد. اضغط مطوّلًا على «اضغط وتكلّم» بالأسفل.</div>'; return; }
     el.innerHTML = list.map(v=>{
       const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = playing && playing.id === v.id;
