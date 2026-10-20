@@ -59,7 +59,9 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await fahd.evaluate(() => document.querySelector('#rmMembers').scrollIntoView({ block: 'start' })); await fahd.waitForTimeout(500);
   await shot(fahd, 'room-members');
   // الخريطة مع الأعضاء
-  await fahd.click('[data-rm="map"]'); await fahd.waitForTimeout(9000); await shot(fahd, 'room-map');
+  await fahd.click('[data-rm="map"]'); await fahd.waitForTimeout(6000);
+  for (const t of ['لاحقًا']) { await fahd.frameLocator('#trackMapFrame').getByText(t, { exact: true }).first().click({ timeout: 3000 }).catch(() => {}); }
+  await fahd.waitForTimeout(3000); await shot(fahd, 'room-map');
   // استغاثة من سعود
   await saud.locator('#rmSos').scrollIntoViewIfNeeded();
   const sb = await saud.locator('#rmSos').boundingBox();
@@ -67,6 +69,8 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await fahd.click('.tab[data-screen="compass"]'); await fahd.waitForTimeout(4000); await shot(fahd, 'room-sos');
   // التوجه إلى سعود بالبوصلة
   await fahd.click('#rmSosAlert [data-sos="go"]').catch(() => {}); await fahd.waitForTimeout(2500); await shot(fahd, 'compass-to-saud');
+  // إخفاء تنبيه الاستغاثة عند حمد قبل لقطات البحث والأجواء
+  await hamad.click('#rmSosAlert [data-sos="x"]').catch(() => {});
   // البحث عن محطة وقود
   await hamad.click('.tab[data-screen="places"]').catch(async () => { await hamad.evaluate(() => window.DalilRoom && DalilRoom.close()); await hamad.click('.tab[data-screen="places"]'); });
   await hamad.fill('#placeSearch', 'بنزين'); await hamad.waitForTimeout(3500); await shot(hamad, 'places-fuel');
