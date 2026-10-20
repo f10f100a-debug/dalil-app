@@ -3342,7 +3342,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     for(const file of files){
       if(/\.(pmtiles|mbtiles|sqlitedb|tiff?|geotiff|dlmap|zip)$/i.test(file.name) && file.size > freeBytes){
         notes.push('«' + file.name + '» (' + Math.round(file.size / 1048576) + ' ميقا) أكبر من المساحة المتاحة لدليل في جوالك الآن (' + Math.round(Math.max(0, freeBytes) / 1048576) + ' ميقا). وفّر مساحة ثم أعد المحاولة.');
-        skipped++; continue;
+        failed++; continue;
       }
       const name = file.name.toLowerCase(), base = fileBase(file.name);
       if(used.has(file)) continue;
@@ -3443,7 +3443,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(pts) parts.push(fmt(pts) + ' موقعًا');
       if(lines) parts.push(fmt(lines) + ' مسارًا');
       if(maps) parts.push(fmt(maps) + ' خريطة');
-      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (maps ? ' — تجدها في الخريطة ← زر الطبقات ← «خرائطي المستوردة» ← «اذهب إليها»' : '') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' : '') : notes.length ? 'تعذّر الاستيراد: ' + notes[0] : 'كل ما في الملف موجود مسبقًا');
+      toast(parts.length ? 'تمت إضافة ' + parts.join(' و') + (maps ? ' — تجدها في الخريطة ← زر الطبقات ← «خرائطي المستوردة» ← «اذهب إليها»' : '') + (skipped ? ' (تُرك ' + fmt(skipped) + ' طريقًا زائدًا)' : '') + (failed ? ' — تعذّر ' + fmt(failed) + ' ملف' + (notes.length ? ': ' + notes[0] : '') : '') : notes.length ? 'تعذّر الاستيراد: ' + notes[0] : 'كل ما في الملف موجود مسبقًا');
     }catch(err){
       toast('تعذّر الحفظ على الجهاز — قد تكون المساحة ممتلئة');
     }
