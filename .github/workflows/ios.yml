@@ -64,6 +64,9 @@ jobs:
           # نعرض آخر سطور الخطأ كتنبيه حتى يُقرأ من صفحة التشغيل
           run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
           run_logged npx cap --version
+          # رقم الإصدار في هوية المتصفح: الويب يفتح ميزات الإصدار الجديد (مثل غرفة الرحلة) حسبه
+          node -e 'const f="capacitor.config.json",c=require("./"+f);c.appendUserAgent="DalilApp/"+process.env.MARKETING_VERSION;require("fs").writeFileSync(f,JSON.stringify(c,null,2))'
+          echo "::notice::UserAgent DalilApp/$MARKETING_VERSION"
           run_logged npx cap add ios
           run_logged npx cap sync ios
 
@@ -82,9 +85,10 @@ jobs:
           set_str () { $PB -c "Delete :$1" "$P" 2>/dev/null || true; $PB -c "Add :$1 string $2" "$P"; }
           set_str CFBundleDisplayName "دليل"
           set_str CFBundleDevelopmentRegion "ar"
-          set_str NSLocationWhenInUseUsageDescription "يستخدم دليل موقعك لعرضه على الخريطة وتشغيل البوصلة والتوجيه وتسجيل مسارك. موقعك يبقى في جوالك."
+          set_str NSLocationWhenInUseUsageDescription "يستخدم دليل موقعك لعرضه على الخريطة وتشغيل البوصلة والتوجيه وتسجيل مسارك. لا يُشارَك إلا مع أعضاء غرفة رحلة تدخلها بنفسك."
           set_str NSMotionUsageDescription "يستخدم دليل مستشعرات الحركة لتشغيل البوصلة وتحديد اتجاهك."
           set_str NSCameraUsageDescription "لالتقاط صورة حدث (سيل أو مطر) ونشرها لمستخدمي منطقتك إن اخترت ذلك."
+          set_str NSMicrophoneUsageDescription "لإرسال رسائل صوتية لأعضاء غرفة الرحلة عند الضغط على «اضغط وتكلّم» فقط."
           set_str NSPhotoLibraryUsageDescription "لاختيار صورة حدث من ألبومك أو استيراد ملفات خرائطك."
           $PB -c "Delete :ITSAppUsesNonExemptEncryption" "$P" 2>/dev/null || true
           $PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$P"
