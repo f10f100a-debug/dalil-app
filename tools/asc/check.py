@@ -50,7 +50,7 @@ try:
     for p in pr.get("data", []):
         ids = [b["id"] for b in p.get("relationships", {}).get("builds", {}).get("data", [])]
         rows.append(p["attributes"].get("version") + ": " + ", ".join(f"{bmap[i].get('version')}={bmap[i].get('processingState')}" for i in ids if i in bmap))
-    note("TestFlight versions", " ; ".join(rows) or "none")
+    print("::warning::TestFlight versions: " + (" ; ".join(rows) or "none"))
 except Exception as e:
     note("TestFlight versions", "error " + str(e)[:200])
 want = os.environ.get("SET_BUILD", "").strip()
