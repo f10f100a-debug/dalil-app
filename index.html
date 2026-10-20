@@ -4652,14 +4652,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
   };
   // ---------- غرفة الرحلة (room.js يُحمَّل عند الحاجة) ----------
-  // تظهر في تطبيق الآيفون من الإصدار 1.1، وفي المتصفح عند فتح رابط دعوة (?room=) أو ?roombeta،
-  // حتى تعتمد أبل التحديث 1.1 ثم تُفتح للجميع.
   const roomQS = new URLSearchParams(location.search);
   const roomParam = (roomQS.get('room') || '').replace(/\D/g, '').slice(0, 6);
   const roomLs = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   if(roomParam || roomQS.has('roombeta')){ try{ localStorage.setItem('dalil_room_beta', '1'); }catch(e){} }
-  const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent)
-    || (!window.DALIL_NATIVE && (roomLs('dalil_room_beta') === '1' || !!roomLs('dalil_room_v1')));
+  // المتصفح: متاحة للجميع. تطبيق الآيفون: من 1.1 فقط (1.0 بلا إذن ميكروفون، والتسجيل فيه يُغلق التطبيق).
+  const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent) || !window.DALIL_NATIVE;
   let roomLoading = null;
   function loadRoom(){
     if(window.DalilRoom) return Promise.resolve(window.DalilRoom);
