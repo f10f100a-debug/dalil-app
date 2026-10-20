@@ -1,0 +1,15 @@
+name: Rooms self-test
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["tools/rooms/**", "supabase/functions/dalil-rooms/**"]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node tools/rooms/selftest.mjs
