@@ -112,6 +112,7 @@ Deno.serve(async (req) => {
     const NEED: Record<string, string[]> = {
       list: ["moderate", "publish", "push"], approve: ["moderate"], reject: ["moderate"], restore: ["moderate"],
       publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
+      room_reports: ["moderate"], room_report_close: ["moderate"],
     };
     if (NEED[action] && !NEED[action].some(can)) return forbidden();
     if (["admins_list", "admin_save", "admin_delete", "log"].includes(action) && !isOwner) return forbidden();
@@ -359,6 +360,43 @@ Deno.serve(async (req) => {
       if (ad?.image_path) await sb.storage.from("ads").remove([ad.image_path]);
       await sb.from("ads").delete().eq("id", id);
       await log("ad_delete", id.slice(0, 8));
+      return json(req, { ok: true });
+    }
+
+    // بلاغات غرفة الرحلة: الاستماع للتسجيل، ثم إغلاق البلاغ مع منع اختياري للمخالف
+    if (action === "room_reports") {
+      const { data, error } = await sb.from("room_reports").select("id,created_at,room_code,target_name,reason,voice_path,target_ip,status")
+        .eq("status", "open").order("created_at", { ascending: true }).limit(100);
+      if (error) throw error;
+      const rows = data || [];
+      const paths = rows.map((r) => r.voice_path).filter(Boolean) as string[];
+      let signed: Record<string, string> = {};
+      if (paths.length) {
+        const { data: urls } = await sb.storage.from("room-voice").createSignedUrls(paths, 3600);
+        signed = Object.fromEntries((urls || []).filter((u) => u.signedUrl).map((u) => [u.path, u.signedUrl]));
+      }
+      const ips = [...new Set(rows.map((r) => r.target_ip).filter(Boolean))] as string[];
+      const counts: Record<string, number> = {};
+      if (ips.length) {
+        const { data: all } = await sb.from("room_reports").select("target_ip").in("target_ip", ips).limit(5000);
+        (all || []).forEach((r) => { counts[r.target_ip] = (counts[r.target_ip] || 0) + 1; });
+      }
+      return json(req, { reports: rows.map(({ target_ip, voice_path, ...r }) => ({ ...r, voice_url: voice_path ? signed[voice_path] || null : null, total_reports: target_ip ? counts[target_ip] || 1 : 1, can_ban: !!target_ip })) });
+    }
+
+    if (action === "room_report_close" && validId) {
+      const { data: r } = await sb.from("room_reports").select("id,target_ip,target_name,voice_path").eq("id", id).maybeSingle();
+      if (!r) return json(req, { ok: true });
+      const days = Number(body.ban_days);
+      if (body.ban && r.target_ip) {
+        const until = Number.isFinite(days) && days > 0 ? new Date(Date.now() + days * 86400e3).toISOString() : null;
+        await sb.from("room_bans").upsert({ ip_hash: r.target_ip, reason: cleanText(body.note, 200) || "بلاغ غرفة رحلة", until });
+        // يخرج من كل الغرف الحالية فورًا
+        await sb.from("room_members").update({ kicked: true }).eq("ip_hash", r.target_ip).eq("kicked", false);
+      }
+      if (r.voice_path) await sb.storage.from("room-voice").remove([r.voice_path]);
+      await sb.from("room_reports").update({ status: body.ban ? "banned" : "dismissed", voice_path: null }).eq("id", id);
+      await log(body.ban ? "room_ban" : "room_report_dismiss", (r.target_name || "") + (body.ban ? ` (${Number.isFinite(days) && days > 0 ? days + " يوم" : "دائم"})` : ""));
       return json(req, { ok: true });
     }
 

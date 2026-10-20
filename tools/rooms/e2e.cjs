@@ -1,0 +1,128 @@
+// اختبار واجهة غرفة الرحلة بمتصفحين حقيقيين (Playwright) ضد خادم Supabase الفعلي.
+// يشغَّل في GitHub Actions: يخدم المستودع على localhost:8765 ثم يحاكي مستخدمَين.
+const { chromium } = require('playwright');
+const fs = require('fs');
+const OUT = process.env.SHOTS || 'shots';
+fs.mkdirSync(OUT, { recursive: true });
+let fails = 0;
+const ok = (c, msg) => { console.log(c ? `::notice::✓ ${msg}` : `::error::✗ ${msg}`); if (!c) fails++; };
+
+async function user(browser, name, lat, lng) {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ar-SA',
+    geolocation: { latitude: lat, longitude: lng }, permissions: ['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'] });
+  const p = await ctx.newPage();
+  p.errors = [];
+  p.on('pageerror', e => p.errors.push(e.message));
+  p.on('console', m => { if (m.type() === 'error' && !/pmtiles|Byte Serving|tile|Failed to load resource/i.test(m.text())) p.errors.push(m.text()); });
+  await p.goto('http://localhost:8765/index.html?roombeta=1');
+  await p.waitForTimeout(1500);
+  if (await p.isVisible('#onboardBtn')) await p.click('#onboardBtn');
+  await p.waitForTimeout(1500);
+  await p.click('#roomBtn');
+  await p.waitForSelector('#rmName');
+  await p.fill('#rmName', name);
+  p.label = name;
+  return p;
+}
+const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
+
+(async () => {
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required'] });
+  const A = await user(browser, 'أحمد', 27.5200, 41.6900);
+  const B = await user(browser, 'بدر', 27.5530, 41.7150);   // ~4.4 كم: يجب أن يظهر تنبيه القافلة
+
+  // إنشاء الغرفة
+  await A.click('[data-rm="tab-create"]');
+  await A.fill('#rmName', 'أحمد');
+  await A.fill('#rmTrip', 'كشتة الاختبار');
+  await A.fill('#rmPin', '4321');
+  await A.check('#rmTerms');
+  await A.click('#rmGo');
+  await A.waitForSelector('.rm-code', { timeout: 15000 }).catch(() => {});
+  const code = (await A.textContent('.rm-code').catch(() => '')) || '';
+  ok(/^\d{6}$/.test(code.trim()), `room created code=${code}`);
+  await A.waitForTimeout(2500);
+  await shot(A, '1-A-created');
+
+  // دخول B
+  await B.fill('#rmCode', code.trim());
+  await B.fill('#rmPin', '4321');
+  await B.check('#rmTerms');
+  await B.click('#rmGo');
+  await B.waitForSelector('.rm-code', { timeout: 15000 }).catch(() => {});
+  await B.waitForTimeout(9000);
+  const aMem = await A.textContent('#rmMembers').catch(() => '');
+  const bMem = await B.textContent('#rmMembers').catch(() => '');
+  ok(aMem.includes('بدر') && /كم|م ·/.test(aMem), `A sees B with distance: ${aMem.replace(/\s+/g, ' ').slice(0, 120)}`);
+  ok(bMem.includes('أحمد'), `B sees A`);
+  ok(/بعيد عن القافلة/.test(aMem), 'convoy lag shown');
+  ok((await A.textContent('#rmLive')).includes('متصل'), 'A realtime connected');
+  await shot(A, '2-A-members'); await shot(B, '2-B-members');
+
+  // صوت: B يضغط مطوّلًا 2.5 ثانية
+  const box = await B.locator('#rmPtt').boundingBox();
+  await B.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await B.mouse.down();
+  await B.waitForTimeout(1200);
+  await shot(B, '3-B-recording');
+  await B.waitForTimeout(1500);
+  await B.mouse.up();
+  await B.waitForTimeout(6000);
+  const aVoice = await A.textContent('#rmVoice').catch(() => '');
+  ok(aVoice.includes('بدر'), `A received voice: ${aVoice.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await shot(A, '3-A-voice');
+
+  // نقطة التجمع من A
+  await A.click('[data-rm="rally-set"]');
+  await A.click('[data-mm="rally-here"]');
+  await B.waitForTimeout(3000);
+  const bRally = await B.textContent('#rmRally').catch(() => '');
+  ok(bRally.includes('أحمد'), `B sees rally: ${bRally.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await shot(B, '4-B-rally');
+
+  // التوجّه لعضو بالبوصلة
+  await B.click(`#rmMembers [data-rm="nav"]`);
+  await B.waitForTimeout(1500);
+  await shot(B, '5-B-compass-nav');
+
+  // الخريطة
+  await B.click('#roomBtn');
+  await B.click('[data-rm="map"]');
+  await B.waitForTimeout(6000);
+  await shot(B, '6-B-map');
+
+  // استغاثة من A (ضغط مطوّل)
+  const sb = await A.locator('#rmSos').boundingBox();
+  await A.mouse.move(sb.x + sb.width / 2, sb.y + sb.height / 2);
+  await A.mouse.down(); await A.waitForTimeout(1400); await A.mouse.up();
+  await B.waitForTimeout(3000);
+  ok(await B.isVisible('#rmSosAlert.show'), 'B got SOS alert');
+  await shot(B, '7-B-sos');
+  await shot(A, '7-A-sos');
+
+  // خيارات العضو (كتم/بلاغ) — نعرض القائمة فقط
+  await A.click('#rmMembers [data-rm="menu"]');
+  await A.waitForTimeout(500);
+  await shot(A, '8-A-member-menu');
+  await A.click('[data-mm="x"]');
+
+  // إعادة فتح الصفحة: تُستعاد الغرفة تلقائيًا
+  await A.reload(); await A.waitForTimeout(3000);
+  if (await A.isVisible('#onboardBtn')) await A.click('#onboardBtn');
+  await A.waitForTimeout(2000);
+  ok((await A.textContent('#roomBtn')).includes('في الغرفة'), 'session restored after reload');
+
+  // مغادرة
+  for (const p of [A, B]) {
+    p.once('dialog', d => d.accept());
+    await p.click('#roomBtn'); await p.waitForTimeout(800);
+    p.once('dialog', d => d.accept());
+    await p.click('[data-rm="leave"]').catch(() => {});
+    await p.waitForTimeout(1000);
+  }
+  await shot(A, '9-A-left');
+  for (const p of [A, B]) ok(p.errors.length === 0, `${p.label} no JS errors ${p.errors.slice(0, 3).join(' | ')}`);
+  await browser.close();
+  console.log(`::notice::E2E fails=${fails}`);
+  process.exit(fails ? 1 : 0);
+})().catch(e => { console.log('::error::' + e.message.split('\n')[0]); process.exit(1); });

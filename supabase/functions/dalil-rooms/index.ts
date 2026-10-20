@@ -27,13 +27,18 @@ async function activeMembers(sb: SupabaseClient, roomId: string) {
   return data || [];
 }
 
-async function newMember(sb: SupabaseClient, roomId: string, name: string) {
+async function banned(sb: SupabaseClient, ip: string) {
+  const { data } = await sb.from("room_bans").select("until").eq("ip_hash", ip).maybeSingle();
+  return !!data && (!data.until || new Date(data.until).getTime() > Date.now());
+}
+
+async function newMember(sb: SupabaseClient, roomId: string, name: string, ip: string) {
   const members = await activeMembers(sb, roomId);
   if (members.length >= MAX_MEMBERS) return null;
   const used = new Set(members.map((m) => m.color));
   const color = COLORS.find((c) => !used.has(c)) || COLORS[members.length % COLORS.length];
   const memberId = rnd(9), token = rnd(24);
-  const { error } = await sb.from("room_members").insert({ room_id: roomId, member_id: memberId, token_hash: await sha(token), name, color });
+  const { error } = await sb.from("room_members").insert({ room_id: roomId, member_id: memberId, token_hash: await sha(token), name, color, ip_hash: ip });
   if (error) throw error;
   return { member_id: memberId, token, color };
 }
@@ -61,6 +66,11 @@ async function cleanupRooms(sb: SupabaseClient) {
     const { data: rest } = await sb.from("room_voice").select("path").eq("room_id", r.id);
     if (rest?.length) await sb.storage.from("room-voice").remove(rest.map((c) => c.path));
     await sb.from("rooms").delete().eq("id", r.id);
+  }
+  const { data: oldRep } = await sb.from("room_reports").select("id,voice_path").not("voice_path", "is", null).lt("created_at", new Date(Date.now() - 30 * 86400e3).toISOString()).limit(200);
+  if (oldRep?.length) {
+    await sb.storage.from("room-voice").remove(oldRep.map((r) => r.voice_path));
+    await sb.from("room_reports").update({ voice_path: null }).in("id", oldRep.map((r) => r.id));
   }
   await sb.from("room_attempts").delete().lt("created_at", new Date(Date.now() - 86400e3).toISOString());
 }
@@ -126,6 +136,7 @@ Deno.serve(async (req) => {
       const pin = String(body.pin || ""), name = cleanText(body.member_name, 24), roomName = cleanText(body.name, 40);
       if (!validPin(pin)) return json(req, { error: "bad_pin" }, 400);
       if (!name) return json(req, { error: "name_required" }, 400);
+      if (await banned(sb, ip)) return json(req, { error: "banned" }, 403);
       if (await tooMany(sb, ip, "create", 10, 60)) return json(req, { error: "rate_limited" }, 429);
       let room = null;
       for (let i = 0; i < 6 && !room; i++) {
@@ -137,7 +148,7 @@ Deno.serve(async (req) => {
         if (!error) room = data; else if (!String(error.message).includes("duplicate")) throw error;
       }
       if (!room) return json(req, { error: "server" }, 500);
-      const m = await newMember(sb, room.id, name);
+      const m = await newMember(sb, room.id, name, ip);
       if (!m) return json(req, { error: "full" }, 409);
       return json(req, { ok: true, token: m.token, ...roomView(room, { ...m, name }, await activeMembers(sb, room.id), []) });
     }
@@ -146,11 +157,12 @@ Deno.serve(async (req) => {
       const code = String(body.code || "").replace(/\D/g, ""), pin = String(body.pin || ""), name = cleanText(body.member_name, 24);
       if (!/^[0-9]{6}$/.test(code) || !validPin(pin)) return json(req, { error: "bad_code" }, 400);
       if (!name) return json(req, { error: "name_required" }, 400);
+      if (await banned(sb, ip)) return json(req, { error: "banned" }, 403);
       if (await tooMany(sb, ip, "join", 20, 15)) return json(req, { error: "rate_limited" }, 429);
       const { data: room } = await sb.from("rooms").select("*").eq("code", code).maybeSingle();
       if (!room || room.pin_hash !== await sha(cfg.ip_salt + "|room|" + code + "|" + pin)) return json(req, { error: "wrong_code" }, 403);
       if (new Date(room.expires_at).getTime() < Date.now()) return json(req, { error: "expired" }, 410);
-      const m = await newMember(sb, room.id, name);
+      const m = await newMember(sb, room.id, name, ip);
       if (!m) return json(req, { error: "full" }, 409);
       return json(req, { ok: true, token: m.token, ...roomView(room, { ...m, name }, await activeMembers(sb, room.id), await recentVoice(sb, room.id)) });
     }
@@ -198,17 +210,29 @@ Deno.serve(async (req) => {
         const secret = rnd(18);
         await sb.from("room_members").update({ kicked: true }).eq("room_id", room.id).eq("member_id", target);
         await sb.from("rooms").update({ secret }).eq("id", room.id);
-        return json(req, { ok: true, kicked: true, votes: n, need, secret, old_secret: room.secret });
+        return json(req, { ok: true, kicked: true, votes: n, need, secret });
       }
       return json(req, { ok: true, kicked: false, votes: n, need });
     }
 
     if (action === "report") {
       const target = String(body.target || "");
-      const { data: t } = await sb.from("room_members").select("member_id,name").eq("room_id", room.id).eq("member_id", target).maybeSingle();
+      const { data: t } = await sb.from("room_members").select("member_id,name,ip_hash").eq("room_id", room.id).eq("member_id", target).maybeSingle();
       if (await tooMany(sb, ip, "report", 20, 60)) return json(req, { error: "rate_limited" }, 429);
       const voiceId = /^[0-9a-f-]{36}$/.test(String(body.voice_id || "")) ? String(body.voice_id) : null;
-      await sb.from("room_reports").insert({ room_id: room.id, reporter_id: member.member_id, target_id: t?.member_id || null, target_name: t?.name || null, reason: cleanText(body.reason, 200), voice_id: voiceId });
+      const id = crypto.randomUUID();
+      // نحتفظ بنسخة من آخر تسجيل للمبلَّغ عنه للمراجعة (التسجيلات العادية تُحذف بعد ساعة)
+      let voicePath: string | null = null;
+      if (voiceId && t) {
+        const { data: v } = await sb.from("room_voice").select("path,member_id").eq("id", voiceId).eq("room_id", room.id).maybeSingle();
+        if (v && v.member_id === t.member_id) {
+          const dest = `reports/${id}.${v.path.split(".").pop()}`;
+          const cp = await sb.storage.from("room-voice").copy(v.path, dest);
+          if (!cp.error) voicePath = dest; else console.error("report copy", cp.error);
+        }
+      }
+      await sb.from("room_reports").insert({ id, room_id: room.id, room_code: room.code, reporter_id: member.member_id, target_id: t?.member_id || null, target_name: t?.name || null,
+        target_ip: t?.ip_hash || null, reason: cleanText(body.reason, 200), voice_id: voiceId, voice_path: voicePath });
       return json(req, { ok: true });
     }
 

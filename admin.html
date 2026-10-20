@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; media-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>دليل — لوحة الإدارة</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -127,6 +127,10 @@
       <div class="msg" id="pubMsg"></div>
     </div>
 
+    </div>
+    <div data-perm="moderate">
+    <h2>بلاغات غرفة الرحلة <span class="badge" id="roomRepCount">0</span> <span class="muted" style="font-weight:400">· تعامل معها خلال 24 ساعة</span></h2>
+    <div id="roomReports"></div>
     </div>
     <div data-perm="moderate">
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
@@ -576,12 +580,36 @@
     try{ await api('admin_delete', {username:a.username}); await loadAdmins(); }catch(e){ showErr(e); }
   });
 
+  async function loadRoomReports(){
+    const d = await api('room_reports');
+    const list = d.reports || [];
+    $('roomRepCount').textContent = list.length;
+    $('roomReports').innerHTML = list.length ? list.map(r=>`<div class="card" data-rid="${esc(r.id)}">
+      <div class="t" style="font-weight:700">${esc(r.target_name || 'عضو')} <span class="badge warn">${r.total_reports} بلاغ</span></div>
+      <div>${esc(r.reason || '—')}</div>
+      <div class="muted">${esc(when(r.created_at))} · غرفة ${esc(r.room_code || '')}</div>
+      ${r.voice_url ? `<audio controls preload="none" src="${esc(safeUrl(r.voice_url))}" style="width:100%;margin-top:8px"></audio>` : '<div class="muted">لا يوجد تسجيل مرفق</div>'}
+      <div class="row" style="margin-top:8px">
+        <button class="white" data-ract="dismiss">لا مخالفة</button>
+        ${r.can_ban ? '<button class="danger" data-ract="ban7">منع 7 أيام</button><button class="danger" data-ract="ban">منع دائم</button>' : ''}
+      </div></div>`).join('') : '<div class="card muted">لا توجد بلاغات مفتوحة.</div>';
+  }
+  document.addEventListener('click', async ev=>{
+    const b = ev.target.closest('button[data-ract]'); if(!b) return;
+    const card = b.closest('[data-rid]'), act = b.dataset.ract;
+    if(act !== 'dismiss' && !confirm(act === 'ban' ? 'منع هذا المستخدم من غرف الرحلة نهائيًا؟' : 'منع هذا المستخدم من غرف الرحلة 7 أيام؟')) return;
+    card.querySelectorAll('button').forEach(x=>x.disabled = true);
+    try{ await api('room_report_close', {id:card.dataset.rid, ban:act !== 'dismiss', ban_days:act === 'ban7' ? 7 : 0}); await loadRoomReports(); }
+    catch(e){ showErr(e); card.querySelectorAll('button').forEach(x=>x.disabled = false); }
+  });
+
   async function loadAll(){
     me = await api('me');
     applyPerms();
     $('login').hidden = true; $('app').hidden = false;
     const jobs = [];
     if(can('moderate') || can('publish') || can('push')) jobs.push(load());
+    if(can('moderate')) jobs.push(loadRoomReports());
     if(can('usage')) jobs.push(loadUsage());
     if(can('ads')) jobs.push(loadAds());
     if(me.role === 'owner') jobs.push(loadAdmins());

@@ -49,8 +49,26 @@ ok(kd.status === 403 && kd.error === "kicked", `kicked member blocked ${kd.statu
 const st3 = await call("state", auth(A));
 ok(st3.members.length === 3 && st3.secret === m3.secret, `after kick members=${st3.members?.length}`);
 
-const rep = await call("report", { ...auth(B), target: D.me.member_id, reason: "اختبار آلي", voice_id: v.voice?.id });
-ok(rep.ok, `report ${rep.status}`);
+// Realtime: B يرسل موقعًا وC يستقبله على القناة السرية
+const WS = "wss://penhpgvjtxytgyrhmetg.supabase.co/realtime/v1/websocket?apikey=" + K + "&vsn=1.0.0";
+function sock(topic) {
+  return new Promise((res, rej) => {
+    const ws = new WebSocket(WS), got = [];
+    const t = setTimeout(() => rej(new Error("join timeout")), 10000);
+    ws.onopen = () => ws.send(JSON.stringify({ topic, event: "phx_join", ref: "1", join_ref: "1", payload: { config: { broadcast: { self: false, ack: false }, presence: { key: "", enabled: false }, postgres_changes: [], private: false } } }));
+    ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.event === "phx_reply" && m.ref === "1") { clearTimeout(t); m.payload.status === "ok" ? res({ ws, got }) : rej(new Error(JSON.stringify(m.payload))); } else if (m.event === "broadcast") got.push(m.payload); };
+    ws.onerror = () => rej(new Error("ws error"));
+  });
+}
+try {
+  const topic = "realtime:room:" + st3.secret;
+  const [b, c] = await Promise.all([sock(topic), sock(topic)]);
+  b.ws.send(JSON.stringify({ topic, event: "broadcast", ref: "2", join_ref: "1", payload: { type: "broadcast", event: "pos", payload: { m: B.me.member_id, lat: 27.5, lng: 41.7 } } }));
+  await new Promise((r) => setTimeout(r, 2500));
+  ok(c.got.some((p) => p.event === "pos" && p.payload.lat === 27.5), `realtime broadcast received=${c.got.length}`);
+  b.ws.close(); c.ws.close();
+} catch (e) { ok(false, "realtime " + e.message); }
+
 for (const m of [A, B, C]) await call("leave", auth(m));
 const after = await call("state", auth(A));
 ok(after.status === 403, `left member blocked ${after.status}`);
