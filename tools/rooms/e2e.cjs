@@ -117,7 +117,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
 
   // مغادرة
   for (const p of [A, B]) {
-    await p.click('#roomBtn'); await p.waitForTimeout(800);
+    await p.evaluate(() => window.DalilRoom.open()); await p.waitForTimeout(800);
     await p.click('[data-rm="leave"]').catch(() => {});
     await p.waitForTimeout(1000);
   }

@@ -560,7 +560,8 @@
     const sosUp = ()=>{ if(sosT){ clearTimeout(sosT); sosT = null; sos.classList.remove('holding'); B.toast('اضغط مطوّلًا ثانية لإرسال استغاثة للغرفة'); } };
     sos.addEventListener('pointerup', sosUp); sos.addEventListener('pointercancel', ()=>{ clearTimeout(sosT); sosT = null; sos.classList.remove('holding'); });
     sos.addEventListener('contextmenu', e=>e.preventDefault());
-    sos.addEventListener('click', ()=>{ if(R.mySos && confirm('إلغاء الاستغاثة؟')) stopMySos(); });
+    // النقرة التي تلي الضغط المطوّل نفسه لا تُلغي الاستغاثة
+    sos.addEventListener('click', ()=>{ if(R.mySos && Date.now() - R.mySos.t > 1500 && confirm('إلغاء الاستغاثة؟')) stopMySos(); });
   }
 
   function open(prefillCode){
