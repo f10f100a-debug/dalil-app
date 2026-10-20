@@ -1137,7 +1137,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div class="section-title">خرائط البر</div>
       <div class="banner">
-        يتضمن التطبيق نحو 40 ألف موقع بري داخل المملكة في 13 منطقة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (حزمة دليل DLMap · PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). خريطة أبو مالك v63 تُستورد باختيار ملف DLMap واحد. اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
+        يتضمن التطبيق أكثر من 45 ألف موقع داخل المملكة في 13 منطقة: مواقع برية ومحطات وقود ومراكز إسعاف وصيانة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (حزمة دليل DLMap · PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). خريطة أبو مالك v63 تُستورد باختيار ملف DLMap واحد. اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text); white-space:pre-line;"></div>
         <div style="margin-top:8px; font-weight:700;">مصدر المواقع المدمجة</div>
         <div class="btn-row places-src" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="osm">المصادر المفتوحة (OSM + GeoNames)</button><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button></div>
@@ -2995,9 +2995,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     'سبخة':'أرض رخوة قد تغرز فيها السيارة، خصوصًا بعد المطر.',
     'حرة':'أرض بركانية وعرة تتلف الإطارات؛ خفّف السرعة.',
     'دحل':'فتحة أو كهف في الأرض؛ احذر السقوط عند الاقتراب.',
-    'كهف':'كهف أو غار؛ لا تدخله دون إضاءة ومرافق.'
+    'كهف':'كهف أو غار؛ لا تدخله دون إضاءة ومرافق.',
+    'منطقة عسكرية':'منطقة عسكرية؛ يُمنع الدخول والتصوير.'
   };
   function catalogIcon(kind){
+    if(kind === 'محطة وقود' || kind === 'صيانة سيارات') return 'car';
+    if(kind === 'إسعاف وصحة') return 'plus';
+    if(kind === 'أمن وطوارئ' || kind === 'منطقة عسكرية') return 'sos';
+    if(kind === 'تخييم واستراحة') return 'flag';
+    if(kind === 'معلم سياحي') return 'landmark';
+    if(kind === 'سد') return 'drop';
     return kind === 'جبل' ? 'mountain' : /ماء|مياه/.test(kind) ? 'drop' : kind === 'آثار' ? 'landmark' : kind === 'نفود' ? 'dust' : CATALOG_HAZARD[kind] || kind === 'موقع خطر' ? 'sos' : kind === 'طريق صحراوي' ? 'map' : 'pin';
   }
   // قراءة XML متسامحة: ملفات كثيرة من تطبيقات الملاحة فيها «&» غير مهرّبة أو بادئات (gx: وغيرها)
@@ -3117,7 +3124,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(bundledCatalog) return Promise.resolve();
     if(bundledLoading) return bundledLoading;
     bundledLoading = Promise.all(placesSrc === 'osm' ? [
-      fetch('data/open-places.json?v=2').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
+      fetch('data/open-places.json?v=3').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
       Promise.resolve(null)
     ] : [
       fetch('data/desert-places.json?v=4').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
@@ -3495,10 +3502,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const nq = normAr(q), sq = stripAl(nq);
     if(nq.length < 2) return [];
     const hits = [];
+    // كلمات الخدمات: «بنزين» أو «مستشفى» أو «بنشر»… تعرض كل مواقع التصنيف الأقرب إليك ولو لم تكن الكلمة في الاسم
+    const SYN = [[/^(وقود|بنزين|ديزل|محطه|محطات)/, 'محطة وقود'], [/^(مستشفي|مستشفى|اسعاف|إسعاف|مستوصف|صحي|طوارئ طبيه|هلال)/, 'إسعاف وصحة'],
+      [/^(شرطه|دفاع|امن|مركز امن|دوريات)/, 'أمن وطوارئ'], [/^(بنشر|ورشه|صيانه|كفرات|تشليح|ميكانيكي)/, 'صيانة سيارات'],
+      [/^(مخيم|تخييم|استراحه|مخيمات)/, 'تخييم واستراحة'], [/^(ماء شرب|مويه|موية|مياه شرب)/, 'ماء شرب'], [/^(سد|سدود)$/, 'سد']];
+    const synCat = (SYN.find(([re])=>re.test(nq)) || [])[1];
+    const synIdx = synCat ? catalog.cats.indexOf(synCat) : -1;
     for(let i = 0; i < catalog.norm.length; i++){
       const [n, s2] = catalog.norm[i];
       if(n.includes(nq) || s2.includes(sq)) hits.push({i, starts:(n.startsWith(nq) || s2.startsWith(sq)) ? 1 : 0});
+      else if(synIdx >= 0 && catalog.p[i][4] === synIdx) hits.push({i, starts:1});
     }
+    if(synIdx >= 0) hits.forEach(h=>{ h.starts = catalog.p[h.i][4] === synIdx ? 1 : 0; });
     const pos = state.pos;
     hits.forEach(h=>{ const x = catalog.p[h.i]; h.d = pos ? haversine(pos.lat, pos.lng, x[1], x[2]) : 0; });
     hits.sort((a,b)=>(b.starts - a.starts) || (a.d - b.d));

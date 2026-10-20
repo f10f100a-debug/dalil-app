@@ -41,7 +41,7 @@
 • سجّل مسارك وارجع منه خطوة بخطوة.
 • شارك المسار بصيغة GPX.
 
-نحو 40 ألف موقع بري داخل المملكة
+أكثر من 45 ألف موقع داخل المملكة (برية وخدمات طريق)
 • جبال وأودية ونفود وآبار وقرى من مصادر مفتوحة، مع البحث و«بالقرب منك».
 • أقرب نقطة على الوادي للوصول إليه.
 
@@ -74,7 +74,7 @@ Demo video (60 s): https://f10f100a-debug.github.io/dalil-app/assets/dalil-demo.
 
 Native, on-device features to test (tab bar, right to left):
 1. Compass (البوصلة): live device compass with Qibla direction; tap "حفظ موقعي" to save the current spot, then navigate back to it with distance/bearing/ETA.
-2. Places (الأماكن): about 40,000 offline desert places (wadis, mountains, wells) with search and "nearby"; tap "توجّه" to navigate to one.
+2. Places (الأماكن): 45,000+ offline places (desert sites, fuel stations, clinics) (wadis, mountains, wells) with search and "nearby"; tap "توجّه" to navigate to one.
 3. Map (الخريطة): offline vector maps with terrain and contours; record a GPS track under "تسجيل المسار" and follow it back ("ارجع من نفس المسار"); export as GPX.
 4. Offline mode: Settings (الإعدادات) → "حفظ خرائط المناطق للاستخدام بدون إنترنت" → save one region, then enable Airplane Mode: map, compass, places and tracking keep working.
 5. Weather (الأجواء): 7-day weather and wind (Open-Meteo), vegetation and rain layers (NASA GIBS).
@@ -170,4 +170,4 @@ NEW IN 1.1 — Trip room (غرفة الرحلة), a private push-to-talk room fo
 2. يُحفظ كسرّين للدالة dalil-admin: APNS_KEY_P8 وAPNS_KEY_ID، ثم إعادة نشر dalil-admin (الكود في المستودع).
 3. بناء 1.2 عبر ios.yml (version=1.2) والتأكد من سطر «signed entitlements: aps-environment production».
 4. تجربة من TestFlight: تفعيل التنبيهات ← إرسال تنبيه تجريبي من لوحة الإدارة.
-5. تحديث الوصف في المتجر: «نحو 40 ألف موقع بري داخل المملكة».
+5. تحديث الوصف في المتجر: «أكثر من 45 ألف موقع داخل المملكة (برية وخدمات طريق)».
