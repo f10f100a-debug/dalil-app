@@ -43,6 +43,16 @@ battr = build["attributes"] if build else {}
 note("Version", f"{va.get('versionString')} state={va.get('appStoreState') or va.get('appVersionState')} release={va.get('releaseType')} copyright={va.get('copyright')} build={battr.get('version')} processing={battr.get('processingState')} encryption={battr.get('usesNonExemptEncryption')} expired={battr.get('expired')}")
 
 bl = get(f"/v1/builds?filter[app]={aid}&limit=10&sort=-uploadedDate").get("data", [])
+try:
+    pr = get(f"/v1/preReleaseVersions?filter[app]={aid}&limit=10&include=builds")
+    bmap = {x["id"]: x["attributes"] for x in pr.get("included", []) if x["type"] == "builds"}
+    rows = []
+    for p in pr.get("data", []):
+        ids = [b["id"] for b in p.get("relationships", {}).get("builds", {}).get("data", [])]
+        rows.append(p["attributes"].get("version") + ": " + ", ".join(f"{bmap[i].get('version')}={bmap[i].get('processingState')}" for i in ids if i in bmap))
+    note("TestFlight versions", " ; ".join(rows) or "none")
+except Exception as e:
+    note("TestFlight versions", "error " + str(e)[:200])
 want = os.environ.get("SET_BUILD", "").strip()
 if want:
     tgt = next((x for x in bl if x["attributes"].get("version") == want and not x["attributes"].get("expired")), None)
