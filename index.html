@@ -3331,12 +3331,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const IMG_RE = /\.(jpe?g|png|gif|bmp|webp)$/, SIDE_RE = /\.(jgw|jpgw|pgw|pngw|wld|tfw|tfwx|gfw|bpw|bmpw|webpw|prj|aux\.xml|ovr)$/;
     const byName = new Map(files.map(f=>[f.name.toLowerCase(), f])), used = new Set();
     const findFile = n=>{ n = String(n || '').toLowerCase().replace(/^\.\//, ''); return byName.get(n) || byName.get(n.split('/').pop()) || null; };
-    const loadMI = async()=>{ await loadPm(); if(!window.DalilMapImport) await new Promise((res, rej)=>{ const sc = document.createElement('script'); sc.src = 'mapimport.js?v=2'; sc.onload = res; sc.onerror = ()=>rej(new Error('net')); document.head.appendChild(sc); }); return window.DalilMapImport; };
+    const loadMI = async()=>{ await loadPm(); if(!window.DalilMapImport) await new Promise((res, rej)=>{ const sc = document.createElement('script'); sc.src = 'mapimport.js?v=3'; sc.onload = res; sc.onerror = ()=>rej(new Error('net')); document.head.appendChild(sc); }); return window.DalilMapImport; };
     const progress = (f, stage)=>{ btn.textContent = (stage || 'جارٍ التجهيز') + '… ' + Math.round(f * 100) + '%'; };
     const addMap = async(blob, name)=>{ name = name.replace(/\.(mbtiles|tiff?|geotiff|map|jpe?g|png|gif|bmp|webp)$/i, ''); maps += await importPmtiles(new File([blob], name + '.pmtiles'), name); };
     const rank = f=>/\.(map|kml|kmz)$/i.test(f.name) ? 0 : IMG_RE.test(f.name.toLowerCase()) ? 2 : 1;
     files.sort((a, b)=>rank(a) - rank(b));
+    // الحد هو مساحة الجوال المتاحة لدليل فقط
+    let freeBytes = Infinity;
+    try{ const est = await navigator.storage.estimate(); if(est && est.quota) freeBytes = est.quota - (est.usage || 0); }catch(e){}
     for(const file of files){
+      if(/\.(pmtiles|mbtiles|sqlitedb|tiff?|geotiff|dlmap|zip)$/i.test(file.name) && file.size > freeBytes){
+        notes.push('«' + file.name + '» (' + Math.round(file.size / 1048576) + ' ميقا) أكبر من المساحة المتاحة لدليل في جوالك الآن (' + Math.round(Math.max(0, freeBytes) / 1048576) + ' ميقا). وفّر مساحة ثم أعد المحاولة.');
+        skipped++; continue;
+      }
       const name = file.name.toLowerCase(), base = fileBase(file.name);
       if(used.has(file)) continue;
       try{

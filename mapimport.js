@@ -64,9 +64,14 @@ async function writePmtiles(tiles, o){
   return new Blob([h, root, meta, leaves, ...tiles.filter(t=>t.keep).map(t=>t.data)], {type:'application/octet-stream'});
 }
 
+// لا حد ثابت للحجم: يُقرأ هذا النوع كاملًا في ذاكرة الجوال، فننبّه فقط عند الملفات الكبيرة ونترك القرار للمستخدم.
+function bigFileOk(file, kind){
+  const mb = Math.round(file.size / 1048576);
+  if(mb > 450 && !confirm('ملف ' + kind + ' كبير (' + mb + ' ميقا) ويُقرأ كاملًا في ذاكرة الجوال، فقد يتوقف على بعض الأجهزة.\nالأنسب تحويله إلى PMTiles على الكمبيوتر.\n\nهل تريد المتابعة؟')) throw fail('أُلغي استيراد «' + file.name + '»');
+}
 // ---------- MBTiles ← SQLite ----------
 async function fromMbtiles(file, progress){
-  if(file.size > 450 * 1048576) throw fail('ملف MBTiles أكبر من 450 MB؛ قسّمه أو حوّله إلى PMTiles على الكمبيوتر');
+  bigFileOk(file, 'MBTiles');
   progress && progress(0, 'قراءة MBTiles');
   const SQL = await loadSql();
   let db;
@@ -116,7 +121,7 @@ function hasAlpha(d){
 }
 // ---------- OsmAnd ‎.sqlitedb (بلاطات صور في SQLite) ----------
 async function fromSqlitedb(file, progress){
-  if(file.size > 450 * 1048576) throw fail('ملف ‎.sqlitedb أكبر من 450 MB؛ قسّمه على الكمبيوتر');
+  bigFileOk(file, 'sqlitedb');
   progress && progress(0, 'قراءة خريطة OsmAnd');
   const SQL = await loadSql();
   let db;
