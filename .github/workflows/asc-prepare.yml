@@ -1,0 +1,22 @@
+# يجهّز إصدارًا جديدًا في App Store Connect (لا يرسله للمراجعة).
+name: App Store prepare version
+on:
+  workflow_dispatch:
+    inputs:
+      version: { description: "رقم الإصدار", type: string, default: "1.1" }
+      build: { description: "رقم البناء", type: string, default: "" }
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/asc }
+      - run: pip install --quiet pyjwt cryptography
+      - env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        run: python3 tools/asc/prepare_version.py
