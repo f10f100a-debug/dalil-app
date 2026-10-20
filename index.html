@@ -649,7 +649,17 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     background:linear-gradient(155deg, var(--sand), var(--sand-dim));
     display:flex; align-items:center; justify-content:center; font-size:32px;
   }
-  .onboard h2{font-size:20px; margin:6px 0 0;}
+  .onboard h2{font-size:22px; margin:0;}
+  .onboard{gap:14px; overflow-y:auto; justify-content:safe center; padding:max(30px, env(safe-area-inset-top)) 26px max(24px, env(safe-area-inset-bottom));}
+  .ob-icon{width:84px; height:84px; border-radius:20px; box-shadow:0 8px 22px rgba(60,40,10,.25);}
+  .ob-tag{font-size:14px; color:var(--text-dim); margin-top:4px;}
+  .ob-list{list-style:none; margin:4px 0 0; padding:0; display:grid; gap:10px; width:100%; max-width:340px; text-align:right;}
+  .ob-list li{display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:11px 14px;}
+  .ob-list .cp-ic{width:26px; height:26px; color:var(--sand-dim); flex:0 0 auto;}
+  .ob-list b{display:block; font-size:14.5px; color:var(--text);}
+  .ob-list li > span:last-child{font-size:12.5px; color:var(--text-dim); line-height:1.6;}
+  .onboard p.ob-why{font-size:13px; margin:2px 0 0;}
+  .onboard .ob-skip{max-width:300px; margin-top:-6px; min-height:40px; background:none; border:0; color:var(--text-dim); font-size:14px;}
   .onboard p{font-size:13px; color:var(--text-dim); line-height:1.9; max-width:320px;}
   .push-ask{position:fixed; inset:0; z-index:85; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; gap:14px;}
   .push-ask[hidden]{display:none!important;}
@@ -1344,11 +1354,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   <!-- onboarding -->
   <div class="onboard" id="onboard">
-    <div class="mark">🧭</div>
-    <h2>دليل — بوصلة البر</h2>
-    <p>دليل — بوصلة البر. يحتاج التطبيق إذن الموقع والبوصلة ليعمل بشكل صحيح.</p>
-    <button class="btn btn-primary" id="onboardBtn" style="max-width:260px;">🔓 تفعيل الموقع والبوصلة</button>
-    <button class="btn btn-ghost" id="skipPermissionsBtn" style="max-width:260px; margin-top:8px; display:none;">متابعة مؤقتًا دون الأذونات</button>
+    <img class="ob-icon" src="assets/icon-192.png" alt="" width="84" height="84">
+    <div>
+      <h2>دليل — بوصلة البر</h2>
+      <div class="ob-tag">رفيقك في البر، يشتغل حتى بدون شبكة</div>
+    </div>
+    <ul class="ob-list">
+      <li><span class="cp-ic" data-ico="compass"></span><span><b>بوصلة توجّهك</b>لسيارتك ومخيمك وأي مكان تحفظه</span></li>
+      <li><span class="cp-ic" data-ico="map"></span><span><b>خرائط البر بدون إنترنت</b>الأودية والجبال والآبار وخطوط الارتفاع</span></li>
+      <li><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار والبرق</b>لحظيًا، مع صور السيول من منطقتك</span></li>
+    </ul>
+    <p class="ob-why">نحتاج إذن <b>الموقع</b> و<b>البوصلة</b> لتوجيهك. موقعك يبقى في جوالك.</p>
+    <button class="btn btn-primary" id="onboardBtn" style="max-width:300px;">تفعيل الموقع والبوصلة</button>
+    <button class="btn btn-ghost ob-skip" id="skipPermissionsBtn" type="button">ليس الآن</button>
     <button class="btn btn-ghost" id="installHelpBtn" style="max-width:260px; margin-top:9px;">📲 ثبّت دليل على الآيفون — 20 ثانية</button>
     <div class="permission-note" id="onboardPermissionNote">ستظهر رسالتان من الآيفون: اختر «سماح» للبوصلة، ثم «سماح» للموقع.</div>
     <div class="developer-credit">تطوير: فهد محمد اللهيبي</div>
