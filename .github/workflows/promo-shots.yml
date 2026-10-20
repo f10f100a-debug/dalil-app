@@ -1,0 +1,24 @@
+name: Promo screenshots
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: sudo apt-get install -y fonts-noto-color-emoji >/dev/null 2>&1 || true
+      - name: Serve app (with byte ranges for map tiles)
+        run: (python3 tools/promo/rangeserver.py . >/dev/null 2>&1 &) && sleep 1
+      - run: node tools/promo/shots.cjs 2>&1 | tee promo-log.txt
+      - name: Publish to promo-shots branch
+        if: always()
+        run: |
+          mkdir -p promo && cp promo-log.txt promo/ || true
+          cd promo && git init -q && git checkout -q -b promo-shots
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "promo ${{ github.run_number }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" promo-shots
