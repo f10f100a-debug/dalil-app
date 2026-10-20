@@ -4,8 +4,8 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const OUT = process.env.SHOTS || 'shots';
 fs.mkdirSync(OUT, { recursive: true });
-let fails = 0;
-const ok = (c, msg) => { console.log(c ? `::notice::✓ ${msg}` : `::error::✗ ${msg}`); if (!c) fails++; };
+let fails = 0; const passed = [];
+const ok = (c, msg) => { if (c) passed.push(msg.slice(0, 60)); else { console.log(`::error::✗ ${msg}`); fails++; } };
 
 async function user(browser, name, lat, lng) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ar-SA',
@@ -67,8 +67,10 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await shot(B, '3-B-recording');
   await B.waitForTimeout(1500);
   await B.mouse.up();
-  await B.waitForTimeout(6000);
-  const aVoice = await A.textContent('#rmVoice').catch(() => '');
+  let aVoice = '';
+  for (let i = 0; i < 20 && !aVoice.includes('بدر'); i++) { await A.waitForTimeout(1000); aVoice = await A.textContent('#rmVoice').catch(() => ''); }
+  const bVoice = await B.textContent('#rmVoice').catch(() => '');
+  ok(bVoice.includes('أنت'), `B sees own voice: ${bVoice.replace(/\s+/g, ' ').slice(0, 80)}`);
   ok(aVoice.includes('بدر'), `A received voice: ${aVoice.replace(/\s+/g, ' ').slice(0, 80)}`);
   await shot(A, '3-A-voice');
 
@@ -123,6 +125,6 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await shot(A, '9-A-left');
   for (const p of [A, B]) ok(p.errors.length === 0, `${p.label} no JS errors ${p.errors.slice(0, 3).join(' | ')}`);
   await browser.close();
-  console.log(`::notice::E2E fails=${fails}`);
+  console.log(`::notice::E2E fails=${fails} passed=${passed.length}: ${passed.join(' | ')}`.slice(0, 3900));
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.log('::error::' + e.message.split('\n')[0]); process.exit(1); });
