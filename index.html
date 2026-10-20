@@ -4121,6 +4121,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const open=trackToolsPanel.classList.toggle('open');
     trackToolsToggle.setAttribute('aria-expanded',String(open));
     trackToolsToggle.textContent=open?'⌄ إخفاء أدوات المسار':'⌃ تسجيل المسار وأدواته';
+    // الخريطة تملأ الشاشة، فننزل تلقائيًا إلى الأدوات عند فتحها ونرجع للأعلى عند إخفائها
+    requestAnimationFrame(()=>{
+      if(open) trackToolsToggle.scrollIntoView({behavior:'smooth', block:'start'});
+      else document.getElementById('screen-track').scrollIntoView({behavior:'smooth', block:'start'});
+    });
   });
   // الخريطة تملأ المساحة المتاحة فوق زر الأدوات بالضبط (بدل ارتفاع تقريبي يترك فراغًا أسفلها)
   function fitTrackMap(){
