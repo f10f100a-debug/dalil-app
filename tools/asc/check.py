@@ -51,6 +51,10 @@ try:
         ids = [b["id"] for b in p.get("relationships", {}).get("builds", {}).get("data", [])]
         rows.append(p["attributes"].get("version") + ": " + ", ".join(f"{bmap[i].get('version')}={bmap[i].get('processingState')}" for i in ids if i in bmap))
     print("::warning::TestFlight versions: " + (" ; ".join(rows) or "none"))
+    for b in bl[:2]:
+        bd = get(f"/v1/builds/{b['id']}/buildBetaDetail").get("data", {}).get("attributes", {})
+        a = b["attributes"]
+        print(f"::warning::Build {a.get('version')} processing={a.get('processingState')} expired={a.get('expired')} minOS={a.get('minOsVersion')} encryption={a.get('usesNonExemptEncryption')} audience={a.get('buildAudienceType')} internal={bd.get('internalBuildState')} external={bd.get('externalBuildState')} autoNotify={bd.get('autoNotifyEnabled')}")
 except Exception as e:
     note("TestFlight versions", "error " + str(e)[:200])
 want = os.environ.get("SET_BUILD", "").strip()
