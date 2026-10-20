@@ -234,6 +234,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     border-radius:10px; background:rgba(255,255,255,.94); color:#183129; padding:7px 10px;
     font:800 11px system-ui; box-shadow:0 2px 9px rgba(0,0,0,.18); cursor:pointer;
   }
+  #trackToolsToggle{scroll-margin-top:calc(env(safe-area-inset-top) + 14px);}
   .track-tools-toggle{margin-top:10px;position:sticky;bottom:calc(66px + env(safe-area-inset-bottom));z-index:8;box-shadow:var(--shadow);}
   .track-tools-panel{display:none;margin-top:10px;padding:12px;background:var(--panel);border:1px solid var(--line);border-radius:16px;}
   .track-tools-panel.open{display:block;}
