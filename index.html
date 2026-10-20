@@ -450,6 +450,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-loc-meta:empty{display:none;}
   .cp-zello{margin-bottom:12px;}
   .cp-room{margin-bottom:12px;}
+  .wx-radar-cta{display:flex; align-items:center; gap:12px; width:100%; margin:0 0 12px; padding:12px 14px; border-radius:18px; cursor:pointer; text-align:right; font-family:inherit; color:var(--text);
+    background:linear-gradient(135deg, rgba(38,136,255,.14), rgba(38,136,255,.04)); border:1px solid rgba(38,136,255,.35);}
+  .wx-radar-cta > .cp-ic:first-child{width:28px; height:28px; color:#1F6FD6;}
+  .wx-radar-cta span:nth-child(2){flex:1; min-width:0;}
+  .wx-radar-cta b{display:block; font-size:15px;}
+  .wx-radar-cta small{display:block; font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .wx-radar-cta .wx-ext{width:20px; height:20px; color:var(--text-dim);}
   .cp-room .cp-ic{color:var(--cp-gold-ink);}
   .cp-room .rm-badge{font-size:12px; font-weight:700; background:var(--cp-green-bg); color:var(--cp-green); border-radius:100px; padding:2px 9px;}
   .cp-room .rm-new{width:9px; height:9px; border-radius:50%; background:#C0392B;}
@@ -966,7 +973,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261020-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261020-2" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1023,6 +1030,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="seg-b" role="tab" aria-selected="false" data-wxpane="ev"><span class="cp-ic" data-ico="camera"></span>الأحداث<span class="seg-dot" hidden></span></button>
       </div>
       <div id="wxPane">
+      <button type="button" class="wx-radar-cta" id="openRadarBtn">
+        <span class="cp-ic" data-ico="rain"></span>
+        <span><b>رادار الأمطار والبرق — مباشر</b><small>من رادارات الأرصاد · يتحدث كل 10 دقائق</small></span>
+        <span class="cp-ic wx-ext" data-ico="map"></span>
+      </button>
       <div class="cp-card wx-hero" aria-live="polite">
         <div class="wx-top">
           <span class="wx-icon" id="wxIcon"></span>
@@ -1050,7 +1062,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="section-title">أدوات خارجية</div>
       <div class="cp-card wx-links">
         <a class="wx-link" target="_blank" rel="noopener" href="https://apps.apple.com/sa/app/%D8%A3%D9%86%D9%88%D8%A7%D8%A1/id1612841473?l=ar"><span class="cp-ic" data-ico="sos"></span><span><b>أنواء</b><small>الإنذارات الرسمية للأرصاد</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
-        <a class="wx-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
+        <a class="wx-link" target="_blank" rel="noopener" href="https://www.yanbuweather.com/pages/RainRadar/"><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار (طقس ينبع)</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <a class="wx-link" target="_blank" rel="noopener" href="https://www.rainviewer.com/"><span class="cp-ic" data-ico="cloud"></span><span><b>حركة المطر</b></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <a class="wx-link" target="_blank" rel="noopener" href="https://earth.nullschool.net/#current/wind/surface/level/orthographic=-317.21,26.74,3000/loc=42.362,27.919"><span class="cp-ic" data-ico="wind"></span><span><b>الرياح واتجاهها</b><small>خريطة حية</small></span><span class="cp-ic wx-ext" data-ico="external"></span></a>
         <button class="wx-link" type="button" id="allRadarToolsBtn"><span class="cp-ic" data-ico="map"></span><span><b>النماذج الجوية</b><small>البريطاني والأمريكي والأسترالي والهندي</small></span><span class="cp-ic wx-ext" data-ico="more"></span></button>
@@ -4673,6 +4685,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // المتصفح: متاحة للجميع. تطبيق الآيفون: من 1.1 فقط (1.0 بلا إذن ميكروفون، والتسجيل فيه يُغلق التطبيق).
   const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent) || !window.DALIL_NATIVE;
   if(window.DALIL_NATIVE_PUSH) setTimeout(()=>loadEvents().catch(()=>{}), 1500);
+  // زر «رادار الأمطار المباشر»: يفتح الخريطة على الرادار والبرق حول موقعك
+  document.getElementById('openRadarBtn').addEventListener('click', ()=>{
+    try{ const L = JSON.parse(localStorage.getItem('dalil_map_layers') || '{}'); L.radar = true; L.lightning = true; localStorage.setItem('dalil_map_layers', JSON.stringify(L)); }catch(e){}
+    document.querySelector('.tab[data-screen="track"]').click();
+    const send = ()=>{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_MAP_LAYERS', radar:true, lightning:true, zoom:7}, location.origin); };
+    setTimeout(send, 300); setTimeout(send, 1500);
+  });
   let roomLoading = null;
   function loadRoom(){
     if(window.DalilRoom) return Promise.resolve(window.DalilRoom);

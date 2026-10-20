@@ -354,6 +354,11 @@ let savedMarks=[];
 // أعضاء غرفة الرحلة ونقطة التجمع (من التطبيق عبر DALIL_ROOM_UPDATE)
 let roomMarks=[];
 const okColor=c=>/^#[0-9A-Fa-f]{6}$/.test(c)?c:'#7A4E14';
+// فتح طبقات الطقس من شاشة الأجواء (رادار وبرق) مع تصغير مناسب لرؤية المنطقة
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_LAYERS')return;
+  if('radar' in e.data)LP.radar=!!e.data.radar;if('lightning' in e.data)LP.lightning=!!e.data.lightning;saveLP();applyPrefs();
+  if(e.data.zoom&&z>e.data.zoom){const c=gps||stageToLatLng(innerWidth/2,innerHeight/2);z=e.data.zoom;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
+  render();status.textContent='رادار الأمطار والبرق — اضغط ▶ لترى اتجاه المطر لآخر ساعتين'});
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_ROOM_UPDATE')return;
   const out=[];for(const m of Array.isArray(e.data.marks)?e.data.marks:[]){if(m&&validLatLng(Number(m.lat),Number(m.lng)))out.push({lat:Number(m.lat),lng:Number(m.lng),name:String(m.name||'عضو').slice(0,24),color:okColor(String(m.color)),stale:!!m.stale,sos:!!m.sos,room:true})}
   const r=e.data.rally;if(r&&validLatLng(Number(r.lat),Number(r.lng)))out.unshift({lat:Number(r.lat),lng:Number(r.lng),name:String(r.name||'نقطة التجمع').slice(0,40),icon:'🚩',rally:true});
@@ -604,7 +609,7 @@ setInterval(()=>{if(LP.lightning)refreshLightning()},60000);
 let playTimer=0;
 const frameLabel=t=>t==='default'||String(t).startsWith('latest')?'الأحدث':new Date(t).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
 // المشغّل يحرّك السحب إن كانت ظاهرة (الأقرب للحظي)، وإلا المطر. الطبقة الأخرى تبقى على أحدث لقطة.
-const playSet=()=>LP.radar&&RADAR_FRAMES.length?{name:'الرادار',id:'radar',frames:RADAR_FRAMES.map(f=>new Date(f.time*1000).toISOString()),op:.8}:LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
+const playSet=()=>LP.radar&&RADAR_FRAMES.length?{name:'الرادار',id:'radar',frames:RADAR_FRAMES.map(f=>new Date(f.time*1000).toISOString()),op:.8}:LP.radar?{name:'الرادار',id:'radar',frames:['latest:0'],op:.8}:LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
 function showSetFrame(set,i){set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id!=='rain')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
