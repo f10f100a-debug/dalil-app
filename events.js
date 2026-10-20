@@ -330,21 +330,63 @@
   // ---------- التنبيهات ----------
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = ()=>window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  const pushSupported = ()=>'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const NATIVE = !!window.DALIL_NATIVE_PUSH;
+  const PN = ()=>{ const C = window.Capacitor; return (C.Plugins && C.Plugins.PushNotifications) || C.registerPlugin('PushNotifications'); };
+  const LS_TOKEN = 'dalil_apns_token';
+  const pushSupported = ()=>NATIVE || ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+  // تطبيق الآيفون (1.2+): تنبيهات أبل الأصلية بدل تنبيهات المتصفح
+  function nativeToken(){
+    return new Promise(async (resolve, reject)=>{
+      const p = PN(); const hs = [];
+      const done = (fn, v)=>{ hs.forEach(h=>h && h.remove && h.remove()); fn(v); };
+      hs.push(await p.addListener('registration', t=>done(resolve, String(t.value || '').toLowerCase())));
+      hs.push(await p.addListener('registrationError', e=>done(reject, new Error((e && e.error) || 'registration'))));
+      setTimeout(()=>done(reject, new Error('timeout')), 20000);
+      try{ await p.register(); }catch(e){ done(reject, e); }
+    });
+  }
+  async function nativeSubscribe(region){
+    let perm = await PN().checkPermissions();
+    if(perm.receive !== 'granted') perm = await PN().requestPermissions();
+    if(perm.receive !== 'granted') throw Object.assign(new Error('denied'), {denied:true});
+    const token = await nativeToken();
+    const r = await fetch(FN + 'dalil-public?a=subscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token, region})});
+    if(!r.ok) throw new Error('subscribe ' + r.status);
+    lsSet(LS_TOKEN, token);
+  }
+  async function nativeUnsubscribe(){
+    const token = lsGet(LS_TOKEN);
+    if(token) fetch(FN + 'dalil-public?a=unsubscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})}).catch(()=>{});
+    try{ localStorage.removeItem(LS_TOKEN); }catch(e){}
+    try{ await PN().unregister(); }catch(e){}
+  }
+  if(NATIVE){
+    // الضغط على التنبيه يفتح الصفحة المرتبطة به (الحدث أو الأجواء)
+    PN().addListener('pushNotificationActionPerformed', a=>{
+      const url = a && a.notification && a.notification.data && a.notification.data.url;
+      if(url){ try{ const u = new URL(url, location.href); if(u.origin === location.origin) location.href = u.href; }catch(e){} }
+    });
+    PN().addListener('pushNotificationReceived', n=>{ if(n && (n.title || n.body)) B.toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' — ')); });
+    // تحديث الرمز بصمت عند كل فتح (قد يتغير بعد تحديث النظام)
+    if(lsGet(LS_TOKEN)) PN().checkPermissions().then(p=>{ if(p.receive === 'granted') nativeSubscribe(lsGet(LS.pushRegion) || '').catch(()=>{}); });
+  }
   function b64uToU8(s){ const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(b, c=>c.charCodeAt(0)); }
   async function currentSub(){
     if(!pushSupported()) return null;
     try{ const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; }catch(e){ return null; }
   }
-  let pushOn = false;
-  async function refreshPushState(){ if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
+  let pushOn = false, nativeDenied = false;
+  async function refreshPushState(){
+    if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); return; }
+    if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
   function pushBanner(){
-    if(pushOn || window.DALIL_NATIVE) return '';
+    if(pushOn || (window.DALIL_NATIVE && !NATIVE)) return '';
     return `<div class="ev-push"><span class="cp-ic">${ico('bell')}</span><span><b>نبّهني عند السيول والأمطار</b><small>تصلك صور منطقتك فور نشرها</small></span><button type="button" class="cp-btn cp-btn-white" data-ev-act="push-settings">تفعيل</button></div>`;
   }
   function renderPushSettings(){
     const box = $('pushBox'); if(!box) return;
-    if(window.DALIL_NATIVE){ const t=$('pushTitle'); if(t) t.hidden=true; box.hidden=true; return; }
+    if(window.DALIL_NATIVE && !NATIVE){ const t=$('pushTitle'); if(t) t.hidden=true; box.hidden=true; return; }
+    if(NATIVE){ const t=$('pushTitle'); if(t) t.hidden=false; box.hidden=false; }
     const sel = $('pushRegion');
     if(sel && !sel.options.length){
       sel.innerHTML = '<option value="">كل المناطق</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
@@ -359,7 +401,7 @@
       btn.hidden = true; return;
     }
     btn.hidden = false;
-    if(Notification.permission === 'denied'){
+    if(NATIVE ? nativeDenied && !pushOn : Notification.permission === 'denied'){
       status.textContent = 'التنبيهات مرفوضة. فعّلها من إعدادات الجوال ← دليل ← الإشعارات.';
       btn.hidden = true; return;
     }
@@ -376,7 +418,10 @@
   async function togglePush(){
     const btn = $('pushToggle'); btn.disabled = true;
     try{
-      if(pushOn){
+      if(NATIVE){
+        if(pushOn){ await nativeUnsubscribe(); B.toast('أُوقفت التنبيهات'); }
+        else{ lsSet('dalil_apns_asked', '1'); await nativeSubscribe($('pushRegion').value); B.toast('تم تفعيل التنبيهات'); }
+      }else if(pushOn){
         const sub = await currentSub();
         if(sub){
           fetch(FN + 'dalil-public?a=unsubscribe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:sub.endpoint})}).catch(()=>{});
@@ -392,7 +437,7 @@
         B.toast('تم تفعيل التنبيهات');
       }
     }catch(e){
-      B.toast('تعذّر تغيير التنبيهات. تأكد من الاتصال وحاول مجددًا.');
+      B.toast(e && e.denied ? 'التنبيهات مرفوضة. فعّلها من إعدادات الجوال ← دليل ← الإشعارات.' : 'تعذّر تغيير التنبيهات. تأكد من الاتصال وحاول مجددًا.');
     }finally{
       btn.disabled = false;
       await refreshPushState();
@@ -401,6 +446,7 @@
   async function regionChanged(){
     const region = $('pushRegion').value;
     lsSet(LS.pushRegion, region);
+    if(NATIVE){ if(pushOn){ try{ await nativeSubscribe(region); B.toast('تم تحديث منطقة التنبيهات'); }catch(e){ B.toast('تعذّر تحديث المنطقة'); } } renderPushSettings(); return; }
     const sub = await currentSub();
     if(sub && pushOn){ try{ await postSub(sub, region); B.toast('تم تحديث منطقة التنبيهات'); }catch(e){ B.toast('تعذّر تحديث المنطقة'); } }
     renderPushSettings();
@@ -459,6 +505,7 @@
     settings(){ refreshPushState(); },
     // يُستدعى بعد منح إذن الإشعارات من شاشة البداية.
     async subscribeNow(){
+      if(NATIVE){ lsSet('dalil_apns_asked', '1'); await nativeSubscribe(lsGet(LS.pushRegion) || ''); await refreshPushState(); return; }
       const reg = await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
       await postSub(sub, lsGet(LS.pushRegion) || '');

@@ -126,6 +126,22 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // تنبيهات تطبيق الآيفون (APNs): رمز الجهاز (hex) والمنطقة فقط
+    if (action === "subscribe_native") {
+      const token = String(body.token || "").toLowerCase();
+      if (!/^[0-9a-f]{64,200}$/.test(token)) return json(req, { error: "bad_token" }, 400);
+      const regionIn = cleanText(body.region, 40);
+      const region = REGIONS.includes(regionIn) ? regionIn : "";
+      const { error } = await sb.from("push_native").upsert({ token, region, updated_at: new Date().toISOString() }, { onConflict: "token" });
+      if (error) throw error;
+      return json(req, { ok: true });
+    }
+    if (action === "unsubscribe_native") {
+      const token = String(body.token || "").toLowerCase();
+      if (/^[0-9a-f]{64,200}$/.test(token)) await sb.from("push_native").delete().eq("token", token);
+      return json(req, { ok: true });
+    }
+
     return json(req, { error: "unknown_action" }, 400);
   } catch (e) {
     console.error("dalil-public", action, e);

@@ -97,6 +97,32 @@ jobs:
           $PB -c "Add :WKAppBoundDomains array" "$P"
           $PB -c "Add :WKAppBoundDomains:0 string f10f100a-debug.github.io" "$P"
           plutil -lint "$P"
+          # التنبيهات الأصلية (APNs): صلاحية التطبيق + تمرير رمز الجهاز إلى Capacitor
+          cat > ios/App/App/App.entitlements <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>aps-environment</key><string>production</string></dict></plist>
+          XML
+          sed -i '' -e 's/^          //' ios/App/App/App.entitlements
+          plutil -lint ios/App/App/App.entitlements
+          python3 - <<'PY'
+          p = "ios/App/App/AppDelegate.swift"
+          s = open(p).read()
+          if "didRegisterForRemoteNotificationsWithDeviceToken" not in s:
+              add = """
+              func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                  NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+              }
+
+              func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                  NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+              }
+          """
+              i = s.rstrip().rfind("}")
+              s = s[:i] + add + "}\n"
+              open(p, "w").write(s)
+          print("::notice::AppDelegate push hooks: " + ("OK" if "capacitorDidRegisterForRemoteNotifications" in open(p).read() else "MISSING"))
+          PY
 
       - name: Build check (unsigned)
         if: env.DO_UPLOAD != 'true'
@@ -184,6 +210,11 @@ jobs:
             TARGETED_DEVICE_FAMILY=1 \
             archive > "$RUNNER_TEMP/archive.log" 2>&1 || { echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/archive.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/archive.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/archive.log"
+          # الأرشيف غير موقّع؛ نوقّعه توقيعًا مؤقتًا مع الصلاحيات حتى يحتفظ بها التوقيع السحابي عند التصدير
+          APP="$RUNNER_TEMP/Dalil.xcarchive/Products/Applications/App.app"
+          for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign --force --sign - --timestamp=none "$f"; done
+          codesign --force --sign - --entitlements ios/App/App/App.entitlements --timestamp=none "$APP"
+          echo "::notice::archive entitlements: $(codesign -d --entitlements :- "$APP" 2>/dev/null | tr -d '\n\t ' | grep -o 'aps-environment</key><string>[a-z]*' || echo NONE)"
 
       - name: Upload to TestFlight
         if: env.DO_UPLOAD == 'true'
@@ -213,5 +244,20 @@ jobs:
             -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" \
             > "$RUNNER_TEMP/export.log" 2>&1 || { echo "::error::$(grep -iE 'error|fail' "$RUNNER_TEMP/export.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/export.log"; exit 1; }
           tail -15 "$RUNNER_TEMP/export.log"
+
+      - name: Verify signed entitlements
+        if: env.DO_UPLOAD == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          # تصدير محلي (بدون رفع) للتأكد أن التوقيع النهائي يحمل صلاحية التنبيهات
+          sed 's#<string>upload</string>#<string>export</string>#' "$RUNNER_TEMP/ExportOptions.plist" > "$RUNNER_TEMP/ExportLocal.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Dalil.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportLocal.plist" \
+            -exportPath "$RUNNER_TEMP/ipa" -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" > "$RUNNER_TEMP/export2.log" 2>&1 || { echo "::warning::local export failed: $(grep -iE 'error' "$RUNNER_TEMP/export2.log" | head -5 | paste -sd '|' -)"; exit 0; }
+          cd "$RUNNER_TEMP/ipa" && unzip -q -o *.ipa
+          echo "::notice::signed entitlements: $(codesign -d --entitlements :- Payload/App.app 2>/dev/null | tr -d '\n\t ' | grep -o 'aps-environment</key><string>[a-z]*' || echo NONE)"
           echo "::notice::تم رفع النسخة $MARKETING_VERSION ($BUILD_NUMBER) إلى App Store Connect"
           echo "✅ رُفعت النسخة $MARKETING_VERSION ($BUILD_NUMBER) إلى App Store Connect — تظهر في TestFlight بعد المعالجة (10–30 دقيقة)."

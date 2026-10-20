@@ -12,5 +12,14 @@
     "limitsNavigationsToAppBoundDomains": true,
     "backgroundColor": "#F2EFE9"
   },
-  "appendUserAgent": "DalilApp/1.0"
+  "appendUserAgent": "DalilApp/1.0",
+  "plugins": {
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    }
+  }
 }

@@ -54,7 +54,61 @@ function eventPayload(ev: { id: string; kind: string; region: string; caption: s
   };
 }
 
+// تنبيهات تطبيق الآيفون الأصلية عبر APNs (مفتاح .p8 في أسرار الدالة: APNS_KEY_P8 وAPNS_KEY_ID)
+let apnsJwt: { tok: string; at: number } | null = null;
+async function apnsToken(): Promise<string | null> {
+  const pem = Deno.env.get("APNS_KEY_P8"), kid = Deno.env.get("APNS_KEY_ID"), team = Deno.env.get("APNS_TEAM_ID") || "M3FNP2GR5Z";
+  if (!pem || !kid) return null;
+  if (apnsJwt && Date.now() - apnsJwt.at < 40 * 60e3) return apnsJwt.tok;
+  const body = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
+  const der = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey("pkcs8", der, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const enc = (o: unknown) => b64uEncode(new TextEncoder().encode(JSON.stringify(o)));
+  const head = enc({ alg: "ES256", kid }) + "." + enc({ iss: team, iat: Math.floor(Date.now() / 1000) });
+  const sig = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, new TextEncoder().encode(head)));
+  apnsJwt = { tok: head + "." + b64uEncode(sig), at: Date.now() };
+  return apnsJwt.tok;
+}
+async function sendApns(sb: SupabaseClient, region: string, payload: Record<string, unknown>) {
+  const jwt = await apnsToken();
+  if (!jwt) return { sent: 0, failed: 0, removed: 0, total: 0, skipped: true };
+  let q = sb.from("push_native").select("token");
+  if (region) q = q.in("region", [region, ""]);
+  const { data, error } = await q.limit(20000);
+  if (error) throw error;
+  const toks = (data || []).map((r) => r.token as string);
+  const body = JSON.stringify({ aps: { alert: { title: payload.title, body: payload.body }, sound: "default", "thread-id": String(payload.tag || "dalil") }, url: payload.url || "./" });
+  let sent = 0, failed = 0; const gone: string[] = [];
+  for (let i = 0; i < toks.length; i += 50) {
+    const batch = toks.slice(i, i + 50);
+    const res = await Promise.allSettled(batch.map((t) => fetch("https://api.push.apple.com/3/device/" + t, {
+      method: "POST", body,
+      headers: { authorization: "bearer " + jwt, "apns-topic": "com.alluhaybi.dalil", "apns-push-type": "alert", "apns-priority": "10",
+        "apns-expiration": String(Math.floor(Date.now() / 1000) + 6 * 3600), "content-type": "application/json" },
+    })));
+    for (let j = 0; j < res.length; j++) {
+      const r = res[j];
+      if (r.status === "fulfilled" && r.value.ok) { sent++; continue; }
+      failed++;
+      if (r.status === "fulfilled") {
+        const why = await r.value.text().catch(() => "");
+        if (r.value.status === 410 || /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(why)) gone.push(batch[j]);
+        else console.error("apns", r.value.status, why.slice(0, 200));
+      } else console.error("apns fetch", String(r.reason).slice(0, 200));
+    }
+  }
+  if (gone.length) await sb.from("push_native").delete().in("token", gone);
+  return { sent, failed, removed: gone.length, total: toks.length };
+}
+
 async function sendPush(sb: SupabaseClient, cfg: Record<string,string>, region: string, payload: Record<string,unknown>) {
+  const web = await sendWebPush(sb, cfg, region, payload);
+  let ios = { sent: 0, failed: 0, removed: 0, total: 0 };
+  try { ios = await sendApns(sb, region, payload); } catch (e) { console.error("apns", e); }
+  return { sent: web.sent + ios.sent, failed: web.failed + ios.failed, removed: web.removed + ios.removed, total: web.total + ios.total, web, ios };
+}
+
+async function sendWebPush(sb: SupabaseClient, cfg: Record<string,string>, region: string, payload: Record<string,unknown>) {
   webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
   let q = sb.from("push_subs").select("endpoint,p256dh,auth");
   if (region) q = q.filter("region", "in", `("${region}","")`);
@@ -193,7 +247,9 @@ Deno.serve(async (req) => {
         signed = Object.fromEntries((urls || []).filter((u) => u.signedUrl).map((u) => [u.path, u.signedUrl]));
       }
       const pub = (p: string) => sb.storage.from("events").getPublicUrl(p).data.publicUrl;
-      const { data: subRows } = await sb.from("push_subs").select("region").limit(10000);
+      const { data: webRows } = await sb.from("push_subs").select("region").limit(10000);
+      const { data: iosRows } = await sb.from("push_native").select("region").limit(20000);
+      const subRows = [...(webRows || []), ...(iosRows || [])];
       const byRegion: Record<string, number> = {};
       (subRows || []).forEach((r) => { const k = r.region || "الكل"; byRegion[k] = (byRegion[k] || 0) + 1; });
       return json(req, {

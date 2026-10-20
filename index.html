@@ -24,8 +24,11 @@
 // داخل تطبيق الآيفون (Capacitor): نخفي عبارات المتصفح والتثبيت من Safari.
 window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
 if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
+// تنبيهات الآيفون الأصلية: من الإصدار 1.2 عند توفر إضافة PushNotifications
+window.DALIL_NATIVE_PUSH=(function(){try{var C=window.Capacitor;return !!(window.DALIL_NATIVE&&/DalilApp\/(1\.([2-9]|\d\d)|[2-9])/.test(navigator.userAgent)&&C&&C.isPluginAvailable&&C.isPluginAvailable('PushNotifications'))}catch(e){return false}})();
+if(window.DALIL_NATIVE_PUSH)document.documentElement.classList.add('native-push');
 </script>
-<style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning,.in-app #pushTitle,.in-app #pushBox,.in-app #pushAsk{display:none!important}</style>
+<style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning,.in-app:not(.native-push) #pushTitle,.in-app:not(.native-push) #pushBox,.in-app:not(.native-push) #pushAsk{display:none!important}</style>
 <script>
 // تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
 (function(){var p='auto';try{p=localStorage.getItem('dalil_theme')||'auto'}catch(e){}
@@ -1630,7 +1633,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // «لاحقًا» يؤجّلها 7 أيام. على الآيفون تعمل التنبيهات فقط من التطبيق المثبّت.
   const pushAskKey = 'dalil_push_ask_after';
   function pushAskEligible(){
-    if(window.DALIL_NATIVE) return false;   // تنبيهات الويب لا تعمل داخل تطبيق الآيفون
+    if(window.DALIL_NATIVE && !window.DALIL_NATIVE_PUSH) return false;   // تنبيهات الويب لا تعمل داخل تطبيق الآيفون (قبل 1.2)
+    if(window.DALIL_NATIVE_PUSH){ let a = 0; try{ a = +localStorage.getItem(pushAskKey) || 0; if(localStorage.getItem('dalil_apns_token')) return false; }catch(e){} return Date.now() >= a; }
     if(!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) return false;
     if(Notification.permission !== 'default') return false;
     let after = 0; try{ after = +localStorage.getItem(pushAskKey) || 0; }catch(e){}
@@ -1658,7 +1662,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     btn.disabled = true;
     let perm = 'default';
     // اطلب الإذن مباشرة من ضغطة المستخدم (شرط Safari) ثم أكمل الاشتراك.
-    try{ perm = await Notification.requestPermission(); }catch(e){}
+    if(window.DALIL_NATIVE_PUSH) perm = 'granted';   // تطبيق الآيفون: نافذة الإذن تظهر من subscribeNow
+    else try{ perm = await Notification.requestPermission(); }catch(e){}
     if(perm !== 'granted'){
       btn.disabled = false;
       closePushAsk(perm === 'denied' ? 3650 : 7);
@@ -4660,6 +4665,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(roomParam || roomQS.has('roombeta')){ try{ localStorage.setItem('dalil_room_beta', '1'); }catch(e){} }
   // المتصفح: متاحة للجميع. تطبيق الآيفون: من 1.1 فقط (1.0 بلا إذن ميكروفون، والتسجيل فيه يُغلق التطبيق).
   const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent) || !window.DALIL_NATIVE;
+  if(window.DALIL_NATIVE_PUSH) setTimeout(()=>loadEvents().catch(()=>{}), 1500);
   let roomLoading = null;
   function loadRoom(){
     if(window.DalilRoom) return Promise.resolve(window.DalilRoom);
@@ -4689,7 +4695,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=8';
+      sc.src = 'events.js?v=9';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
