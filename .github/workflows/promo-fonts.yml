@@ -1,0 +1,15 @@
+name: Promo fonts
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  f:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir -p f && cd f
+          for w in Regular Medium SemiBold Bold; do curl -sfL -o IBMPlexSansArabic-$w.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic/IBMPlexSansArabic-$w.ttf" || echo "miss $w"; done
+          for w in Regular Medium Bold ExtraBold Black; do curl -sfL -o Tajawal-$w.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/tajawal/Tajawal-$w.ttf" || echo "miss $w"; done
+          curl -sfL -o ReemKufi.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/reemkufi/ReemKufi%5Bwght%5D.ttf" || echo miss reem
+          ls -la
+          git init -q && git checkout -q -b promo-fonts && git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm fonts && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" promo-fonts
