@@ -78,8 +78,8 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   // نقطة التجمع من A
   await A.click('[data-rm="rally-set"]');
   await A.click('[data-mm="rally-here"]');
-  await B.waitForTimeout(3000);
-  const bRally = await B.textContent('#rmRally').catch(() => '');
+  let bRally = '';
+  for (let i = 0; i < 15 && !bRally.includes('أحمد'); i++) { await B.waitForTimeout(1000); bRally = await B.textContent('#rmRally').catch(() => ''); }
   ok(bRally.includes('أحمد'), `B sees rally: ${bRally.replace(/\s+/g, ' ').slice(0, 80)}`);
   await shot(B, '4-B-rally');
 
