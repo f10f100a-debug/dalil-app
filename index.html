@@ -657,6 +657,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ob-icon{width:84px; height:84px; border-radius:20px; box-shadow:0 8px 22px rgba(60,40,10,.25);}
   .ob-tag{font-size:14px; color:var(--text-dim); margin-top:4px;}
   .ob-list{list-style:none; margin:4px 0 0; padding:0; display:grid; gap:10px; width:100%; max-width:340px; text-align:right;}
+  .ob-list li[hidden]{display:none;}
   .ob-list li{display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:11px 14px;}
   .ob-list .cp-ic{width:26px; height:26px; color:var(--sand-dim); flex:0 0 auto;}
   .ob-list b{display:block; font-size:14.5px; color:var(--text);}
@@ -1366,6 +1367,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <li><span class="cp-ic" data-ico="compass"></span><span><b>بوصلة توجّهك</b>لسيارتك ومخيمك وأي مكان تحفظه</span></li>
       <li><span class="cp-ic" data-ico="map"></span><span><b>خرائط البر بدون إنترنت</b>الأودية والجبال والآبار وخطوط الارتفاع</span></li>
       <li><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار والبرق</b>لحظيًا، مع صور السيول من منطقتك</span></li>
+      <li id="obRoom" hidden><span class="cp-ic" data-ico="radio"></span><span><b>غرفة الرحلة</b>كلّم جماعتك مثل اللاسلكي وشوف مواقعهم</span></li>
     </ul>
     <p class="ob-why">نحتاج إذن <b>الموقع</b> و<b>البوصلة</b> لتوجيهك. موقعك يبقى في جوالك.</p>
     <button class="btn btn-primary" id="onboardBtn" style="max-width:300px;">تفعيل الموقع والبوصلة</button>
@@ -4672,6 +4674,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return roomLoading;
   }
   if(ROOM_ON){
+    const obr = document.getElementById('obRoom'); if(obr) obr.hidden = false;
     const rb = document.getElementById('roomBtn');
     rb.style.display = '';
     document.getElementById('openZelloBtn').style.display = 'none';
