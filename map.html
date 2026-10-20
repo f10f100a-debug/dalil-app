@@ -214,7 +214,11 @@ function currentHeading(){
   }
   return deviceHeading;
 }
-function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide}
+// عند الالتفات أكثر من 90° تنقلب الكتابة رأسًا على عقب لأن الخريطة تُدار بـ CSS؛ فنقلب طبقة الرسم 180° ونرسمها
+// باتجاه 180° حتى تبقى الأسماء مقروءة (يميل الاسم حتى 90° ولا ينقلب). يتغير مرة واحدة عند تجاوز الحد فقط.
+let labelFlip=false;
+function checkLabelFlip(){const a=Math.abs(((rot%360)+540)%360-180);const want=labelFlip?a>80:a>100;if(want!==labelFlip){labelFlip=want;layerBox='';syncEngine()}}
+function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide;try{if(glReady)checkLabelFlip()}catch(e){}}
 function onHeadingChanged(){
   if(headingFrame)return;
   headingFrame=requestAnimationFrame(()=>{headingFrame=0;
@@ -706,7 +710,8 @@ function syncEngine(){
   const box=L+','+T+','+W+','+H;
   if(box!==layerBox){layerBox=box;Object.assign(layer.style,{left:L+'px',top:T+'px',width:W+'px',height:H+'px'});gl.resize()}
   const c=stageToLatLng(L+W/2,T+H/2);
-  gl.jumpTo({center:[c.lng,c.lat],zoom:z-1});
+  layer.style.transform=labelFlip?'rotate(180deg)':'';
+  gl.jumpTo({center:[c.lng,c.lat],zoom:z-1,bearing:labelFlip?180:0});
   clearTimeout(regionTimer);regionTimer=setTimeout(syncRegions,200);
 }
 // ---------- خرائط المستخدم المستوردة (PMTiles محفوظة في جواله: dalil-user-maps-v1 + dalil_user_maps) ----------
