@@ -351,7 +351,12 @@ const okColor=c=>/^#[0-9A-Fa-f]{6}$/.test(c)?c:'#7A4E14';
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_ROOM_UPDATE')return;
   const out=[];for(const m of Array.isArray(e.data.marks)?e.data.marks:[]){if(m&&validLatLng(Number(m.lat),Number(m.lng)))out.push({lat:Number(m.lat),lng:Number(m.lng),name:String(m.name||'عضو').slice(0,24),color:okColor(String(m.color)),stale:!!m.stale,sos:!!m.sos,room:true})}
   const r=e.data.rally;if(r&&validLatLng(Number(r.lat),Number(r.lng)))out.push({lat:Number(r.lat),lng:Number(r.lng),name:String(r.name||'نقطة التجمع').slice(0,40),icon:'🚩',rally:true});
-  roomMarks=out;render()});
+  roomMarks=out;if(e.data.fit&&out.length)fitRoom();render()});
+// إظهار كل أعضاء الغرفة ونقطة التجمع مع موقعي في الشاشة
+function fitRoom(){const pts=roomMarks.concat(gps?[gps]:[]);if(!pts.length)return;const area=clearArea(),w=area.right-area.left,h=area.bottom-area.top;
+  let limit=Math.min(16,mapMode==='online'?maxOnlineTileZ:maxLocalZ),minLat=Math.min(...pts.map(p=>p.lat)),maxLat=Math.max(...pts.map(p=>p.lat)),minLng=Math.min(...pts.map(p=>p.lng)),maxLng=Math.max(...pts.map(p=>p.lng)),target=minZ;
+  for(let t=limit;t>=minZ;t--){let a=world(minLat,minLng,t),b=world(maxLat,maxLng,t);if(Math.abs(b[0]-a[0])<=w*.85&&Math.abs(b[1]-a[1])<=h*.85){target=t;break}}
+  z=target;if(view!=='free')setView('free');const c=world((minLat+maxLat)/2,(minLng+maxLng)/2);cx=c[0]-((area.left+area.right)/2-innerWidth/2);cy=c[1]-((area.top+area.bottom)/2-innerHeight/2)}
 function loadSavedMarks(){let out=[];try{let car=JSON.parse(localStorage.getItem('dalil_car'));if(car&&validLatLng(Number(car.lat),Number(car.lng)))out.push({lat:Number(car.lat),lng:Number(car.lng),name:'السيارة',car:true})}catch(e){}try{let places=JSON.parse(localStorage.getItem('dalil_places'));if(Array.isArray(places))places.forEach(p=>{if(p&&validLatLng(Number(p.lat),Number(p.lng)))out.push({lat:Number(p.lat),lng:Number(p.lng),name:String(p.name||'مكان'),icon:String(p.icon||'📍')})})}catch(e){}savedMarks=out}
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const CAR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15.5v-4l2-5A2 2 0 0 1 8.9 5h6.2A2 2 0 0 1 17 6.5l2 5v4"/><path d="M3.5 15.5h17v3h-17z"/></svg>';

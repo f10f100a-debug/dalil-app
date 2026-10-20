@@ -15,11 +15,11 @@ jobs:
       - name: Serve app
         run: (python3 -m http.server 8765 >/dev/null 2>&1 &) && sleep 1
       - name: Run e2e
-        run: SHOTS=shots node tools/rooms/e2e.cjs
+        run: mkdir -p shots && set -o pipefail && SHOTS=shots node tools/rooms/e2e.cjs 2>&1 | tee shots/log.txt
       - name: Publish screenshots to ci-shots branch
         if: always()
         run: |
-          [ -d shots ] || exit 0
+          mkdir -p shots && touch shots/.keep
           cd shots && git init -q && git checkout -q -b ci-shots
           git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm "e2e ${{ github.run_number }}"

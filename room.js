@@ -433,14 +433,14 @@
   // ---------- الخريطة ----------
   let mapTimer = null;
   function syncMapSoon(){ if(!mapTimer) mapTimer = setTimeout(()=>{ mapTimer = null; syncMap(); }, 1500); }
-  function syncMap(){
+  function syncMap(fit){
     const marks = [];
     if(R.sess) for(const [id, m] of R.members){
       if(id === me()) continue;
       const p = R.pos.get(id); if(!p) continue;
       marks.push({lat:p.lat, lng:p.lng, name:m.name, color:m.color, stale:Date.now() - p.t > STALE_MS, sos:R.sos.has(id)});
     }
-    B.postToMap({type:'DALIL_ROOM_UPDATE', marks, rally:R.sess && R.rally ? {lat:R.rally.lat, lng:R.rally.lng, name:R.rally.label} : null});
+    B.postToMap({type:'DALIL_ROOM_UPDATE', fit:!!fit, marks, rally:R.sess && R.rally ? {lat:R.rally.lat, lng:R.rally.lng, name:R.rally.label} : null});
   }
 
   // ---------- الواجهة ----------
@@ -710,7 +710,7 @@
     else if(act === 'go') enter(R.tab);
     else if(act === 'share') shareRoom();
     else if(act === 'leave') leave();
-    else if(act === 'map'){ close(); B.showMap(); syncMap(); }
+    else if(act === 'map'){ close(); B.showMap(); setTimeout(()=>syncMap(true), 400); }
     else if(act === 'nav') navTo(id);
     else if(act === 'menu') memberMenu(id);
     else if(act === 'rally-set') rallyMenu();
