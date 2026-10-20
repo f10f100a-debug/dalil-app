@@ -9,7 +9,7 @@ asc = importlib.util.module_from_spec(spec); spec.loader.exec_module(asc)
 
 VERSION = os.environ.get("VERSION", "").strip()
 BUILD = os.environ.get("BUILD", "").strip()
-WHATS_NEW = """جديد: غرفة الرحلة 🏕️
+WHATS_NEW = """جديد: غرفة الرحلة
 • تكلّم مع جماعتك بضغطة زر مثل اللاسلكي — حتى 15 شخصًا.
 • شوف مواقعهم حولك وكم يبعدون واتجاههم، وتوجّه لأي واحد بالبوصلة.
 • نقطة تجمّع يحددها أي عضو، وتنبيه إذا ابتعد أحد عن القافلة أكثر من 3 كم.
