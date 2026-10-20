@@ -974,7 +974,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261021-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261021-5" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1111,6 +1111,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="chip" data-theme-set="red">أحمر</button>
       </div>
       <div class="theme-note" id="themeNote"></div>
+
+      <div class="section-title">حجم أسماء الخريطة</div>
+      <div class="theme-chips" id="lblChips" role="radiogroup" aria-label="حجم أسماء الخريطة">
+        <button type="button" class="chip" data-lbl="1">عادي</button>
+        <button type="button" class="chip" data-lbl="1.3">كبير</button>
+        <button type="button" class="chip" data-lbl="1.6">أكبر</button>
+      </div>
 
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
@@ -4941,6 +4948,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const fr = document.getElementById('trackMapFrame');
     try{ if(fr && fr.contentDocument && fr.contentDocument.documentElement) fr.contentDocument.documentElement.setAttribute('data-theme', t); }catch(e){}
   }
+  (()=>{ // حجم أسماء الخريطة: يُحفظ ويُعاد تحميل الخريطة فقط
+    const cur=()=>{try{return localStorage.getItem('dalil_label_scale')||'1.3'}catch(e){return '1.3'}};
+    const mark=()=>document.querySelectorAll('[data-lbl]').forEach(c=>c.classList.toggle('active',c.dataset.lbl===cur()));
+    mark();
+    document.querySelectorAll('[data-lbl]').forEach(c=>c.addEventListener('click',()=>{
+      try{localStorage.setItem('dalil_label_scale',c.dataset.lbl)}catch(e){}
+      mark();
+      const f=document.getElementById('trackMapFrame'); if(f){try{f.contentWindow.location.reload()}catch(e){f.src=f.src}}
+    }));
+  })();
   document.querySelectorAll('[data-theme-set]').forEach(c=>c.addEventListener('click', ()=>{
     try{ localStorage.setItem(THEME_KEY, c.dataset.themeSet); }catch(e){}
     applyTheme();
