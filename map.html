@@ -587,7 +587,7 @@ maplibregl.addProtocol('rain',async params=>{
 });
 const RAIN_FRAMES=(()=>{const out=[],h=Math.floor(Date.now()/3600e3)*3600e3;for(let k=9;k>=5;k--)out.push(new Date(h-k*3600e3).toISOString().slice(0,19)+'Z');out.push('default');return out})();
 // رادار الأمطار الأرضي: شبكة المركز الوطني للأرصاد عبر RainViewer، لقطة كل 10 دقائق لآخر ساعتين.
-// الخدمة المجانية تعطي حتى التكبير 7 (~1 كم للبكسل، قريب من دقة الرادار)، ونكبّرها بعد ذلك.
+// الخدمة المجانية تعطي حتى التكبير 7؛ نطلب بلاطات 512 بكسل فتتضاعف الدقة (~600 م للبكسل) وتقل الحواف بين البلاطات.
 const RADAR_N=13;let RADAR_FRAMES=[],radarHost='',radarLoading=null,radarLoadedAt=0;
 function loadRadarFrames(){
   if(radarLoading||!glReady)return radarLoading;
@@ -595,9 +595,9 @@ function loadRadarFrames(){
     radarHost=j.host||'https://tilecache.rainviewer.com';
     const past=((j.radar&&j.radar.past)||[]).slice(-RADAR_N);if(!past.length)return;
     RADAR_FRAMES=past;radarLoadedAt=Date.now();
-    past.forEach((f,k)=>{const url=radarHost+f.path+'/256/{z}/{x}/{y}/2/1_1.png',id='radar-'+k;
+    past.forEach((f,k)=>{const url=radarHost+f.path+'/512/{z}/{x}/{y}/2/1_1.png',id='radar-'+k;
       if(gl.getSource(id))gl.getSource(id).setTiles([url]);
-      else{gl.addSource(id,{type:'raster',tiles:[url],tileSize:256,minzoom:1,maxzoom:7});
+      else{gl.addSource(id,{type:'raster',tiles:[url],tileSize:512,minzoom:1,maxzoom:7});
         gl.addLayer({id,type:'raster',source:id,layout:{visibility:LP.radar?'visible':'none'},paint:{'raster-opacity':0,'raster-fade-duration':0,'raster-resampling':'linear'}},'slot:dalil')}});
     if(!playTimer&&LP.radar)showFrame(playSet().frames.length-1);
   }).catch(()=>{if(LP.radar)status.textContent='تعذّر تحميل الرادار — تأكد من الاتصال'}).finally(()=>{radarLoading=null});
