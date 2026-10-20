@@ -350,7 +350,7 @@ let roomMarks=[];
 const okColor=c=>/^#[0-9A-Fa-f]{6}$/.test(c)?c:'#7A4E14';
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_ROOM_UPDATE')return;
   const out=[];for(const m of Array.isArray(e.data.marks)?e.data.marks:[]){if(m&&validLatLng(Number(m.lat),Number(m.lng)))out.push({lat:Number(m.lat),lng:Number(m.lng),name:String(m.name||'عضو').slice(0,24),color:okColor(String(m.color)),stale:!!m.stale,sos:!!m.sos,room:true})}
-  const r=e.data.rally;if(r&&validLatLng(Number(r.lat),Number(r.lng)))out.push({lat:Number(r.lat),lng:Number(r.lng),name:String(r.name||'نقطة التجمع').slice(0,40),icon:'🚩',rally:true});
+  const r=e.data.rally;if(r&&validLatLng(Number(r.lat),Number(r.lng)))out.unshift({lat:Number(r.lat),lng:Number(r.lng),name:String(r.name||'نقطة التجمع').slice(0,40),icon:'🚩',rally:true});
   roomMarks=out;if(e.data.fit&&out.length)fitRoom();render()});
 // إظهار كل أعضاء الغرفة ونقطة التجمع مع موقعي في الشاشة
 function fitRoom(){const pts=roomMarks.concat(gps?[gps]:[]);if(!pts.length)return;const area=clearArea(),w=area.right-area.left,h=area.bottom-area.top;

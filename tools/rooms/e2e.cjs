@@ -12,6 +12,7 @@ async function user(browser, name, lat, lng) {
     geolocation: { latitude: lat, longitude: lng }, permissions: ['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'] });
   const p = await ctx.newPage();
   p.errors = [];
+  p.on('dialog', d => d.accept().catch(() => {}));
   p.on('pageerror', e => p.errors.push(e.message));
   p.on('console', m => { if (m.type() === 'error' && !/pmtiles|Byte Serving|tile|Failed to load resource/i.test(m.text())) p.errors.push(m.text()); });
   await p.goto('http://localhost:8765/index.html?roombeta=1');
@@ -116,9 +117,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
 
   // مغادرة
   for (const p of [A, B]) {
-    p.once('dialog', d => d.accept());
     await p.click('#roomBtn'); await p.waitForTimeout(800);
-    p.once('dialog', d => d.accept());
     await p.click('[data-rm="leave"]').catch(() => {});
     await p.waitForTimeout(1000);
   }
