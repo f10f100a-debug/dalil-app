@@ -1,0 +1,21 @@
+name: fetch-tiles
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          mkdir out && cd out
+          for L in s2cloudless_3857 s2cloudless-2018_3857 s2cloudless-2020_3857 s2cloudless-2024_3857; do
+            for xy in "10104/6870" "10103/6870"; do
+              x=${xy%/*}; y=${xy#*/}
+              curl -sf -o "${L}_${x}.jpg" "https://tiles.maps.eox.at/wmts/1.0.0/$L/default/g/14/$y/$x.jpg" || echo "fail $L"
+            done
+          done
+          curl -sf -o esri_10104.jpg "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/14/6870/10104" || true
+          curl -sf -o esri_10103.jpg "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/14/6870/10103" || true
+          ls -la
+          git init -q && git checkout -q -b tiles-check && git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm tiles && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
