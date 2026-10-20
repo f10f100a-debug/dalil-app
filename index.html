@@ -432,6 +432,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-car-sub{font-size:13px; color:var(--cp-dim); line-height:1.5; margin-top:1px;}
   .cp-car-sub:empty{display:none;}
   .cp-car .cp-btn{margin-top:12px;}
+  .cp-car.cp-empty{padding:12px 14px;}
+  .cp-car .cp-btn.cp-car-save{margin-top:0; width:auto; flex:0 0 auto; min-height:44px; padding:0 14px; font-size:14px; gap:6px;}
+  .cp-car-save .cp-ic{width:18px; height:18px;}
   .cp-car-btns{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;}
   .cp-car-btns .cp-btn{margin-top:0;}
 
@@ -913,7 +916,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="cp-card cp-car" id="carCard"></div>
 
       <div class="cp-actions">
-        <button class="cp-btn cp-btn-gold" type="button" id="saveHereBtn"><span class="cp-ic" data-ico="pin"></span>حفظ موقعي</button>
+        <button class="cp-btn cp-btn-white" type="button" id="saveHereBtn"><span class="cp-ic" data-ico="plus"></span>حفظ مكان</button>
         <button class="cp-btn cp-btn-white" type="button" id="pasteBtn"><span class="cp-ic" data-ico="paste"></span>لصق موقع</button>
         <button class="cp-btn cp-btn-white" type="button" id="shareCurrentBtn"><span class="cp-ic" data-ico="send"></span>إرسال موقعي</button>
       </div>
@@ -2464,9 +2467,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       carCardEl.classList.toggle('cp-empty', key === 'none');
       let html;
       if(key === 'none'){
+        // سطر واحد مضغوط: الإجراء الأهم (حفظ السيارة) بزر صغير بجانبه، بدل زرين ذهبيين متتاليين
         html = `<div class="cp-car-row"><span class="cp-car-ic">${icoSpan('car')}</span><div class="cp-car-txt">`+
-          `<div class="cp-car-title">لم تحفظ موقع السيارة</div><div class="cp-car-sub">احفظه قبل أن تبتعد لتعود إليها بسهولة</div></div></div>`+
-          `<button type="button" class="cp-btn cp-btn-gold cp-btn-lg" data-act="save-car">${icoSpan('pin')}حفظ موقع السيارة هنا</button>`;
+          `<div class="cp-car-title">موقع السيارة</div><div class="cp-car-sub">احفظه قبل أن تبتعد عنها</div></div>`+
+          `<button type="button" class="cp-btn cp-btn-gold cp-car-save" data-act="save-car">${icoSpan('pin')}احفظ هنا</button></div>`;
       }else if(key === 'saved'){
         html = carHeader('car', true) +
           `<button type="button" class="cp-btn cp-btn-gold cp-btn-lg" data-act="go-car">${icoSpan('nav')}توجّه إلى السيارة</button>`;
