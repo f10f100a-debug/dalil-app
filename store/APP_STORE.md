@@ -116,3 +116,38 @@ Data sources: © OpenStreetMap contributors, Copernicus DEM, NASA GIBS, EUMETSAT
 ## نقاط تُحسم قبل الإرسال
 1. تصحيح اسم البائع (اللقب) لدى أبل — طلب الدعم مُرسل.
 2. ✅ متطلبات البند 1.2 (المحتوى من المستخدمين) مكتملة: مراجعة مسبقة قبل النشر، وإبلاغ (إخفاء تلقائي بعد 3 بلاغات)، و«حظر هذا الناشر» داخل التطبيق (منذ 3.24)، ووسيلة تواصل في صفحة الدعم.
+
+---
+
+# الإصدار 1.1 — غرفة الرحلة
+
+## ما الجديد (What's New) — يُلصق في خانة الإصدار 1.1
+```
+جديد: غرفة الرحلة 🏕️
+• تكلّم مع جماعتك بضغطة زر مثل اللاسلكي — حتى 15 شخصًا.
+• شوف مواقعهم على الخريطة وكم يبعدون عنك واتجاههم، وتوجّه لأي واحد بالبوصلة.
+• نقطة تجمّع يحددها أي عضو، وتنبيه إذا ابتعد أحد عن القافلة أكثر من 3 كم.
+• زر استغاثة يرسل موقعك لكل أعضاء الغرفة فورًا.
+• غرف خاصة برقم ورمز سري، تنتهي بعد 24 ساعة، والرسائل الصوتية تُحذف بعد ساعة.
+```
+
+## إضافة لملاحظات المراجع (تُضاف في آخر النص الإنجليزي)
+```
+NEW IN 1.1 — Trip room (غرفة الرحلة), a private push-to-talk room for a travelling group:
+- Compass tab → "غرفة الرحلة" → "إنشاء غرفة" (create): enter any name and a 4-digit PIN, tick the terms box, tap the gold button.
+- Hold "اضغط مطوّلًا وتكلّم" to record a voice message (microphone is used only while holding this button).
+- To see a second member, open https://f10f100a-debug.github.io/dalil-app/?room=ROOMCODE in any desktop browser and join with the same PIN; both members then see each other's distance/direction, the map markers, voice messages, the rally point and the SOS alert.
+- Location is shared only with members of a room the user joined, only while the app is open, and is not stored on our server. Voice messages are deleted after 1 hour; rooms expire after 24 hours.
+- Safeguards (Guideline 1.2): users accept zero-tolerance terms before joining (https://f10f100a-debug.github.io/dalil-app/support.html#room-terms); any member can mute another member; a member muted by 3 members is removed automatically; any member can report another (the latest voice message is kept for review); reports are handled by the developer within 24 hours and offenders are banned from rooms.
+```
+
+## تحديث نموذج الخصوصية (App Privacy) قبل إرسال 1.1
+أضف هذه الأنواع (كلها **Not Linked to You** و**بدون تتبع**، والغرض **App Functionality**):
+| النوع في أبل | ما هو عندنا |
+|---|---|
+| User Content → Audio Data | الرسائل الصوتية في غرفة الرحلة (تُحذف بعد ساعة) |
+| Location → Precise Location | موجود مسبقًا — الآن أيضًا موقعك لأعضاء غرفة الرحلة (لا يُخزَّن) |
+| User Content → Other User Content | موجود — أضف: الاسم الذي تكتبه في الغرفة |
+
+## الأذونات الجديدة في التطبيق
+- الميكروفون: «لإرسال رسائل صوتية لأعضاء غرفة الرحلة عند الضغط على «اضغط وتكلّم» فقط.»
