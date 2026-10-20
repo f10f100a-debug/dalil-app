@@ -1,0 +1,12 @@
+name: Fetch Saudi boundary
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  b:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/geo/fetch_sau.py
+      - run: |
+          git config user.email ci@dalil && git config user.name ci
+          git add data/sau-boundary.json && git commit -m "Saudi boundary (Natural Earth)" && git push
