@@ -300,7 +300,7 @@ function applyRegionPrefs(rid){
   const b=LP.base,topo=b==='topo',sat=b==='sat',osm=b==='osm',at=id=>id+'@'+rid;
   for(const[id,op]of Object.entries(FILLS)){vis(at(id),!sat&&!osm);if(gl.getLayer(at(id)))gl.setPaintProperty(at(id),'fill-opacity',topo?op*.55:op)}
   vis(at('water'),!sat&&!osm);
-  vis(at('hillshade'),LP.hs&&!osm);
+  vis(at('hillshade'),LP.hs&&!osm&&!sat);   // الظل فوق الفضائي يغطيه بلون أصفر باهت
   if(gl.getLayer(at('hillshade')))gl.setPaintProperty(at('hillshade'),'raster-opacity',Math.min(1,LP.hsOp/100*(topo?1.15:1)));
   vis(at('contour'),LP.contour&&!osm);vis(at('contour-label'),LP.contour&&!osm);
   if(gl.getLayer(at('contour'))){
@@ -675,7 +675,7 @@ const gl=new maplibregl.Map({container:layer,interactive:false,attributionContro
   style:{version:8,glyphs:abs('vendor/glyphs/')+'{fontstack}/{range}.pbf',
     sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19},
       sat:{type:'raster',tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],tileSize:256,maxzoom:15}},
-    layers:[{id:'bg',type:'background',paint:{'background-color':'#EFE4CF'}},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'},paint:{'raster-fade-duration':0}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});
+    layers:[{id:'bg',type:'background',paint:{'background-color':'#EFE4CF'}},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'},paint:{'raster-fade-duration':0,'raster-contrast':.12,'raster-saturation':.1}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});
 const regionUrls=r=>[abs('maps/'+r.id+'.pmtiles?v='+r.v),abs('maps/'+r.id+'-hs.pmtiles?v='+r.v)];
 // المناطق المحفوظة (من صفحة «خرائط المناطق») تُقرأ من الجهاز مباشرة بدل الشبكة
 async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS),[u1,u2]=regionUrls(r),a=await c.match(u1),b=await c.match(u2);if(!a||!b)return;
