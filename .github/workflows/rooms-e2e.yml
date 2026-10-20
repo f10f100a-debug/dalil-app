@@ -14,6 +14,9 @@ jobs:
       - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
       - name: Serve app
         run: (python3 -m http.server 8765 >/dev/null 2>&1 &) && sleep 1
+      - name: Map weather layers
+        if: always()
+        run: mkdir -p shots && node tools/rooms/maplayers.cjs 2>&1 | tee shots/maplog.txt
       - name: Run e2e
         run: mkdir -p shots && set -o pipefail && SHOTS=shots node tools/rooms/e2e.cjs 2>&1 | tee shots/log.txt
       - name: Publish screenshots to ci-shots branch
