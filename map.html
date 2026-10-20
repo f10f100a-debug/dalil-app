@@ -72,7 +72,8 @@ body.embed .nav-arrow{width:44px;height:44px}
 html[data-theme=dark],html[data-theme=red]{color-scheme:dark}
 :is(html[data-theme=dark],html[data-theme=red]) :is(html,body){background:#15120E}
 :is(html[data-theme=dark],html[data-theme=red]) #map{background:#1a1a1a}
-:is(html[data-theme=dark],html[data-theme=red]) #layer{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92)}
+:is(html[data-theme=dark],html[data-theme=red]):not(.base-sat) #layer{filter:invert(1) hue-rotate(180deg) brightness(.82) contrast(.92)}
+:is(html[data-theme=dark],html[data-theme=red]).base-sat #layer{filter:brightness(.8)}
 :is(html[data-theme=dark],html[data-theme=red]) button{background:#1F1B16;color:#EFE8DC;border-color:#353027;box-shadow:0 2px 10px rgba(0,0,0,.5)}
 :is(html[data-theme=dark],html[data-theme=red]) #gps{background:#C9964F;color:#1C1A17;border-color:#C9964F}
 :is(html[data-theme=dark],html[data-theme=red]) #gps.on{background:#EFE8DC;color:#1C1A17;border-color:#EFE8DC}
@@ -315,6 +316,7 @@ function applyRegionPrefs(rid){
   for(const id of['cliff','track','rail','road-case','road','road-label','peak','place'])vis(at(id),!osm);
 }
 function applyPrefs(){
+  document.documentElement.classList.toggle('base-sat',LP.base==='sat');   // الليلي يعكس الألوان: لا نعكس الصورة الفضائية
   if(glReady){vis('osm',LP.base==='osm');vis('sat',LP.base==='sat');for(const id of activeRegions)applyRegionPrefs(id)}
   localMode.classList.toggle('active',LP.base==='barr'||LP.base==='topo');onlineMode.classList.toggle('active',LP.base==='sat');
   setText(attribution,(LP.base==='sat'?'Sentinel-2 cloudless 2016 © EOX (CC BY 4.0) · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':'')+(LP.radar?' · الرادار: المركز الوطني للأرصاد عبر RainViewer':'')+(LP.lightning?' · البرق: © EUMETSAT':''));
