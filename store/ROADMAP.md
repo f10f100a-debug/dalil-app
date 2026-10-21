@@ -31,7 +31,6 @@
 - [x] تحديث التطبيق يطبَّق فور الفتح، وصفحة الترحيب بنص الإذن الصحيح.
 
 ## لاحقًا
-- **«شارك رحلتي مع أهلي»:** رابط مباشر لموقعك حتى ترجع.
 - **نسخة أندرويد (مؤجّلة بطلب صاحب التطبيق — تُستأنف عند طلبه):**
   - جاهز: بناء آلي `.github/workflows/android.yml` → ملف تجربة APK في فرع `android-build`
     (https://raw.githubusercontent.com/f10f100a-debug/dalil-app/android-build/dalil.apk)،
