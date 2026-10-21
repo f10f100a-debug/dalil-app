@@ -1,0 +1,46 @@
+# يشغّل تطبيق الأندرويد (آخر APK في فرع android-build) على محاكي أندرويد ويصوّر الشاشة
+name: Android check
+on: workflow_dispatch
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Get APK
+        run: curl -sL -o dalil.apk https://raw.githubusercontent.com/${{ github.repository }}/android-build/dalil.apk && ls -la dalil.apk
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r dalil.apk
+            adb shell pm grant com.alluhaybi.dalil android.permission.ACCESS_FINE_LOCATION || true
+            adb shell pm grant com.alluhaybi.dalil android.permission.ACCESS_COARSE_LOCATION || true
+            adb emu geo fix 41.69 27.52 || true
+            adb logcat -c
+            adb shell monkey -p com.alluhaybi.dalil -c android.intent.category.LAUNCHER 1
+            sleep 35
+            mkdir -p shots
+            adb exec-out screencap -p > shots/android-1-start.png
+            adb shell input tap 540 1650 || true
+            sleep 8
+            adb exec-out screencap -p > shots/android-2-after-tap.png
+            adb logcat -d | grep -iE "chromium|Capacitor|AndroidRuntime|FATAL|dalil" | tail -150 > shots/android-logcat.txt || true
+            adb shell dumpsys window | grep -i mCurrentFocus | tee shots/android-focus.txt || true
+      - name: Publish screenshots
+        if: always()
+        run: |
+          mkdir -p shots && touch shots/.keep
+          cd shots && git init -q && git checkout -q -b android-shots
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "android check ${{ github.run_number }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" android-shots
+          echo "::notice::$(grep -ciE 'FATAL|AndroidRuntime' android-logcat.txt || true) fatal lines; focus: $(cat android-focus.txt 2>/dev/null | head -1)"
