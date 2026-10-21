@@ -279,13 +279,22 @@
     return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
   }
   function loadVideo(file){
+    // آيفون: الفيديو لازم يكون داخل الصفحة ويتشغّل لحظة حتى يفك أول إطار (وإلا ما توصل loadeddata)
     return new Promise((resolve, reject)=>{
       const url = URL.createObjectURL(file), v = document.createElement('video');
-      v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
-      const to = setTimeout(()=>reject(new Error('timeout')), 15000);
-      v.onloadeddata = ()=>{ clearTimeout(to); resolve({v, url}); };
-      v.onerror = ()=>{ clearTimeout(to); URL.revokeObjectURL(url); reject(new Error('decode')); };
-      v.src = url;
+      v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.preload = 'auto';
+      v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      document.body.appendChild(v);
+      let done = false;
+      const fail = why=>{ if(done) return; done = true; clearTimeout(to); v.remove(); URL.revokeObjectURL(url); reject(new Error(why)); };
+      const ok = ()=>{ if(done) return; done = true; clearTimeout(to); resolve({v, url}); };
+      const to = setTimeout(()=>fail('timeout'), 20000);
+      v.onloadedmetadata = ()=>{
+        if(!v.videoWidth) return;
+        const p = v.play(); if(p && p.then) p.then(()=>{ v.pause(); ok(); }).catch(()=>ok()); else ok();
+      };
+      v.onerror = ()=>fail('decode ' + (v.error ? v.error.code : ''));
+      v.src = url; v.load();
     });
   }
   const seek = (v, t)=>new Promise(res=>{ const done = ()=>{ v.removeEventListener('seeked', done); res(); }; v.addEventListener('seeked', done); v.currentTime = t; setTimeout(done, 3000); });
@@ -345,13 +354,13 @@
       p.classList.add('has');
       p.innerHTML = `<video src="${st.draft.vurl}" poster="${st.draft.url}" muted playsinline autoplay loop></video><small>🎬 ${Math.round(st.draft.vdur)} ث · ${(vid.size / 1048576).toFixed(1)} ميقا${dur > VMAX + 0.5 ? ' · أول ' + VMAX + ' ثوانٍ' : ''} · اضغط لتغييره</small>`;
       setStatus(selectedKind() ? '' : 'اختر نوع الحدث');
-    }finally{ v.pause(); v.removeAttribute('src'); v.load(); URL.revokeObjectURL(url); }
+    }finally{ v.pause(); v.removeAttribute('src'); v.load(); v.remove(); URL.revokeObjectURL(url); }
   }
   async function preparePhoto(file){
     if(!file) return;
     if(/^video\//.test(file.type) || /\.(mov|mp4|m4v)$/i.test(file.name || '')){
       try{ st.photoGps = null; $('evLocRow').hidden = true; await prepareVideo(file); decideLocation({taken:file.lastModified}); }
-      catch(e){ st.draft = null; setStatus(e.msg || 'تعذّر قراءة الفيديو. جرّب مقطعًا آخر.', true); }
+      catch(e){ st.draft = null; setStatus(e.msg || 'تعذّر قراءة الفيديو. جرّب مقطعًا آخر. (' + String(e && (e.message || e.name) || e).slice(0, 60) + ')', true); }
       updateSendBtn(); return;
     }
     if(!/^image\//.test(file.type || 'image/')){ setStatus('الملف ليس صورة', true); return; }
