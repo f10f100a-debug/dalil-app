@@ -72,7 +72,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 </div>
 <div id="td" class="chip" hidden>
   <button type="button" id="tdMin" aria-label="تصغير/إظهار الإعدادات">⌄</button>
-  <div class="row" id="tdNav" hidden><span class="navdot"></span><div class="grow"><b id="tdNavT"></b><small id="tdNavS"></small></div><button class="btn small ghost" id="tdVoice" type="button" aria-label="التوجيه الصوتي">🔇</button><button class="btn small" id="tdFollow" type="button">تتبّع</button></div>
+  <div class="row" id="tdNav" hidden><span class="navdot"></span><div class="grow"><b id="tdNavT"></b><small id="tdNavS"></small></div><button class="btn small ghost" id="tdVoice" type="button" aria-label="التوجيه الصوتي">🔇</button><button class="btn small ghost" id="tdFollow" type="button">📍 اتبعني</button></div>
   <div class="row" id="tdMode" hidden><div class="seg3"><button type="button" data-mode="line" class="on">خط مستقيم</button><button type="button" data-mode="road">عبر الطرق</button></div><small id="tdRouteMsg" class="grow"></small></div>
   <div class="row"><span>تضخيم الارتفاع</span><input type="range" id="tdEx" min="1" max="3" step="0.1" value="1.6" aria-label="تضخيم الارتفاع"><b id="tdExV">1.6×</b></div>
   <div class="row"><label><input type="checkbox" id="tdSat">صور فضائية</label><span class="grow"></span><button class="btn ghost small" id="tdFlat" type="button">مستوٍ 2D</button></div>
@@ -345,7 +345,7 @@ function setMode(m){
   for(const id of ['nav-line-c', 'nav-line']) map.setLayoutProperty(id, 'visibility', m === 'line' ? 'visible' : 'none');
   if(m === 'road') fetchRoute(true); else { $('tdRouteMsg').textContent = ''; map.getSource('route').setData(routeGeo()); }
 }
-function setFollow(on){ follow = on; $('tdFollow').classList.toggle('on', on); $('tdFollow').textContent = on ? 'يتتبّعك' : 'تتبّع'; if(on && myPos) camera(true); }
+function setFollow(on){ follow = on; $('tdFollow').classList.toggle('on', on); $('tdFollow').textContent = on ? '📍 يتبعك' : '📍 اتبعني'; if(on && myPos) camera(true); }
 function startNav3D(){
   $('tdNav').hidden = false; navText();
   map.addSource('nav', {type:'geojson', data:navGeo()});
@@ -370,7 +370,7 @@ function startNav3D(){
     if(follow) camera(false);
     voiceTick();
   });
-  follow = true; $('tdFollow').classList.add('on'); $('tdFollow').textContent = 'يتتبّعك';
+  follow = true; $('tdFollow').classList.add('on'); $('tdFollow').textContent = '📍 يتبعك';
   let firstFix = true;
   geo.on('geolocate', () => { if(firstFix && follow){ firstFix = false; camera(true); } });
   try{ geo.trigger(); }catch(e){}
