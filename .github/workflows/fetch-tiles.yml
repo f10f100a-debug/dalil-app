@@ -8,13 +8,8 @@ jobs:
     steps:
       - run: |
           exec > >(tee out.txt) 2>&1
-          mkdir -p o
-          curl -s "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/1.0.0/WMTSCapabilities.xml" -o cap.xml; grep -o "<ows:Identifier>[^<]*[Ff]lood[^<]*</ows:Identifier>\|<ows:Identifier>[^<]*[Ww]ater[^<]*</ows:Identifier>" cap.xml | sort -u | head -30
-          for L in MODIS_Combined_Flood_2-Day MODIS_Combined_Flood_3-Day MODIS_Terra_Flood_2-Day; do
-            curl -s -o o/$L.png -w "$L %{http_code} %{content_type} %{size_download}\n" "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/$L/default/2026-10-19/GoogleMapsCompatible_Level9/6/27/13.png"; done
-          for y in tiles2021 tiles2020 tiles; do curl -s -o o/jrc_$y.png -w "jrc $y %{http_code} %{content_type} %{size_download}\n" "https://storage.googleapis.com/global-surface-water/$y/occurrence/8/157/108.png"; done
-          curl -sI "https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/8/157/108.png" | grep -i "access-control\|^HTTP"
-          for z in 10 11 12; do python3 -c "
-          import math;z=$z;lat,lng=27.85,42.10;n=2**z;print(z,int((lng+180)/360*n),int((1-math.asinh(math.tan(math.radians(lat)))/math.pi)/2*n))" ; done > xy.txt; cat xy.txt
-          while read z x y; do curl -s -o o/jrc_z$z.png -w "jrc z$z %{http_code} %{size_download}\n" "https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/$z/$x/$y.png"; curl -s -o o/jrcs_z$z.png -w "jrc seas z$z %{http_code} %{size_download}\n" "https://storage.googleapis.com/global-surface-water/tiles2021/seasonality/$z/$x/$y.png"; done < xy.txt
-          mv out.txt o/ && cd o && git init -q && git checkout -q -b tiles-check && git config user.email ci@d && git config user.name ci && git add . && git commit -qm r && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
+          curl -s "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&returnDirections=true&directionsOutputType=esriDOTStandard&directionsLengthUnits=esriNAUKilometers&outSR=4326&directionsLanguage=ar&returnRoutes=false&token=AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy&stops=41.66,27.49;42.10,27.80" | python3 -c "
+          import sys,json;j=json.load(sys.stdin);f=j['directions'][0]['features']
+          print(len(f), list(f[0].keys()), list(f[0]['attributes'].keys()))
+          for x in f[:6]: print(x['attributes']['text'], 'geom' in x, str(x.get('geometry'))[:80], (x.get('compressedGeometry') or '')[:30])"
+          mkdir o && mv out.txt o/ && cd o && git init -q && git checkout -q -b tiles-check && git config user.email ci@d && git config user.name ci && git add . && git commit -qm r && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
