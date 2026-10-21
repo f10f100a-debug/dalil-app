@@ -4938,6 +4938,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     getPos: ()=>state.pos,
     bearing, directionWord,
     getNavTarget: ()=>state.navTarget,
+    getCar: ()=>getCar(),
     startGeo: ()=>startGeoWatch(),
     showMap: ()=>document.querySelector('.tab[data-screen="track"]').click(),
     postToMap: msg=>{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage(msg, location.origin); },
@@ -4975,7 +4976,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=3';
+      sc.src = 'room.js?v=4';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);

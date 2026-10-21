@@ -136,8 +136,10 @@
     const p = B.getPos();
     if(!p || !Number.isFinite(p.lat)) return null;
     return {lat:+p.lat.toFixed(6), lng:+p.lng.toFixed(6), acc:Number.isFinite(p.accuracy) ? Math.round(p.accuracy) : null,
-      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null};
+      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar()};
   }
+  // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
+  function myCar(){ try{ const c = B.getCar && B.getCar(); return c && Number.isFinite(c.lat) ? {lat:+c.lat.toFixed(6), lng:+c.lng.toFixed(6)} : null; }catch(e){ return null; } }
   let lastSent = null, posTimer = null;
   function tickPos(){
     if(!R.sess) return;
@@ -145,15 +147,18 @@
     if(!mp) return;
     const now = Date.now();
     const moved = lastSent ? B.haversine(lastSent.lat, lastSent.lng, mp.lat, mp.lng) : Infinity;
-    if(!lastSent || moved > 15 || now - lastSent.t > 20000){
-      if(RT.send('pos', mp)) lastSent = {...mp, t:now};
+    const carKey = mp.car ? mp.car.lat + ',' + mp.car.lng : '';
+    if(!lastSent || moved > 15 || now - lastSent.t > 20000 || carKey !== lastSent.carKey){
+      if(RT.send('pos', mp)) lastSent = {...mp, t:now, carKey};
     }
     checkLag();
     if(R.open) renderMembersSoon();
   }
   function setPos(id, p){
     if(!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180)) return;
-    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, t:Date.now()});
+    const car = p.car && Math.abs(p.car.lat) <= 90 && Math.abs(p.car.lng) <= 180 ? {lat:+p.car.lat, lng:+p.car.lng} : null;
+    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:Date.now()});
+    if(R.navObj && R.navObj._car === id && car){ R.navObj.lat = car.lat; R.navObj.lng = car.lng; }
     if(R.navObj && R.navObj._member === id){ R.navObj.lat = +p.lat; R.navObj.lng = +p.lng; }
     checkLag(); renderMembersSoon(); syncMapSoon();
   }
@@ -421,6 +426,12 @@
     if(s < 3600) return 'قبل ' + Math.round(s / 60) + 'د';
     return 'قبل ' + Math.round(s / 3600) + 'س';
   }
+  function navToCar(id){
+    const p = R.pos.get(id); if(!p || !p.car) return B.toast('لا توجد سيارة محفوظة');
+    R.navObj = {id:'room-car-' + id, _car:id, name:'سيارة ' + memberName(id), icon:'🚗', cat:'other', lat:p.car.lat, lng:p.car.lng, alt:null, createdAt:Date.now()};
+    close();
+    B.navigateTo(R.navObj);
+  }
   function navTo(id){
     const p = id === 'rally' ? R.rally : R.pos.get(id);
     if(!p) return B.toast('لا يوجد موقع بعد');
@@ -439,6 +450,7 @@
       if(id === me()) continue;
       const p = R.pos.get(id); if(!p) continue;
       marks.push({lat:p.lat, lng:p.lng, name:m.name, color:m.color, stale:Date.now() - p.t > STALE_MS, sos:R.sos.has(id)});
+      if(p.car) marks.push({lat:p.car.lat, lng:p.car.lng, name:'سيارة ' + m.name, car:true});
     }
     B.postToMap({type:'DALIL_ROOM_UPDATE', fit:!!fit, marks, rally:R.sess && R.rally ? {lat:R.rally.lat, lng:R.rally.lng, name:R.rally.label} : null});
   }
@@ -479,6 +491,7 @@
   .rm-mem .grow{flex:1; min-width:0}
   .rm-mem b{display:block; font-size:14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   .rm-mem small{display:block; font-size:12px; color:var(--text-dim)}
+  .rm-mem .rm-car{display:block; margin-top:3px; padding:0; border:0; background:none; font:inherit; font-size:12px; font-weight:600; color:var(--gold-ink, #8a5a1f); cursor:pointer; text-align:right}
   .rm-mem small.lag{color:var(--danger); font-weight:700}
   .rm-mem.stale .rm-av{opacity:.45}
   .rm-ib{width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--sand-dim); display:grid; place-items:center; cursor:pointer; flex:0 0 auto}
@@ -728,9 +741,12 @@
         sub = (d != null ? B.fmtDist(d) + ' · ' + B.directionWord(B.bearing(a.lat, a.lng, p.lat, p.lng)) : 'موقعه وصل') + (Number.isFinite(p.spd) && p.spd > 2 ? ' · ' + Math.round(p.spd * 3.6) + ' كم/س' : '') + (stale ? ' · آخر ظهور ' + ago(p.t) : '');
       }
       const lag = !mine && R.lagging.has(m.member_id), sos = R.sos.has(m.member_id), muted = R.muted.has(m.member_id);
+      const car = mine ? myCar() : p && p.car;
+      const carLine = car ? (mine ? '<small class="rm-car">🚗 سيارتك محفوظة وتظهر للأعضاء</small>'
+        : `<button type="button" class="rm-car" data-rm="navcar" data-id="${esc(m.member_id)}">🚗 سيارته${a ? ' · ' + esc(B.fmtDist(B.haversine(a.lat, a.lng, car.lat, car.lng))) + ' ' + esc(B.directionWord(B.bearing(a.lat, a.lng, car.lat, car.lng))) : ''} — توجّه</button>`) : '';
       return `<div class="rm-mem${stale ? ' stale' : ''}">
         <span class="rm-av" style="background:${esc(m.color)}">${esc((m.name || '؟').trim().charAt(0))}</span>
-        <div class="grow"><b>${sos ? '🆘 ' : ''}${esc(m.name)}${muted ? ' 🔇' : ''}</b><small class="${lag || sos ? 'lag' : ''}">${lag ? 'بعيد عن القافلة · ' : ''}${esc(sub)}</small></div>
+        <div class="grow"><b>${sos ? '🆘 ' : ''}${esc(m.name)}${muted ? ' 🔇' : ''}</b><small class="${lag || sos ? 'lag' : ''}">${lag ? 'بعيد عن القافلة · ' : ''}${esc(sub)}</small>${carLine}</div>
         ${mine ? '' : `<button class="rm-ib" type="button" data-rm="nav" data-id="${esc(m.member_id)}" aria-label="توجّه إلى ${esc(m.name)}" ${p ? '' : 'disabled'}>${ico('nav')}</button>
         <button class="rm-ib" type="button" data-rm="menu" data-id="${esc(m.member_id)}" aria-label="خيارات ${esc(m.name)}">${ico('more')}</button>`}
       </div>`;
@@ -772,6 +788,7 @@
     else if(act === 'leave') leave();
     else if(act === 'map'){ close(); B.showMap(); setTimeout(()=>syncMap(true), 400); }
     else if(act === 'nav') navTo(id);
+    else if(act === 'navcar') navToCar(id);
     else if(act === 'menu') memberMenu(id);
     else if(act === 'rally-set') rallyMenu();
     else if(act === 'play'){

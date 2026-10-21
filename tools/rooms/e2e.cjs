@@ -11,6 +11,7 @@ async function user(browser, name, lat, lng) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, locale: 'ar-SA',
     geolocation: { latitude: lat, longitude: lng }, permissions: ['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'] });
   const p = await ctx.newPage();
+  if(name === 'بدر') await p.addInitScript(() => localStorage.setItem('dalil_car', JSON.stringify({lat:27.5560, lng:41.7200, time:Date.now()})));
   p.errors = [];
   p.on('dialog', d => d.accept().catch(() => {}));
   p.on('pageerror', e => p.errors.push(e.message));
@@ -57,6 +58,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok(aMem.includes('بدر') && /كم|م ·/.test(aMem), `A sees B with distance: ${aMem.replace(/\s+/g, ' ').slice(0, 120)}`);
   ok(bMem.includes('أحمد'), `B sees A`);
   ok(/بعيد عن القافلة/.test(aMem), 'convoy lag shown');
+  ok(/سيارته/.test(aMem), `A sees B's car: ${aMem.replace(/\s+/g, ' ').slice(0, 160)}`);
   ok((await A.textContent('#rmLive')).includes('متصل'), 'A realtime connected');
   await shot(A, '2-A-members'); await shot(B, '2-B-members');
 
