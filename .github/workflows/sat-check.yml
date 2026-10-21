@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
-      - run: (python3 tools/promo/rangeserver.py . >/dev/null 2>&1 &) && sleep 1 && mkdir -p shots && node tools/promo/satcheck.cjs | tee shots/log.txt
+      - run: (python3 tools/promo/rangeserver.py . >/dev/null 2>&1 &) && sleep 1 && mkdir -p shots && node tools/promo/m3check.cjs | tee shots/log.txt
       - run: |
           cd shots && git init -q && git checkout -q -b sat-check && git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm s && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" sat-check

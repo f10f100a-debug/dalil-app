@@ -354,7 +354,7 @@ for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],[
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
-  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
+  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'')+(targetPoint?'&tLat='+targetPoint.lat.toFixed(6)+'&tLng='+targetPoint.lng.toFixed(6)+'&tName='+encodeURIComponent(navName.textContent||''):'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
   if(isEmbedded)window.parent.location.href=url;else location.href=url};googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
 function drawDot(){

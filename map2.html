@@ -44,6 +44,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 #td .row{display:flex;align-items:center;gap:10px}
 #td input[type=range]{flex:1;accent-color:var(--sand)}
 #td label{display:flex;align-items:center;gap:6px}
+#tdNav b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tdNav small{display:block;font-size:12px;opacity:.75}#tdNav .navdot{width:12px;height:12px;border-radius:50%;background:#1F7A6B;flex:0 0 auto}#tdFollow.on{background:#1F7A6B;color:#fff;border-color:#1F7A6B}
 #td input[type=checkbox]{width:20px;height:20px;accent-color:var(--sand)}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:calc(env(safe-area-inset-bottom,0px) + 118px)}
 .maplibregl-ctrl-top-left{top:calc(env(safe-area-inset-top,0px) + 64px)}
@@ -60,6 +61,7 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
   <div class="chip title grow"><b id="title">حفظ الخرائط للبر</b><small>OpenStreetMap و Copernicus</small></div>
 </div>
 <div id="td" class="chip" hidden>
+  <div class="row" id="tdNav" hidden><span class="navdot"></span><div class="grow"><b id="tdNavT"></b><small id="tdNavS"></small></div><button class="btn small" id="tdFollow" type="button">تتبّع</button></div>
   <div class="row"><span>تضخيم الارتفاع</span><input type="range" id="tdEx" min="1" max="3" step="0.1" value="1.6" aria-label="تضخيم الارتفاع"><b id="tdExV">1.6×</b></div>
   <div class="row"><label><input type="checkbox" id="tdSat">صور فضائية</label><span class="grow"></span><button class="btn ghost small" id="tdFlat" type="button">مستوٍ 2D</button></div>
 </div>
@@ -223,7 +225,52 @@ function start3D(){
   $('tdSat').checked = SAT;
   $('tdEx').oninput = () => { $('tdExV').textContent = ex().toFixed(1) + '×'; map.setTerrain({source:'dem', exaggeration:ex()}); };
   $('tdSat').onchange = e => { SAT = e.target.checked; map.setLayoutProperty('sat', 'visibility', SAT ? 'visible' : 'none'); map.setLayoutProperty('esri', 'visibility', SAT ? 'visible' : 'none'); for(const id of active) satFills(id); };
+  if(TGT) startNav3D();
   $('tdFlat').onclick = () => { const flat = map.getPitch() > 5; map.easeTo({pitch: flat ? 0 : 62, duration:700}); $('tdFlat').textContent = flat ? 'مائل 3D' : 'مستوٍ 2D'; };
+}
+// ---------- الملاحة في العرض الثلاثي ----------
+const TGT = (() => { const la = Number(qs.get('tLat')), ln = Number(qs.get('tLng')); return qs.has('tLat') && Number.isFinite(la) && Number.isFinite(ln) ? {lat:la, lng:ln, name:qs.get('tName') || 'الهدف'} : null; })();
+let follow = false, gpsCourse = null, nativeHdg = null, nativeAt = 0;
+const R = Math.PI/180;
+const distM = (a, b) => { const dLat = (b[1]-a[1])*R, dLng = (b[0]-a[0])*R, x = Math.sin(dLat/2)**2 + Math.cos(a[1]*R)*Math.cos(b[1]*R)*Math.sin(dLng/2)**2; return 12742000*Math.asin(Math.sqrt(x)); };
+const brgDeg = (a, b) => { const y = Math.sin((b[0]-a[0])*R)*Math.cos(b[1]*R), x = Math.cos(a[1]*R)*Math.sin(b[1]*R) - Math.sin(a[1]*R)*Math.cos(b[1]*R)*Math.cos((b[0]-a[0])*R); return (Math.atan2(y, x)/R + 360) % 360; };
+const DIRS = ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'];
+// تطبيق الآيفون 1.2+: اتجاه الجوال من النظام يدير الكاميرا
+window.__dalilNativeHeading = h => { if(Number.isFinite(h)){ nativeHdg = h; nativeAt = Date.now(); if(follow && myPos) camera(false); } };
+function navGeo(){
+  const t = [TGT.lng, TGT.lat], line = myPos ? [myPos, t] : [t, t];
+  return {type:'FeatureCollection', features:[{type:'Feature', properties:{k:'line'}, geometry:{type:'LineString', coordinates:line}}, {type:'Feature', properties:{k:'t', name:TGT.name}, geometry:{type:'Point', coordinates:t}}]};
+}
+function navText(){
+  $('tdNavT').textContent = 'إلى ' + TGT.name;
+  if(!myPos){ $('tdNavS').textContent = 'بانتظار موقعك…'; return; }
+  const d = distM(myPos, [TGT.lng, TGT.lat]), b = brgDeg(myPos, [TGT.lng, TGT.lat]);
+  $('tdNavS').textContent = (d >= 1000 ? (d/1000).toFixed(d >= 10000 ? 1 : 2) + ' كم' : Math.round(d) + ' م') + ' · ' + DIRS[Math.round(b/45) % 8] + ' · ' + Math.round(b) + '°';
+}
+function camera(first){
+  // الاتجاه: بوصلة الجوال (1.2+) ← اتجاه السير أثناء الحركة ← نحو الهدف
+  const brg = Date.now() - nativeAt < 3000 ? nativeHdg : gpsCourse != null ? gpsCourse : brgDeg(myPos, [TGT.lng, TGT.lat]);
+  map.easeTo({center:myPos, bearing:brg, pitch:65, zoom:first ? Math.max(map.getZoom(), 14.5) : map.getZoom(), duration:first ? 1200 : 600, padding:{top:0, bottom:120, left:0, right:0}});
+}
+function setFollow(on){ follow = on; $('tdFollow').classList.toggle('on', on); $('tdFollow').textContent = on ? 'يتتبّعك' : 'تتبّع'; if(on && myPos) camera(true); }
+function startNav3D(){
+  $('tdNav').hidden = false; navText();
+  map.addSource('nav', {type:'geojson', data:navGeo()});
+  map.addLayer({id:'nav-line-c', type:'line', source:'nav', filter:['==',['get','k'],'line'], layout:{'line-cap':'round'}, paint:{'line-color':'#fff', 'line-width':8, 'line-opacity':.8}});
+  map.addLayer({id:'nav-line', type:'line', source:'nav', filter:['==',['get','k'],'line'], layout:{'line-cap':'round'}, paint:{'line-color':'#1F7A6B', 'line-width':5, 'line-dasharray':[1.6, 1.2]}});
+  map.addLayer({id:'nav-t', type:'circle', source:'nav', filter:['==',['get','k'],'t'], paint:{'circle-radius':9, 'circle-color':'#C9964F', 'circle-stroke-color':'#fff', 'circle-stroke-width':3}});
+  map.addLayer({id:'nav-tl', type:'symbol', source:'nav', filter:['==',['get','k'],'t'], layout:{'text-field':['get','name'], 'text-font':T, 'text-size':14, 'text-offset':[0,1.3], 'text-anchor':'top'}, paint:{'text-color':'#5C3A0E', 'text-halo-color':'#fff', 'text-halo-width':2}});
+  $('tdFollow').onclick = () => setFollow(!follow);
+  map.on('dragstart', () => { if(follow) setFollow(false); });
+  geo.on('geolocate', e => {
+    const c = e.coords; gpsCourse = Number.isFinite(c.heading) && c.speed > 1.5 ? c.heading : null;
+    map.getSource('nav').setData(navGeo()); navText();
+    if(follow) camera(false);
+  });
+  follow = true; $('tdFollow').classList.add('on'); $('tdFollow').textContent = 'يتتبّعك';
+  let firstFix = true;
+  geo.on('geolocate', () => { if(firstFix && follow){ firstFix = false; camera(true); } });
+  try{ geo.trigger(); }catch(e){}
 }
 map.on('moveend', syncRegions);
 
