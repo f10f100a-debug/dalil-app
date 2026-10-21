@@ -5055,6 +5055,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const bar = document.createElement('div'); bar.className = 'open-app-bar';
       bar.innerHTML = `<b>عندك تطبيق دليل؟</b><a class="cp-btn cp-btn-gold" href="dalil://room?code=${roomParam}&pin=${pin}">افتح الدعوة في التطبيق</a><a class="oab-get" href="https://apps.apple.com/app/id6822651903">ما عندي التطبيق — حمّله</a><button type="button" class="oab-x" aria-label="إغلاق">أكمل هنا في المتصفح</button>`;
       document.body.appendChild(bar); bar.querySelector('.oab-x').onclick = ()=>bar.remove();
+      // إذا ما انفتح التطبيق (غير مثبّت أو إصدار قديم) نوضّح السبب بدل ما يبقى المستخدم محتار
+      bar.querySelector('.cp-btn').addEventListener('click', ()=>{ const t0 = Date.now(); setTimeout(()=>{ if(document.visibilityState === 'visible' && Date.now() - t0 < 4000) toast('ما انفتح التطبيق؟ حدّث «دليل» من App Store لآخر إصدار، أو أكمل هنا في المتصفح'); }, 2200); });
+      // إذا دخل الغرفة من المتصفح نخفي الشريط
+      document.addEventListener('click', e=>{ if(e.target && e.target.closest && e.target.closest('#rmGo')) bar.remove(); }, true);
     }
     if(roomParam) loadRoom().then(m=>m.open(roomParam, (roomQS.get('pin') || '').replace(/\D/g, '').slice(0, 8))).catch(()=>{});
     else if(roomLs('dalil_room_v1')) loadRoom().catch(()=>{});
