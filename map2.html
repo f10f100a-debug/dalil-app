@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://ibasemaps-api.arcgis.com data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://ibasemaps-api.arcgis.com https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://ibasemaps-api.arcgis.com data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://route-api.arcgis.com https://ibasemaps-api.arcgis.com https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#1C1A17">
 <title>دليل — حفظ الخرائط للبر</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
@@ -44,6 +44,16 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
 #td .row{display:flex;align-items:center;gap:10px}
 #td input[type=range]{flex:1;accent-color:var(--sand)}
 #td label{display:flex;align-items:center;gap:6px}
+#td{padding-top:14px}
+#tdMin{position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:44px;height:26px;border-radius:13px;border:1px solid rgba(0,0,0,.12);background:#FBF7EF;font-size:16px;line-height:1;color:#3A3024;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+#td.min .row:not(#tdNav){display:none}
+#td.min #tdMin{transform:translateX(-50%) rotate(180deg)}
+#td.min:not(.nav){padding:6px 10px 6px;inset-inline:auto 10px;width:auto}
+#td.min:not(.nav) #tdMin{position:static;transform:rotate(180deg)}
+.seg3{display:flex;background:rgba(0,0,0,.06);border-radius:10px;padding:2px}
+.seg3 button{border:0;background:none;padding:6px 10px;border-radius:8px;font:inherit;font-size:13px;color:#3A3024}
+.seg3 button.on{background:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+#tdRouteMsg{font-size:11.5px;opacity:.75;line-height:1.35}
 #tdNav b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#tdNav small{display:block;font-size:12px;opacity:.75}#tdNav .navdot{width:12px;height:12px;border-radius:50%;background:#1F7A6B;flex:0 0 auto}#tdFollow.on{background:#1F7A6B;color:#fff;border-color:#1F7A6B}
 #td input[type=checkbox]{width:20px;height:20px;accent-color:var(--sand)}
 .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:calc(env(safe-area-inset-bottom,0px) + 118px)}
@@ -61,7 +71,9 @@ html,body{height:100%;margin:0;background:#EFE4CF;color:var(--ink);font-family:"
   <div class="chip title grow"><b id="title">حفظ الخرائط للبر</b><small>OpenStreetMap و Copernicus</small></div>
 </div>
 <div id="td" class="chip" hidden>
+  <button type="button" id="tdMin" aria-label="تصغير/إظهار الإعدادات">⌄</button>
   <div class="row" id="tdNav" hidden><span class="navdot"></span><div class="grow"><b id="tdNavT"></b><small id="tdNavS"></small></div><button class="btn small" id="tdFollow" type="button">تتبّع</button></div>
+  <div class="row" id="tdMode" hidden><div class="seg3"><button type="button" data-mode="line" class="on">خط مستقيم</button><button type="button" data-mode="road">عبر الطرق</button></div><small id="tdRouteMsg" class="grow"></small></div>
   <div class="row"><span>تضخيم الارتفاع</span><input type="range" id="tdEx" min="1" max="3" step="0.1" value="1.6" aria-label="تضخيم الارتفاع"><b id="tdExV">1.6×</b></div>
   <div class="row"><label><input type="checkbox" id="tdSat">صور فضائية</label><span class="grow"></span><button class="btn ghost small" id="tdFlat" type="button">مستوٍ 2D</button></div>
 </div>
@@ -227,6 +239,11 @@ function start3D(){
   $('tdEx').oninput = () => { $('tdExV').textContent = ex().toFixed(1) + '×'; map.setTerrain({source:'dem', exaggeration:ex()}); };
   $('tdSat').onchange = e => { SAT = e.target.checked; map.setLayoutProperty('sat', 'visibility', SAT ? 'visible' : 'none'); map.setLayoutProperty('esri', 'visibility', SAT ? 'visible' : 'none'); for(const id of active) satFills(id); };
   if(TGT) startNav3D();
+  // تصغير البطاقة: يبقى سطر الملاحة فقط (ويُحفظ الاختيار)
+  const setMin = on => { $('td').classList.toggle('min', on); try{ localStorage.setItem('dalil_3d_min', on ? '1' : '0'); }catch(e){} };
+  let minPref = false; try{ minPref = localStorage.getItem('dalil_3d_min') === '1'; }catch(e){}
+  setMin(minPref);
+  $('tdMin').onclick = () => setMin(!$('td').classList.contains('min'));
   $('tdFlat').onclick = () => { const flat = map.getPitch() > 5; map.easeTo({pitch: flat ? 0 : 62, duration:700}); $('tdFlat').textContent = flat ? 'مائل 3D' : 'مستوٍ 2D'; };
 }
 // ---------- الملاحة في العرض الثلاثي ----------
@@ -254,6 +271,53 @@ function camera(first){
   if(first) map.jumpTo({center:myPos, bearing:brg, pitch:58, zoom:13.3});
   else map.easeTo({center:myPos, bearing:brg, duration:600});
 }
+// ---------- التوجيه عبر الطرق (خدمة مسارات Esri، يحتاج إنترنت وصلاحية Routing في المفتاح) ----------
+let navMode = 'line', route = null, routeFrom = null, routeAt = 0, routeBusy = false;
+function routeGeo(){
+  const fc = {type:'FeatureCollection', features:[]};
+  if(navMode !== 'road' || !route) return fc;
+  fc.features.push({type:'Feature', properties:{k:'road'}, geometry:{type:'LineString', coordinates:route.path}});
+  const end = route.path[route.path.length - 1];
+  if(distM(end, [TGT.lng, TGT.lat]) > 50) fc.features.push({type:'Feature', properties:{k:'tail'}, geometry:{type:'LineString', coordinates:[end, [TGT.lng, TGT.lat]]}});
+  return fc;
+}
+function offRoute(){
+  if(!route || !myPos) return true;
+  let best = Infinity; for(let i = 0; i < route.path.length; i += Math.max(1, Math.floor(route.path.length/400))) best = Math.min(best, distM(myPos, route.path[i]));
+  return best > 300;
+}
+async function fetchRoute(force){
+  if(navMode !== 'road' || !myPos || routeBusy) return;
+  if(!force && route && !offRoute()) return;
+  if(!force && Date.now() - routeAt < 60000) return;
+  routeBusy = true; routeAt = Date.now(); $('tdRouteMsg').textContent = 'جارٍ حساب المسار…';
+  try{
+    if(!navigator.onLine) throw {msg:'التوجيه عبر الطرق يحتاج إنترنت'};
+    const u = 'https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&returnDirections=false&outSR=4326&directionsLanguage=ar&token=' + encodeURIComponent(ESRI_KEY) +
+      '&stops=' + encodeURIComponent(myPos[0].toFixed(6) + ',' + myPos[1].toFixed(6) + ';' + TGT.lng.toFixed(6) + ',' + TGT.lat.toFixed(6));
+    const j = await (await fetch(u)).json();
+    if(j.error){
+      const c = j.error.code;
+      throw {msg: c === 403 || c === 498 || c === 499 ? 'التوجيه عبر الطرق غير مفعّل في الحساب بعد' : 'لا يوجد طريق معروف يوصل لهذا المكان — اتبع الخط المستقيم'};
+    }
+    const f = j.routes && j.routes.features && j.routes.features[0];
+    if(!f) throw {msg:'لا يوجد طريق معروف يوصل لهذا المكان — اتبع الخط المستقيم'};
+    route = {path: f.geometry.paths.flat(), km: f.attributes.Total_Kilometers, min: f.attributes.Total_TravelTime};
+    routeFrom = myPos;
+    const h = Math.floor(route.min/60), m = Math.round(route.min % 60);
+    $('tdRouteMsg').textContent = 'عبر الطرق: ' + route.km.toFixed(route.km >= 10 ? 0 : 1) + ' كم · ' + (h ? h + ' س ' : '') + m + ' د' + (distM(route.path[route.path.length-1], [TGT.lng, TGT.lat]) > 300 ? ' — ثم مستقيم للهدف' : '');
+  }catch(e){
+    route = null; $('tdRouteMsg').textContent = (e && e.msg) || 'تعذّر حساب المسار — حاول لاحقًا';
+  }
+  routeBusy = false;
+  if(map.getSource('route')) map.getSource('route').setData(routeGeo());
+}
+function setMode(m){
+  navMode = m;
+  document.querySelectorAll('#tdMode [data-mode]').forEach(b => b.classList.toggle('on', b.dataset.mode === m));
+  for(const id of ['nav-line-c', 'nav-line']) map.setLayoutProperty(id, 'visibility', m === 'line' ? 'visible' : 'none');
+  if(m === 'road') fetchRoute(true); else { $('tdRouteMsg').textContent = ''; map.getSource('route').setData(routeGeo()); }
+}
 function setFollow(on){ follow = on; $('tdFollow').classList.toggle('on', on); $('tdFollow').textContent = on ? 'يتتبّعك' : 'تتبّع'; if(on && myPos) camera(true); }
 function startNav3D(){
   $('tdNav').hidden = false; navText();
@@ -262,11 +326,19 @@ function startNav3D(){
   map.addLayer({id:'nav-line', type:'line', source:'nav', filter:['==',['get','k'],'line'], layout:{'line-cap':'round'}, paint:{'line-color':'#1F7A6B', 'line-width':5, 'line-dasharray':[1.6, 1.2]}});
   map.addLayer({id:'nav-t', type:'circle', source:'nav', filter:['==',['get','k'],'t'], paint:{'circle-radius':9, 'circle-color':'#C9964F', 'circle-stroke-color':'#fff', 'circle-stroke-width':3}});
   map.addLayer({id:'nav-tl', type:'symbol', source:'nav', filter:['==',['get','k'],'t'], layout:{'text-field':['get','name'], 'text-font':T, 'text-size':14, 'text-offset':[0,1.3], 'text-anchor':'top'}, paint:{'text-color':'#5C3A0E', 'text-halo-color':'#fff', 'text-halo-width':2}});
+  map.addSource('route', {type:'geojson', data:routeGeo()});
+  map.addLayer({id:'route-c', type:'line', source:'route', filter:['==',['get','k'],'road'], layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':'#fff', 'line-width':9}}, 'nav-t');
+  map.addLayer({id:'route', type:'line', source:'route', filter:['==',['get','k'],'road'], layout:{'line-cap':'round','line-join':'round'}, paint:{'line-color':'#2F6FD6', 'line-width':5.5}}, 'nav-t');
+  map.addLayer({id:'route-tail', type:'line', source:'route', filter:['==',['get','k'],'tail'], layout:{'line-cap':'round'}, paint:{'line-color':'#1F7A6B', 'line-width':4, 'line-dasharray':[1.6, 1.2]}}, 'nav-t');
+  $('tdMode').hidden = false;
+  document.querySelectorAll('#tdMode [data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+  $('td').classList.add('nav');
   $('tdFollow').onclick = () => setFollow(!follow);
   map.on('dragstart', () => { if(follow) setFollow(false); });
   geo.on('geolocate', e => {
     const c = e.coords; gpsCourse = Number.isFinite(c.heading) && c.speed > 1.5 ? c.heading : null;
     map.getSource('nav').setData(navGeo()); navText();
+    if(navMode === 'road') fetchRoute(false);
     if(follow) camera(false);
   });
   follow = true; $('tdFollow').classList.add('on'); $('tdFollow').textContent = 'يتتبّعك';
