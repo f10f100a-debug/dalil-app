@@ -1,18 +1,20 @@
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const c = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, geolocation: { latitude: 27.49, longitude: 41.66 }, permissions: ['geolocation'], extraHTTPHeaders: { Referer: 'https://f10f100a-debug.github.io/' } });
-  const p = await c.newPage(); const errs = [];
-  p.on('pageerror', e => errs.push(e.message));
-  await p.goto('http://localhost:8765/map2.html?mode=3d&sat=1&lat=27.49&lng=41.66&z=13&tLat=27.80&tLng=42.10&tName=' + encodeURIComponent('بقعاء'));
-  await p.waitForTimeout(12000);
-  await p.evaluate(() => document.querySelector('[data-mode="road"]').click()); await p.waitForTimeout(12000);
-  console.log('route:', await p.textContent('#tdRouteMsg'), '| nav:', await p.textContent('#tdNavS'), '| errors:', errs.slice(0, 3).join(' | '));
-  await p.screenshot({ path: 'shots/m3-road.png', timeout: 60000 });
-  await p.evaluate(() => document.getElementById('tdMin').click()); await p.waitForTimeout(1500);
-  await p.screenshot({ path: 'shots/m3-min.png', timeout: 60000 });
-  const p2 = await c.newPage();
-  await p2.goto('http://localhost:8765/map2.html?mode=3d&lat=27.49&lng=41.66&z=12'); await p2.waitForTimeout(8000);
-  await p2.screenshot({ path: 'shots/m3-min-notarget.png', timeout: 60000 });
+  const spots = [['water-hail', 27.40, 41.80, 11], ['water-riyadh', 24.45, 46.83, 11], ['water-qassim', 26.20, 43.55, 9]];
+  for (const [name, lat, lng, zz] of spots) {
+    const c = await b.newContext({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1, colorScheme: 'light' });
+    const p = await c.newPage(); const errs = [];
+    p.on('pageerror', e => errs.push(e.message));
+    p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 120)); });
+    await p.addInitScript(() => localStorage.setItem('dalil_map_layers', JSON.stringify({ base: 'barr', water: true })));
+    await p.goto('http://localhost:8765/map.html?embed=1');
+    await p.waitForTimeout(4000);
+    await p.evaluate(([la, ln, zz]) => { z = zz; setView('free'); const [wx, wy] = world(la, ln); cx = wx + innerWidth / 2 - originX; cy = wy + innerHeight / 2 - originY; render() }, [lat, lng, zz]);
+    await p.waitForTimeout(12000);
+    console.log(name, 'errors:', errs.slice(0, 4).join(' | '));
+    await p.screenshot({ path: `shots/${name}.png`, timeout: 60000 });
+    await c.close();
+  }
   await b.close();
 })().catch(e => { console.log('FAIL', e.message.split('\n')[0]); process.exit(1); });
