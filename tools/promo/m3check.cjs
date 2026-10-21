@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await p.evaluate(() => document.getElementById('tdVoice').click());
   await p.evaluate(() => document.querySelector('[data-mode="road"]').click());
   await p.waitForTimeout(8000);
-  const steps = await p.evaluate(() => route && route.steps ? route.steps.slice(0, 4).map(s => s.text + ' @' + s.pt.map(v => v.toFixed(4))) : null);
+  const steps = null;
   await c.setGeolocation({ latitude: 27.4915, longitude: 41.6608 }); await p.waitForTimeout(4000);
   console.log('msg:', await p.textContent('#tdRouteMsg'), '\nsteps:', JSON.stringify(steps), '\nsaid:', JSON.stringify(await p.evaluate(() => window.__said)), '\nerrors:', errs.slice(0, 3).join(' | '));
   await p.screenshot({ path: 'shots/m3-voice.png', timeout: 60000 });
