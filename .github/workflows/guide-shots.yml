@@ -1,0 +1,28 @@
+name: Guide screenshots
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: sudo apt-get install -y fonts-noto-color-emoji >/dev/null 2>&1 || true
+      - run: (python3 tools/promo/rangeserver.py . >/dev/null 2>&1 &) && sleep 1
+      - run: node tools/promo/guide.cjs 2>&1 | tee guide-log.txt
+      - name: Fonts for the PDF
+        run: |
+          mkdir -p guide/fonts
+          for f in NotoNaskhArabic-Regular NotoNaskhArabic-Bold NotoNaskhArabic-SemiBold; do
+            curl -sfL -o guide/fonts/$f.ttf "https://github.com/notofonts/notofonts.github.io/raw/main/fonts/NotoNaskhArabic/hinted/ttf/$f.ttf" || echo "font fail $f"; done
+          ls -la guide/fonts
+      - if: always()
+        run: |
+          mkdir -p guide && cp guide-log.txt guide/ || true
+          cd guide && git init -q && git checkout -q -b guide-shots
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "guide ${{ github.run_number }}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" guide-shots
