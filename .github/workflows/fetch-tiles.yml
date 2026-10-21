@@ -1,17 +1,11 @@
 name: fetch-tiles
 on: workflow_dispatch
-permissions:
-  contents: write
 jobs:
   t:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          mkdir out && cd out
-          curl -s -o ib_17.jpg -w "z17 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/17/54966/80838?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
-          curl -s -o ib_18.jpg -w "z18 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/18/109933/161677?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
-          curl -s -o ib_19.jpg -w "z19 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/19/219866/323354?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
-          curl -s -o bad.txt -w "badref %{http_code}\n" -H "Referer: https://evil.example.com/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/17/109933/161677?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
-          cat bad.txt
-          git init -q && git checkout -q -b tiles-check && git config user.email ci@dalil && git config user.name ci
-          git add . && git commit -qm tiles && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
+          K='AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy'
+          curl -s -o /dev/null -w "tile %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/14/6870/10104?token=$K"
+          curl -s -H "Referer: https://f10f100a-debug.github.io/" "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&returnDirections=false&token=$K&stops=41.66,27.49;42.10,27.80" | python3 -c "import sys,json;j=json.load(sys.stdin);print('route',j.get('error') or j['routes']['features'][0]['attributes']['Total_Kilometers'])"
+          curl -s -o /dev/null -w "badref %{http_code}\n" -H "Referer: https://evil.example.com/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/14/6870/10104?token=$K"

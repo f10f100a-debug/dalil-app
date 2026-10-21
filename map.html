@@ -649,7 +649,7 @@ maplibregl.addProtocol('umshift',async params=>{
   const bl=await new Promise(r=>cv.toBlob(r,'image/png'));return{data:await bl.arrayBuffer()};
 });
 // صور Esri عالية الدقة (مفتاح مقيّد بنطاق التطبيق، والدفع بعد الحد المجاني معطّل). إن فشلت تظهر صور Sentinel تحتها
-const ESRI_KEY='AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy';
+const ESRI_KEY='AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy';
 const TF=['Noto Sans Regular'];
 // تكبير أسماء الخريطة: يغيّر حجم الخط فقط ولا يحرّك شيئًا (الافتراضي ×1.3، ويُعدّل من الإعدادات)
 const LBL=(()=>{try{const v=+localStorage.getItem('dalil_label_scale');return v>=0.8&&v<=2?v:1.3}catch(e){return 1.3}})();
