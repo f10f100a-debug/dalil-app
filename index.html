@@ -1714,9 +1714,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     onboardBtn.textContent = 'تفعيل الموقع';
     onboardPermissionNote.textContent = 'ستظهر رسالة واحدة من الآيفون: اختر «السماح أثناء استخدام التطبيق».';
   }
+  if(window.DALIL_ANDROID){   // الأندرويد: البوصلة بدون إذن، وطلب واحد للموقع من النظام
+    const w = document.querySelector('.ob-why'); if(w) w.innerHTML = 'نحتاج إذن <b>الموقع</b> لتوجيهك. البوصلة تعمل تلقائيًا، وموقعك يبقى في جوالك.';
+    onboardBtn.textContent = 'تفعيل الموقع';
+    onboardPermissionNote.textContent = 'ستظهر رسالة من الجوال: اختر «أثناء استخدام التطبيق» والموقع «الدقيق».';
+  }
   onboardBtn.addEventListener('click', async ()=>{
     onboardPermissionNote.classList.remove('error');
-    onboardPermissionNote.textContent = NATIVE_HEADING_APP ? 'اختر «السماح أثناء استخدام التطبيق».' : 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
+    onboardPermissionNote.textContent = window.DALIL_ANDROID ? 'اختر «أثناء استخدام التطبيق».' : NATIVE_HEADING_APP ? 'اختر «السماح أثناء استخدام التطبيق».' : 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
     const result = await requestPermissions(true, onboardBtn);
     if(result.locationGranted && result.compassGranted !== false){
       try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}

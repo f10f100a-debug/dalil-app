@@ -57,7 +57,7 @@ jobs:
         run: |
           run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
           # هوية خاصة بالأندرويد (DalilAndroid) حتى تفرّق الصفحة بينه وبين تطبيق الآيفون
-          node -e 'const f="capacitor.config.json",c=require("./"+f);c.appendUserAgent="DalilAndroid/"+process.env.VERSION_NAME;c.android={backgroundColor:"#F2EFE9",allowMixedContent:false};require("fs").writeFileSync(f,JSON.stringify(c,null,2))'
+          node -e 'const f="capacitor.config.json",c=require("./"+f);c.appendUserAgent="DalilAndroid/"+process.env.VERSION_NAME;c.android={backgroundColor:"#F2EFE9",allowMixedContent:false,adjustMarginsForEdgeToEdge:"force"};require("fs").writeFileSync(f,JSON.stringify(c,null,2))'
           run_logged npx cap add android
           run_logged npx cap sync android
 

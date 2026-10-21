@@ -18,6 +18,7 @@ jobs:
         with:
           api-level: 34
           arch: x86_64
+          profile: pixel_6
           target: google_apis
           disable-animations: true
           script: |
@@ -30,7 +31,7 @@ jobs:
             sleep 35
             mkdir -p shots
             adb exec-out screencap -p > shots/android-1-start.png
-            adb shell input tap 540 1650 || true
+            W=$(adb shell wm size | grep -o "[0-9]*x[0-9]*" | tail -1); adb shell input tap $(( ${W%x*} / 2 )) $(( ${W#*x} * 76 / 100 )) || true
             sleep 8
             adb exec-out screencap -p > shots/android-2-after-tap.png
             adb logcat -d | grep -iE "chromium|Capacitor|AndroidRuntime|FATAL|dalil" | tail -150 > shots/android-logcat.txt || true
