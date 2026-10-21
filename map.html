@@ -99,6 +99,14 @@ html[data-theme=dark],html[data-theme=red]{color-scheme:dark}
 :is(html[data-theme=dark],html[data-theme=red]) .stop-nav{color:#F08A7E}
 #redTint{display:none;position:fixed;inset:0;z-index:2147483647;pointer-events:none;background:#9A0000;mix-blend-mode:multiply}
 html[data-theme=red] #redTint{display:block}
+/* ===== شريط الطبقات السريع (يمين الخريطة) ===== */
+#quick{position:fixed;z-index:58;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
+#quick button{width:52px;height:52px;padding:0;border-radius:15px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:#FFFFFFee;border:1px solid #E4DED3;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+#quick button span{font-size:19px;line-height:1}#quick button b{font-size:10px;font-weight:700;color:#3A3024}
+#quick button.on{background:#C9964F;border-color:#C9964F}#quick button.on b{color:#1C1A17}
+:is(html[data-theme=dark],html[data-theme=red]) #quick button:not(.on){background:#1F1B16ee;border-color:#353027}:is(html[data-theme=dark],html[data-theme=red]) #quick button:not(.on) b{color:#EFE8DC}
+body.embed #quick button{width:46px;height:46px;border-radius:13px}body.embed #quick button span{font-size:17px}
+body.has-target #quick{top:42%}
 /* ===== لوحة الطبقات ===== */
 #layersBtn{display:grid;place-items:center}
 #layersPanel{display:none;position:fixed;z-index:75;left:78px;right:14px;bottom:max(20px,env(safe-area-inset-bottom));max-height:calc(100% - 150px);overflow:auto;background:#FFFFFFf7;border:1px solid #E4DED3;border-radius:18px;padding:12px 14px;box-shadow:0 6px 24px rgba(60,45,20,.22);color:#1C1A17;font-size:14px}
@@ -141,6 +149,12 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
 <div id="rainBar" class="rain-bar" role="group" aria-label="تحريك المطر"><span id="rainTime">المطر</span><button id="rainPlay" type="button" aria-label="تشغيل">▶</button></div>
 <div class="map-modes" aria-label="اختيار نوع الخريطة"><button id="localMode" type="button" class="active">خريطة البر</button><button id="onlineMode" type="button">فضائي</button><button id="googleMode" type="button">خرائط Google ↗</button></div><a id="attribution" class="attribution show" href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© مساهمو OpenStreetMap · Copernicus DEM</a>
 <div class="ctrl"><button id="layersBtn" type="button" aria-label="طبقات الخريطة وإعداداتها" title="طبقات الخريطة"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="m2 13 10 5 10-5"/></svg></button><button id="northBtn" type="button" hidden aria-label="إرجاع الشمال للأعلى" title="إرجاع الشمال للأعلى"><svg id="northIcon" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path d="M12 2.5 16.5 12h-9z" fill="#C0392B"/><path d="M12 21.5 7.5 12h9z" fill="#B8B0A3"/></svg></button><button id="plus" type="button" aria-label="تكبير الخريطة" title="تكبير الخريطة">+</button><button id="minus" type="button" aria-label="تصغير الخريطة" title="تصغير الخريطة">−</button><button id="gps" type="button" aria-label="إظهار موقعي ومتابعته" title="إظهار موقعي ومتابعته"></button></div><div id="badge" class="badge" aria-label="مقياس الخريطة"></div>
+<div id="quick" role="group" aria-label="طبقات سريعة">
+<button type="button" data-q="rain"><span>🌧️</span><b>الأمطار</b></button>
+<button type="button" data-q="water"><span>💧</span><b>السيول</b></button>
+<button type="button" data-q="ndvi"><span>🌱</span><b>الربيع</b></button>
+<button type="button" data-q="topo"><span>⛰️</span><b>التضاريس</b></button>
+</div>
 <div id="layersPanel" role="dialog" aria-label="طبقات الخريطة">
   <div class="lp-head"><b>طبقات الخريطة</b><span class="lp-tools"><button type="button" id="lp3d" title="عرض ثلاثي الأبعاد (يحتاج إنترنت)">3D</button><button class="lp-close" id="lpClose" type="button" aria-label="إغلاق">✕</button></span></div>
   <div class="lp-sec">نمط الخريطة</div>
@@ -153,8 +167,9 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
   <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
   <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
   <label class="lp-row"><span>الربيع — الغطاء النباتي <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpNdvi"></label>
-  <label class="lp-row"><span>مياه السيول والغدران <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpWater"></label>
   <div class="lp-sub">الأخضر = نبات حالي · دقة 250 م · تتحدث كل 8 أيام · أوضح مع التصغير</div>
+  <label class="lp-row"><span>مياه السيول والغدران <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpWater"></label>
+  <div class="lp-sub">الفاتح: يتجمّع فيه الماء عادة (بحيرات وسدود وخباري) · الغامق: ماء رصده القمر آخر يومين بعد الأمطار</div>
   <label class="lp-row"><span>رادار الأمطار — لحظي <small class="lp-tag lp-tag-b">إنترنت</small></span><input type="checkbox" id="lpRadar"></label>
   <div class="lp-sub">رادارات الأرصاد الأرضية (15 رادارًا) · تتحدث كل 10 دقائق · ▶ لحركة المطر آخر ساعتين · أضعف بعيدًا عن المدن وفي الربع الخالي وأطراف الشرقية</div>
   <label class="lp-row"><span>البرق الآن <small class="lp-tag lp-tag-b">إنترنت</small></span><input type="checkbox" id="lpLightning"></label>
@@ -322,6 +337,7 @@ function applyRegionPrefs(rid){
   if(gl.getLayer(at('road'))){gl.setPaintProperty(at('road'),'line-opacity',sat?.6:1);gl.setPaintProperty(at('road-case'),'line-opacity',sat?0:1);gl.setPaintProperty(at('track'),'line-color',sat?'#F3E3C2':'#8A6A40')}
 }
 function applyPrefs(){
+  try{syncQuick()}catch(e){}
   document.documentElement.classList.toggle('base-sat',LP.base==='sat');   // الليلي يعكس الألوان: لا نعكس الصورة الفضائية
   if(glReady){vis('osm',LP.base==='osm');vis('sat',LP.base==='sat');vis('esri',LP.base==='sat'&&navigator.onLine);for(const id of activeRegions)applyRegionPrefs(id)}
   localMode.classList.toggle('active',LP.base==='barr'||LP.base==='topo');onlineMode.classList.toggle('active',LP.base==='sat');
@@ -332,6 +348,12 @@ function applyPrefs(){
   $('#lpClouds').checked=LP.clouds;
   $('#lpRain').checked=LP.rain;$('#lpRadar').checked=LP.radar;$('#lpLightning').checked=LP.lightning;const anim=LP.rain||LP.clouds||LP.radar;$('#rainBar').classList.toggle('show',!!anim);stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);showFrame(playSet().frames.length-1)}
 }
+function syncQuick(){const on={rain:LP.radar||LP.lightning,water:LP.water,ndvi:LP.ndvi,topo:LP.base==='topo'};document.querySelectorAll('#quick [data-q]').forEach(x=>x.classList.toggle('on',!!on[x.dataset.q]))}
+document.querySelectorAll('#quick [data-q]').forEach(x=>x.onclick=()=>{
+  const q=x.dataset.q,flip=id=>{const el=$(id);el.checked=!el.checked;el.dispatchEvent(new Event('change'))};
+  if(q==='topo'){setBase(LP.base==='topo'?'barr':'topo');syncQuick();return}
+  if(q==='rain'){const v=!(LP.radar||LP.lightning);for(const id of['#lpRadar','#lpLightning'])if($(id).checked!==v)flip(id);syncQuick();return}
+  flip(q==='water'?'#lpWater':'#lpNdvi');syncQuick()});
 function setBase(b){
   if((b==='sat'||b==='osm')&&!navigator.onLine){status.textContent='هذا النمط يحتاج اتصالًا بالإنترنت — البر وطبوغرافي يعملان بدونه';return}
   LP.base=b;saveLP();mapMode=b==='osm'?'online':'local';
