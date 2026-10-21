@@ -640,16 +640,19 @@ const RAIN_FRAMES=(()=>{const out=[],h=Math.floor(Date.now()/3600e3)*3600e3;for(
 // رادار الأمطار الأرضي: شبكة المركز الوطني للأرصاد عبر RainViewer، لقطة كل 10 دقائق لآخر ساعتين.
 // الخدمة المجانية تعطي حتى التكبير 7؛ نطلب بلاطات 512 بكسل فتتضاعف الدقة (~600 م للبكسل) وتقل الحواف بين البلاطات.
 const RADAR_N=13;let RADAR_FRAMES=[],radarHost='',radarLoading=null,radarLoadedAt=0;
+// كل لقطة لها طبقة ثابتة باسم وقتها: التحديث يضيف الجديدة فقط ولا يعيد تحميل القديمة، والصورة الحالية تبقى ظاهرة حتى تكتمل الجديدة
+const radarId=f=>'radar-'+f.time;
 function loadRadarFrames(){
   if(radarLoading||!glReady)return radarLoading;
   radarLoading=fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(r=>r.json()).then(j=>{
     radarHost=j.host||'https://tilecache.rainviewer.com';
     const past=((j.radar&&j.radar.past)||[]).slice(-RADAR_N);if(!past.length)return;
+    const keep=new Set(past.map(radarId));
+    RADAR_FRAMES.forEach(f=>{const id=radarId(f);if(!keep.has(id)&&id!==radarShown){if(gl.getLayer(id))gl.removeLayer(id);if(gl.getSource(id))gl.removeSource(id)}});
+    past.forEach(f=>{const id=radarId(f);if(gl.getSource(id))return;
+      gl.addSource(id,{type:'raster',tiles:[radarHost+f.path+'/512/{z}/{x}/{y}/2/1_1.png'],tileSize:512,minzoom:1,maxzoom:7});
+      gl.addLayer({id,type:'raster',source:id,layout:{visibility:'none'},paint:{'raster-opacity':0,'raster-fade-duration':0,'raster-resampling':'linear'}},'slot:dalil')});
     RADAR_FRAMES=past;radarLoadedAt=Date.now();
-    past.forEach((f,k)=>{const url=radarHost+f.path+'/512/{z}/{x}/{y}/2/1_1.png',id='radar-'+k;
-      if(gl.getSource(id))gl.getSource(id).setTiles([url]);
-      else{gl.addSource(id,{type:'raster',tiles:[url],tileSize:512,minzoom:1,maxzoom:7});
-        gl.addLayer({id,type:'raster',source:id,layout:{visibility:LP.radar&&k===past.length-1?'visible':'none'},paint:{'raster-opacity':0,'raster-fade-duration':0,'raster-resampling':'linear'}},'slot:dalil')}});
     if(!playTimer&&LP.radar)showFrame(playSet().frames.length-1);
   }).catch(()=>{if(LP.radar)status.textContent='تعذّر تحميل الرادار — تأكد من الاتصال'}).finally(()=>{radarLoading=null});
   return radarLoading;
@@ -674,13 +677,28 @@ let playTimer=0;
 const frameLabel=t=>t==='default'||String(t).startsWith('latest')?'الأحدث':new Date(t).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'});
 // المشغّل يحرّك السحب إن كانت ظاهرة (الأقرب للحظي)، وإلا المطر. الطبقة الأخرى تبقى على أحدث لقطة.
 const playSet=()=>LP.radar&&RADAR_FRAMES.length?{name:'الرادار',id:'radar',frames:RADAR_FRAMES.map(f=>new Date(f.time*1000).toISOString()),op:.8}:LP.radar?{name:'الرادار',id:'radar',frames:['latest:0'],op:.8}:LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
-// الشبكة الضعيفة: نحمّل صورة الرادار المعروضة فقط، وكل اللقطات وقت التحريك
-let radarCur=-1;
-function radarVis(){for(let k=0;k<RADAR_N;k++)if(gl.getLayer('radar-'+k))gl.setLayoutProperty('radar-'+k,'visibility',LP.radar&&(playTimer||k===radarCur)?'visible':'none')}
+// الشبكة الضعيفة: نحمّل صورة الرادار المعروضة فقط (وكل اللقطات وقت التحريك)، ونبقي الظاهرة حتى تكتمل التالية
+let radarShown='',radarWant='',radarWaitT=0;
+function radarApply(){
+  const ids=RADAR_FRAMES.map(radarId);
+  for(const id of new Set([...ids,radarShown]))if(gl.getLayer(id)){
+    const on=LP.radar&&(playTimer||id===radarWant||id===radarShown);
+    gl.setLayoutProperty(id,'visibility',on?'visible':'none');
+    gl.setPaintProperty(id,'raster-opacity',LP.radar&&id===radarShown?.8:0)}
+}
+function radarVis(){radarApply()}
+function radarSelect(i){
+  const f=RADAR_FRAMES[i];if(!f)return;radarWant=radarId(f);clearTimeout(radarWaitT);
+  if(playTimer||!radarShown||!gl.getLayer(radarShown)||gl.isSourceLoaded(radarWant)){radarShown=radarWant;radarApply();return}
+  radarApply();   // الجديدة تتحمّل مخفية والقديمة ظاهرة
+  const done=()=>{if(radarWant!==radarId(f))return;gl.off('sourcedata',chk);clearTimeout(radarWaitT);radarShown=radarWant;radarApply()};
+  const chk=e=>{if(e.sourceId===radarWant&&gl.isSourceLoaded(radarWant))done()};
+  gl.on('sourcedata',chk);radarWaitT=setTimeout(done,20000);
+}
 // إعادة محاولة بلاطات الرادار التي فشل تحميلها (انقطاع لحظي)
 let radarRetryAt=0;
-function radarRetry(){if(Date.now()-radarRetryAt<8000)return;radarRetryAt=Date.now();setTimeout(()=>{RADAR_FRAMES.forEach((f,k)=>{const sc=gl.getSource('radar-'+k);if(sc&&(k===radarCur||playTimer))sc.setTiles([radarHost+f.path+'/512/{z}/{x}/{y}/2/1_1.png'])})},4000)}
-function showSetFrame(set,i){if(set.id==='radar'){radarCur=i;radarVis()}set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
+function radarRetry(){if(Date.now()-radarRetryAt<8000)return;radarRetryAt=Date.now();setTimeout(()=>{RADAR_FRAMES.forEach(f=>{const id=radarId(f),sc=gl.getSource(id);if(sc&&(id===radarWant||playTimer))sc.setTiles([radarHost+f.path+'/512/{z}/{x}/{y}/2/1_1.png'])})},4000)}
+function showSetFrame(set,i){if(set.id==='radar'){radarSelect(i);return}set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i?set.op:0)})}
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id!=='rain')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
   if(set.id==='radar')showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);
