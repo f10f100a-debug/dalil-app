@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  const spots = [['water-hail', 27.40, 41.80, 11], ['water-riyadh', 24.45, 46.83, 11], ['water-qassim', 26.20, 43.55, 9]];
+  const spots = [['water-asfar', 25.53, 49.80, 11], ['water-hair', 24.38, 46.83, 12], ['water-tabuk', 28.0, 36.5, 9]];
   for (const [name, lat, lng, zz] of spots) {
     const c = await b.newContext({ viewport: { width: 390, height: 700 }, deviceScaleFactor: 1, colorScheme: 'light' });
     const p = await c.newPage(); const errs = [];
