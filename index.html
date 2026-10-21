@@ -1454,7 +1454,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <ul class="ob-list">
       <li><span class="cp-ic" data-ico="compass"></span><span><b>بوصلة توجّهك</b>لسيارتك ومخيمك وأي مكان تحفظه</span></li>
       <li><span class="cp-ic" data-ico="map"></span><span><b>خرائط البر بدون إنترنت</b>الأودية والجبال والآبار وخطوط الارتفاع</span></li>
-      <li><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار والبرق</b>لحظيًا، مع صور السيول من منطقتك</span></li>
+      <li id="obRadar"><span class="cp-ic" data-ico="rain"></span><span><b>رادار الأمطار والبرق</b>لحظيًا، مع صور السيول من منطقتك</span></li>
       <li id="obRoom" hidden><span class="cp-ic" data-ico="radio"></span><span><b>غرفة الرحلة</b>كلّم جماعتك مثل اللاسلكي وشوف مواقعهم</span></li>
     </ul>
     <p class="ob-why">نحتاج إذن <b>الموقع</b> و<b>البوصلة</b> لتوجيهك. موقعك يبقى في جوالك.</p>
@@ -1695,9 +1695,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const permissionsReadyKey = 'dalil_permissions_ready';
   let permissionsWereReady = false;
   try{ permissionsWereReady = localStorage.getItem(permissionsReadyKey) === '1'; }catch(e){}
+  // تطبيق الآيفون (1.2+): البوصلة من النظام بدون إذن، فيظهر طلب واحد فقط (الموقع)
+  const NATIVE_HEADING_APP = !!window.DALIL_NATIVE && /DalilApp\/(1\.([2-9]|\d\d)|[2-9])/.test(navigator.userAgent);
+  if(NATIVE_HEADING_APP){
+    const w = document.querySelector('.ob-why'); if(w) w.innerHTML = 'نحتاج إذن <b>الموقع</b> لتوجيهك. البوصلة تعمل تلقائيًا، وموقعك يبقى في جوالك.';
+    onboardBtn.textContent = 'تفعيل الموقع';
+    onboardPermissionNote.textContent = 'ستظهر رسالة واحدة من الآيفون: اختر «السماح أثناء استخدام التطبيق».';
+  }
   onboardBtn.addEventListener('click', async ()=>{
     onboardPermissionNote.classList.remove('error');
-    onboardPermissionNote.textContent = 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
+    onboardPermissionNote.textContent = NATIVE_HEADING_APP ? 'اختر «السماح أثناء استخدام التطبيق».' : 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
     const result = await requestPermissions(true, onboardBtn);
     if(result.locationGranted && result.compassGranted !== false){
       try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
@@ -5049,6 +5056,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   if(ROOM_ON){
     const obr = document.getElementById('obRoom'); if(obr) obr.hidden = false;
+    const obrd = document.getElementById('obRadar'); if(obrd) obrd.hidden = true;   // ثلاث مزايا: البوصلة والخرائط وغرفة الرحلة
     const rb = document.getElementById('roomBtn');
     rb.style.display = '';
     document.getElementById('openZelloBtn').style.display = 'none';
