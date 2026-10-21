@@ -9,6 +9,19 @@ asc = importlib.util.module_from_spec(spec); spec.loader.exec_module(asc)
 
 VERSION = os.environ.get("VERSION", "").strip()
 BUILD = os.environ.get("BUILD", "").strip()
+WHATS_NEW_12 = """جديد في هذا التحديث:
+• التنبيهات: تصلك تنبيهات الأمطار والسيول والأحداث في منطقتك مباشرة على جوالك (اختياري).
+• البوصلة تعمل فور فتح التطبيق بدون أي خطوات، وأدق وأثبت من قبل، وتتجه للشمال الحقيقي.
+• صور فضائية عالية الدقة، وعرض ثلاثي الأبعاد مع التوجيه للهدف بخط مستقيم أو عبر الطرق.
+• أوقات الصلاة حسب موقعك (أم القرى) تعمل بدون إنترنت، والصلاة القادمة على البوصلة.
+• زوايا البوصلة: السرعة واتجاه الهدف وبُعد السيارة بنظرة واحدة.
+• تحسينات في التصميم وأسماء الخريطة أكبر وأوضح."""
+NOTES_12 = """
+
+NEW IN 1.2:
+- Push notifications (optional): Settings tab -> "التنبيهات" -> enable and choose a region. Used only for rain/flood/event alerts in the chosen region; the user can turn them off any time.
+- The compass now reads the device heading natively (Core Location heading) so no motion-permission prompt is needed.
+- The trip room (from 1.1) is unchanged; see notes below."""
 WHATS_NEW = """جديد: غرفة الرحلة
 • تكلّم مع جماعتك بضغطة زر مثل اللاسلكي — حتى 15 شخصًا.
 • شوف مواقعهم حولك وكم يبعدون واتجاههم، وتوجّه لأي واحد بالبوصلة.
@@ -44,7 +57,7 @@ vid = cur["id"]
 locs = asc.get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:
     loc = l["attributes"]["locale"]
-    text = WHATS_NEW if loc.startswith("ar") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements."
+    text = (WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
     asc.note("What's New " + loc, asc.patch(f"/v1/appStoreVersionLocalizations/{l['id']}", {"data": {"type": "appStoreVersionLocalizations", "id": l["id"], "attributes": {"whatsNew": text}}}))
 
 # ربط البناء
@@ -61,7 +74,7 @@ prev = asc.get(f"/v1/appStoreVersions/{old['id']}/appStoreReviewDetail").get("da
 pa = prev["attributes"] if prev else {}
 base = (pa.get("notes") or "").split("\n\nNEW IN THIS VERSION")[0]
 attrs = {k: pa.get(k) for k in ["contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired"] if pa.get(k) is not None}
-attrs["notes"] = (base + NOTES_11)[:4000]
+attrs["notes"] = (base + (NOTES_12 if VERSION.startswith("1.2") else "") + NOTES_11)[:4000]
 rd = asc.get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail").get("data")
 if rd:
     asc.note("Review notes", asc.patch(f"/v1/appStoreReviewDetails/{rd['id']}", {"data": {"type": "appStoreReviewDetails", "id": rd["id"], "attributes": attrs}}))
