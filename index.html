@@ -28,6 +28,8 @@
 // داخل تطبيق الآيفون (Capacitor): نخفي عبارات المتصفح والتثبيت من Safari.
 window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
 if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
+// تطبيق الأندرويد (هوية DalilAndroid): البوصلة والموقع من المتصفح الداخلي، بدون أدوات الآيفون الخاصة
+window.DALIL_ANDROID=/DalilAndroid\//.test(navigator.userAgent);
 // تنبيهات الآيفون الأصلية: من الإصدار 1.2 عند توفر إضافة PushNotifications
 window.DALIL_NATIVE_PUSH=(function(){try{var C=window.Capacitor;return !!(window.DALIL_NATIVE&&/DalilApp\/(1\.([2-9]|\d\d)|[2-9])/.test(navigator.userAgent)&&C&&C.isPluginAvailable&&C.isPluginAvailable('PushNotifications'))}catch(e){return false}})();
 if(window.DALIL_NATIVE_PUSH)document.documentElement.classList.add('native-push');
@@ -35,7 +37,7 @@ if(window.DALIL_NATIVE_PUSH)document.documentElement.classList.add('native-push'
 (function(){var n=0,seen={},U='https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-public?a=err';
 window.__dalilReport=function(msg,src){try{msg=String(msg||'').slice(0,300);src=String(src||'').slice(0,160);
 if(!msg||/^Script error|ResizeObserver|Load failed$|NetworkError|Failed to fetch/i.test(msg))return;var k=msg+'|'+src;if(seen[k]||n>=5)return;seen[k]=1;n++;
-var b=JSON.stringify({msg:msg,src:src,ver:((navigator.userAgent.match(/DalilApp\/[\d.]+/)||['web'])[0])+' '+(navigator.userAgent.match(/OS (\d+)/)||['',''])[1],page:location.pathname.split('/').pop()||'index'});
+var b=JSON.stringify({msg:msg,src:src,ver:((navigator.userAgent.match(/Dalil(App|Android)\/[\d.]+/)||['web'])[0])+' '+(navigator.userAgent.match(/OS (\d+)/)||['',''])[1],page:location.pathname.split('/').pop()||'index'});
 if(navigator.sendBeacon)navigator.sendBeacon(U,new Blob([b],{type:'text/plain'}));else fetch(U,{method:'POST',body:b,keepalive:true}).catch(function(){});}catch(e){}};
 window.addEventListener('error',function(e){window.__dalilReport(e.message,String(e.filename||'').split('/').pop()+':'+e.lineno+':'+e.colno)});
 window.addEventListener('unhandledrejection',function(e){var r=e.reason;window.__dalilReport('promise: '+(r&&(r.message||r.name)||r),r&&r.stack?String(r.stack).split('\n')[1]:'')});})();
@@ -1799,7 +1801,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function updateDiagnostics(){
     const embedded=(()=>{try{return window.self!==window.top}catch(e){return true}})();
-    document.getElementById('diagMode').textContent=window.DALIL_NATIVE?'تطبيق الآيفون '+(((navigator.userAgent.match(/DalilApp\/([0-9.]+)/)||[])[1])||'1.0'):isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
+    document.getElementById('diagMode').textContent=window.DALIL_ANDROID?'تطبيق أندرويد '+(((navigator.userAgent.match(/DalilAndroid\/([0-9.]+)/)||[])[1])||'1.0'):window.DALIL_NATIVE?'تطبيق الآيفون '+(((navigator.userAgent.match(/DalilApp\/([0-9.]+)/)||[])[1])||'1.0'):isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
     document.getElementById('diagSecure').textContent=window.isSecureContext?'✅ HTTPS':'❌ غير آمن';
     const accuracy=state.pos?.accuracy!=null?' — دقة ±'+Math.round(state.pos.accuracy)+'م':'';
     document.getElementById('diagGps').textContent=state.pos?'✅ يعمل '+ageText(lastPositionAt)+accuracy:(lastPositionError||'⏳ لم تصل إشارة بعد');
@@ -5054,7 +5056,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const roomLs = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   if(roomParam || roomQS.has('roombeta')){ try{ localStorage.setItem('dalil_room_beta', '1'); }catch(e){} }
   // المتصفح: متاحة للجميع. تطبيق الآيفون: من 1.1 فقط (1.0 بلا إذن ميكروفون، والتسجيل فيه يُغلق التطبيق).
-  const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent) || !window.DALIL_NATIVE;
+  const ROOM_ON = /DalilApp\/(1\.([1-9]|\d\d)|[2-9])/.test(navigator.userAgent) || !window.DALIL_NATIVE || window.DALIL_ANDROID;
   if(window.DALIL_NATIVE_PUSH) setTimeout(()=>loadEvents().catch(()=>{}), 1500);
   // زر «رادار الأمطار المباشر»: يفتح الخريطة على الرادار والبرق حول موقعك
   document.getElementById('openRadarBtn').addEventListener('click', ()=>{
@@ -5252,7 +5254,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- مشاركة التطبيق ----------
   // داخل تطبيق الآيفون نشارك رابط دليل في App Store (رقم التطبيق من App Store Connect)؛
   // ومن المتصفح تبقى صفحة الترحيب كما هي.
-  const APP_STORE_URL = window.DALIL_NATIVE ? 'https://apps.apple.com/sa/app/id6822651903' : '';
+  const APP_STORE_URL = window.DALIL_ANDROID ? '' : window.DALIL_NATIVE ? 'https://apps.apple.com/sa/app/id6822651903' : '';
   if(window.DALIL_NATIVE){
     document.getElementById('shareAppSub').textContent = 'أرسل رابط دليل لأصحابك';
     const sec = document.getElementById('diagSecure'); if(sec && sec.parentElement) sec.parentElement.style.display = 'none';
@@ -5580,7 +5582,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(!LSG('dalil_first_open')) LSS('dalil_first_open', String(Date.now()));
   // طلب التقييم: في تطبيق الآيفون فقط، بعد لحظة نجاح ثانية، وبعد 3 أيام من أول استخدام، ومرة كل 60 يومًا كحد أقصى
   window.__dalilHappy = function(why){
-    if(!window.DALIL_NATIVE || LSG('dalil_rated')) return;
+    if(!window.DALIL_NATIVE || window.DALIL_ANDROID || LSG('dalil_rated')) return;
     const n = (+LSG('dalil_happy') || 0) + 1; LSS('dalil_happy', String(n));
     const first = +LSG('dalil_first_open') || Date.now(), last = +LSG('dalil_rate_asked') || 0;
     if(n < 2 || Date.now() - first < 3 * 86400e3 || Date.now() - last < 60 * 86400e3) return;

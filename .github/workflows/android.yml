@@ -1,0 +1,112 @@
+# بناء تطبيق دليل للأندرويد (Capacitor) على GitHub.
+# - التشغيل اليدوي: يبني ملف APK تجريبي ويضعه في فرع android-build ليُحمَّل ويُثبَّت مباشرة على أي جوال أندرويد.
+# - التطبيق يفتح نفس صفحة دليل على الإنترنت (مثل تطبيق الآيفون)، فأي تحديث للموقع يصل للأندرويد فورًا.
+name: Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "رقم الإصدار الظاهر للمستخدم"
+        type: string
+        default: "1.0"
+  push:
+    paths:
+      - ".github/workflows/android.yml"
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    env:
+      VERSION_NAME: ${{ inputs.version || '1.0' }}
+      VERSION_CODE: ${{ github.run_number }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            native
+            .github
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Capacitor (Android)
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-audit --no-fund @capacitor/android@^7
+
+      - name: Generate Android project
+        run: |
+          run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
+          # هوية خاصة بالأندرويد (DalilAndroid) حتى تفرّق الصفحة بينه وبين تطبيق الآيفون
+          node -e 'const f="capacitor.config.json",c=require("./"+f);c.appendUserAgent="DalilAndroid/"+process.env.VERSION_NAME;c.android={backgroundColor:"#F2EFE9",allowMixedContent:false};require("fs").writeFileSync(f,JSON.stringify(c,null,2))'
+          run_logged npx cap add android
+          run_logged npx cap sync android
+
+      - name: Name, icon, splash, permissions, version
+        run: |
+          set -e
+          R=android/app/src/main/res
+          # الاسم
+          sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">دليل</string>#; s#<string name="title_activity_main">[^<]*</string>#<string name="title_activity_main">دليل</string>#' $R/values/strings.xml
+          # الأيقونة: نستخدم أيقونة دليل بكل المقاسات (ونلغي الأيقونة المتكيفة الافتراضية)
+          rm -rf $R/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            for f in ic_launcher ic_launcher_round; do convert resources/icon-1024.png -resize ${s}x${s} $R/mipmap-$n/$f.png; done
+            rm -f $R/mipmap-$n/ic_launcher_foreground.png
+          done
+          # شاشة البداية بلون دليل بنفس مقاسات Capacitor
+          find $R -name 'splash.png' | while read f; do
+            wh=$(identify -format '%wx%h' "$f"); convert resources/splash-2732x2732.png -resize "$wh^" -gravity center -extent "$wh" "$f"
+          done
+          # الأذونات: الموقع (البوصلة والتوجيه)، الميكروفون (غرفة الرحلة)، الكاميرا (صورة/فيديو حدث)، الاهتزاز
+          M=android/app/src/main/AndroidManifest.xml
+          for p in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION RECORD_AUDIO MODIFY_AUDIO_SETTINGS CAMERA VIBRATE; do
+            grep -q "android.permission.$p\"" $M || sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#&\n    <uses-permission android:name=\"android.permission.$p\" />#" $M
+          done
+          grep -q 'android.hardware.location.gps' $M || sed -i 's#</manifest>#    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' $M
+          # رقم الإصدار
+          G=android/app/build.gradle
+          sed -i "s/versionCode [0-9]*/versionCode $VERSION_CODE/; s/versionName \"[^\"]*\"/versionName \"$VERSION_NAME\"/" $G
+          grep -n "applicationId\|versionCode\|versionName" $G
+          grep -n "uses-permission\|uses-feature" $M
+          echo "::notice::Android $VERSION_NAME ($VERSION_CODE) — UserAgent DalilAndroid/$VERSION_NAME"
+
+      - name: Build APK
+        working-directory: native/android
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug > "$RUNNER_TEMP/gradle.log" 2>&1 || { tail -60 "$RUNNER_TEMP/gradle.log"; echo "::error::$(grep -E 'error|FAILURE|What went wrong' -A3 "$RUNNER_TEMP/gradle.log" | head -20 | paste -sd '|' -)"; exit 1; }
+          tail -5 "$RUNNER_TEMP/gradle.log"
+          ls -la app/build/outputs/apk/debug/
+
+      - name: Publish APK to android-build branch
+        working-directory: native/android/app/build/outputs/apk/debug
+        run: |
+          mkdir -p "$RUNNER_TEMP/pub" && cp app-debug.apk "$RUNNER_TEMP/pub/dalil.apk"
+          cd "$RUNNER_TEMP/pub"
+          echo "دليل للأندرويد $VERSION_NAME (بناء $VERSION_CODE) — $(date -u +%F)" > README.txt
+          git init -q && git checkout -q -b android-build
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "Android APK $VERSION_NAME ($VERSION_CODE)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" android-build
+          echo "::notice::APK: https://raw.githubusercontent.com/${{ github.repository }}/android-build/dalil.apk ($(du -h dalil.apk | cut -f1))"
