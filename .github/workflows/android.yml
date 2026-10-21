@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: 22
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 21
@@ -67,17 +67,24 @@ jobs:
           R=android/app/src/main/res
           # الاسم
           sed -i 's#<string name="app_name">[^<]*</string>#<string name="app_name">دليل</string>#; s#<string name="title_activity_main">[^<]*</string>#<string name="title_activity_main">دليل</string>#' $R/values/strings.xml
-          # الأيقونة: نستخدم أيقونة دليل بكل المقاسات (ونلغي الأيقونة المتكيفة الافتراضية)
+          # الأيقونة وشاشة البداية (sharp لأن ImageMagick غير متوفر على أجهزة GitHub الجديدة)
           rm -rf $R/mipmap-anydpi-v26
-          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
-            n=${d%%:*}; s=${d##*:}
-            for f in ic_launcher ic_launcher_round; do convert resources/icon-1024.png -resize ${s}x${s} $R/mipmap-$n/$f.png; done
-            rm -f $R/mipmap-$n/ic_launcher_foreground.png
-          done
-          # شاشة البداية بلون دليل بنفس مقاسات Capacitor
-          find $R -name 'splash.png' | while read f; do
-            wh=$(identify -format '%wx%h' "$f"); convert resources/splash-2732x2732.png -resize "$wh^" -gravity center -extent "$wh" "$f"
-          done
+          npm install --no-audit --no-fund --no-save sharp@0.33 >/dev/null
+          R=$R node -e '
+            const sharp=require("sharp"),fs=require("fs"),path=require("path"),R=process.env.R;
+            (async()=>{
+              for(const [n,s] of [["mdpi",48],["hdpi",72],["xhdpi",96],["xxhdpi",144],["xxxhdpi",192]]){
+                for(const f of ["ic_launcher","ic_launcher_round"]) await sharp("resources/icon-1024.png").resize(s,s).png().toFile(path.join(R,"mipmap-"+n,f+".png"));
+                fs.rmSync(path.join(R,"mipmap-"+n,"ic_launcher_foreground.png"),{force:true});
+              }
+              const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(d,e.name)):[path.join(d,e.name)]);
+              for(const f of walk(R).filter(f=>path.basename(f)==="splash.png")){
+                const m=await sharp(f).metadata();
+                const buf=await sharp("resources/splash-2732x2732.png").resize(m.width,m.height,{fit:"cover"}).png().toBuffer();
+                fs.writeFileSync(f,buf);
+              }
+              console.log("icons + splash ok");
+            })().catch(e=>{console.error(e);process.exit(1)});'
           # الأذونات: الموقع (البوصلة والتوجيه)، الميكروفون (غرفة الرحلة)، الكاميرا (صورة/فيديو حدث)، الاهتزاز
           M=android/app/src/main/AndroidManifest.xml
           for p in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION RECORD_AUDIO MODIFY_AUDIO_SETTINGS CAMERA VIBRATE; do
