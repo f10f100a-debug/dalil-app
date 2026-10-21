@@ -206,6 +206,24 @@
   }
 
   // ---------- الدخول والإنشاء ----------
+  // تطبيق الآيفون 1.2+: نسجّل رمز التنبيهات مع العضوية حتى تصله الاستغاثة والرسائل والتطبيق مغلق
+  async function roomPush(){
+    if(!R.sess || !window.DALIL_NATIVE_PUSH || !window.Capacitor) return;
+    try{
+      const C = window.Capacitor, PN = (C.Plugins && C.Plugins.PushNotifications) || C.registerPlugin('PushNotifications');
+      let tok = null; try{ tok = localStorage.getItem('dalil_apns_token'); }catch(e){}
+      if(!tok){
+        let perm = await PN.checkPermissions();
+        if(perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') perm = await PN.requestPermissions();
+        if(perm.receive !== 'granted') return;
+        tok = await new Promise((res, rej)=>{ let h1, h2; const end = (f, v)=>{ h1 && h1.remove(); h2 && h2.remove(); f(v); };
+          PN.addListener('registration', t=>end(res, String(t.value || '').toLowerCase())).then(h=>h1 = h);
+          PN.addListener('registrationError', e=>end(rej, e)).then(h=>h2 = h);
+          setTimeout(()=>end(rej, 'timeout'), 15000); PN.register(); });
+      }
+      if(tok && R.sess) await api('push', authBody({push_token:tok}));
+    }catch(e){}
+  }
   async function enter(kind){
     const name = $('rmName').value.trim(), pin = $('rmPin').value.trim();
     const code = kind === 'join' ? $('rmCode').value.replace(/\D/g, '') : '';
@@ -224,6 +242,7 @@
     R.muted = new Set(); R.voice = []; R.heard = new Set(); R.pos.clear(); R.lagging.clear();
     (j.voice || []).forEach(v=>R.heard.add(v.id));   // لا نشغّل القديم تلقائيًا
     saveSess(); B.startGeo && B.startGeo();
+    setTimeout(roomPush, 1500);
     applyRoom(j);
     setTimeout(()=>RT.send('join', {}), 1200);
     startLoops();
@@ -379,6 +398,7 @@
   function sendSos(){
     const mp = myPosPayload();
     if(!mp) return B.toast('انتظر حتى يتحدد موقعك');
+    api('sos', authBody()).catch(()=>{});
     R.mySos = {t:Date.now()};
     RT.send('sos', mp);
     clearInterval(R.mySosTimer);
@@ -915,6 +935,7 @@
     if(!s) return;
     R.sess = {room_id:s.room_id, member_id:s.member_id, token:s.token, code:s.code, pin:s.pin, name:s.name};
     R.muted = new Set(s.muted || []);
+    setTimeout(roomPush, 4000);
     api('state', authBody()).then(j=>{
       if(!j.ok){
         if(['kicked', 'not_member', 'expired'].includes(j.error)) return endRoom(j.error === 'expired' ? 'انتهت غرفة الرحلة (24 ساعة)' : errText(j.error));

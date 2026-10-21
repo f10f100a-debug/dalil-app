@@ -2,6 +2,7 @@
 // المواقع لا تمر من هنا ولا تُخزَّن: تنتقل بين الأعضاء مباشرة عبر Realtime Broadcast على قناة سرية (secret).
 import { b64uEncode, cleanText, config, cors, db, ipHash, json } from "../_shared/common.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
+import { sendApnsTo } from "../_shared/apns.ts";
 
 const MAX_MEMBERS = 15;
 const ROOM_HOURS = 24;
@@ -25,6 +26,15 @@ async function tooMany(sb: SupabaseClient, ip: string, kind: string, max: number
 async function activeMembers(sb: SupabaseClient, roomId: string) {
   const { data } = await sb.from("room_members").select("member_id,name,color,joined_at,last_seen").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).order("joined_at");
   return data || [];
+}
+
+// تنبيه بقية أعضاء الغرفة (تطبيق الآيفون) — يصل حتى لو كان التطبيق مغلقًا
+async function notifyRoom(sb: SupabaseClient, roomId: string, exceptId: string, p: { title: string; body: string; tag: string }) {
+  const { data } = await sb.from("room_members").select("push_token").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).neq("member_id", exceptId).not("push_token", "is", null);
+  const toks = (data || []).map((r) => r.push_token as string);
+  if (!toks.length) return;
+  const job = sendApnsTo(sb, toks, { ...p, url: "./?screen=compass" }).catch((e) => console.error("room push", e));
+  (globalThis as any).EdgeRuntime?.waitUntil?.(job);
 }
 
 async function banned(sb: SupabaseClient, ip: string) {
@@ -125,6 +135,10 @@ Deno.serve(async (req) => {
       const dur = Number(form.get("duration")); const duration = Number.isFinite(dur) && dur > 0 && dur < 120 ? dur : null;
       const { error } = await sb.from("room_voice").insert({ id, room_id: a.room.id, member_id: a.member.member_id, path, mime, duration });
       if (error) throw error;
+      if (!a.member.last_push_at || Date.now() - new Date(a.member.last_push_at).getTime() > 60e3) {
+        await sb.from("room_members").update({ last_push_at: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
+        await notifyRoom(sb, a.room.id, a.member.member_id, { title: "🎙️ " + a.member.name, body: "أرسل رسالة صوتية في " + (a.room.name || "غرفة الرحلة"), tag: "room-voice" });
+      }
       const { data: s } = await sb.storage.from("room-voice").createSignedUrl(path, 3600);
       await sb.from("room_members").update({ last_seen: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
       return json(req, { ok: true, voice: { id, member_id: a.member.member_id, mime, duration, created_at: new Date().toISOString(), url: s?.signedUrl || null } });
@@ -187,6 +201,7 @@ Deno.serve(async (req) => {
         rally = { lat: Math.round(lat * 1e5) / 1e5, lng: Math.round(lng * 1e5) / 1e5, label: cleanText(body.label, 40) || "نقطة التجمع", by: member.name, at: new Date().toISOString() };
       }
       await sb.from("rooms").update({ rally }).eq("id", room.id);
+      if (rally) await notifyRoom(sb, room.id, member.member_id, { title: "🚩 نقطة التجمع", body: member.name + " حدّد نقطة التجمع: " + rally.label, tag: "room-rally" });
       return json(req, { ok: true, rally });
     }
 
@@ -236,8 +251,25 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // حفظ رمز تنبيهات الجهاز لهذا العضو (يُحذف بخروجه أو انتهاء الغرفة)
+    if (action === "push") {
+      const t = String(body.push_token || "").toLowerCase();
+      if (t && !/^[0-9a-f]{64,200}$/.test(t)) return json(req, { error: "bad_token" }, 400);
+      await sb.from("room_members").update({ push_token: t || null }).eq("room_id", room.id).eq("member_id", member.member_id);
+      return json(req, { ok: true });
+    }
+
+    // استغاثة: تنبيه فوري لكل الأعضاء (مرة كل دقيقتين كحد أقصى)
+    if (action === "sos") {
+      if (body.off === true) return json(req, { ok: true });
+      if (member.last_push_at && Date.now() - new Date(member.last_push_at).getTime() < 120e3) return json(req, { ok: true, throttled: true });
+      await sb.from("room_members").update({ last_push_at: new Date().toISOString() }).eq("room_id", room.id).eq("member_id", member.member_id);
+      await notifyRoom(sb, room.id, member.member_id, { title: "🆘 " + member.name + " يطلب المساعدة", body: "افتح دليل لترى موقعه وتتوجّه له بالبوصلة", tag: "room-sos" });
+      return json(req, { ok: true });
+    }
+
     if (action === "leave") {
-      await sb.from("room_members").update({ left_room: true }).eq("room_id", room.id).eq("member_id", member.member_id);
+      await sb.from("room_members").update({ left_room: true, push_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
       return json(req, { ok: true });
     }
 

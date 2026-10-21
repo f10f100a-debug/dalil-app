@@ -62,6 +62,14 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok((await A.textContent('#rmLive')).includes('متصل'), 'A realtime connected');
   await shot(A, '2-A-members'); await shot(B, '2-B-members');
 
+  // تنبيهات الغرفة: حفظ رمز وهمي ثم استغاثة (السيرفر يقبلها حتى لو رفضت Apple الرمز)
+  const pushRes = await A.evaluate(async () => { const s = JSON.parse(localStorage.getItem('dalil_room_sess') || localStorage.getItem('dalil_room') || 'null'); return s; });
+  const sessA = await A.evaluate(() => { for (const k of Object.keys(localStorage)) { try { const v = JSON.parse(localStorage.getItem(k)); if (v && v.room_id && v.token) return v; } catch (e) {} } return null; });
+  const call = (a, body) => A.evaluate(async ([a, body]) => (await fetch('https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-rooms?a=' + a, { method: 'POST', headers: { apikey: 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw', 'content-type': 'application/json' }, body: JSON.stringify(body) })).json(), [a, body]);
+  const auth = sessA && { room_id: sessA.room_id, member_id: sessA.member_id, token: sessA.token };
+  ok(auth && (await call('push', { ...auth, push_token: 'ab'.repeat(32) })).ok, 'push token saved');
+  ok(auth && (await call('push', { ...auth, push_token: 'zz' })).error === 'bad_token', 'bad push token rejected');
+  ok(auth && (await call('sos', auth)).ok, 'sos action ok');
   // صوت: B يضغط مطوّلًا 2.5 ثانية
   const box = await B.locator('#rmPtt').boundingBox();
   await B.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
