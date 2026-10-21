@@ -6,7 +6,7 @@ const BASE = { lat: 27.5203, lng: 41.6960 };   // حائل
 const log = (...a) => console.log(...a);
 const W = 390, H = 844;
 async function ctxFor(browser, o = {}) {
-  return browser.newContext({ viewport: { width: W, height: o.h || H }, deviceScaleFactor: 2, locale: 'ar-SA', colorScheme: o.dark ? 'dark' : 'light',
+  return browser.newContext({ viewport: { width: W, height: o.h || H }, deviceScaleFactor: 2, locale: 'ar-SA', timezoneId: 'Asia/Riyadh', colorScheme: o.dark ? 'dark' : 'light',
     geolocation: { latitude: o.lat || BASE.lat, longitude: o.lng || BASE.lng }, permissions: ['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'],
     extraHTTPHeaders: { Referer: 'https://f10f100a-debug.github.io/' } });
 }
@@ -129,7 +129,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
     await pp.click('#roomBtn'); await pp.waitForSelector('#rmName');
     await pp.fill('#rmName', u.n); await pp.fill('#rmCode', code); await pp.fill('#rmPin', '2026');
     if (u.n === 'سالم') await shot(pp, '25-room-join');
-    await pp.check('#rmTerms'); await pp.click('#rmGo'); await pp.waitForSelector('.rm-code', { timeout: 20000 });
+    await pp.check('#rmTerms'); await pp.click('#rmGo');
+    await pp.waitForSelector('.rm-code', { timeout: 30000 }).catch(async () => { log('join fail', u.n, (await pp.textContent('#roomSheet, .rm-sheet, body')).replace(/\s+/g, ' ').slice(0, 300)); await pp.screenshot({ path: `${OUT}/x-join-${u.n}.png` }); });
   }
   await fahd.waitForTimeout(10000);
   const box = await salem.locator('#rmPtt').boundingBox();
