@@ -251,7 +251,8 @@ function navText(){
 function camera(first){
   // الاتجاه: بوصلة الجوال (1.2+) ← اتجاه السير أثناء الحركة ← نحو الهدف
   const brg = Date.now() - nativeAt < 3000 ? nativeHdg : gpsCourse != null ? gpsCourse : brgDeg(myPos, [TGT.lng, TGT.lat]);
-  map.easeTo({center:myPos, bearing:brg, pitch:65, zoom:first ? Math.max(map.getZoom(), 14.5) : map.getZoom(), duration:first ? 1200 : 600});
+  if(first) map.jumpTo({center:myPos, bearing:brg, pitch:62, zoom:Math.max(map.getZoom(), 14)});
+  else map.easeTo({center:myPos, bearing:brg, duration:600});
 }
 function setFollow(on){ follow = on; $('tdFollow').classList.toggle('on', on); $('tdFollow').textContent = on ? 'يتتبّعك' : 'تتبّع'; if(on && myPos) camera(true); }
 function startNav3D(){
