@@ -320,15 +320,20 @@
     const stopped = new Promise(res=>rec.onstop = res);
     rec.start(500);
     await new Promise(res=>{
+      // نوقف التسجيل بالضبط عند نهاية المقطع (المقاطع الأقصر من 10 ثوانٍ ما تنمد بصورة ثابتة)
       const end = Math.min(dur, VMAX);
+      let fin = false;
+      const finish = ()=>{ if(fin) return; fin = true; v.removeEventListener('ended', finish); clearTimeout(guard); res(); };
+      v.addEventListener('ended', finish);
       const draw = ()=>{
+        if(fin) return;
         x.drawImage(v, 0, 0, c.width, c.height);
         onProgress(Math.min(1, v.currentTime / end));
-        if(v.currentTime >= end || v.ended || v.paused){ res(); return; }
+        if(v.currentTime >= end - 0.03 || v.ended || v.paused){ finish(); return; }
         v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
       };
       draw();
-      setTimeout(res, (end + 6) * 1000);
+      const guard = setTimeout(finish, (end + 3) * 1000);
     });
     v.pause(); rec.stop(); await stopped;
     stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{});
