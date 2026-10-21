@@ -115,6 +115,13 @@ jobs:
           XML
           sed -i '' -e 's/^          //' ios/App/App/App.entitlements
           plutil -lint ios/App/App/App.entitlements
+          # 1.4: الروابط العامة (Universal Links) — رابط الدعوة يفتح التطبيق مباشرة
+          case "$MARKETING_VERSION" in 1.0|1.1|1.2|1.3) echo "::notice::Associated domains: skipped for $MARKETING_VERSION";; *)
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains array" ios/App/App/App.entitlements
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:f10f100a-debug.github.io" ios/App/App/App.entitlements
+            plutil -lint ios/App/App/App.entitlements
+            echo "::notice::Associated domains: applinks:f10f100a-debug.github.io";;
+          esac
           python3 - <<'PY'
           p = "ios/App/App/AppDelegate.swift"
           s = open(p).read()
@@ -195,6 +202,8 @@ jobs:
               s = s[:j] + "DalilBg.shared.start()\n        " + s[j:]
               s = s.replace("return ApplicationDelegateProxy.shared.application(app, open: url, options: options)",
                             "DalilBg.shared.openURL(url)\n        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)", 1)
+              s = s.replace("return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)",
+                            "if let u = userActivity.webpageURL { DalilBg.shared.openURL(u) }\n        return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)", 1)
               s = s.rstrip() + """
 
           final class DalilBg: NSObject, CLLocationManagerDelegate, WKScriptMessageHandler {
@@ -294,6 +303,7 @@ jobs:
           """
               open(p, "w").write(s)
           print("::notice::Native heading: " + ("OK" if "DalilHeading.shared.start()" in open(p).read() else "MISSING"))
+          print("::notice::Universal links hook: " + ("OK" if "userActivity.webpageURL" in open(p).read() else "MISSING"))
           print("::notice::Background location + links: " + ("OK" if "DalilBg.shared.openURL(url)" in open(p).read() and "DalilBg.shared.start()" in open(p).read() else "MISSING"))
           PY
 

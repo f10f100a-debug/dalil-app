@@ -1,0 +1,12 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["M3FNP2GR5Z.com.alluhaybi.dalil"],
+        "components": [
+          { "/": "/dalil-app/*", "?": { "room": "?*" }, "comment": "دعوة غرفة الرحلة تفتح تطبيق دليل" }
+        ]
+      }
+    ]
+  }
+}

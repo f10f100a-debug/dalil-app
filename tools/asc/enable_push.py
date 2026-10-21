@@ -6,7 +6,8 @@ b = asc.get("/v1/bundleIds?filter[identifier]=com.alluhaybi.dalil&include=bundle
 bid = next(x for x in b["data"] if x["attributes"]["identifier"] == "com.alluhaybi.dalil")
 caps = [x["attributes"].get("capabilityType") for x in b.get("included", []) if x["type"] == "bundleIdCapabilities"]
 print(f"::warning::bundleId={bid['id']} teamId(seedId)={bid['attributes'].get('seedId')} caps={caps}")
-if "PUSH_NOTIFICATIONS" not in caps:
-    r = asc.post("/v1/bundleIdCapabilities", {"data": {"type": "bundleIdCapabilities", "attributes": {"capabilityType": "PUSH_NOTIFICATIONS"},
+for cap in ["PUSH_NOTIFICATIONS", "ASSOCIATED_DOMAINS"]:  # التنبيهات + الروابط العامة (1.4)
+    if cap in caps: continue
+    r = asc.post("/v1/bundleIdCapabilities", {"data": {"type": "bundleIdCapabilities", "attributes": {"capabilityType": cap},
         "relationships": {"bundleId": {"data": {"type": "bundleIds", "id": bid["id"]}}}}})
-    print("::warning::enable push: " + ("OK" if "data" in r else str(r)[:300]))
+    print(f"::warning::enable {cap}: " + ("OK" if "data" in r else str(r)[:300]))
