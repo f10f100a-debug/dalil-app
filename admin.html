@@ -151,6 +151,17 @@
     </div>
 
     </div>
+    <div data-perm="push">
+    <h2>تنبيهات المطر التلقائية <span class="muted" style="font-weight:400">· السيرفر يفحص الرادار كل 10 دقائق ويرسل لمشتركي المنطقة عند مطر غزير مؤكد بالبرق (مرة كل 3 ساعات للمنطقة)</span></h2>
+    <div class="card">
+      <div class="row" style="align-items:center">
+        <div style="font-weight:700">الحالة: <span id="aaState">–</span></div>
+        <button class="white" id="aaToggle" style="flex:0 0 auto" hidden></button>
+      </div>
+      <div class="muted" id="aaLast" style="font-size:13px;margin-top:6px">—</div>
+    </div>
+    <div class="card" id="aaList"><span class="muted">—</span></div>
+    </div>
     <div data-perm="moderate">
     <h2>المنشور الآن <span class="badge" id="liveCount">0</span></h2>
     <div id="live"></div>
@@ -223,7 +234,7 @@
   try{ sessionStorage.removeItem('dalil_admin'); }catch(e){}
   const PERM_AR = {moderate:'مراجعة الصور وحذفها', publish:'نشر صور مباشرة', push:'إرسال التنبيهات', ads:'الإعلانات', usage:'إحصائيات الاستخدام'};
   const ACT_AR = {approve:'نشر صورة مشترك', reject:'رفض صورة', delete_event:'حذف صورة منشورة', restore:'إعادة نشر', publish:'نشر مباشر', push:'إرسال تنبيه',
-    ad_create:'إضافة إعلان', ad_update:'تعديل إعلان', ad_delete:'حذف إعلان', admin_create:'إضافة مشرف', admin_update:'تعديل مشرف', admin_delete:'حذف مشرف', change_password:'تغيير كلمة السر'};
+    ad_create:'إضافة إعلان', ad_update:'تعديل إعلان', ad_delete:'حذف إعلان', admin_create:'إضافة مشرف', admin_update:'تعديل مشرف', admin_delete:'حذف مشرف', change_password:'تغيير كلمة السر', auto_alerts_toggle:'تنبيهات المطر التلقائية'};
   const can = p=>!!me && (me.role === 'owner' || me.perms.includes(p));
   function applyPerms(){
     document.querySelectorAll('[data-perm]').forEach(el=>{ el.hidden = el.dataset.perm === 'owner' ? !(me && me.role === 'owner') : !can(el.dataset.perm); });
@@ -604,6 +615,30 @@
     catch(e){ showErr(e); card.querySelectorAll('button').forEach(x=>x.disabled = false); }
   });
 
+
+  // ---------- تنبيهات المطر التلقائية ----------
+  let aaOn = true;
+  async function loadAutoAlerts(){
+    const d = await api('auto_alerts');
+    aaOn = d.on;
+    $('aaState').innerHTML = d.on ? '<span class="badge on">شغّالة</span>' : '<span class="badge off">موقوفة</span>';
+    $('aaToggle').hidden = !(me && me.role === 'owner');
+    $('aaToggle').textContent = d.on ? 'إيقاف التنبيهات التلقائية' : 'تشغيل التنبيهات التلقائية';
+    $('aaToggle').className = d.on ? 'danger' : 'gold';
+    const L = d.last;
+    $('aaLast').textContent = !L ? 'لم يتم أي فحص بعد.' :
+      'آخر فحص: ' + when(L.at) + ' · ' + (L.off ? 'موقوفة — لم يُفحص الرادار' : !L.ok ? 'تعذّر الفحص (' + (L.error === 'stale' ? 'الرادار متأخر' : L.error === 'no_frames' ? 'لا توجد صور رادار' : 'خطأ') + ')' :
+      L.sent ? 'أُرسل ' + L.sent + ' تنبيه' : (L.heavyRaw ? 'لا يوجد مطر غزير مؤكد (' + L.heavyRaw + ' نقطة غزيرة: ' + (L.clutter || 0) + ' تشويش، ' + (L.noLightning || 0) + ' بدون برق)' : 'لا يوجد مطر غزير'));
+    const list = d.alerts || [];
+    $('aaList').innerHTML = list.length ? list.map(a=>`<div class="log-row" style="display:block"><div><time>${esc(when(a.at))}</time> · <b>${esc(a.region)}</b> · وصل لـ ${(a.sent_ios || 0) + (a.sent_web || 0)} جهاز <span class="muted">(آيفون ${a.sent_ios || 0} · متصفح ${a.sent_web || 0})</span></div><div><b>${esc(a.title)}</b></div><div class="muted">${esc(a.body)}</div></div>`).join('') : '<span class="muted">لم يُرسل أي تنبيه تلقائي بعد (آخر 30 يومًا).</span>';
+  }
+  $('aaToggle').addEventListener('click', async ()=>{
+    if(aaOn && !confirm('إيقاف تنبيهات المطر التلقائية لكل المشتركين؟')) return;
+    $('aaToggle').disabled = true;
+    try{ await api('auto_alerts_toggle', {on: !aaOn}); await loadAutoAlerts(); }catch(e){ showErr(e); }
+    finally{ $('aaToggle').disabled = false; }
+  });
+
   async function loadAll(){
     me = await api('me');
     applyPerms();
@@ -613,6 +648,7 @@
     if(can('moderate')) jobs.push(loadRoomReports());
     if(can('usage')) jobs.push(loadUsage());
     if(can('ads')) jobs.push(loadAds());
+    if(can('push')) jobs.push(loadAutoAlerts());
     if(me.role === 'owner') jobs.push(loadAdmins());
     await Promise.all(jobs);
   }

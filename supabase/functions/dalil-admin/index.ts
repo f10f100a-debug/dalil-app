@@ -172,7 +172,7 @@ Deno.serve(async (req) => {
     const NEED: Record<string, string[]> = {
       list: ["moderate", "publish", "push"], approve: ["moderate"], reject: ["moderate"], restore: ["moderate"],
       publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
-      room_reports: ["moderate"], room_report_close: ["moderate"],
+      room_reports: ["moderate"], room_report_close: ["moderate"], auto_alerts: ["push"],
     };
     if (NEED[action] && !NEED[action].some(can)) return forbidden();
     if (["admins_list", "admin_save", "admin_delete", "log"].includes(action) && !isOwner) return forbidden();
@@ -238,6 +238,25 @@ Deno.serve(async (req) => {
     if (action === "log") {
       const { data } = await sb.from("admin_log").select("at,username,action,detail").order("at", { ascending: false }).limit(100);
       return json(req, { log: data || [] });
+    }
+
+    // ---------- تنبيهات المطر التلقائية ----------
+    if (action === "auto_alerts") {
+      const [{ data: list }, { data: sw }, { data: last }] = await Promise.all([
+        sb.from("auto_alerts").select("at,region,title,body,cells,max_dbz,sent_web,sent_ios").order("at", { ascending: false }).limit(50),
+        sb.from("app_config").select("value").eq("key", "auto_alerts").maybeSingle(),
+        sb.from("private_config").select("value").eq("key", "auto_alerts_last").maybeSingle(),
+      ]);
+      let lastRun = null; try { lastRun = last?.value ? JSON.parse(last.value) : null; } catch { /* */ }
+      return json(req, { on: sw?.value !== "off", alerts: list || [], last: lastRun });
+    }
+    if (action === "auto_alerts_toggle") {
+      if (!isOwner) return forbidden();
+      const on = !!body.on;
+      const { error } = await sb.from("app_config").upsert({ key: "auto_alerts", value: on ? "on" : "off" });
+      if (error) throw error;
+      await log("auto_alerts_toggle", on ? "تشغيل" : "إيقاف");
+      return json(req, { ok: true, on });
     }
 
     if (action === "list") {

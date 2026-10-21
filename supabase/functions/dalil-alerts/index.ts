@@ -109,17 +109,24 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
 Deno.serve(async (req) => {
   const url = new URL(req.url), dry = url.searchParams.get("dry") === "1";
   const sb = db();
+  // آخر فحص — يظهر في لوحة الإدارة
+  const done = async (o: Record<string, unknown>, status = 200) => {
+    if (!dry) await sb.from("private_config").upsert({ key: "auto_alerts_last", value: JSON.stringify({ at: new Date().toISOString(), ...o, regions: undefined, sent: ((o.regions as { skipped?: string }[] | undefined) || []).filter((r) => !r.skipped).length }) }).then(() => {}, () => {});
+    return Response.json(o, { status });
+  };
   try {
     const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
     if (!dry && (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value)) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
     const cfg = await config(sb);
-    if (cfg.auto_alerts === "off" && !dry) return Response.json({ ok: true, off: true });
+    // يُقرأ مباشرة (بدون الذاكرة المؤقتة) حتى يسري زر الإيقاف في لوحة الإدارة فورًا
+    const { data: sw } = await sb.from("app_config").select("value").eq("key", "auto_alerts").maybeSingle();
+    if (sw?.value === "off" && !dry) return done({ ok: true, off: true });
 
     const j = await (await fetch("https://api.rainviewer.com/public/weather-maps.json")).json();
-    const past = j.radar?.past || []; if (past.length < 4) return Response.json({ ok: false, error: "no_frames" });
+    const past = j.radar?.past || []; if (past.length < 4) return done({ ok: false, error: "no_frames" });
     const now = past[past.length - 1], prev = past[past.length - 4], old = past[0];
     const ageMin = Math.round(Date.now() / 60e3 - now.time / 60);
-    if (ageMin > 40) return Response.json({ ok: false, error: "stale", ageMin });
+    if (ageMin > 40) return done({ ok: false, error: "stale", ageMin });
     const [N, P, O, L] = await Promise.all([radarGrid(j.host, now.path), radarGrid(j.host, prev.path), radarGrid(j.host, old.path), lightningGrid()]);
     const near = (g: Uint8Array | Int8Array, i: number, jj: number, r: number, test: (v: number) => boolean) => {
       for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) { const y = i + a, x = jj + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && test(g[y * COLS + x])) return true; }
@@ -174,10 +181,10 @@ Deno.serve(async (req) => {
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 30 * 86400e3).toISOString());
-    return Response.json({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out });
+    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out });
   } catch (e) {
     console.error("dalil-alerts", e);
-    return Response.json({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, { status: 500 });
+    return done({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, 500);
   }
 });
 function dir2(deg: number) { return DIRS[Math.round(((deg % 360) + 360) % 360 / 45) % 8]; }
