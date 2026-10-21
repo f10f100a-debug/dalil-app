@@ -67,11 +67,24 @@ NEW IN 1.3 — background location (UIBackgroundModes: location):
 - Trip room: the member's position is relayed to the other room members over the room's private channel (about every 30 s, not stored). Stops immediately when the user stops recording or leaves the room.
 - To test: create a trip room (any 4-digit PIN), lock the phone and walk; a second device in the same room sees the distance update.
 - New URL scheme dalil://room?code=…&pin=… opens the join screen pre-filled (used by the invite link)."""
+WHATS_NEW_14 = """جديد في هذا التحديث:
+• لاسلكي حقيقي: رسائل غرفة الرحلة تشتغل بالصوت مباشرة والجوال مقفل، وترد من زر اللاسلكي في شاشة القفل.
+• رابط الدعوة يفتح الغرفة في التطبيق مباشرة من واتساب.
+• فتح أسرع للتطبيق حتى مع الشبكة الضعيفة، ويعمل بدون إنترنت بعد أول تشغيل.
+• رادار الأمطار يتحدث تلقائيًا، وتنبيه إذا كان المطر قريبًا منك.
+• تحسينات وإصلاحات."""
+NOTES_14 = """
+
+NEW IN 1.4 — Push to Talk (PushToTalk framework, UIBackgroundModes: push-to-talk):
+- The trip room (غرفة الرحلة) is a real walkie-talkie for a travelling group. When the user enters a room, the app joins a PTChannel named after the room; leaving the room leaves the channel.
+- Incoming voice messages from room members are delivered with a pushtotalk APNs push and played immediately while the phone is locked; the user can reply with the system Talk button. No other use of the channel.
+- To test: create a room on device A (any 4-digit PIN), join it on device B with the room number + PIN, lock device B, hold "اضغط مطوّلًا وتكلّم" on A — B plays the message.
+- Universal links: https://f10f100a-debug.github.io/dalil-app/?room=... opens the join screen in the app."""
 # ما الجديد (كل اللغات الموجودة؛ العربية بالنص العربي والإنجليزية بملخص)
 locs = asc.get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:
     loc = l["attributes"]["locale"]
-    text = (WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
+    text = (WHATS_NEW_14 if VERSION.startswith("1.4") else WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: real walkie-talkie — trip room voice plays on the lock screen and you can reply with the system Talk button; invite links open the app; faster launch on weak networks; auto-updating rain radar." if VERSION.startswith("1.4") else "New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
     asc.note("What's New " + loc, asc.patch(f"/v1/appStoreVersionLocalizations/{l['id']}", {"data": {"type": "appStoreVersionLocalizations", "id": l["id"], "attributes": {"whatsNew": text}}}))
 
 # ربط البناء
@@ -88,7 +101,7 @@ prev = asc.get(f"/v1/appStoreVersions/{old['id']}/appStoreReviewDetail").get("da
 pa = prev["attributes"] if prev else {}
 base = (pa.get("notes") or "").split("\n\nNEW IN THIS VERSION")[0]
 attrs = {k: pa.get(k) for k in ["contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired"] if pa.get(k) is not None}
-attrs["notes"] = (base + (NOTES_12 if VERSION.startswith("1.2") else NOTES_13 if VERSION.startswith("1.3") else "") + NOTES_11)[:4000]
+attrs["notes"] = (base + (NOTES_12 if VERSION.startswith("1.2") else NOTES_13 if VERSION.startswith("1.3") else NOTES_14 if VERSION.startswith("1.4") else "") + NOTES_11)[:4000]
 rd = asc.get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail").get("data")
 if rd:
     asc.note("Review notes", asc.patch(f"/v1/appStoreReviewDetails/{rd['id']}", {"data": {"type": "appStoreReviewDetails", "id": rd["id"], "attributes": attrs}}))

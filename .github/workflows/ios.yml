@@ -600,5 +600,7 @@ jobs:
             -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" > "$RUNNER_TEMP/export2.log" 2>&1 || { echo "::warning::local export failed: $(grep -iE 'error' "$RUNNER_TEMP/export2.log" | head -5 | paste -sd '|' -)"; exit 0; }
           cd "$RUNNER_TEMP/ipa" && unzip -q -o *.ipa
           echo "::notice::signed entitlements: $(codesign -d --entitlements :- Payload/App.app 2>/dev/null | tr -d '\n\t ' | grep -o 'aps-environment</key><string>[a-z]*' || echo NONE)"
+          E=$(codesign -d --entitlements :- Payload/App.app 2>/dev/null | tr -d '\n\t ')
+          echo "::notice::signed extras: push-to-talk=$(echo "$E" | grep -c 'push-to-talk') applinks=$(echo "$E" | grep -o 'applinks:[a-z0-9.-]*' | head -1)"
           echo "::notice::تم رفع النسخة $MARKETING_VERSION ($BUILD_NUMBER) إلى App Store Connect"
           echo "✅ رُفعت النسخة $MARKETING_VERSION ($BUILD_NUMBER) إلى App Store Connect — تظهر في TestFlight بعد المعالجة (10–30 دقيقة)."
