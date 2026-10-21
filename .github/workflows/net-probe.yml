@@ -1,0 +1,14 @@
+# فحص سريع لخدمات خارجية (مثل الرادار) من خادم GitHub
+name: Net probe
+on:
+  workflow_dispatch:
+    inputs:
+      cmd: { description: "أمر الفحص", type: string, default: "" }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          out=$(bash -c "$CMD" 2>&1 | head -c 3500)
+          echo "::notice::$(echo "$out" | tr '\n' ' ')"
+        env: { CMD: "${{ inputs.cmd }}" }
