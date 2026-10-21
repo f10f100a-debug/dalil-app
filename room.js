@@ -279,10 +279,11 @@
 
   function shareRoom(){
     if(!R.sess) return;
-    const nm = R.room && R.room.name ? '«' + R.room.name + '» ' : '';
-    const text = 'انضم لغرفة الرحلة ' + nm + 'في تطبيق دليل 🏕️\n'
-      + 'رقم الغرفة: ' + R.sess.code + '\nالرمز السري: ' + R.sess.pin + '\n\n'
-      + 'اضغط الرابط وتدخل الغرفة مباشرة 👇\n' + WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin);
+    const nm = R.room && R.room.name ? ' «' + R.room.name + '»' : '';
+    const text = 'يا هلا 👋\nتعال انضم لنا في غرفة الرحلة' + nm + ' على تطبيق دليل 🏕️\n'
+      + 'نتكلم بالصوت مثل اللاسلكي ونشوف مواقع بعض في البر\n\n'
+      + '👇 اضغط الرابط وتدخل معنا على طول\n' + WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin)
+      + '\n\n(رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ')';
     if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>B.toast('تم نسخ بيانات الغرفة'), ()=>{
       window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
