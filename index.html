@@ -1846,6 +1846,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
 
   function compassLive(){ return Date.now() - lastCompassAt < 3000; }
+  // تطبيق الآيفون 1.2+: النظام يرسل اتجاه البوصلة مباشرة (بلا إذن «الحركة» ولا ضغطة)
+  let nativeHeadingAt = 0;
+  window.__dalilNativeHeading = function(h, acc){
+    if(!Number.isFinite(h)) return;
+    nativeHeadingAt = Date.now();
+    if(!compassStarted || !compassOrientationHandler) startCompass();
+    if(compassOrientationHandler) compassOrientationHandler({type:'native', webkitCompassHeading:h, webkitCompassAccuracy:acc});
+  };
   // يظهر زر التشغيل عندما لا تصل قراءات من مستشعر البوصلة (مثل Safari بعد كل فتح جديد).
   function showCompassActivation(){
     navActivationHint.textContent = isIOS && !isSafari
@@ -1871,7 +1879,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('permCompass').textContent = '⏳ جارٍ التحقق';
     try{
       // على iOS يجب أن يأتي طلب مستشعر الاتجاه مباشرة بعد ضغطة المستخدم.
-      if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+            if(Date.now() - nativeHeadingAt < 3000){
+        compassGranted = true; // البوصلة الأصلية تعمل: لا حاجة لإذن «الحركة والاتجاه»
+        document.getElementById('permCompass').textContent = '✅ مفعّل';
+      } else if(typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
         // true يطلب الاتجاه المطلق ويشمل المستشعر المغناطيسي اللازم للبوصلة.
         // Safari/iOS (وخاصة عند التشغيل من الشاشة الرئيسية) يعتمد الصيغة القياسية بلا معاملات.
         // تمرير true يعمل في بعض الإصدارات، لكنه قد يمنع وصول أحداث البوصلة في إصدارات أخرى.
@@ -2058,6 +2069,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     let compassSeenOnce = false;
     function handleOrientation(e){
       const now = performance.now();
+      if(e.type !== 'native' && Date.now() - nativeHeadingAt < 2000) return; // البوصلة الأصلية (تطبيق 1.2+) لها الأولوية
       if(e.type === 'deviceorientationabsolute') lastAbsoluteOrientationAt = now;
       else if(typeof e.webkitCompassHeading !== 'number' && now - lastAbsoluteOrientationAt < 1000) return;
       let h = null;

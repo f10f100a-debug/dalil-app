@@ -122,6 +122,62 @@ jobs:
               s = s[:i] + add + "}\n"
               open(p, "w").write(s)
           print("::notice::AppDelegate push hooks: " + ("OK" if "capacitorDidRegisterForRemoteNotifications" in open(p).read() else "MISSING"))
+          # بوصلة أصلية: تقرأ اتجاه الجوال من النظام (بلا إذن «الحركة» ولا ضغطة) وترسله للصفحة
+          s = open(p).read()
+          if "DalilHeading" not in s:
+              s = s.replace("import UIKit", "import UIKit\nimport CoreLocation\nimport WebKit", 1)
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "DalilHeading.shared.start()\n        " + s[j:]
+              s = s.rstrip() + """
+
+          final class DalilHeading: NSObject, CLLocationManagerDelegate {
+              static let shared = DalilHeading()
+              private let lm = CLLocationManager()
+              private weak var web: WKWebView?
+              private var lastJS: String?
+              private var timer: Timer?
+              func start() {
+                  guard CLLocationManager.headingAvailable() else { return }
+                  lm.delegate = self
+                  lm.headingFilter = 1
+                  lm.headingOrientation = .portrait
+                  lm.startUpdatingHeading()
+                  // الجوال الثابت لا يرسل قراءات جديدة: نعيد آخر اتجاه كل ثانية حتى لا تظن الصفحة أن البوصلة توقفت
+                  timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.send() }
+                  NotificationCenter.default.addObserver(self, selector: #selector(resume), name: UIApplication.didBecomeActiveNotification, object: nil)
+                  NotificationCenter.default.addObserver(self, selector: #selector(pause), name: UIApplication.didEnterBackgroundNotification, object: nil)
+              }
+              @objc private func resume() { lm.startUpdatingHeading() }
+              @objc private func pause() { lm.stopUpdatingHeading() }
+              func locationManager(_ manager: CLLocationManager, didUpdateHeading h: CLHeading) {
+                  let v = h.trueHeading >= 0 ? h.trueHeading : h.magneticHeading
+                  guard v >= 0, h.headingAccuracy >= 0 else { return }
+                  let js = String(format: "window.__dalilNativeHeading&&window.__dalilNativeHeading(%.1f,%.0f)", v, h.headingAccuracy)
+                  lastJS = js
+                  send()
+              }
+              private func send() {
+                  guard UIApplication.shared.applicationState == .active, let js = lastJS else { return }
+                  webView()?.evaluateJavaScript(js, completionHandler: nil)
+              }
+              func locationManagerShouldDisplayHeadingCalibration(_ manager: CLLocationManager) -> Bool { false }
+              private func webView() -> WKWebView? {
+                  if let w = web { return w }
+                  let root = (UIApplication.shared.delegate as? AppDelegate)?.window?.rootViewController
+                  web = find(root?.view)
+                  return web
+              }
+              private func find(_ v: UIView?) -> WKWebView? {
+                  guard let v = v else { return nil }
+                  if let w = v as? WKWebView { return w }
+                  for s in v.subviews { if let w = find(s) { return w } }
+                  return nil
+              }
+          }
+          """
+              open(p, "w").write(s)
+          print("::notice::Native heading: " + ("OK" if "DalilHeading.shared.start()" in open(p).read() else "MISSING"))
           PY
 
       - name: Build check (unsigned)
