@@ -99,9 +99,11 @@ if BUILD:
 # ملاحظات المراجع: ننسخ بيانات التواصل والملاحظات من الإصدار السابق ونضيف ملاحظات الإصدار الجديد
 prev = asc.get(f"/v1/appStoreVersions/{old['id']}/appStoreReviewDetail").get("data") if old else None
 pa = prev["attributes"] if prev else {}
-base = (pa.get("notes") or "").split("\n\nNEW IN THIS VERSION")[0]
+base = (pa.get("notes") or "").split("\n\nNEW IN")[0]   # ملاحظات المراجع الأساسية بدون أقسام الإصدارات
 attrs = {k: pa.get(k) for k in ["contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired"] if pa.get(k) is not None}
-attrs["notes"] = (base + (NOTES_12 if VERSION.startswith("1.2") else NOTES_13 if VERSION.startswith("1.3") else NOTES_14 if VERSION.startswith("1.4") else "") + NOTES_11)[:4000]
+cur_notes = NOTES_14 if VERSION.startswith("1.4") else NOTES_13 if VERSION.startswith("1.3") else NOTES_12 if VERSION.startswith("1.2") else ""
+older = [n for n in (NOTES_13, NOTES_12) if n != cur_notes]
+attrs["notes"] = (base + cur_notes + "".join(older) + NOTES_11)[:4000]   # الإصدار الحالي أولًا حتى لا يُقص
 rd = asc.get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail").get("data")
 if rd:
     asc.note("Review notes", asc.patch(f"/v1/appStoreReviewDetails/{rd['id']}", {"data": {"type": "appStoreReviewDetails", "id": rd["id"], "attributes": attrs}}))
