@@ -401,6 +401,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-compass-card{position:relative;}
   .cp-corner{position:absolute; max-width:30%; pointer-events:none; line-height:1.25;}
   .cp-corner[hidden]{display:none;}
+  .pr-card{margin-top:12px; padding:14px;}
+  .pr-card[hidden]{display:none;}
+  .pr-head{display:flex; flex-direction:column; gap:2px;} .pr-head b{font-size:16px; color:var(--cp-ink);} .pr-head small{font-size:12px; color:var(--cp-faint);}
+  .pr-next{margin-top:8px; font-size:13.5px; color:var(--cp-gold-ink); font-weight:600;} .pr-next b{font-size:16px;}
+  .pr-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px;}
+  .pr-c{background:var(--cp-soft); border:1px solid var(--cp-line); border-radius:12px; padding:8px 6px; text-align:center; display:flex; flex-direction:column; gap:2px;}
+  .pr-c span{font-size:12px; color:var(--cp-dim);} .pr-c b{font-size:15px; color:var(--cp-ink); font-variant-numeric:tabular-nums;}
+  .pr-c.rise{opacity:.75;}
+  .pr-c.on{background:var(--cp-gold); border-color:var(--cp-gold);} .pr-c.on span,.pr-c.on b{color:#1C1A17;}
   .cp-corner.tr{top:12px; right:14px; text-align:right;}
   .cp-corner.tl{top:12px; left:14px; text-align:left;}
   .cp-corner.br{bottom:12px; right:14px; text-align:right;}
@@ -1068,6 +1077,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         </div>
       </div>
       <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
+      <div class="cp-card pr-card" id="prayerCard" hidden></div>
 
       <div id="wxData" hidden>
         <div class="wx-grid" id="wxGrid"></div>
@@ -2471,46 +2481,81 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const ve = el.querySelector('[data-v]'); if(ve.dataset.h !== v){ ve.dataset.h = v; ve.innerHTML = v; }
     if(k != null) setText(el.querySelector('[data-k]'), k);
   }
-  // شروق/غروب الشمس محليًا (خوارزمية NOAA المبسطة) — يعمل بلا إنترنت
-  function sunEvent(lat, lng, date, rising){
-    const rad = Math.PI/180, n = Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(),0,0)) / 864e5);
-    const t = n + ((rising ? 6 : 18) - lng/15)/24;
-    const M = 0.9856*t - 3.289;
-    let L = (M + 1.916*Math.sin(M*rad) + 0.020*Math.sin(2*M*rad) + 282.634 + 360) % 360;
-    let RA = (Math.atan(0.91764*Math.tan(L*rad))/rad + 360) % 360;
-    RA = (RA + Math.floor(L/90)*90 - Math.floor(RA/90)*90)/15;
-    const sinD = 0.39782*Math.sin(L*rad), cosD = Math.cos(Math.asin(sinD));
-    const cosH = (Math.cos(90.833*rad) - sinD*Math.sin(lat*rad))/(cosD*Math.cos(lat*rad));
-    if(cosH > 1 || cosH < -1) return null;
-    const H = (rising ? 360 - Math.acos(cosH)/rad : Math.acos(cosH)/rad)/15;
-    const UT = ((H + RA - 0.06571*t - 6.622 - lng/15) % 24 + 24) % 24;
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())); d.setUTCMinutes(Math.round(UT*60));
-    return d;
+  // أوقات الصلاة محليًا بطريقة أم القرى (الفجر 18.5°، العشاء بعد المغرب بـ90 دقيقة و120 في رمضان، العصر مثل الظل) — بلا إنترنت
+  function prayerTimes(lat, lng, date){
+    const rad = Math.PI/180, dsin = d => Math.sin(d*rad), dcos = d => Math.cos(d*rad), dtan = d => Math.tan(d*rad);
+    const fixA = a => (a % 360 + 360) % 360, fixH = h => (h % 24 + 24) % 24;
+    let y = date.getFullYear(), m = date.getMonth() + 1; const d = date.getDate();
+    if(m <= 2){ y--; m += 12; }
+    const A = Math.floor(y/100), jd0 = Math.floor(365.25*(y+4716)) + Math.floor(30.6001*(m+1)) + d + (2 - A + Math.floor(A/4)) - 1524.5 - lng/360;
+    const sun = jd => {
+      const D = jd - 2451545, g = fixA(357.529 + 0.98560028*D), q = fixA(280.459 + 0.98564736*D);
+      const L = fixA(q + 1.915*dsin(g) + 0.020*dsin(2*g)), e = 23.439 - 0.00000036*D;
+      const RA = Math.atan2(dcos(e)*dsin(L), dcos(L))/rad/15;
+      return {decl: Math.asin(dsin(e)*dsin(L))/rad, eqt: q/15 - fixH(RA)};
+    };
+    const noon = t => fixH(12 - sun(jd0 + t/24).eqt);
+    const angleTime = (ang, t, ccw) => {
+      const decl = sun(jd0 + t/24).decl;
+      const c = (-dsin(ang) - dsin(decl)*dsin(lat))/(dcos(decl)*dcos(lat));
+      if(c > 1 || c < -1) return NaN;
+      const T = Math.acos(c)/rad/15;
+      return noon(t) + (ccw ? -T : T);
+    };
+    const asr = t => { const decl = sun(jd0 + t/24).decl; return angleTime(-Math.atan(1/(1 + dtan(Math.abs(lat - decl))))/rad, t); };
+    const loc = [angleTime(18.5, 5, true), angleTime(0.833, 6, true), noon(12), asr(13), angleTime(0.833, 18)];
+    let ramadan = false;
+    try{ ramadan = new Intl.DateTimeFormat('en-u-ca-islamic-umalqura', {month:'numeric'}).format(date) === '9'; }catch(e){}
+    const base = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const at = h => Number.isFinite(h) ? new Date(base + Math.round((h - lng/15)*60)*60000) : null;
+    const out = loc.map(at);
+    out[2] = out[2] && new Date(out[2].getTime() + 60000); // الظهر بعد الزوال بدقيقة
+    out.push(out[4] && new Date(out[4].getTime() + (ramadan ? 120 : 90)*60000));
+    return out; // [fajr, sunrise, dhuhr, asr, maghrib, isha]
   }
-  let sunCache = {key:'', set:null, rise:null};
+  const PRAYER_NAMES = ['الفجر','الشروق','الظهر','العصر','المغرب','العشاء'];
+  let prCache = {key:'', today:null, tomorrow:null};
+  function prayersFor(pos){
+    const now = new Date(), key = now.toDateString() + '|' + pos.lat.toFixed(2) + ',' + pos.lng.toFixed(2);
+    if(prCache.key !== key) prCache = {key, today: prayerTimes(pos.lat, pos.lng, now), tomorrow: prayerTimes(pos.lat, pos.lng, new Date(now.getTime() + 864e5))};
+    return prCache;
+  }
+  function nextPrayer(pos){
+    const p = prayersFor(pos), n = Date.now();
+    for(let i = 0; i < 6; i++) if(p.today[i] && p.today[i].getTime() > n) return {i, at: p.today[i]};
+    return p.tomorrow[0] ? {i:0, at:p.tomorrow[0]} : null;
+  }
+  const clockAr = d => iso(d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'}));
+
+  let prCardKey = '';
+  function renderPrayerCard(pos){
+    const box = document.getElementById('prayerCard'); if(!box) return;
+    if(!pos){ box.hidden = true; return; }
+    const p = prayersFor(pos), np = nextPrayer(pos), nIdx = np && np.at.toDateString() === new Date().toDateString() ? np.i : -1;
+    const m = np ? Math.max(0, Math.round((np.at - Date.now())/60000)) : 0;
+    const key = prCache.key + '|' + nIdx + '|' + m;
+    if(key === prCardKey) return; prCardKey = key;
+    let hijri = '';
+    try{ hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn', {day:'numeric', month:'long', year:'numeric'}).format(new Date()); }catch(e){}
+    box.hidden = false;
+    box.innerHTML = `<div class="pr-head"><b>أوقات الصلاة</b><small>${hijri ? hijri + ' · ' : ''}حسب موقعك · أم القرى</small></div>`+
+      (np ? `<div class="pr-next">${PRAYER_NAMES[np.i]} بعد <b>${iso(Math.floor(m/60) + ':' + String(m%60).padStart(2,'0'))}</b> ساعة</div>` : '')+
+      `<div class="pr-grid">` + p.today.map((d,i) => `<div class="pr-c${i===nIdx?' on':''}${i===1?' rise':''}"><span>${PRAYER_NAMES[i]}</span><b>${d ? clockAr(d) : '—'}</b></div>`).join('') + `</div>`;
+  }
   function renderCorners(pos, t, nav, car){
     // السرعة: فقط أثناء الحركة
     const kmh = pos && Number.isFinite(pos.speed) ? pos.speed*3.6 : 0;
     cornerSet('cpSpeed', kmh >= 3 ? iso(Math.round(kmh)) + '<small>كم/س</small>' : null);
     // اتجاه الهدف بالدرجات
     cornerSet('cpBrg', nav && !state.nearLatched ? iso(Math.round(nav.brg) + '°') + '<small>' + cardinalSpaced(nav.brg) + '</small>' : null);
-    // الغروب/الشروق
+    // الصلاة القادمة (أو الشروق) والوقت المتبقي
     let sun = null, sunK = null;
     if(pos){
-      const now = new Date(), key = now.toDateString() + Math.round(pos.lat) + ',' + Math.round(pos.lng);
-      if(sunCache.key !== key){
-        const tm = new Date(now.getTime() + 864e5);
-        sunCache = {key, set: sunEvent(pos.lat, pos.lng, now, false), rise: sunEvent(pos.lat, pos.lng, now, true), riseTm: sunEvent(pos.lat, pos.lng, tm, true)};
-      }
-      const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return iso(Math.floor(m/60) + ':' + String(m%60).padStart(2,'0')); };
-      const n = Date.now();
-      if(sunCache.set && n < sunCache.set.getTime() && (!sunCache.rise || n >= sunCache.rise.getTime())){ sunK = 'الغروب بعد'; sun = left(sunCache.set - n) + '<small>س</small>'; }
-      else{
-        const r = sunCache.rise && n < sunCache.rise.getTime() ? sunCache.rise : sunCache.riseTm;
-        if(r){ sunK = 'الشروق بعد'; sun = left(r - n) + '<small>س</small>'; }
-      }
+      const np = nextPrayer(pos);
+      if(np){ const m = Math.max(0, Math.round((np.at - Date.now())/60000)); sunK = PRAYER_NAMES[np.i] + ' بعد'; sun = iso(Math.floor(m/60) + ':' + String(m%60).padStart(2,'0')) + '<small>س</small>'; }
     }
     cornerSet('cpSun', sun, sunK);
+    renderPrayerCard(pos);
     // السيارة (إذا لم تكن هي الهدف)
     cornerSet('cpCarC', car && pos && !isCarTarget(t) ? fmtDist(haversine(pos.lat, pos.lng, car.lat, car.lng)).replace(/ (كم|م)$/, '<small>$1</small>') : null);
   }
