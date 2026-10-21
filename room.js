@@ -873,6 +873,8 @@
     const b = document.getElementById('roomBtn'); if(!b) return;
     const badge = b.querySelector('.rm-badge'), dot = b.querySelector('.rm-new');
     if(badge){ badge.hidden = !R.sess; badge.textContent = R.sess ? R.members.size + ' في الغرفة' : ''; }
+    b.classList.toggle('live', !!R.sess);
+    const sub = b.querySelector('.rm-txt small'); if(sub) sub.textContent = R.sess ? 'متصل — اضغط لفتح الغرفة' : 'كلّم جماعتك بضغطة · مواقعهم حولك';
     if(dot) dot.hidden = !R.sess || R.open || !R.voice.some(v=>!R.heard.has(v.id) && !R.muted.has(v.member_id));
   }
 

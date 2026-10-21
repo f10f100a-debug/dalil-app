@@ -480,9 +480,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wx-radar-cta b{display:block; font-size:15px;}
   .wx-radar-cta small{display:block; font-size:12px; color:var(--text-dim); margin-top:2px;}
   .wx-radar-cta .wx-ext{width:20px; height:20px; color:var(--text-dim);}
-  .cp-room .cp-ic{color:var(--cp-gold-ink);}
-  .cp-room .rm-badge{font-size:12px; font-weight:700; background:var(--cp-green-bg); color:var(--cp-green); border-radius:100px; padding:2px 9px;}
-  .cp-room .rm-new{width:9px; height:9px; border-radius:50%; background:#C0392B;}
+  /* زر غرفة الرحلة: أخضر صحراوي مميز (لون اللاسلكي) */
+  .cp-room{display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:10px 14px; border:0; border-radius:18px; cursor:pointer; text-align:right; font-family:inherit; color:#fff;
+    background:linear-gradient(135deg, #17594F 0%, #1F7A6B 55%, #2E9481 100%); box-shadow:0 6px 18px rgba(23,89,79,.28), inset 0 1px 0 rgba(255,255,255,.14); -webkit-tap-highlight-color:transparent; transition:transform .12s;}
+  .cp-room:active{transform:scale(.98);}
+  .cp-room .rm-ic{position:relative; flex:0 0 auto; width:42px; height:42px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.16);}
+  .cp-room .rm-ic .cp-ic{width:22px; height:22px; color:#fff;}
+  .cp-room.live .rm-ic::before, .cp-room.live .rm-ic::after{content:""; position:absolute; inset:0; border-radius:50%; border:2px solid rgba(255,255,255,.55); animation:rmPulse 2.2s ease-out infinite;}
+  .cp-room.live .rm-ic::after{animation-delay:1.1s;}
+  @keyframes rmPulse{0%{transform:scale(1); opacity:.9} 100%{transform:scale(1.7); opacity:0}}
+  .cp-room .rm-txt{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;}
+  .cp-room .rm-txt b{font-size:16px; font-weight:700;}
+  .cp-room .rm-txt small{font-size:12px; color:rgba(255,255,255,.78); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .cp-room .rm-badge{font-size:12px; font-weight:700; background:#fff; color:#17594F; border-radius:100px; padding:3px 10px; white-space:nowrap;}
+  .cp-room .rm-new{width:10px; height:10px; border-radius:50%; background:#FF5A4E; box-shadow:0 0 0 2px #fff;}
   .cp-room [hidden]{display:none;}
   .cp-zello .cp-ic{color:var(--cp-gold-ink);}
 
@@ -952,7 +963,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
 
       <div class="cp-card cp-car" id="carCard"></div>
-      <button class="cp-btn cp-btn-white cp-room" type="button" id="roomBtn" style="display:none"><span class="cp-ic" data-ico="radio"></span>غرفة الرحلة<span class="rm-badge" hidden></span><span class="rm-new" hidden></span></button>
+      <button class="cp-room" type="button" id="roomBtn" style="display:none"><span class="rm-ic"><span class="cp-ic" data-ico="radio"></span></span><span class="rm-txt"><b>غرفة الرحلة</b><small>كلّم جماعتك بضغطة · مواقعهم حولك</small></span><span class="rm-badge" hidden></span><span class="rm-new" hidden></span></button>
 
       <div class="cp-actions">
         <button class="cp-btn cp-btn-white" type="button" id="saveHereBtn"><span class="cp-ic" data-ico="plus"></span>حفظ مكان</button>
@@ -4871,7 +4882,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=2';
+      sc.src = 'room.js?v=3';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);
