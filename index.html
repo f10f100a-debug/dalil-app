@@ -1773,11 +1773,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function updateDiagnostics(){
     const embedded=(()=>{try{return window.self!==window.top}catch(e){return true}})();
-    document.getElementById('diagMode').textContent=window.DALIL_NATIVE?'تطبيق الآيفون':isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
+    document.getElementById('diagMode').textContent=window.DALIL_NATIVE?'تطبيق الآيفون '+(((navigator.userAgent.match(/DalilApp\/([0-9.]+)/)||[])[1])||'1.0'):isStandalone?'تطبيق مثبت':embedded?'داخل متصفح مضمّن':isIOS?(isSafari?'Safari':'متصفح داخل تطبيق'):'متصفح عادي';
     document.getElementById('diagSecure').textContent=window.isSecureContext?'✅ HTTPS':'❌ غير آمن';
     const accuracy=state.pos?.accuracy!=null?' — دقة ±'+Math.round(state.pos.accuracy)+'م':'';
     document.getElementById('diagGps').textContent=state.pos?'✅ يعمل '+ageText(lastPositionAt)+accuracy:(lastPositionError||'⏳ لم تصل إشارة بعد');
-    const source=state.headingSource==='compass'?'مستشعر الجهاز':state.headingSource==='gps'?'اتجاه الحركة GPS':state.headingSource==='fused'?'GPS مع المستشعر (أثناء القيادة)':'';
+    const source=state.headingSource==='compass'?(Date.now()-nativeHeadingAt<3000?'بوصلة الآيفون المدمجة':'مستشعر الجهاز'):state.headingSource==='gps'?'اتجاه الحركة GPS':state.headingSource==='fused'?'GPS مع المستشعر (أثناء القيادة)':'';
     document.getElementById('diagCompass').textContent=state.heading!==null?'✅ يعمل '+ageText(lastHeadingAt)+(source?' — '+source:''):(compassStarted?'⏳ بانتظار بيانات الاتجاه':'⚠️ غير مشغّل');
     document.getElementById('diagOnline').textContent=navigator.onLine?'✅ متصل':'⚠️ أوفلاين';
   }
