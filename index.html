@@ -43,7 +43,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <style>
   :root{
     --bg:#F2EFE9;
@@ -1034,7 +1034,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" src="map.html?embed=1&amp;v=20261021-17" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261021-17" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -4412,6 +4412,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }, location.origin);
   }
   document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
+  // خريطة المسار تُحمَّل بعد ظهور الواجهة حتى لا تؤخّر أول فتح للتطبيق
+  const startTrackFrame = ()=>{ const f = document.getElementById('trackMapFrame'); if(f && !f.getAttribute('src') && f.dataset.src) f.setAttribute('src', f.dataset.src); };
+  window.__dalilStartTrackFrame = startTrackFrame;
+  setTimeout(startTrackFrame, 1500);
+  document.querySelectorAll('.tab[data-screen="track"]').forEach(t=>t.addEventListener('click', startTrackFrame));
   const trackToolsPanel=document.getElementById('trackToolsPanel');
   const trackToolsToggle=document.getElementById('trackToolsToggle');
   trackToolsToggle.addEventListener('click',()=>{
