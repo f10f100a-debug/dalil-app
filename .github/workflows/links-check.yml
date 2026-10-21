@@ -1,0 +1,13 @@
+# يتحقق أن ملف الروابط العامة (Universal Links) منشور وأن Apple قرأته
+name: Links check
+on: workflow_dispatch
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in https://f10f100a-debug.github.io/.well-known/apple-app-site-association https://app-site-association.cdn-apple.com/a/v1/f10f100a-debug.github.io; do
+            code=$(curl -s -o body.txt -w '%{http_code} %{content_type}' "$u")
+            echo "::notice::$u -> $code $(tr -d '\n ' < body.txt | head -c 200)"
+          done
+          curl -s -o /dev/null -w '::notice::app page -> %{http_code}\n' https://f10f100a-debug.github.io/dalil-app/
