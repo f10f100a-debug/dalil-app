@@ -365,7 +365,7 @@
     if(!file) return;
     if(/^video\//.test(file.type) || /\.(mov|mp4|m4v)$/i.test(file.name || '')){
       try{ st.photoGps = null; $('evLocRow').hidden = true; await prepareVideo(file); decideLocation({taken:file.lastModified}); }
-      catch(e){ st.draft = null; setStatus(e.msg || 'تعذّر قراءة الفيديو. جرّب مقطعًا آخر. (' + String(e && (e.message || e.name) || e).slice(0, 60) + ')', true); }
+      catch(e){ st.draft = null; if(window.__dalilReport) window.__dalilReport('video: ' + (e && (e.message || e.name)), (file.type || '?') + ' ' + Math.round(file.size / 1048576) + 'MB'); setStatus(e.msg || 'تعذّر قراءة الفيديو. جرّب مقطعًا آخر. (' + String(e && (e.message || e.name) || e).slice(0, 60) + ')', true); }
       updateSendBtn(); return;
     }
     if(!/^image\//.test(file.type || 'image/')){ setStatus('الملف ليس صورة', true); return; }

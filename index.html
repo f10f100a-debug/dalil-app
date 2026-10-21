@@ -31,6 +31,14 @@ if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
 // تنبيهات الآيفون الأصلية: من الإصدار 1.2 عند توفر إضافة PushNotifications
 window.DALIL_NATIVE_PUSH=(function(){try{var C=window.Capacitor;return !!(window.DALIL_NATIVE&&/DalilApp\/(1\.([2-9]|\d\d)|[2-9])/.test(navigator.userAgent)&&C&&C.isPluginAvailable&&C.isPluginAvailable('PushNotifications'))}catch(e){return false}})();
 if(window.DALIL_NATIVE_PUSH)document.documentElement.classList.add('native-push');
+// تقارير الأخطاء: رسالة الخطأ ومكانه وإصدار التطبيق فقط (بدون موقع أو بيانات شخصية)، 5 كحد أقصى لكل فتحة
+(function(){var n=0,seen={},U='https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-public?a=err';
+window.__dalilReport=function(msg,src){try{msg=String(msg||'').slice(0,300);src=String(src||'').slice(0,160);
+if(!msg||/^Script error|ResizeObserver|Load failed$|NetworkError|Failed to fetch/i.test(msg))return;var k=msg+'|'+src;if(seen[k]||n>=5)return;seen[k]=1;n++;
+var b=JSON.stringify({msg:msg,src:src,ver:((navigator.userAgent.match(/DalilApp\/[\d.]+/)||['web'])[0])+' '+(navigator.userAgent.match(/OS (\d+)/)||['',''])[1],page:location.pathname.split('/').pop()||'index'});
+if(navigator.sendBeacon)navigator.sendBeacon(U,new Blob([b],{type:'text/plain'}));else fetch(U,{method:'POST',body:b,keepalive:true}).catch(function(){});}catch(e){}};
+window.addEventListener('error',function(e){window.__dalilReport(e.message,String(e.filename||'').split('/').pop()+':'+e.lineno+':'+e.colno)});
+window.addEventListener('unhandledrejection',function(e){var r=e.reason;window.__dalilReport('promise: '+(r&&(r.message||r.name)||r),r&&r.stack?String(r.stack).split('\n')[1]:'')});})();
 </script>
 <style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning,.in-app:not(.native-push) #pushTitle,.in-app:not(.native-push) #pushBox,.in-app:not(.native-push) #pushAsk{display:none!important}</style>
 <script>
@@ -405,6 +413,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-compass-card{position:relative;}
   .cp-corner{position:absolute; max-width:30%; pointer-events:none; line-height:1.25;}
   .cp-corner[hidden]{display:none;}
+  .backup-info{margin-top:8px;font-size:13px;color:var(--cp-dim,#8a7f70)}.backup-info.warn{color:#B4572E}
   .open-app-bar{position:fixed; z-index:9999; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 86px); background:var(--cp-card); border:1px solid var(--cp-line); border-radius:18px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); display:flex; flex-direction:column; gap:8px; text-align:center}
   .open-app-bar b{font-size:16px} .open-app-bar .cp-btn{text-decoration:none} .open-app-bar .oab-get{font-size:13.5px; color:var(--cp-gold-ink)} .open-app-bar .oab-x{border:0; background:none; font:inherit; font-size:13px; color:var(--cp-dim)}
   /* «العاصفة جايتك؟» */
@@ -1037,7 +1046,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261021-22" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261022-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
         <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
@@ -1250,6 +1259,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button class="btn btn-ghost" id="importBackupBtn">📥 استعادة نسخة</button>
         <input type="file" id="importBackupInput" accept=".json,application/json" hidden>
       </div>
+      <div class="backup-info" id="backupInfo"></div>
       <button class="btn btn-danger" style="margin-top:10px;" id="wipeBtn">مسح كل البيانات المحفوظة</button>
 
       <div class="section-title">المصادر والتراخيص</div>
@@ -2387,6 +2397,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(!t) return;
     state.arrival = {isCar:isCarTarget(t), name:t.name};
     state.navTarget = null;
+    if(window.__dalilHappy) window.__dalilHappy('arrive');
     state.nearLatched = false;
     if(navigator.vibrate) navigator.vibrate([40,60,40]);
   }
@@ -4543,7 +4554,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           localStorage.removeItem('dalil_track_draft');
           document.getElementById('trackGpsStatus').textContent = '✅ تم حفظ المسار في «المسارات المحفوظة» وهو معروض الآن على الخريطة.';
           renderTrackHistory();
-          toast('تم حفظ المسار');
+          toast('تم حفظ المسار'); if(window.__dalilHappy) window.__dalilHappy('track');
         }else{
           document.getElementById('trackGpsStatus').textContent = '⚠️ لم يُحفظ المسار نهائيًا؛ بقيت نسخة الاسترداد المؤقتة.';
         }
@@ -4753,7 +4764,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(targetIdx === 0 && d < 15){
       stopRetrace();
       restoreDefaultTarget();
-      toast('وصلت إلى نقطة البداية 🎉');
+      toast('وصلت إلى نقطة البداية 🎉'); if(window.__dalilHappy) window.__dalilHappy('retrace');
     }
   }
 
@@ -4932,8 +4943,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     a.remove();
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   }
+  const BACKUP_AT='dalil_backup_at';
+  function backupInfo(){
+    const el=document.getElementById('backupInfo'); if(!el) return;
+    let t=0; try{ t=+localStorage.getItem(BACKUP_AT)||0; }catch(e){}
+    const days=t?Math.floor((Date.now()-t)/86400e3):null;
+    el.textContent=t?('آخر نسخة احتياطية: '+(days===0?'اليوم':days===1?'أمس':'قبل '+days+' يوم')):'لم تحفظ نسخة احتياطية بعد.';
+    el.classList.toggle('warn',!t||days>30);
+  }
+  backupInfo();
   document.getElementById('exportBackupBtn').addEventListener('click',async()=>{
     save();
+    try{ localStorage.setItem(BACKUP_AT,String(Date.now())); }catch(e){}
+    backupInfo();
     const date=new Date().toISOString().slice(0,10);
     const file=new File([JSON.stringify(backupPayload(),null,2)],'dalil-backup-'+date+'.json',{type:'application/json'});
     if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
@@ -5082,7 +5104,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=12';
+      sc.src = 'events.js?v=13';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -5545,6 +5567,39 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   window.setInterval(()=>{
     if(document.getElementById('screen-settings').classList.contains('active')) updateDiagnostics();
   },5000);
+
+  // ---------- بطاقة صغيرة أسفل الشاشة (تقييم / تذكير نسخة احتياطية) ----------
+  function softCard(html, onAct){
+    if(document.querySelector('.open-app-bar')) return null;
+    const bar = document.createElement('div'); bar.className = 'open-app-bar soft-card'; bar.innerHTML = html;
+    document.body.appendChild(bar);
+    bar.addEventListener('click', e=>{ const a = e.target.closest('[data-sc]'); if(!a) return; if(onAct) onAct(a.dataset.sc, e); bar.remove(); });
+    return bar;
+  }
+  const LSG = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } }, LSS = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
+  if(!LSG('dalil_first_open')) LSS('dalil_first_open', String(Date.now()));
+  // طلب التقييم: في تطبيق الآيفون فقط، بعد لحظة نجاح ثانية، وبعد 3 أيام من أول استخدام، ومرة كل 60 يومًا كحد أقصى
+  window.__dalilHappy = function(why){
+    if(!window.DALIL_NATIVE || LSG('dalil_rated')) return;
+    const n = (+LSG('dalil_happy') || 0) + 1; LSS('dalil_happy', String(n));
+    const first = +LSG('dalil_first_open') || Date.now(), last = +LSG('dalil_rate_asked') || 0;
+    if(n < 2 || Date.now() - first < 3 * 86400e3 || Date.now() - last < 60 * 86400e3) return;
+    LSS('dalil_rate_asked', String(Date.now()));
+    setTimeout(()=>softCard('<b>⭐ عجبك دليل؟</b><span style="font-size:14px">تقييمك في المتجر يساعد أهل البر يلقونه — يأخذ ثواني.</span>'
+      + '<a class="cp-btn cp-btn-gold" data-sc="rate" target="_blank" rel="noopener" href="https://apps.apple.com/app/id6822651903?action=write-review">قيّم دليل</a>'
+      + '<button type="button" class="oab-x" data-sc="later">لاحقًا</button>', act=>{ if(act === 'rate') LSS('dalil_rated', '1'); }), 2500);
+  };
+  // تذكير النسخة الاحتياطية: إذا عندك أماكن أو مسارات ولم تحفظ نسخة منذ 30 يومًا (مرة كل 14 يومًا)
+  setTimeout(()=>{
+    const has = (state.places || []).length >= 3 || (state.tracks || []).length >= 1;
+    const bk = +LSG('dalil_backup_at') || 0, rem = +LSG('dalil_backup_remind') || 0, first = +LSG('dalil_first_open') || Date.now();
+    if(!has || Date.now() - bk < 30 * 86400e3 || Date.now() - rem < 14 * 86400e3 || Date.now() - first < 5 * 86400e3) return;
+    if(document.getElementById('onboard') && getComputedStyle(document.getElementById('onboard')).display !== 'none') return;
+    LSS('dalil_backup_remind', String(Date.now()));
+    softCard('<b>💾 احفظ نسخة من أماكنك ومساراتك</b><span style="font-size:14px">لو تغيّر جوالك أو حذفت التطبيق ما تضيع — احفظها في الملفات أو iCloud.</span>'
+      + '<button type="button" class="cp-btn cp-btn-gold" data-sc="backup">احفظ نسخة الآن</button><button type="button" class="oab-x" data-sc="later">لاحقًا</button>',
+      act=>{ if(act === 'backup') document.getElementById('exportBackupBtn').click(); });
+  }, 25000);
 
   if('serviceWorker' in navigator){
     window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(r=>r.update && r.update()).catch(()=>{}));

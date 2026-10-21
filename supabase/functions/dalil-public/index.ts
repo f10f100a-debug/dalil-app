@@ -136,6 +136,17 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // تقرير خطأ من التطبيق: نص الخطأ ومكانه وإصدار التطبيق فقط (حد 40 في اليوم لكل IP)، تُحذف بعد 14 يومًا
+    if (action === "err") {
+      const msg = cleanText(body.msg, 300);
+      if (!msg) return json(req, { ok: true });
+      const { count } = await sb.from("client_errors").select("id", { count: "exact", head: true }).eq("ip_hash", ip).gte("at", new Date(Date.now() - 86400e3).toISOString());
+      if ((count ?? 0) >= 40) return json(req, { ok: true });
+      await sb.from("client_errors").insert({ ip_hash: ip, msg, src: cleanText(body.src, 160), ver: cleanText(body.ver, 40), page: cleanText(body.page, 40) });
+      if (Math.random() < 0.05) await sb.from("client_errors").delete().lt("at", new Date(Date.now() - 14 * 86400e3).toISOString());
+      return json(req, { ok: true });
+    }
+
     if (action === "unsubscribe") {
       const endpoint = String(body.endpoint || "");
       if (endpoint) await sb.from("push_subs").delete().eq("endpoint", endpoint);
