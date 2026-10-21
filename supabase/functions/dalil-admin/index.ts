@@ -56,8 +56,14 @@ function eventPayload(ev: { id: string; kind: string; region: string; caption: s
 
 // تنبيهات تطبيق الآيفون الأصلية عبر APNs (مفتاح .p8 في أسرار الدالة: APNS_KEY_P8 وAPNS_KEY_ID)
 let apnsJwt: { tok: string; at: number } | null = null;
-async function apnsToken(): Promise<string | null> {
-  const pem = Deno.env.get("APNS_KEY_P8"), kid = Deno.env.get("APNS_KEY_ID"), team = Deno.env.get("APNS_TEAM_ID") || "M3FNP2GR5Z";
+async function apnsToken(sb: SupabaseClient): Promise<string | null> {
+  let pem = Deno.env.get("APNS_KEY_P8"), kid = Deno.env.get("APNS_KEY_ID");
+  const team = Deno.env.get("APNS_TEAM_ID") || "M3FNP2GR5Z";
+  if (!pem || !kid) {
+    // بديل: المفتاح محفوظ في جدول private_config (مقفل بـ RLS، يقرؤه مفتاح الخدمة فقط)
+    const { data } = await sb.from("private_config").select("key,value").in("key", ["apns_key_p8", "apns_key_id"]);
+    for (const r of data || []) { if (r.key === "apns_key_p8") pem = pem || r.value; if (r.key === "apns_key_id") kid = kid || r.value; }
+  }
   if (!pem || !kid) return null;
   if (apnsJwt && Date.now() - apnsJwt.at < 40 * 60e3) return apnsJwt.tok;
   const body = pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "");
@@ -70,7 +76,7 @@ async function apnsToken(): Promise<string | null> {
   return apnsJwt.tok;
 }
 async function sendApns(sb: SupabaseClient, region: string, payload: Record<string, unknown>) {
-  const jwt = await apnsToken();
+  const jwt = await apnsToken(sb);
   if (!jwt) return { sent: 0, failed: 0, removed: 0, total: 0, skipped: true };
   let q = sb.from("push_native").select("token");
   if (region) q = q.in("region", [region, ""]);
