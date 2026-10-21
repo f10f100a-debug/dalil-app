@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       const mime = (audio.type || "").split(";")[0];
       if (!VOICE_MIMES.includes(mime)) return json(req, { error: "bad_audio" }, 415);
       if (await tooMany(sb, ip, "voice", 120, 10)) return json(req, { error: "rate_limited" }, 429);
-      const id = crypto.randomUUID(), ext = mime.includes("webm") ? "webm" : mime.includes("ogg") ? "ogg" : mime.includes("mpeg") ? "mp3" : "m4a";
+      const cid = String(form.get("id") || ""), id = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(cid) ? cid : crypto.randomUUID(), ext = mime.includes("webm") ? "webm" : mime.includes("ogg") ? "ogg" : mime.includes("mpeg") ? "mp3" : "m4a";
       const path = `${a.room.id}/${id}.${ext}`;
       const up = await sb.storage.from("room-voice").upload(path, new Uint8Array(await audio.arrayBuffer()), { contentType: mime });
       if (up.error) throw up.error;

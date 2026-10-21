@@ -4994,7 +4994,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=5';
+      sc.src = 'room.js?v=6';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);
@@ -5007,7 +5007,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     rb.style.display = '';
     document.getElementById('openZelloBtn').style.display = 'none';
     rb.addEventListener('click', ()=>loadRoom().then(m=>m.open()).catch(()=>toast('غرفة الرحلة تحتاج اتصالًا بالإنترنت')));
-    if(roomParam) loadRoom().then(m=>m.open(roomParam)).catch(()=>{});
+    if(roomParam) loadRoom().then(m=>m.open(roomParam, (roomQS.get('pin') || '').replace(/\D/g, '').slice(0, 8))).catch(()=>{});
     else if(roomLs('dalil_room_v1')) loadRoom().catch(()=>{});
     document.getElementById('trackMapFrame').addEventListener('load', ()=>{ if(window.DalilRoom) window.DalilRoom.syncMap(); });
   }

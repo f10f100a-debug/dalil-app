@@ -119,6 +119,14 @@
         clearTimeout(helloReply); helloReply = setTimeout(()=>{ const mp = myPosPayload(); if(mp) RT.send('pos', mp); }, 300 + Math.random() * 1500);
         break;
       case 'voice': if(p.v && p.v.url) addVoice(p.v, true); break;
+      case 'voice_live':
+        if(p.id && typeof p.b64 === 'string' && p.b64.length < 160000 && /^audio\//.test(p.mime || '')){
+          try{
+            const bin = atob(p.b64), u8 = new Uint8Array(bin.length); for(let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+            addVoice({id:String(p.id), member_id:id, mime:p.mime, duration:Number(p.duration) || null, created_at:new Date().toISOString(), url:URL.createObjectURL(new Blob([u8], {type:p.mime}))}, true);
+          }catch(e){}
+        }
+        break;
       case 'rally':
         R.rally = p.rally || null;
         if(p.rally) B.toast('📍 ' + (p.rally.by || 'أحد الأعضاء') + ' حدد نقطة التجمع');
@@ -274,8 +282,7 @@
     const nm = R.room && R.room.name ? '«' + R.room.name + '» ' : '';
     const text = 'انضم لغرفة الرحلة ' + nm + 'في تطبيق دليل 🏕️\n'
       + 'رقم الغرفة: ' + R.sess.code + '\nالرمز السري: ' + R.sess.pin + '\n\n'
-      + 'افتح دليل ← غرفة الرحلة ← دخول غرفة\n'
-      + 'للآيفون: ' + APP_LINK + '\nمن المتصفح: ' + WEB_LINK + '?room=' + R.sess.code;
+      + 'اضغط الرابط وتدخل الغرفة مباشرة 👇\n' + WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin);
     if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>B.toast('تم نسخ بيانات الغرفة'), ()=>{
       window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
@@ -287,6 +294,7 @@
   player.preload = 'auto';
   let unlocked = false, queue = [], playing = null;
   function unlockAudio(){
+    audioCtx();
     if(unlocked) return; unlocked = true;
     // ملف صامت قصير لفتح تشغيل الصوت بعد أول لمسة (قيود iOS)
     const n = 800, buf = new ArrayBuffer(44 + n), v = new DataView(buf), w = (o, s)=>{ for(let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
@@ -311,10 +319,11 @@
     if(R.muted.has(v.member_id) || !v.url) return playNext();
     playClip(v);
   }
-  function playClip(v){
+  function playClip(v, noTone){
     playing = v; R.heard.add(v.id);
     player.src = v.url;
-    player.play().then(()=>{ renderVoiceSoon(); }, ()=>{ playing = null; renderVoiceSoon(); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
+    const wait = noTone ? 0 : tone('in');
+    (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>player.play()).then(()=>{ renderVoiceSoon(); }, ()=>{ playing = null; renderVoiceSoon(); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
     renderVoiceSoon(); updateBtn();
   }
   player.addEventListener('ended', ()=>{ playing = null; renderVoiceSoon(); playNext(); });
@@ -342,7 +351,9 @@
     if(!rec.on){ releaseMicLater(); return; }   // رفع الإصبع قبل جاهزية الميكروفون
     clearTimeout(rec.idle);
     rec.chunks = [];
-    try{ rec.mr = mime ? new MediaRecorder(rec.stream, {mimeType:mime, audioBitsPerSecond:32000}) : new MediaRecorder(rec.stream); }
+    const tw = tone('start'); if(tw) await new Promise(res=>setTimeout(res, tw + 40));
+    if(!rec.on){ releaseMicLater(); renderPtt(); return; }
+    try{ rec.mr = mime ? new MediaRecorder(rec.stream, {mimeType:mime, audioBitsPerSecond:24000}) : new MediaRecorder(rec.stream); }
     catch(e){ rec.mr = new MediaRecorder(rec.stream); }
     rec.mr.ondataavailable = e=>{ if(e.data && e.data.size) rec.chunks.push(e.data); };
     rec.mr.onstop = onRecStop;
@@ -371,7 +382,20 @@
     if(rec.cancelled) return;
     if(dur < 0.6 || blob.size < 400) return B.toast('اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك');
     renderPtt('send');
+    tone('end');
+    const vid = (crypto.randomUUID && crypto.randomUUID()) || '';
+    const local = {id:vid || ('l' + Date.now()), member_id:me(), mime:type.split(';')[0], duration:+dur.toFixed(1), created_at:new Date().toISOString(), url:URL.createObjectURL(blob)};
+    // المقاطع القصيرة تصل للأعضاء فورًا عبر القناة المباشرة، والرفع للخادم يكمل بالتوازي (للتاريخ والبلاغات)
+    let liveSent = false;
+    if(vid && blob.size <= 110000){
+      try{
+        const b64 = await new Promise((res, rej)=>{ const fr = new FileReader(); fr.onload = ()=>res(String(fr.result).split(',')[1]); fr.onerror = rej; fr.readAsDataURL(blob); });
+        liveSent = RT.send('voice_live', {id:vid, mime:local.mime, duration:local.duration, b64});
+      }catch(e){}
+    }
+    if(liveSent){ addVoice(local, false); renderPtt(); }
     const fd = new FormData();
+    if(vid) fd.append('id', vid);
     fd.append('room_id', R.sess.room_id); fd.append('member_id', R.sess.member_id); fd.append('token', R.sess.token);
     fd.append('duration', dur.toFixed(1));
     fd.append('audio', new File([blob], 'v.' + (type.includes('webm') ? 'webm' : type.includes('ogg') ? 'ogg' : 'm4a'), {type:type.split(';')[0]}));
@@ -384,9 +408,10 @@
     renderPtt();
     if(!j.ok){
       if(['kicked', 'not_member', 'expired'].includes(j.error)) return endRoom(errText(j.error));
-      return B.toast(errText(j.error));
+      return liveSent ? null : B.toast(errText(j.error));
     }
-    addVoice(j.voice, false);
+    if(liveSent){ const x = R.voice.find(q=>q.id === j.voice.id); if(x) x.url_srv = j.voice.url; }
+    else addVoice(j.voice, false);
     RT.send('voice', {v:j.voice});
   }
   function releaseMicLater(){
@@ -425,6 +450,21 @@
       beep();
     }
     renderSos();
+  }
+  // نغمات اللاسلكي: قبل الكلام، بعد الإرسال، وقبل تشغيل رسالة واردة
+  let actx = null;
+  function audioCtx(){ try{ if(!actx){ const C = window.AudioContext || window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state === 'suspended') actx.resume(); }catch(e){} return actx; }
+  function tone(kind){
+    const ctx = audioCtx(); if(!ctx) return 0;
+    const seq = kind === 'start' ? [[1200, .07], [1600, .09]] : kind === 'end' ? [[1600, .06], [1000, .1]] : [[900, .06], [1300, .06], [1800, .09]];
+    let t = ctx.currentTime + .01;
+    for(const [f, d] of seq){
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.18, t + .01); g.gain.setValueAtTime(.18, t + d - .015); g.gain.linearRampToValueAtTime(0, t + d);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + d + .01); t += d + .02;
+    }
+    return Math.round((t - ctx.currentTime) * 1000);
   }
   function beep(){
     try{
@@ -621,10 +661,10 @@
     sos.addEventListener('click', ()=>{ if(R.mySos && Date.now() - R.mySos.t > 1500 && confirm('إلغاء الاستغاثة؟')) stopMySos(); });
   }
 
-  function open(prefillCode){
+  function open(prefillCode, prefillPin){
     build();
     R.open = true;
-    if(prefillCode){ R.tab = 'join'; R.prefill = prefillCode; }
+    if(prefillCode){ R.tab = 'join'; R.prefill = prefillCode; R.prefillPin = prefillPin || ''; }
     $('roomOverlay').classList.add('show');
     render();
     if(R.sess) refreshState();
@@ -655,7 +695,7 @@
       ${join
         ? `<label class="rm-field"><span>رقم الغرفة</span><input id="rmCode" class="num" inputmode="numeric" maxlength="6" placeholder="000000" value="${esc(R.prefill || '')}"></label>`
         : `<label class="rm-field"><span>اسم الرحلة (اختياري)</span><input id="rmTrip" maxlength="40" placeholder="مثال: كشتة النفود"></label>`}
-      <label class="rm-field"><span>${join ? 'الرمز السري' : 'اختر رمزًا سريًا (4 أرقام أو أكثر)'}</span><input id="rmPin" class="num" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off"></label>
+      <label class="rm-field"><span>${join ? 'الرمز السري' : 'اختر رمزًا سريًا (4 أرقام أو أكثر)'}</span><input id="rmPin" class="num" inputmode="numeric" maxlength="8" placeholder="••••" autocomplete="off" value="${join ? esc(R.prefillPin || '') : ''}"></label>
       <label class="rm-terms"><input type="checkbox" id="rmTerms" ${lsGet(LS.terms) ? 'checked' : ''}><span>أوافق على <a href="support.html#room-terms" target="_blank" rel="noopener">شروط غرفة الرحلة</a>: لا ألفاظ مسيئة ولا إزعاج. يمكن للأعضاء كتمي وإخراجي والإبلاغ عني.</span></label>
       <div class="rm-err" id="rmErr" hidden></div>
       <button class="cp-btn cp-btn-gold cp-btn-lg" type="button" id="rmGo" data-rm="go"></button>
@@ -815,7 +855,7 @@
       const v = R.voice.find(x=>x.id === id); if(!v) return;
       if(playing && playing.id === id){ player.pause(); playing = null; renderVoice(); return; }
       if(!v.url) return B.toast('انتهت صلاحية التسجيل');
-      queue = []; playClip(v);
+      queue = []; playClip(v, true);
     }
   }
 

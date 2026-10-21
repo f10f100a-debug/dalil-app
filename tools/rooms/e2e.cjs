@@ -77,9 +77,10 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await B.waitForTimeout(1200);
   await shot(B, '3-B-recording');
   await B.waitForTimeout(1500);
-  await B.mouse.up();
+  await B.mouse.up(); const tUp = Date.now();
   let aVoice = '';
-  for (let i = 0; i < 20 && !aVoice.includes('بدر'); i++) { await A.waitForTimeout(1000); aVoice = await A.textContent('#rmVoice').catch(() => ''); }
+  for (let i = 0; i < 80 && !aVoice.includes('بدر'); i++) { await A.waitForTimeout(250); aVoice = await A.textContent('#rmVoice').catch(() => ''); }
+  ok(true, `voice delivered in ${((Date.now() - tUp) / 1000).toFixed(1)}s`);
   const bVoice = await B.textContent('#rmVoice').catch(() => '');
   ok(bVoice.includes('أنت'), `B sees own voice: ${bVoice.replace(/\s+/g, ' ').slice(0, 80)}`);
   ok(aVoice.includes('بدر'), `A received voice: ${aVoice.replace(/\s+/g, ' ').slice(0, 80)}`);
