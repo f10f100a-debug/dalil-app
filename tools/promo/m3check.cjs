@@ -3,7 +3,6 @@ const { chromium } = require('playwright');
   const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const nav = '&tLat=27.56&tLng=41.70&tName=' + encodeURIComponent('جبل السمراء');
   const cases = [
-    ['m3-plain-z145', '', m => m.jumpTo({ zoom: 14.5, pitch: 65, bearing: 52 })],
     ['m3-nav-wait', nav, null],
     ['m3-nav-nofollow', nav, m => { document.getElementById('tdFollow').click(); m.jumpTo({ zoom: 13, pitch: 62, bearing: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }); }],
   ];
@@ -14,8 +13,8 @@ const { chromium } = require('playwright');
     await p.goto('http://localhost:8765/map2.html?mode=3d&sat=1&lat=27.505&lng=41.62&z=13' + q);
     await p.waitForTimeout(12000);
     if (fn) await p.evaluate(`(${fn.toString()})(window.__map3)`);
-    await p.waitForTimeout(name === 'm3-nav-wait' ? 40000 : 15000);
-    const info = await p.evaluate(() => { const m = window.__map3; return { z: m.getZoom().toFixed(2), p: m.getPitch(), terrain: !!m.getTerrain(), moving: m.isMoving(), loaded: m.loaded() } });
+    await p.waitForTimeout(20000);
+    const info = await p.evaluate(() => { const m = window.__map3; return { z: m.getZoom().toFixed(2), p: m.getPitch(), navLayer: !!m.getLayer('nav-line'), idx: m.getStyle().layers.findIndex(l => l.id === 'nav-line'), n: m.getStyle().layers.length, feats: m.querySourceFeatures('nav').length, rendered: m.queryRenderedFeatures({ layers: ['nav-line', 'nav-t'] }).length, data: JSON.stringify(m.getStyle().sources.nav && m.getStyle().sources.nav.data).slice(0, 200) } });
     console.log(name, JSON.stringify(info), 'errors:', errs.slice(0, 4).join(' | '));
     await p.screenshot({ path: `shots/${name}.png`, timeout: 60000 });
     await c.close();
