@@ -2,7 +2,7 @@
 // المواقع لا تمر من هنا ولا تُخزَّن: تنتقل بين الأعضاء مباشرة عبر Realtime Broadcast على قناة سرية (secret).
 import { b64uEncode, cleanText, config, cors, db, ipHash, json } from "../_shared/common.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { sendApnsTo } from "../_shared/apns.ts";
+import { sendApnsTo, sendPttTo } from "../_shared/apns.ts";
 
 const MAX_MEMBERS = 15;
 const ROOM_HOURS = 24;
@@ -29,8 +29,10 @@ async function activeMembers(sb: SupabaseClient, roomId: string) {
 }
 
 // تنبيه بقية أعضاء الغرفة (تطبيق الآيفون) — يصل حتى لو كان التطبيق مغلقًا
-async function notifyRoom(sb: SupabaseClient, roomId: string, exceptId: string, p: { title: string; body: string; tag: string }) {
-  const { data } = await sb.from("room_members").select("push_token").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).neq("member_id", exceptId).not("push_token", "is", null);
+async function notifyRoom(sb: SupabaseClient, roomId: string, exceptId: string, p: { title: string; body: string; tag: string }, skipPtt = false) {
+  let q = sb.from("room_members").select("push_token").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).neq("member_id", exceptId).not("push_token", "is", null);
+  if (skipPtt) q = q.is("ptt_token", null);
+  const { data } = await q;
   const toks = (data || []).map((r) => r.push_token as string);
   if (!toks.length) return;
   const job = sendApnsTo(sb, toks, { ...p, url: "./?screen=compass" }).catch((e) => console.error("room push", e));
@@ -135,13 +137,32 @@ Deno.serve(async (req) => {
       const dur = Number(form.get("duration")); const duration = Number.isFinite(dur) && dur > 0 && dur < 120 ? dur : null;
       const { error } = await sb.from("room_voice").insert({ id, room_id: a.room.id, member_id: a.member.member_id, path, mime, duration });
       if (error) throw error;
+      const { data: s } = await sb.storage.from("room-voice").createSignedUrl(path, 3600);
+      const voice = { id, member_id: a.member.member_id, mime, duration, created_at: new Date().toISOString(), url: s?.signedUrl || null };
+      // اللاسلكي: الأعضاء اللي جوالاتهم تدعمه يسمعون الصوت مباشرة والجوال مقفل (إلا من كتم المرسل)
+      const { data: pt } = await sb.from("room_members").select("member_id,ptt_token").eq("room_id", a.room.id).eq("kicked", false).eq("left_room", false)
+        .neq("member_id", a.member.member_id).not("ptt_token", "is", null);
+      if (pt?.length && voice.url && /mp4|aac|m4a|mpeg/.test(mime)) {
+        const { data: mutes } = await sb.from("room_mutes").select("muter_id").eq("room_id", a.room.id).eq("target_id", a.member.member_id);
+        const muted = new Set((mutes || []).map((m) => m.muter_id));
+        const job = sendPttTo(sb, pt.filter((m) => !muted.has(m.member_id)).map((m) => m.ptt_token as string),
+          { activeSpeaker: a.member.name, url: voice.url, id, room: a.room.id }).catch((e) => console.error("ptt", e));
+        (globalThis as any).EdgeRuntime?.waitUntil?.(job);
+      }
+      // رسالة من شاشة القفل (تطبيق الآيفون): نبثّها لمن التطبيق مفتوح عندهم
+      if (form.get("native") === "1") {
+        const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const job = fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", { method: "POST",
+          headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" },
+          body: JSON.stringify({ messages: [{ topic: "room:" + a.room.secret, event: "voice", private: false, payload: { m: a.member.member_id, v: voice } }] }) }).catch(() => {});
+        (globalThis as any).EdgeRuntime?.waitUntil?.(job);
+      }
       if (!a.member.last_push_at || Date.now() - new Date(a.member.last_push_at).getTime() > 60e3) {
         await sb.from("room_members").update({ last_push_at: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
-        await notifyRoom(sb, a.room.id, a.member.member_id, { title: "🎙️ " + a.member.name, body: "أرسل رسالة صوتية في " + (a.room.name || "غرفة الرحلة"), tag: "room-voice" });
+        await notifyRoom(sb, a.room.id, a.member.member_id, { title: "🎙️ " + a.member.name, body: "أرسل رسالة صوتية في " + (a.room.name || "غرفة الرحلة"), tag: "room-voice" }, true);
       }
-      const { data: s } = await sb.storage.from("room-voice").createSignedUrl(path, 3600);
       await sb.from("room_members").update({ last_seen: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
-      return json(req, { ok: true, voice: { id, member_id: a.member.member_id, mime, duration, created_at: new Date().toISOString(), url: s?.signedUrl || null } });
+      return json(req, { ok: true, voice });
     }
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
@@ -259,6 +280,14 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // رمز اللاسلكي (Apple PushToTalk) من تطبيق الآيفون 1.4 — فارغ = إيقاف
+    if (action === "ptt") {
+      const t = String(body.ptt_token || "").toLowerCase();
+      if (t && !/^[0-9a-f]{64,200}$/.test(t)) return json(req, { error: "bad_token" }, 400);
+      await sb.from("room_members").update({ ptt_token: t || null }).eq("room_id", room.id).eq("member_id", member.member_id);
+      return json(req, { ok: true });
+    }
+
     // استغاثة: تنبيه فوري لكل الأعضاء (مرة كل دقيقتين كحد أقصى)
     if (action === "sos") {
       if (body.off === true) return json(req, { ok: true });
@@ -282,7 +311,7 @@ Deno.serve(async (req) => {
     }
 
     if (action === "leave") {
-      await sb.from("room_members").update({ left_room: true, push_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
+      await sb.from("room_members").update({ left_room: true, push_token: null, ptt_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
       return json(req, { ok: true });
     }
 

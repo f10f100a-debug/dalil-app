@@ -148,7 +148,7 @@
   }
   // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
   // تطبيق الآيفون 1.3: بيانات العضوية لإرسال الموقع من الخلفية
-  function bgAuth(){ return R.sess ? {url:FN + '?a=bgpos', key:KEY, room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token} : null; }
+  function bgAuth(){ return R.sess ? {url:FN + '?a=bgpos', key:KEY, room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token, name:(R.room && R.room.name) || '', me:R.sess.name || ''} : null; }
   const bgSync = ()=>{ try{ window.__dalilBgSync && window.__dalilBgSync(); }catch(e){} };
   function myCar(){ try{ const c = B.getCar && B.getCar(); return c && Number.isFinite(c.lat) ? {lat:+c.lat.toFixed(6), lng:+c.lng.toFixed(6)} : null; }catch(e){ return null; } }
   let lastSent = null, posTimer = null;

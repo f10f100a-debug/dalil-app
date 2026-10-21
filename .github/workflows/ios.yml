@@ -120,7 +120,12 @@ jobs:
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains array" ios/App/App/App.entitlements
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:f10f100a-debug.github.io" ios/App/App/App.entitlements
             plutil -lint ios/App/App/App.entitlements
-            echo "::notice::Associated domains: applinks:f10f100a-debug.github.io";;
+            echo "::notice::Associated domains: applinks:f10f100a-debug.github.io"
+            # 1.4: اللاسلكي (Apple PushToTalk) — الصوت يشتغل والجوال مقفل
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.push-to-talk bool true" ios/App/App/App.entitlements
+            $PB -c "Print :UIBackgroundModes" "$P" | grep -q push-to-talk || $PB -c "Add :UIBackgroundModes: string push-to-talk" "$P"
+            plutil -lint ios/App/App/App.entitlements; plutil -lint "$P"
+            echo "::notice::Push to Talk: entitlement + background mode";;
           esac
           python3 - <<'PY'
           p = "ios/App/App/AppDelegate.swift"
@@ -243,6 +248,7 @@ jobs:
                   if cmd == "bg" {
                       track = (b["track"] as? Bool) ?? false
                       room = b["room"] as? [String: Any]
+                      if #available(iOS 16.0, *) { DalilPTT.shared.sync(room) }
                       if !track { buffer.removeAll() }
                       if track || room != nil {
                           lm.allowsBackgroundLocationUpdates = true
@@ -302,6 +308,158 @@ jobs:
           }
           """
               open(p, "w").write(s)
+          # 1.4: اللاسلكي في الخلفية (Apple PushToTalk) — يُفعَّل فقط مع صلاحيته (1.4+)، ويعمل من iOS 16
+          s = open(p).read()
+          if "class DalilPTT" not in s:
+              s = s.replace("import UIKit", "import UIKit\nimport AVFoundation\nimport PushToTalk", 1)
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "if #available(iOS 16.0, *) { DalilPTT.shared.setup() }\n        " + s[j:]
+              s = s.rstrip() + """
+          @available(iOS 16.0, *)
+          final class DalilPTT: NSObject, PTChannelManagerDelegate, PTChannelRestorationDelegate, AVAudioPlayerDelegate {
+              static let shared = DalilPTT()
+              private var mgr: PTChannelManager?
+              private var room: [String: Any]? = UserDefaults.standard.dictionary(forKey: "dalil_ptt_room")
+              private var joined: UUID?
+              private var joining = false
+              private var active = true
+              private var queue: [URL] = []
+              private var player: AVAudioPlayer?
+              private var recorder: AVAudioRecorder?
+              private var recStart = Date()
+              private var transmitting = false
+              private var token = ""
+              func setup() {
+                  NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.reconcile() }
+                  NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
+                  Task { @MainActor in
+                      do { self.mgr = try await PTChannelManager.channelManager(delegate: self, restorationDelegate: self) } catch { NSLog("dalil ptt manager: \\(error)") }
+                      self.joined = self.mgr?.activeChannelUUID
+                      self.reconcile()
+                  }
+              }
+              func sync(_ r: [String: Any]?) {
+                  room = r
+                  if let r = r { UserDefaults.standard.set(r, forKey: "dalil_ptt_room") } else { UserDefaults.standard.removeObject(forKey: "dalil_ptt_room") }
+                  DispatchQueue.main.async { self.reconcile() }
+              }
+              private func want() -> UUID? { (room?["room_id"] as? String).flatMap { UUID(uuidString: $0) } }
+              private func reconcile() {
+                  guard let m = mgr else { return }
+                  let w = want(), cur = m.activeChannelUUID ?? joined
+                  if let c = cur, c != w { m.leaveChannel(channelUUID: c); joined = nil }
+                  if let w = w, (m.activeChannelUUID ?? joined) != w, active, !joining {
+                      joining = true
+                      let n = (room?["name"] as? String) ?? ""
+                      m.requestJoinChannel(channelUUID: w, descriptor: PTChannelDescriptor(name: n.isEmpty ? "غرفة الرحلة — دليل" : n, image: nil))
+                  }
+              }
+              func channelDescriptor(restoredChannelUUID channelUUID: UUID) -> PTChannelDescriptor {
+                  let n = (room?["name"] as? String) ?? ""
+                  return PTChannelDescriptor(name: n.isEmpty ? "غرفة الرحلة — دليل" : n, image: nil)
+              }
+              func channelManager(_ channelManager: PTChannelManager, didJoinChannel channelUUID: UUID, reason: PTChannelJoinReason) {
+                  joined = channelUUID; joining = false
+                  if !token.isEmpty { post("ptt", ["ptt_token": token]) }
+              }
+              func channelManager(_ channelManager: PTChannelManager, failedToJoinChannel channelUUID: UUID, error: Error) { joining = false; NSLog("dalil ptt join: \\(error)") }
+              func channelManager(_ channelManager: PTChannelManager, didLeaveChannel channelUUID: UUID, reason: PTChannelLeaveReason) {
+                  if joined == channelUUID { joined = nil }
+                  if want() == channelUUID { post("ptt", ["ptt_token": ""]) }   // خرج من زر النظام: يرجع للإشعارات العادية
+              }
+              func channelManager(_ channelManager: PTChannelManager, receivedEphemeralPushToken pushToken: Data) {
+                  token = pushToken.map { String(format: "%02x", $0) }.joined()
+                  post("ptt", ["ptt_token": token])
+              }
+              // صوت وصل والجوال مقفل: النظام يصحّي التطبيق ويفعّل الصوت، ونحن نشغّل الرسالة
+              func incomingPushResult(channelManager: PTChannelManager, channelUUID: UUID, pushPayload: [String: Any]) -> PTPushResult {
+                  if (pushPayload["leave"] as? Bool) == true { return .leaveChannel }
+                  let who = (pushPayload["activeSpeaker"] as? String) ?? "عضو في الغرفة"
+                  if !active, let s = pushPayload["url"] as? String, let u = URL(string: s) {
+                      DispatchQueue.main.async { self.queue.append(u); if self.player != nil { return } }
+                  } else {
+                      // التطبيق مفتوح: الصفحة تشغّل الصوت بنفسها
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { channelManager.setActiveRemoteParticipant(nil, channelUUID: channelUUID, completionHandler: nil) }
+                  }
+                  return .activeRemoteParticipant(PTParticipant(name: who, image: nil))
+              }
+              func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {
+                  try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                  DispatchQueue.main.async { if self.transmitting { self.startRec() } else { self.playNext() } }
+              }
+              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) {}
+              private func playNext() {
+                  guard player == nil else { return }
+                  guard !queue.isEmpty else { finish(); return }
+                  let u = queue.removeFirst()
+                  URLSession.shared.dataTask(with: u) { d, _, _ in
+                      DispatchQueue.main.async {
+                          guard let d = d, let p = try? AVAudioPlayer(data: d) else { self.playNext(); return }
+                          self.player = p; p.delegate = self; p.prepareToPlay()
+                          if !p.play() { self.player = nil; self.playNext() }
+                      }
+                  }.resume()
+              }
+              func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { DispatchQueue.main.async { self.player = nil; self.playNext() } }
+              private func finish() { if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
+              // الكلام من زر اللاسلكي في شاشة القفل
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = true } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.stopRec() } }
+              private func startRec() {
+                  let url = FileManager.default.temporaryDirectory.appendingPathComponent("ptt-" + UUID().uuidString + ".m4a")
+                  let set: [String: Any] = [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 22050, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 24000]
+                  recorder = try? AVAudioRecorder(url: url, settings: set)
+                  recStart = Date(); recorder?.record()
+              }
+              private func stopRec() {
+                  guard let r = recorder else { return }
+                  r.stop(); recorder = nil
+                  let dur = Date().timeIntervalSince(recStart)
+                  defer { try? FileManager.default.removeItem(at: r.url) }
+                  guard dur > 0.6, let data = try? Data(contentsOf: r.url), data.count > 200 else { return }
+                  upload(data, dur)
+              }
+              private func endpoint(_ action: String) -> (URL, String, [String: Any])? {
+                  guard let r = room, let base = r["url"] as? String, let key = r["key"] as? String,
+                        let url = URL(string: base.replacingOccurrences(of: "a=bgpos", with: "a=" + action)) else { return nil }
+                  var auth: [String: Any] = [:]
+                  for k in ["room_id", "member_id", "token"] { auth[k] = r[k] }
+                  return (url, key, auth)
+              }
+              private func send(_ req: URLRequest) {
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { _, _, _ in UIApplication.shared.endBackgroundTask(task) }.resume()
+              }
+              private func post(_ action: String, _ extra: [String: Any]) {
+                  guard let ep = endpoint(action) else { return }
+                  let (url, key, auth) = ep
+                  var body = auth; for (k, v) in extra { body[k] = v }
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("application/json", forHTTPHeaderField: "content-type"); req.setValue(key, forHTTPHeaderField: "apikey")
+                  req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                  send(req)
+              }
+              private func upload(_ data: Data, _ dur: Double) {
+                  guard let ep = endpoint("voice") else { return }
+                  let (url, key, auth) = ep
+                  let b = "dalil-" + UUID().uuidString
+                  var body = Data()
+                  func field(_ n: String, _ v: String) { body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"" + n + "\\"\\r\\n\\r\\n" + v + "\\r\\n").data(using: .utf8)!) }
+                  for (k, v) in auth { field(k, (v as? String) ?? "") }
+                  field("id", UUID().uuidString.lowercased()); field("duration", String(format: "%.1f", dur)); field("native", "1")
+                  body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"audio\\"; filename=\\"voice.m4a\\"\\r\\nContent-Type: audio/mp4\\r\\n\\r\\n").data(using: .utf8)!)
+                  body.append(data); body.append(("\\r\\n--" + b + "--\\r\\n").data(using: .utf8)!)
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("multipart/form-data; boundary=" + b, forHTTPHeaderField: "content-type"); req.setValue(key, forHTTPHeaderField: "apikey")
+                  req.httpBody = body
+                  send(req)
+              }
+          }
+          """
+              open(p, "w").write(s)
+          print("::notice::Push to Talk class: " + ("OK" if "DalilPTT.shared.setup()" in open(p).read() else "MISSING"))
           print("::notice::Native heading: " + ("OK" if "DalilHeading.shared.start()" in open(p).read() else "MISSING"))
           print("::notice::Universal links hook: " + ("OK" if "userActivity.webpageURL" in open(p).read() else "MISSING"))
           print("::notice::Background location + links: " + ("OK" if "DalilBg.shared.openURL(url)" in open(p).read() and "DalilBg.shared.start()" in open(p).read() else "MISSING"))
@@ -312,7 +470,7 @@ jobs:
         run: |
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
-            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" OTHER_LDFLAGS='$(inherited) -weak_framework PushToTalk' \
             TARGETED_DEVICE_FAMILY=1 CODE_SIGNING_ALLOWED=NO \
             build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E "error:|warning: .*fail" "$RUNNER_TEMP/build.log" | head -20; echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/build.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/build.log"
@@ -389,7 +547,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Dalil.xcarchive" \
             DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO \
-            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" OTHER_LDFLAGS='$(inherited) -weak_framework PushToTalk' \
             TARGETED_DEVICE_FAMILY=1 \
             archive > "$RUNNER_TEMP/archive.log" 2>&1 || { echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/archive.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/archive.log"; exit 1; }
           tail -5 "$RUNNER_TEMP/archive.log"

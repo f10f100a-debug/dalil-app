@@ -37,3 +37,22 @@ export async function sendApnsTo(sb: SupabaseClient, tokens: string[], p: { titl
   }));
   return { sent };
 }
+
+// اللاسلكي (Apple PushToTalk): يصحّي التطبيق ويشغّل الصوت والجوال مقفل — بدون إشعار
+export async function sendPttTo(sb: SupabaseClient, tokens: string[], payload: Record<string, unknown>) {
+  const toks = [...new Set(tokens.filter((t) => /^[0-9a-f]{64,200}$/.test(t)))];
+  if (!toks.length) return { sent: 0 };
+  const jwt = await apnsToken(sb);
+  if (!jwt) return { sent: 0, skipped: true };
+  const body = JSON.stringify({ aps: {}, ...payload });
+  let sent = 0;
+  await Promise.allSettled(toks.map(async (t) => {
+    const r = await fetch("https://api.push.apple.com/3/device/" + t, { method: "POST", body,
+      headers: { authorization: "bearer " + jwt, "apns-topic": "com.alluhaybi.dalil.voip-ptt", "apns-push-type": "pushtotalk", "apns-priority": "10",
+        "apns-expiration": "0", "content-type": "application/json" } });
+    if (r.ok) sent++;
+    else { const txt = await r.text().catch(() => ""); console.error("ptt push", r.status, txt.slice(0, 120));
+      if (r.status === 410 || /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(txt)) await sb.from("room_members").update({ ptt_token: null }).eq("ptt_token", t); }
+  }));
+  return { sent };
+}

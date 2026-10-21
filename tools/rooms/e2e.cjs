@@ -70,6 +70,10 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok(auth && (await call('push', { ...auth, push_token: 'ab'.repeat(32) })).ok, 'push token saved');
   ok(auth && (await call('push', { ...auth, push_token: 'zz' })).error === 'bad_token', 'bad push token rejected');
   ok(auth && (await call('sos', auth)).ok, 'sos action ok');
+  // 1.4: رمز اللاسلكي (PushToTalk)
+  ok(auth && (await call('ptt', { ...auth, ptt_token: 'cd'.repeat(32) })).ok, 'ptt token saved');
+  ok(auth && (await call('ptt', { ...auth, ptt_token: 'xyz' })).error === 'bad_token', 'bad ptt token rejected');
+  ok(auth && (await call('ptt', { ...auth, ptt_token: '' })).ok, 'ptt token cleared');
   // 1.3: موقع B من الخلفية (كما يرسله تطبيق الآيفون) يصل لـ A عبر السيرفر
   const bg = await B.evaluate(() => window.DalilRoom.bgAuth());
   ok(bg && /a=bgpos/.test(bg.url), 'bgAuth ready');
