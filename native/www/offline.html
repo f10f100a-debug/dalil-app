@@ -18,9 +18,16 @@
 <body>
 <div class="card">
   <div class="ico">🧭</div>
-  <h1>يحتاج دليل اتصالًا لأول مرة</h1>
-  <p>اتصل بالإنترنت مرة واحدة ليجهّز التطبيق نفسه، ثم احفظ خرائط منطقتك من الإعدادات، وبعدها يعمل كل شيء في البر بدون شبكة.</p>
-  <button onclick="location.href='https://f10f100a-debug.github.io/dalil-app/'">إعادة المحاولة</button>
+  <h1>جارٍ تجهيز دليل…</h1>
+  <p>الشبكة ضعيفة الآن. نحاول تلقائيًا كل ثوانٍ قليلة.<br>أول مرة فقط يحتاج دليل اتصالًا ليجهّز نفسه، وبعدها يفتح ويعمل في البر بدون شبكة.</p>
+  <button id="rt" onclick="go()">إعادة المحاولة</button>
+  <p id="st" style="font-size:13px;margin-top:14px;opacity:.6"></p>
 </div>
+<script>
+var U='https://f10f100a-debug.github.io/dalil-app/',n=0;
+function go(){location.replace(U)}
+function tick(){n++;document.getElementById('st').textContent='محاولة '+n+'…';fetch(U,{cache:'no-store',mode:'no-cors'}).then(go).catch(function(){})}
+setInterval(tick,4000);window.addEventListener('online',go);
+</script>
 </body>
 </html>

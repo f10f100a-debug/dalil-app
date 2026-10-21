@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v114';
+const SHELL_CACHE='dalil-shell-v115';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=9',
   './room.js?v=10','./privacy.html','./support.html','./mapimport.js','./vendor/sql-wasm.js','./vendor/sql-wasm.wasm','./vendor/geotiff.js','./data/region-grid.json?v=1'];
@@ -25,18 +25,19 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.endsWith('.pmtiles')) return;
 
   if(request.mode==='navigate'){
-    event.respondWith(fetch(request,{cache:'no-cache'}).then(response=>{
-      const copy=response.clone();
-      caches.open(SHELL_CACHE).then(cache=>cache.put(request,copy));
+    // فتح فوري: إذا الصفحة محفوظة نعرضها مباشرة ونحدّثها في الخلفية (الشبكة الضعيفة ما تأخر فتح التطبيق).
+    // أول مرة فقط (لا نسخة محفوظة) ننتظر الشبكة.
+    const fromNet=fetch(request,{cache:'no-cache'}).then(response=>{
+      if(response&&response.ok){const copy=response.clone();caches.open(SHELL_CACHE).then(cache=>cache.put(request,copy))}
       return response;
-    }).catch(async()=>{
-      const cached=await caches.match(request,{ignoreSearch:true});
-      if(cached) return cached;
-      return caches.match(url.pathname.endsWith('map.html')?'./map.html':'./index.html');
-    }));
+    });
+    event.respondWith((async()=>{
+      const cached=await caches.match(request,{ignoreSearch:true})||await caches.match(url.pathname.endsWith('map.html')?'./map.html':url.pathname.endsWith('map2.html')?'./map2.html':/\/(index\.html)?$/.test(url.pathname)?'./index.html':'__none__');
+      if(cached){event.waitUntil(fromNet.catch(()=>{}));return cached}
+      return fromNet.catch(()=>caches.match('./index.html'));
+    })());
     return;
   }
-
   event.respondWith(caches.match(request,{ignoreSearch:true}).then(cached=>{
     if(cached) return cached;
     return fetch(request).then(response=>{
