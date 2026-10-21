@@ -280,10 +280,11 @@
   function shareRoom(){
     if(!R.sess) return;
     const nm = R.room && R.room.name ? ' «' + R.room.name + '»' : '';
-    const text = 'يا هلا 👋\nتعال انضم لنا في غرفة الرحلة' + nm + ' على تطبيق دليل 🏕️\n'
-      + 'نتكلم بالصوت مثل اللاسلكي ونشوف مواقع بعض في البر\n\n'
-      + '👇 اضغط الرابط وتدخل معنا على طول\n' + WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin)
-      + '\n\n(رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ')';
+    // الرابط أولًا حتى يعرضه واتساب بطاقة كبيرة قابلة للضغط («تعال انضم لنا في غرفة الرحلة»)
+    const text = WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin) + '\n\n'
+      + 'يا هلا 👋 تعال انضم لنا في غرفة الرحلة' + nm + ' على تطبيق دليل 🏕️\n'
+      + 'اضغط البطاقة فوق وتدخل معنا على طول\n'
+      + '(رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ')';
     if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>B.toast('تم نسخ بيانات الغرفة'), ()=>{
       window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
