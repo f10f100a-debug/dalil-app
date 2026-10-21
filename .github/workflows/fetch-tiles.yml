@@ -8,18 +8,10 @@ jobs:
     steps:
       - run: |
           mkdir out && cd out
-          K='AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy'
-          R='https://f10f100a-debug.github.io/'
-          for z in "16/27.862/42.03" "18/27.862/42.03"; do
-            zz=${z%%/*}; python3 - "$z" > xy.txt <<'PY'
-          import sys,math
-          z,lat,lng=sys.argv[1].split('/');z=int(z);lat=float(lat);lng=float(lng);n=2**z
-          print(int((lng+180)/360*n), int((1-math.asinh(math.tan(math.radians(lat)))/math.pi)/2*n))
-          PY
-            read x y < xy.txt
-            curl -s -o ib_$zz.jpg -w "ibasemaps z$zz %{http_code} %{content_type} %{size_download}\n" -H "Referer: $R" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/$zz/$y/$x?token=$K"
-            curl -s -o st_$zz.jpg -w "static z$zz %{http_code} %{content_type} %{size_download}\n" -H "Referer: $R" "https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/arcgis/imagery/static/tile/$zz/$y/$x?token=$K"
-          done
-          curl -s -o noref.txt -w "noref %{http_code}\n" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/16/0/0?token=$K"; head -c 300 noref.txt; echo
+          curl -s -o ib_17.jpg -w "z17 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/17/54966/80838?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
+          curl -s -o ib_18.jpg -w "z18 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/18/109933/161677?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
+          curl -s -o ib_19.jpg -w "z19 %{http_code} %{content_type}\n" -H "Referer: https://f10f100a-debug.github.io/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/19/219866/323354?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
+          curl -s -o bad.txt -w "badref %{http_code}\n" -H "Referer: https://evil.example.com/" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/17/109933/161677?token=AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy"
+          cat bad.txt
           git init -q && git checkout -q -b tiles-check && git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm tiles && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
