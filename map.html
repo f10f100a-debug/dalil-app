@@ -529,6 +529,25 @@ const pmProtocol=new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles',pmProtocol.tile);
 // طبقة الربيع: مؤشر الغطاء النباتي NDVI من NASA GIBS (مركّب كل 8 أيام، 250 م). نُبقي البكسلات الخضراء فقط
 // ونجعل الأرض الجرداء شفافة حتى تبقى خريطة البر ظاهرة. أسماء بديلة إن توقف أحد الأقمار.
+// مياه السيول: نعيد تلوين البلاطات (الأزرق الفاتح = يتجمّع فيه الماء عادة، الغامق = ماء رُصد آخر يومين) ونحذف الرمادي (غيوم/بيانات ناقصة)
+async function recolorTile(url, fn){
+  try{
+    const r = await fetch(url); if(!r.ok) throw 0;
+    const im = await createImageBitmap(await r.blob()), cv = new OffscreenCanvas(im.width, im.height), g = cv.getContext('2d');
+    g.drawImage(im, 0, 0); const d = g.getImageData(0, 0, im.width, im.height), p = d.data;
+    for(let i = 0; i < p.length; i += 4){ const c = fn(p[i], p[i+1], p[i+2], p[i+3]); if(c){ p[i] = c[0]; p[i+1] = c[1]; p[i+2] = c[2]; p[i+3] = c[3]; } else p[i+3] = 0; }
+    g.putImageData(d, 0, 0);
+    return {data: await (await cv.convertToBlob({type:'image/png'})).arrayBuffer()};
+  }catch(e){
+    if(!ndviEmpty){const cv=document.createElement('canvas');cv.width=cv.height=1;ndviEmpty=await(await new Promise(res=>cv.toBlob(res,'image/png'))).arrayBuffer()}
+    return {data: ndviEmpty.slice(0)};
+  }
+}
+const isGrey = (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b) < 28;
+maplibregl.addProtocol('waterhist', p => { const m = /^waterhist:\/\/(\d+)\/(\d+)\/(\d+)/.exec(p.url);
+  return recolorTile(`https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/${m[1]}/${m[2]}/${m[3]}.png`, (r, g, b, a) => a > 20 ? [80, 170, 235, 200] : null); });
+maplibregl.addProtocol('waternow', p => { const m = /^waternow:\/\/([0-9-]+)\/(\d+)\/(\d+)\/(\d+)/.exec(p.url);
+  return recolorTile(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Combined_Flood_2-Day/default/${m[1]}/GoogleMapsCompatible_Level9/${m[2]}/${m[4]}/${m[3]}.png`, (r, g, b, a) => a > 20 && !isGrey(r, g, b) ? [20, 70, 190, 235] : null); });
 const NDVI_LAYERS=['MODIS_Terra_NDVI_8Day','MODIS_Aqua_NDVI_8Day','VIIRS_SNPP_NDVI_8Day','VIIRS_NOAA20_NDVI_8Day'];let ndviIdx=0,ndviEmpty=null;
 maplibregl.addProtocol('ndvi',async params=>{
   const m=/^ndvi:\/\/(\d+)\/(\d+)\/(\d+)/.exec(params.url),Z=+m[1],X=+m[2],Y=+m[3];
@@ -808,8 +827,8 @@ gl.on('load',async()=>{
     gl.addLayer({id:'rain-'+k,type:'raster',source:'rain-'+k,layout:{visibility:'none'},paint:{'raster-opacity':k===RAIN_FRAMES.length-1?.8:0,'raster-fade-duration':0,'raster-resampling':'linear'}},'slot:dalil')});
   // مياه السيول: تاريخ تجمّع المياه 1984–2021 (JRC، دقة 30 م) + مياه آخر يومين (NASA MODIS، دقة 250 م)
   const fd=new Date(Date.now()-86400e3).toISOString().slice(0,10);
-  gl.addSource('water-hist',{type:'raster',tiles:['https://storage.googleapis.com/global-surface-water/tiles2021/occurrence/{z}/{x}/{y}.png'],tileSize:256,minzoom:3,maxzoom:12});
-  gl.addSource('water-now',{type:'raster',tiles:['https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Combined_Flood_2-Day/default/'+fd+'/GoogleMapsCompatible_Level9/{z}/{y}/{x}.png'],tileSize:256,minzoom:1,maxzoom:9});
+  gl.addSource('water-hist',{type:'raster',tiles:['waterhist://{z}/{x}/{y}'],tileSize:256,minzoom:3,maxzoom:12});
+  gl.addSource('water-now',{type:'raster',tiles:['waternow://'+fd+'/{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
   gl.addLayer({id:'water-hist',type:'raster',source:'water-hist',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.9,'raster-fade-duration':0}},'slot:dalil');
   gl.addLayer({id:'water-now',type:'raster',source:'water-now',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.95,'raster-fade-duration':0}},'slot:dalil');
   gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.6,11,.45,13,.25,15,.12],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
