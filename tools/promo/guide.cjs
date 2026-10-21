@@ -34,9 +34,8 @@ async function shot(p, n, fn) {
 const tab = (p, s) => p.click(`.tab[data-screen="${s}"]`);
 const frame = p => p.frameLocator('#trackMapFrame');
 const later = async p => { await frame(p).getByText('لاحقًا', { exact: true }).first().click({ timeout: 2500 }).catch(() => {}); };
-const mapGo = (p, lat, lng, zz) => p.evaluate(([lat, lng, zz]) => {
-  const w = document.getElementById('trackMapFrame').contentWindow;
-  w.eval(`z=${zz};setView('free');const[wx,wy]=world(${lat},${lng});cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()`);
+const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.html')).evaluate(([lat, lng, zz]) => {
+  z = zz; setView('free'); const [wx, wy] = world(lat, lng); cx = wx + innerWidth / 2 - originX; cy = wy + innerHeight / 2 - originY; render();
 }, [lat, lng, zz]);
 
 (async () => {
