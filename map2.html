@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://ibasemaps-api.arcgis.com data: blob: https://tiles.maps.eox.at https://s3.amazonaws.com; connect-src 'self' https://ibasemaps-api.arcgis.com https://tiles.maps.eox.at https://s3.amazonaws.com; worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
 <meta name="theme-color" content="#1C1A17">
 <title>دليل — حفظ الخرائط للبر</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
@@ -157,13 +157,16 @@ const TPL = [
 ];
 // «فتحات» فارغة تحفظ ترتيب الطبقات: طبقات كل منطقة تُدرج قبل فتحة قالبها
 const MODE3D = new URLSearchParams(location.search).get('mode') === '3d';
+// صور Esri عالية الدقة (مفتاح مقيّد بنطاق التطبيق، والدفع بعد الحد المجاني معطّل). إن فشلت تظهر صور Sentinel تحتها
+const ESRI_KEY='AAPTaPAQ15GBTZm_3csgCXTcX2w..hLK5IH9WzVWDjf5N9c4pbf6D6TOKz3oY3KCOl_ld2O5Z4KqZOXlSefQPIXX-6EtCgWNZaqtCzzOEJXTsm4pEgBnLtVvZBplDkAHVSbpPccLyhiTfTkClcr9unl763nIvrl4fEJMajqarXE4CUMhrgpsxXg9aok40fJBe947odCDsTCAcbxLlZR_hbxb0DbON_736E_6j0Xw1LkTudKn1aDnXP7J4leDhp4dtEsOPN7p7CBnWP42iIStf4EhBSphp8yMzmNg.AT1_6XPB1ypy';
 let SAT = new URLSearchParams(location.search).get('sat') === '1';
 const style = {version:8, glyphs:abs('vendor/glyphs/') + '{fontstack}/{range}.pbf',
   sources:{
     sat:{type:'raster', tiles:['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'], tileSize:256, maxzoom:15},
+    esri:{type:'raster', tiles:['https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}?token='+ESRI_KEY], tileSize:256, maxzoom:17},
     // ارتفاعات AWS Terrain Tiles (بيانات مفتوحة) للعرض الثلاثي فقط
     dem:{type:'raster-dem', tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding:'terrarium', tileSize:256, maxzoom:14}},
-  layers:[{id:'bg', type:'background', paint:{'background-color':'#EFE4CF'}}, {id:'sat', type:'raster', source:'sat', layout:{visibility:SAT ? 'visible' : 'none'}, paint:{'raster-fade-duration':0}}, ...TPL.map(t => ({id:'slot:' + t.id, type:'background', layout:{visibility:'none'}}))]};
+  layers:[{id:'bg', type:'background', paint:{'background-color':'#EFE4CF'}}, {id:'sat', type:'raster', source:'sat', layout:{visibility:SAT ? 'visible' : 'none'}, paint:{'raster-fade-duration':0}}, {id:'esri', type:'raster', source:'esri', layout:{visibility:SAT ? 'visible' : 'none'}, paint:{'raster-fade-duration':0}}, ...TPL.map(t => ({id:'slot:' + t.id, type:'background', layout:{visibility:'none'}}))]};
 
 const qs = new URLSearchParams(location.search), qLat = Number(qs.get('lat')), qLng = Number(qs.get('lng')), qZ = Number(qs.get('z'));
 const hasQ = Number.isFinite(qLat) && Number.isFinite(qLng) && qs.has('lat');
@@ -216,7 +219,7 @@ function start3D(){
   try{ map.setSky({'sky-color':'#BFD3E2', 'horizon-color':'#EFE4CF', 'fog-color':'#E8D9BD', 'sky-horizon-blend':.6, 'horizon-fog-blend':.6, 'fog-ground-blend':.35}); }catch(e){}
   $('tdSat').checked = SAT;
   $('tdEx').oninput = () => { $('tdExV').textContent = ex().toFixed(1) + '×'; map.setTerrain({source:'dem', exaggeration:ex()}); };
-  $('tdSat').onchange = e => { SAT = e.target.checked; map.setLayoutProperty('sat', 'visibility', SAT ? 'visible' : 'none'); for(const id of active) satFills(id); };
+  $('tdSat').onchange = e => { SAT = e.target.checked; map.setLayoutProperty('sat', 'visibility', SAT ? 'visible' : 'none'); map.setLayoutProperty('esri', 'visibility', SAT ? 'visible' : 'none'); for(const id of active) satFills(id); };
   $('tdFlat').onclick = () => { const flat = map.getPitch() > 5; map.easeTo({pitch: flat ? 0 : 62, duration:700}); $('tdFlat').textContent = flat ? 'مائل 3D' : 'مستوٍ 2D'; };
 }
 map.on('moveend', syncRegions);
