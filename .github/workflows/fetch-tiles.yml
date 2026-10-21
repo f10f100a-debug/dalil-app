@@ -6,10 +6,8 @@ jobs:
   t:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - run: |
-          exec > >(tee out.txt) 2>&1
-          R="Referer: https://f10f100a-debug.github.io/"
-          curl -s -o /dev/null -w "tile-ref %{http_code} %{content_type}\n" -H "$R" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/14/6870/10104?token=AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy"
-          curl -s -o /dev/null -w "tile-noref %{http_code} %{content_type}\n" "https://ibasemaps-api.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/14/6870/10104?token=AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy"
-          curl -s -H "$R" "https://route-api.arcgis.com/arcgis/rest/services/World/Route/NAServer/Route_World/solve?f=json&returnDirections=true&directionsOutputType=esriDOTStandard&directionsLengthUnits=esriNAUKilometers&outSR=4326&directionsLanguage=ar&token=AAPTatkMipdolOCvDpKma6kIVOw..wlsdT9BdetJCVtO4DWoy5pUo54zFWEJnWuYTZEvo_oSIpIr3RNbs110CfirZZYgVLGXkElTaIzrpYNEj1dewVb5wB6ZK-gXxldqY6tDOFiiScSHP7R5uKjEixLBQO59zcYOMDAuF5eS31uRfnGm0mEKzuBtNC79DeuoxLIYbMTvEX2FrHM0c381e_95pdIxaHBYfd_ZQf8vNv-gsZo4QJbnlHYykKYCY-BahqC_2V6ZV2EjD_pTjPEHj4DnkxUAGg-QfWA4.AT1_6XPB1ypy&stops=41.66,27.49;42.10,27.80" > r.json; head -c 200 r.json; echo
-          mkdir o && mv out.txt r.json o/ && cd o && git init -q && git checkout -q -b tiles-check && git config user.email ci@d && git config user.name ci && git add . && git commit -qm r && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
+          pip install -q pillow
+          python3 tools/promo/rvprobe.py > out.txt 2>&1; cat out.txt
+          mkdir o && mv out.txt o/ && cd o && git init -q && git checkout -q -b tiles-check && git config user.email ci@d && git config user.name ci && git add . && git commit -qm r && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" tiles-check
