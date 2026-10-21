@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
     p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 120)); });
     await p.goto('http://localhost:8765/map2.html?mode=3d&sat=1&lat=27.505&lng=41.62&z=13' + q);
     await p.waitForTimeout(25000);
-    const info = await p.evaluate(() => { try { const m = document.querySelector('canvas'); return { canvas: !!m, w: m && m.width } } catch (e) { return String(e) } });
+    const info = await p.evaluate(() => { const m = window.__map3; return { c: m.getCenter(), z: m.getZoom(), p: m.getPitch(), b: m.getBearing(), pad: m.getPadding(), loaded: m.loaded(), layers: m.getStyle().layers.length } });
     console.log(name, JSON.stringify(info), (await p.textContent('#tdNav')).trim(), 'errors:', errs.slice(0, 4).join(' | '));
     await p.screenshot({ path: `shots/${name}.png`, timeout: 60000 });
     await c.close();

@@ -177,6 +177,7 @@ const qs = new URLSearchParams(location.search), qLat = Number(qs.get('lat')), q
 const hasQ = Number.isFinite(qLat) && Number.isFinite(qLng) && qs.has('lat');
 const map = new maplibregl.Map({container:'map', style, center: hasQ ? [qLng, qLat] : [45.3, 24.2], zoom: hasQ ? (qZ || 13) : 5.2,
   minZoom:4.5, maxZoom:17, maxBounds:[[31,13],[60,35]], attributionControl:false, maxPitch:80, pitch: MODE3D ? 62 : 0});
+window.__map3 = map;
 map.addControl(new maplibregl.AttributionControl({compact:true, customAttribution:'© <a href="https://www.openstreetmap.org/copyright">مساهمو OpenStreetMap</a> · Copernicus DEM © DLR/Airbus، الاتحاد الأوروبي و ESA'}), 'bottom-right');
 map.once('idle', () => { const el = document.querySelector('.maplibregl-ctrl-attrib'); if(el) el.classList.remove('maplibregl-compact-show'); });
 map.addControl(new maplibregl.ScaleControl({unit:'metric'}), 'bottom-left');
