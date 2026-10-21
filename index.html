@@ -1877,9 +1877,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function compassLive(){ return Date.now() - lastCompassAt < 3000; }
   // تطبيق الآيفون 1.2+: النظام يرسل اتجاه البوصلة مباشرة (بلا إذن «الحركة» ولا ضغطة)
   let nativeHeadingAt = 0;
+  let nativeOnboardFixed = false;
   window.__dalilNativeHeading = function(h, acc){
     if(!Number.isFinite(h)) return;
     nativeHeadingAt = Date.now();
+    if(!nativeOnboardFixed){ nativeOnboardFixed = true; try{ // البوصلة من النظام: لا حاجة لإذن «الحركة» — نصحّح نص صفحة البداية
+      const w = document.querySelector('.ob-why'); if(w) w.innerHTML = 'نحتاج إذن <b>الموقع</b> لتوجيهك. البوصلة تعمل تلقائيًا. موقعك يبقى في جوالك.';
+      const ob = document.getElementById('onboardBtn'); if(ob && /البوصلة/.test(ob.textContent)) ob.textContent = 'تفعيل الموقع';
+      const n = document.getElementById('onboardPermissionNote'); if(n && /رسالتان/.test(n.textContent)) n.textContent = 'ستظهر رسالة من الآيفون: اختر «السماح أثناء استخدام التطبيق».';
+    }catch(e){} }
     if(!compassStarted || !compassOrientationHandler) startCompass();
     if(compassOrientationHandler) compassOrientationHandler({type:'native', webkitCompassHeading:h, webkitCompassAccuracy:acc});
   };
