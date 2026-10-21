@@ -70,6 +70,29 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok(auth && (await call('push', { ...auth, push_token: 'ab'.repeat(32) })).ok, 'push token saved');
   ok(auth && (await call('push', { ...auth, push_token: 'zz' })).error === 'bad_token', 'bad push token rejected');
   ok(auth && (await call('sos', auth)).ok, 'sos action ok');
+  // 1.3: موقع B من الخلفية (كما يرسله تطبيق الآيفون) يصل لـ A عبر السيرفر
+  const bg = await B.evaluate(() => window.DalilRoom.bgAuth());
+  ok(bg && /a=bgpos/.test(bg.url), 'bgAuth ready');
+  const bgRes = await B.evaluate(async (bg) => (await fetch(bg.url, { method: 'POST', headers: { apikey: bg.key, 'content-type': 'application/json' },
+    body: JSON.stringify({ room_id: bg.room_id, member_id: bg.member_id, token: bg.token, lat: 27.5531, lng: 41.7151, acc: 12, spd: 15 }) })).json(), bg);
+  ok(bgRes && bgRes.ok, `bgpos broadcast ${JSON.stringify(bgRes)}`);
+  let aBg = '';
+  for (let i = 0; i < 20 && !aBg.includes('54 كم/س'); i++) { await A.waitForTimeout(250); aBg = await A.textContent('#rmMembers').catch(() => ''); }
+  ok(aBg.includes('54 كم/س'), `A got background position: ${aBg.replace(/\s+/g, ' ').slice(0, 140)}`);
+  ok(/سيارته/.test(aBg), 'car kept after background position');
+  // 1.3: رابط dalil://room يفتح نافذة الدخول معبّأة
+  const C = await (await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'ar-SA' })).newPage();
+  C.errors = []; C.label = 'deeplink'; C.on('pageerror', e => C.errors.push(e.message));
+  await C.goto('http://localhost:8765/index.html?roombeta=1'); await C.waitForTimeout(2500);
+  if (await C.isVisible('#onboardBtn')) await C.click('#onboardBtn');
+  const opened = await C.evaluate((c) => window.__dalilOpenUrl('dalil://room?code=' + c + '&pin=4321'), code.trim());
+  await C.waitForSelector('#rmCode', { timeout: 8000 }).catch(() => {});
+  await C.waitForTimeout(800);
+  const dl = await C.evaluate(() => [document.getElementById('rmCode')?.value, document.getElementById('rmPin')?.value]);
+  ok(opened === true && dl[0] === code.trim() && dl[1] === '4321', `deep link prefills join: ${JSON.stringify([opened, dl])}`);
+  await shot(C, '2b-deeplink');
+  ok(C.errors.length === 0, `deeplink page no JS errors ${C.errors.slice(0, 2).join(' | ')}`);
+  await C.context().close();
   // صوت: B يضغط مطوّلًا 2.5 ثانية
   const box = await B.locator('#rmPtt').boundingBox();
   await B.mouse.move(box.x + box.width / 2, box.y + box.height / 2);

@@ -268,6 +268,19 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // موقع من تطبيق الآيفون وهو في الخلفية (1.3): يُبث مباشرة لأعضاء الغرفة عبر القناة السرية ولا يُخزَّن
+    if (action === "bgpos") {
+      const lat = Number(body.lat), lng = Number(body.lng);
+      if (!(Math.abs(lat) <= 90 && Math.abs(lng) <= 180)) return json(req, { error: "bad_point" }, 400);
+      const acc = Number(body.acc), spd = Number(body.spd), key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const r = await fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", { method: "POST",
+        headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" },
+        body: JSON.stringify({ messages: [{ topic: "room:" + room.secret, event: "pos", private: false,
+          payload: { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, acc: Number.isFinite(acc) ? Math.round(acc) : null, spd: Number.isFinite(spd) ? Math.round(spd * 10) / 10 : null, m: member.member_id, bg: true } }] }) });
+      await sb.from("room_members").update({ last_seen: new Date().toISOString() }).eq("room_id", room.id).eq("member_id", member.member_id);
+      return json(req, { ok: r.ok });
+    }
+
     if (action === "leave") {
       await sb.from("room_members").update({ left_room: true, push_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
       return json(req, { ok: true });

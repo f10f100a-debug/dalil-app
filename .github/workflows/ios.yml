@@ -96,6 +96,16 @@ jobs:
           $PB -c "Delete :WKAppBoundDomains" "$P" 2>/dev/null || true
           $PB -c "Add :WKAppBoundDomains array" "$P"
           $PB -c "Add :WKAppBoundDomains:0 string f10f100a-debug.github.io" "$P"
+          # 1.3: موقع في الخلفية أثناء تسجيل مسار أو داخل غرفة رحلة (بإذن «أثناء الاستخدام» مع المؤشر الأزرق)
+          $PB -c "Print :UIBackgroundModes" "$P" >/dev/null 2>&1 || $PB -c "Add :UIBackgroundModes array" "$P"
+          $PB -c "Print :UIBackgroundModes" "$P" | grep -q location || $PB -c "Add :UIBackgroundModes: string location" "$P"
+          # 1.3: روابط dalil:// لفتح دعوة غرفة الرحلة داخل التطبيق
+          $PB -c "Delete :CFBundleURLTypes" "$P" 2>/dev/null || true
+          $PB -c "Add :CFBundleURLTypes array" "$P"
+          $PB -c "Add :CFBundleURLTypes:0 dict" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.alluhaybi.dalil" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string dalil" "$P"
           plutil -lint "$P"
           # التنبيهات الأصلية (APNs): صلاحية التطبيق + تمرير رمز الجهاز إلى Capacitor
           cat > ios/App/App/App.entitlements <<'XML'
@@ -177,7 +187,114 @@ jobs:
           }
           """
               open(p, "w").write(s)
+          # 1.3: موقع في الخلفية (مسار + غرفة الرحلة) وروابط dalil://
+          s = open(p).read()
+          if "DalilBg" not in s:
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "DalilBg.shared.start()\n        " + s[j:]
+              s = s.replace("return ApplicationDelegateProxy.shared.application(app, open: url, options: options)",
+                            "DalilBg.shared.openURL(url)\n        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)", 1)
+              s = s.rstrip() + """
+
+          final class DalilBg: NSObject, CLLocationManagerDelegate, WKScriptMessageHandler {
+              static let shared = DalilBg()
+              private let lm = CLLocationManager()
+              private weak var web: WKWebView?
+              private var attached = false
+              private var track = false
+              private var room: [String: Any]? = nil
+              private var buffer: [[String: Double]] = []
+              private var lastSent = Date.distantPast
+              private var lastSentLoc: CLLocation?
+              private var pendingURL: String?
+              private var timer: Timer?
+              func start() {
+                  lm.delegate = self
+                  lm.desiredAccuracy = kCLLocationAccuracyBest
+                  lm.distanceFilter = 5
+                  lm.activityType = .otherNavigation
+                  lm.pausesLocationUpdatesAutomatically = false
+                  timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.tick() }
+              }
+              func openURL(_ url: URL) { pendingURL = url.absoluteString }
+              private func tick() {
+                  guard let w = webView() else { return }
+                  if !attached { attached = true; w.configuration.userContentController.add(self, name: "dalil") }
+                  if let u = pendingURL, UIApplication.shared.applicationState == .active,
+                     let d = try? JSONSerialization.data(withJSONObject: [u]), var js = String(data: d, encoding: .utf8) {
+                      js = String(js.dropFirst().dropLast())
+                      w.evaluateJavaScript("window.__dalilOpenUrl ? window.__dalilOpenUrl(" + js + ") : false") { r, _ in
+                          if (r as? Bool) == true { self.pendingURL = nil }
+                      }
+                  }
+              }
+              func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
+                  guard let b = m.body as? [String: Any], let cmd = b["cmd"] as? String else { return }
+                  if cmd == "bg" {
+                      track = (b["track"] as? Bool) ?? false
+                      room = b["room"] as? [String: Any]
+                      if !track { buffer.removeAll() }
+                      if track || room != nil {
+                          lm.allowsBackgroundLocationUpdates = true
+                          lm.showsBackgroundLocationIndicator = true
+                          lm.startUpdatingLocation()
+                      } else {
+                          lm.stopUpdatingLocation()
+                          lm.allowsBackgroundLocationUpdates = false
+                      }
+                  } else if cmd == "drain" {
+                      let pts = buffer; buffer.removeAll()
+                      if let d = try? JSONSerialization.data(withJSONObject: pts), let s = String(data: d, encoding: .utf8) {
+                          m.webView?.evaluateJavaScript("window.__dalilBgDrain && window.__dalilBgDrain(" + s + ")", completionHandler: nil)
+                      }
+                  }
+              }
+              func locationManager(_ manager: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
+                  if UIApplication.shared.applicationState == .active { return }   // في المقدمة: الصفحة تتولى الموقع
+                  if track {
+                      for l in locs where l.horizontalAccuracy >= 0 && l.horizontalAccuracy <= 60 {
+                          buffer.append(["lat": l.coordinate.latitude, "lng": l.coordinate.longitude, "t": l.timestamp.timeIntervalSince1970 * 1000, "acc": l.horizontalAccuracy])
+                      }
+                      if buffer.count > 20000 { buffer.removeFirst(buffer.count - 20000) }
+                  }
+                  if let r = room, let l = locs.last, l.horizontalAccuracy >= 0 {
+                      let since = Date().timeIntervalSince(lastSent)
+                      let moved = lastSentLoc.map { l.distance(from: $0) } ?? 1e9
+                      if since > 25 && (moved > 15 || since > 90) { send(r, l) }
+                  }
+              }
+              private func send(_ r: [String: Any], _ l: CLLocation) {
+                  guard let us = r["url"] as? String, let url = URL(string: us), let key = r["key"] as? String else { return }
+                  lastSent = Date(); lastSentLoc = l
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("application/json", forHTTPHeaderField: "content-type")
+                  req.setValue(key, forHTTPHeaderField: "apikey")
+                  var body = r; body.removeValue(forKey: "url"); body.removeValue(forKey: "key")
+                  body["lat"] = l.coordinate.latitude; body["lng"] = l.coordinate.longitude
+                  body["acc"] = l.horizontalAccuracy; body["spd"] = max(0, l.speed)
+                  req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { _, _, _ in UIApplication.shared.endBackgroundTask(task) }.resume()
+              }
+              private func webView() -> WKWebView? {
+                  if let w = web { return w }
+                  let root = (UIApplication.shared.delegate as? AppDelegate)?.window?.rootViewController
+                  web = find(root?.view)
+                  return web
+              }
+              private func find(_ v: UIView?) -> WKWebView? {
+                  guard let v = v else { return nil }
+                  if let w = v as? WKWebView { return w }
+                  for s in v.subviews { if let w = find(s) { return w } }
+                  return nil
+              }
+          }
+          """
+              open(p, "w").write(s)
           print("::notice::Native heading: " + ("OK" if "DalilHeading.shared.start()" in open(p).read() else "MISSING"))
+          print("::notice::Background location + links: " + ("OK" if "DalilBg.shared.openURL(url)" in open(p).read() and "DalilBg.shared.start()" in open(p).read() else "MISSING"))
           PY
 
       - name: Build check (unsigned)

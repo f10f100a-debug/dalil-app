@@ -147,6 +147,9 @@
       spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar()};
   }
   // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
+  // تطبيق الآيفون 1.3: بيانات العضوية لإرسال الموقع من الخلفية
+  function bgAuth(){ return R.sess ? {url:FN + '?a=bgpos', key:KEY, room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token} : null; }
+  const bgSync = ()=>{ try{ window.__dalilBgSync && window.__dalilBgSync(); }catch(e){} };
   function myCar(){ try{ const c = B.getCar && B.getCar(); return c && Number.isFinite(c.lat) ? {lat:+c.lat.toFixed(6), lng:+c.lng.toFixed(6)} : null; }catch(e){ return null; } }
   let lastSent = null, posTimer = null;
   function tickPos(){
@@ -164,7 +167,7 @@
   }
   function setPos(id, p){
     if(!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180)) return;
-    const car = p.car && Math.abs(p.car.lat) <= 90 && Math.abs(p.car.lng) <= 180 ? {lat:+p.car.lat, lng:+p.car.lng} : null;
+    const car = p.car && Math.abs(p.car.lat) <= 90 && Math.abs(p.car.lng) <= 180 ? {lat:+p.car.lat, lng:+p.car.lng} : (p.bg ? (R.pos.get(id) || {}).car || null : null);
     R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:Date.now()});
     if(R.navObj && R.navObj._car === id && car){ R.navObj.lat = car.lat; R.navObj.lng = car.lng; }
     if(R.navObj && R.navObj._member === id){ R.navObj.lat = +p.lat; R.navObj.lng = +p.lng; }
@@ -249,7 +252,7 @@
     R.sess = {room_id:j.room_id, member_id:j.me.member_id, token:j.token, code:j.code, pin, name};
     R.muted = new Set(); R.voice = []; R.heard = new Set(); R.pos.clear(); R.lagging.clear();
     (j.voice || []).forEach(v=>R.heard.add(v.id));   // لا نشغّل القديم تلقائيًا
-    saveSess(); B.startGeo && B.startGeo();
+    saveSess(); B.startGeo && B.startGeo(); bgSync();
     setTimeout(roomPush, 1500);
     applyRoom(j);
     setTimeout(()=>RT.send('join', {}), 1200);
@@ -272,7 +275,7 @@
     RT.stop(); stopLoops();
     R.sess = null; R.room = null; R.members.clear(); R.pos.clear(); R.voice = []; R.sos.clear(); R.rally = null;
     if(R.navObj) R.navObj = null;
-    saveSess(); syncMap(); updateBtn(); renderSos();
+    saveSess(); syncMap(); updateBtn(); renderSos(); bgSync();
     if(msg) B.toast(msg);
     render();
   }
@@ -978,6 +981,7 @@
     R.sess = {room_id:s.room_id, member_id:s.member_id, token:s.token, code:s.code, pin:s.pin, name:s.name};
     R.muted = new Set(s.muted || []);
     setTimeout(roomPush, 4000);
+    setTimeout(bgSync, 1500);
     api('state', authBody()).then(j=>{
       if(!j.ok){
         if(['kicked', 'not_member', 'expired'].includes(j.error)) return endRoom(j.error === 'expired' ? 'انتهت غرفة الرحلة (24 ساعة)' : errText(j.error));
@@ -993,6 +997,7 @@
     open, close, syncMap,
     get active(){ return !!R.sess; },
     // زر الطوارئ الرئيسي يرسل موقعك أيضًا لأعضاء الغرفة
+    bgAuth,
     broadcastSos(){ if(R.sess && RT.joined){ sendSos(); return true; } return false; }
   };
   updateBtn();

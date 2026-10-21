@@ -405,6 +405,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-compass-card{position:relative;}
   .cp-corner{position:absolute; max-width:30%; pointer-events:none; line-height:1.25;}
   .cp-corner[hidden]{display:none;}
+  .open-app-bar{position:fixed; z-index:9999; left:12px; right:12px; bottom:calc(env(safe-area-inset-bottom,0px) + 86px); background:var(--cp-card); border:1px solid var(--cp-line); border-radius:18px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); display:flex; flex-direction:column; gap:8px; text-align:center}
+  .open-app-bar b{font-size:16px} .open-app-bar .cp-btn{text-decoration:none} .open-app-bar .oab-get{font-size:13.5px; color:var(--cp-gold-ink)} .open-app-bar .oab-x{border:0; background:none; font:inherit; font-size:13px; color:var(--cp-dim)}
   /* «العاصفة جايتك؟» */
   .storm-strip{display:flex; align-items:center; gap:10px; width:100%; margin:0 0 12px; padding:12px 14px; border:0; border-radius:16px; cursor:pointer; text-align:right; font-family:inherit; color:#fff;
     background:linear-gradient(135deg,#1F4FA8,#2F6FD6); box-shadow:0 6px 16px rgba(31,79,168,.3);}
@@ -4369,6 +4371,34 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.getElementById('closeRadarBtn').addEventListener('click',()=>radarOverlay.classList.remove('show'));
   radarOverlay.querySelectorAll('a').forEach(link=>link.addEventListener('click',()=>radarOverlay.classList.remove('show')));
 
+  // ---------- تطبيق الآيفون 1.3: الموقع في الخلفية + روابط dalil:// ----------
+  const nativeMsg = m=>{ try{ const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dalil; if(h){ h.postMessage(m); return true; } }catch(e){} return false; };
+  window.__dalilBgSync = function(){
+    const room = window.DalilRoom && window.DalilRoom.bgAuth ? window.DalilRoom.bgAuth() : null;
+    nativeMsg({cmd:'bg', track:!!state.tracking, room});
+  };
+  // نقاط سجّلها الجوال والتطبيق في الخلفية تُضاف للمسار عند الرجوع
+  window.__dalilBgDrain = function(pts){
+    if(!Array.isArray(pts) || !pts.length || !state.tracking) return;
+    let last = state.trackPoints[state.trackPoints.length - 1], added = 0;
+    for(const p of pts){
+      if(!Number.isFinite(p.lat) || !Number.isFinite(p.lng) || (last && p.t <= last.t)) continue;
+      if(last && haversine(last.lat, last.lng, p.lat, p.lng) < 3) continue;
+      last = {lat:p.lat, lng:p.lng, t:p.t}; state.trackPoints.push(last); added++;
+    }
+    if(added){ saveTrackDraft(); updateTrackStats(); syncTrackMap(); toast('أُضيف ' + added + ' نقطة سُجّلت والجوال مقفل'); }
+  };
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') nativeMsg({cmd:'drain'}); });
+  // فتح دعوة غرفة من رابط dalil://room?code=…&pin=…
+  window.__dalilOpenUrl = function(u){
+    try{
+      const url = new URL(String(u).replace(/^dalil:\/\//, 'https://x/'));
+      const code = (url.searchParams.get('code') || url.searchParams.get('room') || '').replace(/\D/g, '').slice(0, 6);
+      const pin = (url.searchParams.get('pin') || '').replace(/\D/g, '').slice(0, 8);
+      if(code) loadRoom().then(m=>m.open(code, pin)).catch(()=>{});
+    }catch(e){}
+    return true;
+  };
   // ---------- track recording ----------
   function syncTrackMap(){
     const frame = document.getElementById('trackMapFrame');
@@ -4472,10 +4502,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       renderTrackHistory();
       state.trackTimer = setInterval(updateTrackStats, 1000);
       requestTrackWakeLock();
+      window.__dalilBgSync();
       syncTrackMap();
       toast('بدأ تسجيل المسار');
     } else {
       state.tracking = false;
+      window.__dalilBgSync();
       clearInterval(state.trackTimer);
       releaseTrackWakeLock();
       document.getElementById('recPill').style.display = 'none';
@@ -4515,6 +4547,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     localStorage.removeItem('dalil_track_draft');
     document.getElementById('trackGpsStatus').textContent = 'حالة التسجيل: جاهز — سيُحفظ المسار تلقائيًا أثناء الحركة.';
     state.tracking = false;
+    window.__dalilBgSync();
     clearInterval(state.trackTimer);
     releaseTrackWakeLock();
     document.getElementById('recPill').style.display = 'none';
@@ -4998,7 +5031,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=8';
+      sc.src = 'room.js?v=10';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);
@@ -5011,6 +5044,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     rb.style.display = '';
     document.getElementById('openZelloBtn').style.display = 'none';
     rb.addEventListener('click', ()=>loadRoom().then(m=>m.open()).catch(()=>toast('غرفة الرحلة تحتاج اتصالًا بالإنترنت')));
+    if(roomParam && !window.DALIL_NATIVE && /iPhone|iPad|iPod/.test(navigator.userAgent)){
+      // دعوة مفتوحة من آيفون في المتصفح: نعرض فتحها في تطبيق دليل
+      const pin = (roomQS.get('pin') || '').replace(/\D/g, '').slice(0, 8);
+      const bar = document.createElement('div'); bar.className = 'open-app-bar';
+      bar.innerHTML = `<b>عندك تطبيق دليل؟</b><a class="cp-btn cp-btn-gold" href="dalil://room?code=${roomParam}&pin=${pin}">افتح الدعوة في التطبيق</a><a class="oab-get" href="https://apps.apple.com/app/id6822651903">ما عندي التطبيق — حمّله</a><button type="button" class="oab-x" aria-label="إغلاق">أكمل هنا في المتصفح</button>`;
+      document.body.appendChild(bar); bar.querySelector('.oab-x').onclick = ()=>bar.remove();
+    }
     if(roomParam) loadRoom().then(m=>m.open(roomParam, (roomQS.get('pin') || '').replace(/\D/g, '').slice(0, 8))).catch(()=>{});
     else if(roomLs('dalil_room_v1')) loadRoom().catch(()=>{});
     document.getElementById('trackMapFrame').addEventListener('load', ()=>{ if(window.DalilRoom) window.DalilRoom.syncMap(); });
