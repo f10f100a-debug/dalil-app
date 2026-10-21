@@ -147,6 +147,18 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // «مطر عندي الآن»: موقع تقريبي (منزلتان عشريتان ≈ 1 كم) + الشدة. بلاغ كل 10 دقائق و12 في اليوم لكل IP
+    if (action === "rain") {
+      const lat = Number(body.lat), lng = Number(body.lng), level = Number(body.level);
+      if (!(lat > 15 && lat < 33 && lng > 33 && lng < 57) || ![1, 2, 3].includes(level)) return json(req, { error: "bad_request" }, 400);
+      const { data: mine } = await sb.from("rain_reports").select("at").eq("ip_hash", ip).gte("at", new Date(Date.now() - 86400e3).toISOString()).order("at", { ascending: false }).limit(12);
+      if ((mine || []).length >= 12 || (mine?.[0] && Date.now() - new Date(mine[0].at).getTime() < 10 * 60e3)) return json(req, { ok: false, error: "wait" });
+      const { error } = await sb.from("rain_reports").insert({ lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100, level, ip_hash: ip });
+      if (error) throw error;
+      if (Math.random() < 0.1) await sb.from("rain_reports").delete().lt("at", new Date(Date.now() - 86400e3).toISOString());
+      return json(req, { ok: true });
+    }
+
     if (action === "unsubscribe") {
       const endpoint = String(body.endpoint || "");
       if (endpoint) await sb.from("push_subs").delete().eq("endpoint", endpoint);
