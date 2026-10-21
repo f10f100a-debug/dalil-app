@@ -250,6 +250,7 @@
       <div>
         <div class="t">${esc(KIND[e.kind] || e.kind)}${e.region ? ' — ' + esc(e.region) : ''}${e.status === 'hidden' ? '<span class="badge warn">مخفية بالبلاغات</span>' : ''}${e.reports ? `<span class="badge warn">${e.reports} بلاغ</span>` : ''}</div>
         ${e.caption ? `<div>${esc(e.caption)}</div>` : ''}
+        ${e.video_url ? `<video src="${esc(safeUrl(e.video_url))}" poster="${esc(safeUrl(e.photo_url))}" controls playsinline preload="metadata" style="width:100%;max-height:320px;background:#000;border-radius:10px;margin:6px 0"></video><div class="m">🎬 فيديو ${e.video_dur ? Math.round(e.video_dur) + ' ث' : ''} — شاهده كاملًا قبل النشر</div>` : ''}
         <div class="m">${esc(when(e.created_at))}${e.nickname ? ' · ' + esc(e.nickname) : ''} · ${loc}</div>
         ${pending ? `
           ${can('push') ? `<label class="chk"><input type="checkbox" class="notify"${notifyDefault ? ' checked' : ''}> أرسل تنبيهًا لمشتركي ${e.region ? esc(e.region) : 'كل المناطق'}</label>` : ''}

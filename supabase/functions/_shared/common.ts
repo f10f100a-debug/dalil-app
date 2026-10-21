@@ -83,19 +83,26 @@ export async function cleanup(sb: SupabaseClient) {
   const now = new Date().toISOString();
   const dayAgo = new Date(Date.now() - 86400e3).toISOString();
   const threeDaysAgo = new Date(Date.now() - 3 * 86400e3).toISOString();
-  const { data: live } = await sb.from("events").select("id,photo_path,thumb_path").eq("status", "approved").lt("expires_at", now).limit(200);
+  const files = (e: { photo_path: string; thumb_path: string; video_path?: string | null }) => [e.photo_path, e.thumb_path, ...(e.video_path ? [e.video_path] : [])];
+  const { data: live } = await sb.from("events").select("id,photo_path,thumb_path,video_path").eq("status", "approved").lt("expires_at", now).limit(200);
   if (live?.length) {
-    await sb.storage.from("events").remove(live.flatMap((e) => [e.photo_path, e.thumb_path]));
+    await sb.storage.from("events").remove(live.flatMap(files));
     await sb.from("events").delete().in("id", live.map((e) => e.id));
   }
-  const { data: stale } = await sb.from("events").select("id,photo_path,thumb_path,status")
+  const { data: stale } = await sb.from("events").select("id,photo_path,thumb_path,video_path,status")
     .or(`and(status.eq.pending,created_at.lt.${threeDaysAgo}),and(status.in.(rejected,hidden),created_at.lt.${dayAgo})`).limit(200);
   if (stale?.length) {
     const pend = stale.filter((e) => e.status === "pending" || e.status === "rejected");
     const pub = stale.filter((e) => e.status === "hidden");
-    if (pend.length) await sb.storage.from("pending").remove(pend.flatMap((e) => [e.photo_path, e.thumb_path]));
-    if (pub.length) await sb.storage.from("events").remove(pub.flatMap((e) => [e.photo_path, e.thumb_path]));
+    if (pend.length) await sb.storage.from("pending").remove(pend.flatMap(files));
+    if (pub.length) await sb.storage.from("events").remove(pub.flatMap(files));
     await sb.from("events").delete().in("id", stale.map((e) => e.id));
+  }
+  // الفيديو يبقى 3 أيام كحد أقصى حتى لو مُدّد الحدث (توفير المساحة والتحميل في الخطة المجانية)
+  const { data: oldVid } = await sb.from("events").select("id,video_path").not("video_path", "is", null).eq("status", "approved").lt("approved_at", new Date(Date.now() - 3 * 86400e3).toISOString()).limit(100);
+  if (oldVid?.length) {
+    await sb.storage.from("events").remove(oldVid.map((e) => e.video_path as string));
+    await sb.from("events").update({ video_path: null }).in("id", oldVid.map((e) => e.id));
   }
   await sb.from("events").update({ ip_hash: "" }).lt("created_at", new Date(Date.now() - 2 * 86400e3).toISOString()).neq("ip_hash", "");
   await sb.from("admin_attempts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());

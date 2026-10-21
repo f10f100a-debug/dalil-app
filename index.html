@@ -771,6 +771,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ev-tile{position:relative; display:block; aspect-ratio:4/5; padding:0; border:0; border-radius:18px; overflow:hidden; background:#E4DED3; cursor:pointer; font-family:inherit; text-align:right; color:#fff;}
   .ev-tile img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
   .ev-tile::after{content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(20,16,10,.78), rgba(20,16,10,0) 55%, rgba(20,16,10,.25));}
+  .ev-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:17px;line-height:1;pointer-events:none}.ev-play small{font-size:10px;margin-top:2px}
+  .ev-v-img video{display:block;width:100%;max-height:70vh;background:#000;object-fit:contain}
+  .ev-photo video{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:inherit}
   .ev-tile-top{position:absolute; z-index:1; top:8px; right:8px; left:8px; display:flex; align-items:center; justify-content:space-between; gap:4px;}
   .ev-tile-txt{position:absolute; z-index:1; right:10px; left:10px; bottom:9px;}
   .ev-tile-txt b{display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:13.5px; font-weight:600; line-height:1.45;}
@@ -1381,7 +1384,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="sheet-handle"></div>
       <h3 id="evSheetTitle">أضف حدثًا</h3>
       <button type="button" class="ev-photo" id="evPhotoPreview"></button>
-      <input type="file" id="evPhotoInput" accept="image/*" hidden>
+      <input type="file" id="evPhotoInput" accept="image/*,video/*" hidden>
       <div class="field-label">نوع الحدث</div>
       <div class="chips ev-kinds" id="evKinds"></div>
       <div class="field-label">وصف قصير (اختياري)</div>

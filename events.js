@@ -54,7 +54,7 @@
   function fetchEvents(force){
     if(st.loading) return st.loading;
     if(!force && Date.now() - st.loadedAt < 60000) return Promise.resolve(st.events);
-    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster';
+    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster,video_path,video_dur';
     st.loading = fetch(`${SB}/rest/v1/events?select=${cols}&order=created_at.desc&limit=120`, {headers:{apikey:KEY}, cache:'no-store'})
       .then(r=>{ if(!r.ok) throw new Error('http ' + r.status); return r.json(); })
       .then(list=>{ st.events = visible(Array.isArray(list) ? list : []); st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
@@ -99,6 +99,7 @@
     const meta = [e.region, d].filter(Boolean).map(esc).join(' · ');
     return `<button type="button" class="ev-tile" data-ev-open="${esc(e.id)}" aria-label="${esc((KIND[e.kind]||KIND.other).name + ' ' + (e.caption || ''))}">
       <img src="${esc(PUB + e.thumb_path)}" alt="" loading="lazy" decoding="async">
+      ${e.video_path ? `<span class="ev-play" aria-hidden="true">▶${e.video_dur ? `<small>${Math.round(e.video_dur)}ث</small>` : ''}</span>` : ''}
       <span class="ev-tile-top">${kindBadge(e.kind)}<span class="ev-ago">${esc(ago(e.created_at))}</span></span>
       <span class="ev-tile-txt">${e.caption ? `<b>${esc(e.caption)}</b>` : ''}${meta ? `<small>${meta}</small>` : ''}</span>
     </button>`;
@@ -116,7 +117,10 @@
         <button type="button" class="ev-v-close" data-ev-act="close" aria-label="إغلاق">✕</button>
         ${kindBadge(e.kind)}<span class="ev-ago">${esc(ago(e.created_at))}</span>
       </div>
-      <div class="ev-v-img"><img src="${esc(PUB + e.photo_path)}" alt="${esc(e.caption || (KIND[e.kind]||KIND.other).name)}"></div>
+      <div class="ev-v-img">${e.video_path
+        // الفيديو لا يتحمّل إلا عند الضغط على تشغيل (توفير باقة المستخدم والخطة المجانية)
+        ? `<video src="${esc(PUB + e.video_path)}" poster="${esc(PUB + e.photo_path)}" controls playsinline preload="none"></video>`
+        : `<img src="${esc(PUB + e.photo_path)}" alt="${esc(e.caption || (KIND[e.kind]||KIND.other).name)}">`}</div>
       <div class="ev-v-info">
         ${e.caption ? `<p class="ev-v-cap">${esc(e.caption)}</p>` : ''}
         <p class="ev-v-meta">${[e.region, d ? 'يبعد ' + d : '', e.nickname ? 'بعدسة ' + e.nickname : ''].filter(Boolean).map(esc).join(' · ')}</p>
@@ -130,7 +134,7 @@
     v.classList.add('show');
     v.setAttribute('aria-hidden', 'false');
   }
-  function closeViewer(){ const v = $('evViewer'); v.classList.remove('show'); v.setAttribute('aria-hidden', 'true'); v.innerHTML = ''; }
+  function closeViewer(){ const v = $('evViewer'); const vid = v.querySelector('video'); if(vid){ try{ vid.pause(); vid.removeAttribute('src'); vid.load(); }catch(e){} } v.classList.remove('show'); v.setAttribute('aria-hidden', 'true'); v.innerHTML = ''; }
   function eventPlace(e){
     const k = (KIND[e.kind]||KIND.other).name;
     return {id:'__event_' + e.id, name:k + (e.region ? ' — ' + e.region : '') + (e.caption ? ': ' + e.caption.slice(0, 40) : ''), icon:'📷', cat:'event', lat:e.lat, lng:e.lng, alt:null};
@@ -166,7 +170,7 @@
   function openComposer(){
     const s = $('evSheet');
     st.draft = null; st.photoGps = null;
-    $('evPhotoPreview').innerHTML = `<span class="cp-ic">${ico('camera')}</span><b>اختر صورة أو التقطها</b><small>تُصغَّر تلقائيًا قبل الرفع</small>`;
+    $('evPhotoPreview').innerHTML = `<span class="cp-ic">${ico('camera')}</span><b>اختر صورة أو فيديو</b><small>الفيديو حتى ${VMAX} ثوانٍ · يُصغَّر تلقائيًا قبل الرفع</small>`;
     $('evPhotoPreview').classList.remove('has');
     $('evCaption').value = '';
     $('evNick').value = lsGet(LS.nick) || '';
@@ -184,7 +188,8 @@
     updateSendBtn();
     s.classList.add('show');
   }
-  function closeComposer(){ $('evSheet').classList.remove('show'); if(st.draft && st.draft.url) URL.revokeObjectURL(st.draft.url); st.draft = null; }
+  function closeComposer(){ $('evSheet').classList.remove('show'); dropDraft(); st.draft = null; }
+  function dropDraft(){ if(!st.draft) return; if(st.draft.url) URL.revokeObjectURL(st.draft.url); if(st.draft.vurl) URL.revokeObjectURL(st.draft.vurl); }
   function selectedKind(){ const c = document.querySelector('#evKinds .chip.active'); return c ? c.dataset.evKind : ''; }
   function updateSendBtn(){ $('evSend').disabled = st.sending || !st.draft || !selectedKind() || !$('evTerms').checked; }
   function setStatus(t, err){ const el = $('evStatus'); el.textContent = t; el.classList.toggle('err', !!err); }
@@ -199,7 +204,7 @@
     });
   }
   function toJpeg(img, maxSide, q){
-    const w0 = img.naturalWidth, h0 = img.naturalHeight;
+    const w0 = img.naturalWidth || img.videoWidth, h0 = img.naturalHeight || img.videoHeight;
     const s = Math.min(1, maxSide / Math.max(w0, h0));
     const w = Math.max(1, Math.round(w0 * s)), h = Math.max(1, Math.round(h0 * s));
     const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -267,8 +272,88 @@
     const g = st.photoGps || pos;
     if(g) B.nearestRegion(g.lat, g.lng).then(r=>{ if(r) $('evRegion').value = r; });
   }
+  // ---------- الفيديو: حتى 10 ثوانٍ، يُعاد ضغطه في الجوال (~640 بكسل، ~1 ميقابت/ث) قبل الرفع ----------
+  const VMAX = 10, VMAX_BYTES = 3 * 1024 * 1024;
+  function recMime(){
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+    return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
+  }
+  function loadVideo(file){
+    return new Promise((resolve, reject)=>{
+      const url = URL.createObjectURL(file), v = document.createElement('video');
+      v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
+      const to = setTimeout(()=>reject(new Error('timeout')), 15000);
+      v.onloadeddata = ()=>{ clearTimeout(to); resolve({v, url}); };
+      v.onerror = ()=>{ clearTimeout(to); URL.revokeObjectURL(url); reject(new Error('decode')); };
+      v.src = url;
+    });
+  }
+  const seek = (v, t)=>new Promise(res=>{ const done = ()=>{ v.removeEventListener('seeked', done); res(); }; v.addEventListener('seeked', done); v.currentTime = t; setTimeout(done, 3000); });
+  async function recompress(v, dur, onProgress){
+    const mime = recMime(); if(!mime) return null;
+    const s = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * s / 2) * 2; c.height = Math.round(v.videoHeight * s / 2) * 2;
+    const x = c.getContext('2d'), stream = c.captureStream(24);
+    // الصوت (صوت السيل مهم) — إذا رفض المتصفح تشغيل الصوت نكمل بدونه
+    let ac = null;
+    try{
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination();
+      src.connect(dest); dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+      v.muted = false;
+    }catch(e){ ac = null; v.muted = true; }
+    await seek(v, 0);
+    try{ if(ac) await ac.resume(); await v.play(); }
+    catch(e){ v.muted = true; await v.play(); }
+    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:950000, audioBitsPerSecond:64000});
+    const parts = [];
+    rec.ondataavailable = e=>{ if(e.data && e.data.size) parts.push(e.data); };
+    const stopped = new Promise(res=>rec.onstop = res);
+    rec.start(500);
+    await new Promise(res=>{
+      const end = Math.min(dur, VMAX);
+      const draw = ()=>{
+        x.drawImage(v, 0, 0, c.width, c.height);
+        onProgress(Math.min(1, v.currentTime / end));
+        if(v.currentTime >= end || v.ended || v.paused){ res(); return; }
+        v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw);
+      };
+      draw();
+      setTimeout(res, (end + 6) * 1000);
+    });
+    v.pause(); rec.stop(); await stopped;
+    stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{});
+    return new Blob(parts, {type:'video/mp4'});
+  }
+  async function prepareVideo(file){
+    setStatus('جارٍ تجهيز الفيديو…');
+    const {v, url} = await loadVideo(file);
+    try{
+      const dur = v.duration;
+      if(!Number.isFinite(dur) || dur <= 0.3) throw new Error('decode');
+      await seek(v, Math.min(0.6, dur / 2));
+      const full = await toJpeg(v, 1280, 0.72), thumb = await toJpeg(v, 420, 0.7);
+      if(!full.blob || !thumb.blob) throw new Error('encode');
+      let vid = null;
+      if(/mp4/.test(file.type) && file.size <= VMAX_BYTES && dur <= VMAX + 0.5) vid = file;   // صغير أصلًا
+      else vid = await recompress(v, dur, p=>setStatus('جارٍ ضغط الفيديو… ' + Math.round(p * 100) + '%'));
+      if(!vid) throw Object.assign(new Error('nosupport'), {msg:'جهازك لا يدعم ضغط الفيديو. جرّب مقطعًا أقصر (أقل من 3 ميقا) أو أرسل صورة.'});
+      if(vid.size > VMAX_BYTES) throw Object.assign(new Error('big'), {msg:'الفيديو كبير بعد الضغط. جرّب مقطعًا أقصر.'});
+      dropDraft();
+      st.draft = {photo:full.blob, thumb:thumb.blob, w:full.w, h:full.h, url:URL.createObjectURL(full.blob), video:vid, vdur:Math.min(dur, VMAX), vurl:URL.createObjectURL(vid)};
+      const p = $('evPhotoPreview');
+      p.classList.add('has');
+      p.innerHTML = `<video src="${st.draft.vurl}" poster="${st.draft.url}" muted playsinline autoplay loop></video><small>🎬 ${Math.round(st.draft.vdur)} ث · ${(vid.size / 1048576).toFixed(1)} ميقا${dur > VMAX + 0.5 ? ' · أول ' + VMAX + ' ثوانٍ' : ''} · اضغط لتغييره</small>`;
+      setStatus(selectedKind() ? '' : 'اختر نوع الحدث');
+    }finally{ v.pause(); v.removeAttribute('src'); v.load(); URL.revokeObjectURL(url); }
+  }
   async function preparePhoto(file){
     if(!file) return;
+    if(/^video\//.test(file.type) || /\.(mov|mp4|m4v)$/i.test(file.name || '')){
+      try{ st.photoGps = null; $('evLocRow').hidden = true; await prepareVideo(file); decideLocation({taken:file.lastModified}); }
+      catch(e){ st.draft = null; setStatus(e.msg || 'تعذّر قراءة الفيديو. جرّب مقطعًا آخر.', true); }
+      updateSendBtn(); return;
+    }
     if(!/^image\//.test(file.type || 'image/')){ setStatus('الملف ليس صورة', true); return; }
     setStatus('جارٍ تجهيز الصورة…');
     try{
@@ -279,7 +364,7 @@
       const thumb = await toJpeg(img, 420, 0.7);
       URL.revokeObjectURL(url);
       if(!full.blob || !thumb.blob) throw new Error('encode');
-      if(st.draft && st.draft.url) URL.revokeObjectURL(st.draft.url);
+      dropDraft();
       st.draft = {photo:full.blob, thumb:thumb.blob, w:full.w, h:full.h, url:URL.createObjectURL(full.blob)};
       const p = $('evPhotoPreview');
       p.classList.add('has');
@@ -299,6 +384,7 @@
     const fd = new FormData();
     fd.append('photo', st.draft.photo, 'photo.jpg');
     fd.append('thumb', st.draft.thumb, 'thumb.jpg');
+    if(st.draft.video){ fd.append('video', st.draft.video, 'video.mp4'); fd.append('vdur', String(st.draft.vdur)); }
     fd.append('kind', selectedKind());
     fd.append('caption', $('evCaption').value.trim().slice(0, 140));
     fd.append('region', $('evRegion').value);
@@ -314,12 +400,13 @@
       const r = await fetch(FN + 'dalil-public?a=submit', {method:'POST', body:fd});
       const j = await r.json().catch(()=>({}));
       if(!r.ok){
-        const msg = {rate_limited:'وصلت للحد اليومي للمشاركات. حاول غدًا.', too_large:'الصورة كبيرة جدًا.', bad_image:'صيغة الصورة غير مدعومة.', busy:'الخدمة مشغولة الآن، حاول بعد قليل.'}[j.error] || 'تعذّر الإرسال، حاول مرة أخرى.';
+        const msg = {rate_limited:'وصلت للحد اليومي للمشاركات. حاول غدًا.', too_large:'الملف كبير جدًا.', bad_image:'صيغة الصورة غير مدعومة.', bad_video:'صيغة الفيديو غير مدعومة.', busy:'الخدمة مشغولة الآن، حاول بعد قليل.'}[j.error] || 'تعذّر الإرسال، حاول مرة أخرى.';
         setStatus(msg, true);
         return;
       }
+      const wasVideo = !!st.draft.video;
       closeComposer();
-      B.toast('شكرًا! ستظهر صورتك بعد مراجعتها');
+      B.toast(wasVideo ? 'شكرًا! سيظهر الفيديو بعد مراجعته' : 'شكرًا! ستظهر صورتك بعد مراجعتها');
     }catch(e){
       setStatus(navigator.onLine === false ? 'لا يوجد اتصال. أرسلها عندما تتوفر الشبكة.' : 'تعذّر الإرسال، حاول مرة أخرى.', true);
     }finally{

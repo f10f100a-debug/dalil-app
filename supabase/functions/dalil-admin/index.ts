@@ -243,13 +243,13 @@ Deno.serve(async (req) => {
     if (action === "list") {
       const job = cleanup(sb).catch((e) => console.error("cleanup", e));
       (globalThis as any).EdgeRuntime?.waitUntil?.(job);
-      const cols = "id,created_at,expires_at,status,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,reports";
+      const cols = "id,created_at,expires_at,status,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,video_path,video_dur,reports";
       const { data: pending } = await sb.from("events").select(cols).eq("status", "pending").order("created_at", { ascending: true }).limit(100);
       const { data: live } = await sb.from("events").select(cols).in("status", ["approved", "hidden"]).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(100);
       const pend = pending || [];
       let signed: Record<string,string> = {};
       if (pend.length) {
-        const { data: urls } = await sb.storage.from("pending").createSignedUrls(pend.flatMap((e) => [e.photo_path, e.thumb_path]), 3600);
+        const { data: urls } = await sb.storage.from("pending").createSignedUrls(pend.flatMap((e) => [e.photo_path, e.thumb_path, ...(e.video_path ? [e.video_path] : [])]), 3600);
         signed = Object.fromEntries((urls || []).filter((u) => u.signedUrl).map((u) => [u.path, u.signedUrl]));
       }
       const pub = (p: string) => sb.storage.from("events").getPublicUrl(p).data.publicUrl;
@@ -259,8 +259,8 @@ Deno.serve(async (req) => {
       const byRegion: Record<string, number> = {};
       (subRows || []).forEach((r) => { const k = r.region || "الكل"; byRegion[k] = (byRegion[k] || 0) + 1; });
       return json(req, {
-        pending: pend.map((e) => ({ ...e, photo_url: signed[e.photo_path], thumb_url: signed[e.thumb_path] })),
-        live: (live || []).map((e) => ({ ...e, photo_url: pub(e.photo_path), thumb_url: pub(e.thumb_path) })),
+        pending: pend.map((e) => ({ ...e, photo_url: signed[e.photo_path], thumb_url: signed[e.thumb_path], video_url: e.video_path ? signed[e.video_path] : null })),
+        live: (live || []).map((e) => ({ ...e, photo_url: pub(e.photo_path), thumb_url: pub(e.thumb_path), video_url: e.video_path ? pub(e.video_path) : null })),
         subscribers: { total: subRows?.length || 0, byRegion },
         regions: REGIONS,
       });
@@ -304,13 +304,14 @@ Deno.serve(async (req) => {
     if (action === "approve" && validId) {
       const { data: ev } = await sb.from("events").select("*").eq("id", id).maybeSingle();
       if (!ev || ev.status !== "pending") return json(req, { error: "not_pending" }, 409);
-      for (const p of [ev.photo_path, ev.thumb_path]) {
+      const files = [ev.photo_path, ev.thumb_path, ...(ev.video_path ? [ev.video_path] : [])];
+      for (const p of files) {
         const dl = await sb.storage.from("pending").download(p);
         if (dl.error) throw dl.error;
-        const up = await sb.storage.from("events").upload(p, dl.data, { contentType: "image/jpeg", cacheControl: "3600", upsert: true });
+        const up = await sb.storage.from("events").upload(p, dl.data, { contentType: p.endsWith(".mp4") ? "video/mp4" : "image/jpeg", cacheControl: "3600", upsert: true });
         if (up.error) throw up.error;
       }
-      await sb.storage.from("pending").remove([ev.photo_path, ev.thumb_path]);
+      await sb.storage.from("pending").remove(files);
       const now = new Date();
       const { error } = await sb.from("events").update({
         status: "approved", approved_at: now.toISOString(),
@@ -326,10 +327,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === "reject" && validId) {
-      const { data: ev } = await sb.from("events").select("id,status,photo_path,thumb_path").eq("id", id).maybeSingle();
+      const { data: ev } = await sb.from("events").select("id,status,photo_path,thumb_path,video_path").eq("id", id).maybeSingle();
       if (!ev) return json(req, { ok: true });
       const bucket = ev.status === "pending" || ev.status === "rejected" ? "pending" : "events";
-      await sb.storage.from(bucket).remove([ev.photo_path, ev.thumb_path]);
+      await sb.storage.from(bucket).remove([ev.photo_path, ev.thumb_path, ...(ev.video_path ? [ev.video_path] : [])]);
       await sb.from("events").delete().eq("id", id);
       await log(ev.status === "pending" ? "reject" : "delete_event", id.slice(0, 8));
       return json(req, { ok: true });

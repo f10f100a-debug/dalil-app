@@ -4,6 +4,8 @@ import { cleanText, cleanup, config, cors, db, ipHash, json, KINDS, REGIONS, val
 
 const MAX_PHOTO = 900 * 1024;
 const MAX_THUMB = 120 * 1024;
+const MAX_VIDEO = 3 * 1024 * 1024;   // فيديو قصير حتى 10 ثوانٍ، مضغوط في الجوال (~1–2 ميقا)
+const isMp4 = (b: Uint8Array) => b.length > 12 && b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70;  // ftyp
 const MAX_POSTS_PER_DAY = 10;
 const MAX_PENDING = 300;
 const REPORTS_TO_HIDE = 3;
@@ -26,7 +28,7 @@ Deno.serve(async (req) => {
 
     if (action === "submit") {
       const len = Number(req.headers.get("content-length") || 0);
-      if (len > MAX_PHOTO + MAX_THUMB + 20000) return json(req, { error: "too_large" }, 413);
+      if (len > MAX_PHOTO + MAX_THUMB + MAX_VIDEO + 20000) return json(req, { error: "too_large" }, 413);
       const since = new Date(Date.now() - 86400e3).toISOString();
       const { count: mine } = await sb.from("events").select("id", { count: "exact", head: true }).eq("ip_hash", ip).gte("created_at", since);
       if ((mine ?? 0) >= MAX_POSTS_PER_DAY) return json(req, { error: "rate_limited" }, 429);
@@ -40,6 +42,15 @@ Deno.serve(async (req) => {
       const photoBytes = new Uint8Array(await photo.arrayBuffer());
       const thumbBytes = new Uint8Array(await thumb.arrayBuffer());
       if (!isJpeg(photoBytes) || !isJpeg(thumbBytes)) return json(req, { error: "bad_image" }, 415);
+      const video = form.get("video");
+      let videoBytes: Uint8Array | null = null, videoDur: number | null = null;
+      if (video instanceof File && video.size > 0) {
+        if (video.size > MAX_VIDEO) return json(req, { error: "too_large" }, 413);
+        videoBytes = new Uint8Array(await video.arrayBuffer());
+        if (!isMp4(videoBytes)) return json(req, { error: "bad_video" }, 415);
+        videoDur = num(form.get("vdur"), 0.5, 11);
+        if (videoDur === null) return json(req, { error: "bad_video" }, 400);
+      }
 
       const kind = String(form.get("kind") || "");
       if (!KINDS.includes(kind)) return json(req, { error: "bad_kind" }, 400);
@@ -55,6 +66,11 @@ Deno.serve(async (req) => {
       if (up1.error) throw up1.error;
       const up2 = await sb.storage.from("pending").upload(thumbPath, thumbBytes, { contentType: "image/jpeg" });
       if (up2.error) { await sb.storage.from("pending").remove([photoPath]); throw up2.error; }
+      const videoPath = videoBytes ? `${id}.mp4` : null;
+      if (videoBytes && videoPath) {
+        const up3 = await sb.storage.from("pending").upload(videoPath, videoBytes, { contentType: "video/mp4" });
+        if (up3.error) { await sb.storage.from("pending").remove([photoPath, thumbPath]); throw up3.error; }
+      }
 
       const { error } = await sb.from("events").insert({
         id, kind, region, lat, lng,
@@ -62,9 +78,9 @@ Deno.serve(async (req) => {
         nickname: cleanText(form.get("nickname"), 24),
         device: cleanText(form.get("device"), 64),
         width: num(form.get("w"), 1, 10000), height: num(form.get("h"), 1, 10000),
-        photo_path: photoPath, thumb_path: thumbPath, ip_hash: ip,
+        photo_path: photoPath, thumb_path: thumbPath, ip_hash: ip, video_path: videoPath, video_dur: videoDur,
       });
-      if (error) { await sb.storage.from("pending").remove([photoPath, thumbPath]); throw error; }
+      if (error) { await sb.storage.from("pending").remove([photoPath, thumbPath, ...(videoPath ? [videoPath] : [])]); throw error; }
       if (Math.random() < 0.2) {
         const job = cleanup(sb).catch((e) => console.error("cleanup", e));
         (globalThis as any).EdgeRuntime?.waitUntil?.(job);
