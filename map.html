@@ -314,6 +314,8 @@ function applyRegionPrefs(rid){
   for(const id of['wadi','wadi-label','waterway'])vis(at(id),LP.wadi&&!osm);
   for(const id of['dalil','dalil-label'])vis(at(id),LP.dalil);
   for(const id of['cliff','track','rail','road-case','road','road-label','peak','place'])vis(at(id),!osm);
+  // فوق الفضائي: الطرق أخف حتى لا تغطي الصورة
+  if(gl.getLayer(at('road'))){gl.setPaintProperty(at('road'),'line-opacity',sat?.6:1);gl.setPaintProperty(at('road-case'),'line-opacity',sat?0:1);gl.setPaintProperty(at('track'),'line-color',sat?'#F3E3C2':'#8A6A40')}
 }
 function applyPrefs(){
   document.documentElement.classList.toggle('base-sat',LP.base==='sat');   // الليلي يعكس الألوان: لا نعكس الصورة الفضائية
