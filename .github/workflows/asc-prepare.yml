@@ -7,6 +7,7 @@ on:
       build: { description: "رقم البناء", type: string, default: "" }
       beta_only: { description: "فحص TestFlight فقط", type: boolean, default: false }
       push_cap: { description: "تفعيل قدرة التنبيهات", type: boolean, default: false }
+      submit: { description: "إرسال للمراجعة", type: boolean, default: false }
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -21,4 +22,4 @@ jobs:
           KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
           VERSION: ${{ inputs.version }}
           BUILD: ${{ inputs.build }}
-        run: if [ "${{ inputs.push_cap }}" = "true" ]; then python3 tools/asc/enable_push.py; elif [ "${{ inputs.beta_only }}" = "true" ]; then python3 tools/asc/beta_check.py; else python3 tools/asc/prepare_version.py; fi
+        run: if [ "${{ inputs.submit }}" = "true" ]; then python3 tools/asc/submit_review.py; elif [ "${{ inputs.push_cap }}" = "true" ]; then python3 tools/asc/enable_push.py; elif [ "${{ inputs.beta_only }}" = "true" ]; then python3 tools/asc/beta_check.py; else python3 tools/asc/prepare_version.py; fi
