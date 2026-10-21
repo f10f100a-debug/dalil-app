@@ -348,11 +348,11 @@ function applyPrefs(){
   $('#lpClouds').checked=LP.clouds;
   $('#lpRain').checked=LP.rain;$('#lpRadar').checked=LP.radar;$('#lpLightning').checked=LP.lightning;const anim=LP.rain||LP.clouds||LP.radar;$('#rainBar').classList.toggle('show',!!anim);stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);showFrame(playSet().frames.length-1)}
 }
-function syncQuick(){const on={rain:LP.radar||LP.lightning,water:LP.water,ndvi:LP.ndvi,topo:LP.base==='topo'};document.querySelectorAll('#quick [data-q]').forEach(x=>x.classList.toggle('on',!!on[x.dataset.q]))}
+function syncQuick(){const on={rain:LP.radar||LP.lightning||LP.rain||LP.clouds,water:LP.water,ndvi:LP.ndvi,topo:LP.base==='topo'};document.querySelectorAll('#quick [data-q]').forEach(x=>x.classList.toggle('on',!!on[x.dataset.q]))}
 document.querySelectorAll('#quick [data-q]').forEach(x=>x.onclick=()=>{
   const q=x.dataset.q,flip=id=>{const el=$(id);el.checked=!el.checked;el.dispatchEvent(new Event('change'))};
   if(q==='topo'){setBase(LP.base==='topo'?'barr':'topo');syncQuick();return}
-  if(q==='rain'){const v=!(LP.radar||LP.lightning);for(const id of['#lpRadar','#lpLightning'])if($(id).checked!==v)flip(id);syncQuick();return}
+  if(q==='rain'){const v=!(LP.radar||LP.lightning||LP.rain||LP.clouds);for(const id of(v?['#lpRadar','#lpLightning']:['#lpRadar','#lpLightning','#lpRain','#lpClouds']))if($(id).checked!==v)flip(id);syncQuick();return}
   flip(q==='water'?'#lpWater':'#lpNdvi');syncQuick()});
 function setBase(b){
   if((b==='sat'||b==='osm')&&!navigator.onLine){status.textContent='هذا النمط يحتاج اتصالًا بالإنترنت — البر وطبوغرافي يعملان بدونه';return}
