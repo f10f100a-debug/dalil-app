@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
     ['m3-nav-nofollow', nav, m => { document.getElementById('tdFollow').click(); m.jumpTo({ zoom: 13, pitch: 62, bearing: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }); }],
   ];
   for (const [name, q, fn] of cases) {
-    const c = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, geolocation: { latitude: 27.505, longitude: 41.62 }, permissions: ['geolocation'], extraHTTPHeaders: { Referer: 'https://f10f100a-debug.github.io/' } });
+    const c = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, geolocation: { latitude: 27.49, longitude: 41.66 }, permissions: ['geolocation'], extraHTTPHeaders: { Referer: 'https://f10f100a-debug.github.io/' } });
     const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
     await p.goto('http://localhost:8765/map2.html?mode=3d&sat=1&lat=27.505&lng=41.62&z=13' + q);
