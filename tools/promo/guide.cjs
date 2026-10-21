@@ -65,7 +65,7 @@ const mapGo = (p, lat, lng, zz) => p.evaluate(([lat, lng, zz]) => {
   await tab(p, 'places'); await p.waitForTimeout(800);
   await shot(p, '07-add-place', async () => { await p.click('#addPlaceBtn'); await p.waitForTimeout(1200); });
   await p.keyboard.press('Escape').catch(() => {});
-  await p.evaluate(() => { document.querySelectorAll('.modal.show, .sheet.show, [role=dialog].show').forEach(x => x.classList.remove('show')); }).catch(() => {});
+  await p.evaluate(() => { document.querySelectorAll('.overlay.show, .modal.show, .sheet.show').forEach(x => x.classList.remove('show')); }).catch(() => {});
 
   // 4) الخريطة
   await tab(p, 'track'); await p.waitForTimeout(5000); await later(p);
