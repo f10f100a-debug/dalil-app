@@ -2580,7 +2580,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         const speed = b ? (b.dist - a.dist)/1000/mins : 0;   // كم/دقيقة (موجب = يقترب)
         if(a.dist < 4000) r = {kind:'here'};
         else if(speed > 0.15){ const eta = Math.round(a.dist/1000/speed); r = eta <= 180 ? {kind:'coming', eta, km:a.dist/1000, brg:a.brg, kmh:Math.round(speed*60)} : {kind:'far', km:a.dist/1000, brg:a.brg}; }
-        else r = {kind:'far', km:a.dist/1000, brg:a.brg, away: speed < -0.15};
+        else r = {kind: a.dist < 10000 ? 'close' : 'far', km:a.dist/1000, brg:a.brg, away: speed < -0.15};
       }
       r.time = now.time; STORM.res = r;
     }catch(e){}
@@ -2596,13 +2596,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     let icon = '☀️', t = 'لا أمطار حولك', sub = 'الرادار لا يظهر مطرًا خلال ' + iso(150) + ' كم من موقعك', cls = '', showStrip = false;
     if(r.kind === 'here'){ icon = '🌧️'; t = 'مطر فوقك الآن'; sub = 'انتبه للشعبان والأودية — اضغط لرؤية الرادار'; cls = 'near'; showStrip = true; }
     else if(r.kind === 'coming'){ icon = '⛈️'; t = 'العاصفة جايتك — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = 'مطر على بعد ' + km + ' من جهة ' + dir + '، يقترب بسرعة ' + iso(r.kmh) + ' كم/س'; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
+    else if(r.kind === 'close'){ icon = '🌦️'; t = 'مطر قريب منك — ' + km + ' ' + dir; sub = (r.away ? 'يبتعد عنك' : 'لا يقترب منك حاليًا') + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
     else if(r.kind === 'far'){ icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = r.away ? 'يبتعد عنك' : 'لا يقترب منك حاليًا'; }
     card.hidden = false; card.className = 'storm-card ' + cls;
     card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
-    const key = r.kind === 'here' ? 'here' : r.kind === 'coming' && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : '';
+    const key = r.kind === 'here' ? 'here' : r.kind === 'coming' && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : r.kind === 'close' && !r.away ? 'close' : '';
     if(key && STORM.warned !== key){
       STORM.warned = key; toast(t);
       if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
