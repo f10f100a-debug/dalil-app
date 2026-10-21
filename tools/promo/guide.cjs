@@ -154,7 +154,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await fahd.click('#rmSosAlert [data-sos="go"]').catch(() => {}); await fahd.waitForTimeout(2500);
   await shot(fahd, '33-compass-to-member');
   await fahd.click('#rmSosAlert [data-sos="x"]').catch(() => {});
-  await shot(fahd, '34-compass-in-room', () => fahd.evaluate(() => scrollTo(0, 0)));
+
 
   // 9) الوضع الليلي
   { const cd = await ctxFor(browser, { dark: true }); const pd = await open(cd, { dark: true, car: true }); await shot(pd, '35-dark'); await cd.close(); }

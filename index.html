@@ -2518,7 +2518,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const RV_Z = 7, RV_R = 150000;
   function lonLatToPx(lat, lng, z){ const n = 256*2**z, r = lat*Math.PI/180; return [(lng+180)/360*n, (1-Math.asinh(Math.tan(r))/Math.PI)/2*n]; }
   function pxToLatLng(x, y, z){ const n = 256*2**z; return {lng: x/n*360-180, lat: Math.atan(Math.sinh(Math.PI*(1-2*y/n)))*180/Math.PI}; }
-  async function rainNearest(host, path, pos){
+  // يقرأ بلاطات الرادار حولك ويعيد شبكة «مبلول/جاف» بدقة البكسل
+  async function rainGrid(host, path, pos){
     const [cx, cy] = lonLatToPx(pos.lat, pos.lng, RV_Z);
     const mpp = 156543.03*Math.cos(pos.lat*Math.PI/180)/2**RV_Z, rp = Math.ceil(RV_R/mpp);
     const x0 = Math.floor((cx-rp)/256), x1 = Math.floor((cx+rp)/256), y0 = Math.floor((cy-rp)/256), y1 = Math.floor((cy+rp)/256);
@@ -2527,14 +2528,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const jobs = [];
     for(let tx = x0; tx <= x1; tx++) for(let ty = y0; ty <= y1; ty++) jobs.push(fetch(`${host}${path}/256/${RV_Z}/${tx}/${ty}/2/1_1.png`).then(r => r.ok ? r.blob() : null).then(b => b && createImageBitmap(b)).then(im => { if(im) g.drawImage(im, (tx-x0)*256, (ty-y0)*256); }).catch(()=>{}));
     await Promise.all(jobs);
-    const d = g.getImageData(0, 0, W, H).data, ox = x0*256, oy = y0*256, ux = cx-ox, uy = cy-oy;
-    const wet = (x, y) => x >= 0 && y >= 0 && x < W && y < H && d[(y*W+x)*4+3] > 40;
+    const d = g.getImageData(0, 0, W, H).data, wet = new Uint8Array(W*H);
+    for(let k = 0; k < W*H; k++) wet[k] = d[k*4+3] > 40 ? 1 : 0;
+    return {wet, W, H, ox:x0*256, oy:y0*256, ux:cx-x0*256, uy:cy-y0*256, rp, mpp};
+  }
+  // أقرب كتلة مطر حقيقية: نتجاهل النقاط المتفرقة، والصدى الثابت حول الرادارات (يظهر في كل الصور منذ ساعتين = تشويش وليس مطرًا)
+  function rainNearest(G, clutter, pos){
+    const {wet, W, H, ux, uy, rp, mpp, ox, oy} = G;
+    const at = (x, y) => x >= 0 && y >= 0 && x < W && y < H && wet[y*W+x] && !(clutter && clutter[y*W+x]);
     let best = Infinity, bx = 0, by = 0;
     for(let y = Math.max(2, Math.floor(uy-rp)); y < Math.min(H-2, uy+rp); y += 2) for(let x = Math.max(2, Math.floor(ux-rp)); x < Math.min(W-2, ux+rp); x += 2){
-      if(!wet(x, y)) continue;
+      if(!at(x, y)) continue;
       const dd = Math.hypot(x-ux, y-uy); if(dd >= best) continue;
-      let c = 0; for(let j = -2; j <= 2; j++) for(let i = -2; i <= 2; i++) if(wet(x+i, y+j)) c++;
-      if(c >= 12){ best = dd; bx = x; by = y; }   // نتجاهل النقاط المتفرقة (تشويش الرادار)
+      let c = 0; for(let j = -2; j <= 2; j++) for(let i = -2; i <= 2; i++) if(at(x+i, y+j)) c++;
+      if(c >= 12){ best = dd; bx = x; by = y; }
     }
     if(!Number.isFinite(best)) return null;
     const p = pxToLatLng(bx+ox, by+oy, RV_Z);
@@ -2549,7 +2556,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const j = await (await fetch('https://api.rainviewer.com/public/weather-maps.json', {cache:'no-store'})).json();
       const past = j.radar && j.radar.past || []; if(past.length < 4) throw 0;
       const now = past[past.length-1], prev = past[Math.max(0, past.length-4)];
-      const [a, b] = await Promise.all([rainNearest(j.host, now.path, pos), rainNearest(j.host, prev.path, pos)]);
+      const old = past[0], mid = past[Math.floor(past.length/2)];
+      const [Gn, Gp, Go, Gm] = await Promise.all([now, prev, old, mid].map(f => rainGrid(j.host, f.path, pos)));
+      // تشويش ثابت: مبلول في الآن ومنتصف المدة وقبل ساعتين (مع هامش بكسل واحد)
+      const clutter = new Uint8Array(Gn.W*Gn.H), near = (G, x, y) => { for(let j = -1; j <= 1; j++) for(let i = -1; i <= 1; i++){ const X = x+i, Y = y+j; if(X >= 0 && Y >= 0 && X < G.W && Y < G.H && G.wet[Y*G.W+X]) return true; } return false; };
+      for(let y = 0; y < Gn.H; y++) for(let x = 0; x < Gn.W; x++) if(Gn.wet[y*Gn.W+x] && near(Go, x, y) && near(Gm, x, y)) clutter[y*Gn.W+x] = 1;
+      const a = rainNearest(Gn, clutter, pos), b = rainNearest(Gp, clutter, pos);
       let r = {kind:'none'};
       if(a){
         const mins = (now.time - prev.time)/60;
