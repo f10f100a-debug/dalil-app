@@ -395,6 +395,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-c-label:empty, .cp-c-sub:empty{display:none;}
   .cp-c-main{font-size:40px; font-weight:700; line-height:1.15; color:var(--cp-ink); font-variant-numeric:tabular-nums; unicode-bidi:plaintext;}
   .cp-c-main.words{font-size:24px; line-height:1.35;}
+  .cp-c-main .cp-unit{font-size:17px; font-weight:600; margin-inline-start:4px; color:var(--cp-dim);}
+  .cp-c-main.long{font-size:34px;}
+  /* زوايا بطاقة البوصلة: معلومات تُقرأ بنظرة، تختفي إذا لا بيانات */
+  .cp-compass-card{position:relative;}
+  .cp-corner{position:absolute; max-width:30%; pointer-events:none; line-height:1.25;}
+  .cp-corner[hidden]{display:none;}
+  .cp-corner.tr{top:12px; right:14px; text-align:right;}
+  .cp-corner.tl{top:12px; left:14px; text-align:left;}
+  .cp-corner.br{bottom:12px; right:14px; text-align:right;}
+  .cp-corner.bl{bottom:12px; left:14px; text-align:left;}
+  .cp-k{font-size:11px; color:var(--cp-faint); white-space:nowrap;}
+  .cp-v{font-size:15px; font-weight:700; color:var(--cp-ink); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  .cp-v small{font-size:11px; font-weight:600; color:var(--cp-dim); margin-inline-start:2px;}
   .cp-c-sub{font-size:12.5px; color:var(--cp-dim); margin-top:2px; line-height:1.45;}
   .cp-c-sub + .cp-c-sub{margin-top:1px; font-size:11.5px;}
   .cp-calib{display:flex; align-items:center; justify-content:center; gap:6px; margin:10px auto 0; padding:6px 12px; width:max-content; max-width:100%;
@@ -921,6 +934,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
             <div class="cp-c-sub" id="cpCSub2"></div>
           </div>
         </div>
+        <div class="cp-corner tr" id="cpSpeed" hidden><div class="cp-k">السرعة</div><div class="cp-v" data-v></div></div>
+        <div class="cp-corner tl" id="cpBrg" hidden><div class="cp-k">اتجاه الهدف</div><div class="cp-v" data-v></div></div>
+        <div class="cp-corner br" id="cpSun" hidden><div class="cp-k" data-k></div><div class="cp-v" data-v></div></div>
+        <div class="cp-corner bl" id="cpCarC" hidden><div class="cp-k">🚗 السيارة</div><div class="cp-v" data-v></div></div>
         <div class="cp-calib" id="cpCalib" hidden><span class="cp-ic" data-ico="calib"></span>حرّك جوالك على شكل 8 للمعايرة</div>
         <div class="cp-calib cp-source" id="cpSource" hidden><span class="cp-ic" data-ico="car"></span>أثناء القيادة: يتبع اتجاه السيارة (GPS)</div>
       </div>
@@ -2431,12 +2448,71 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     setText('cpCLabel', label);
     const mainEl = document.getElementById('cpCMain');
-    setText(mainEl, main);
+    // المسافة: الرقم كبير والوحدة صغيرة بجانبه في سطر واحد
+    const um = !words && /^(.*\S)\s(كم|م)$/.exec(main);
+    if(um){
+      const key = um[1] + '|' + um[2];
+      if(mainEl.dataset.k !== key){ mainEl.dataset.k = key; mainEl.textContent = um[1]; const u = document.createElement('span'); u.className = 'cp-unit'; u.textContent = um[2]; mainEl.appendChild(u); }
+      mainEl.classList.toggle('long', um[1].replace(/[^0-9.]/g,'').length >= 5);
+    }else{ if(mainEl.dataset.k){ mainEl.dataset.k = ''; mainEl.textContent = ''; } setText(mainEl, main); mainEl.classList.remove('long'); }
     mainEl.classList.toggle('words', words);
+    renderCorners(pos, t, nav, car);
     setText('cpCSub', sub);
     setText('cpCSub2', sub2);
 
     renderCarCard(car, t, nav, near);
+  }
+  // ---------- زوايا البوصلة ----------
+  function cornerSet(id, v, k){
+    const el = document.getElementById(id); if(!el) return;
+    const show = v != null && v !== '';
+    if(el.hidden === show) el.hidden = !show;
+    if(!show) return;
+    const ve = el.querySelector('[data-v]'); if(ve.dataset.h !== v){ ve.dataset.h = v; ve.innerHTML = v; }
+    if(k != null) setText(el.querySelector('[data-k]'), k);
+  }
+  // شروق/غروب الشمس محليًا (خوارزمية NOAA المبسطة) — يعمل بلا إنترنت
+  function sunEvent(lat, lng, date, rising){
+    const rad = Math.PI/180, n = Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(),0,0)) / 864e5);
+    const t = n + ((rising ? 6 : 18) - lng/15)/24;
+    const M = 0.9856*t - 3.289;
+    let L = (M + 1.916*Math.sin(M*rad) + 0.020*Math.sin(2*M*rad) + 282.634 + 360) % 360;
+    let RA = (Math.atan(0.91764*Math.tan(L*rad))/rad + 360) % 360;
+    RA = (RA + Math.floor(L/90)*90 - Math.floor(RA/90)*90)/15;
+    const sinD = 0.39782*Math.sin(L*rad), cosD = Math.cos(Math.asin(sinD));
+    const cosH = (Math.cos(90.833*rad) - sinD*Math.sin(lat*rad))/(cosD*Math.cos(lat*rad));
+    if(cosH > 1 || cosH < -1) return null;
+    const H = (rising ? 360 - Math.acos(cosH)/rad : Math.acos(cosH)/rad)/15;
+    const UT = ((H + RA - 0.06571*t - 6.622 - lng/15) % 24 + 24) % 24;
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())); d.setUTCMinutes(Math.round(UT*60));
+    return d;
+  }
+  let sunCache = {key:'', set:null, rise:null};
+  function renderCorners(pos, t, nav, car){
+    // السرعة: فقط أثناء الحركة
+    const kmh = pos && Number.isFinite(pos.speed) ? pos.speed*3.6 : 0;
+    cornerSet('cpSpeed', kmh >= 3 ? iso(Math.round(kmh)) + '<small>كم/س</small>' : null);
+    // اتجاه الهدف بالدرجات
+    cornerSet('cpBrg', nav && !state.nearLatched ? iso(Math.round(nav.brg) + '°') + '<small>' + cardinalSpaced(nav.brg) + '</small>' : null);
+    // الغروب/الشروق
+    let sun = null, sunK = null;
+    if(pos){
+      const now = new Date(), key = now.toDateString() + Math.round(pos.lat) + ',' + Math.round(pos.lng);
+      if(sunCache.key !== key){
+        const tm = new Date(now.getTime() + 864e5);
+        sunCache = {key, set: sunEvent(pos.lat, pos.lng, now, false), rise: sunEvent(pos.lat, pos.lng, now, true), riseTm: sunEvent(pos.lat, pos.lng, tm, true)};
+      }
+      const left = ms => { const m = Math.max(0, Math.round(ms/60000)); return iso(Math.floor(m/60) + ':' + String(m%60).padStart(2,'0')); };
+      const n = Date.now();
+      if(sunCache.set && n < sunCache.set.getTime() && (!sunCache.rise || n >= sunCache.rise.getTime())){ sunK = 'الغروب بعد'; sun = left(sunCache.set - n) + '<small>س</small>'; }
+      else{
+        const r = sunCache.rise && n < sunCache.rise.getTime() ? sunCache.rise : sunCache.riseTm;
+        if(r){ sunK = 'الشروق بعد'; sun = left(r - n) + '<small>س</small>'; }
+      }
+    }
+    cornerSet('cpSun', sun, sunK);
+    // السيارة (إذا لم تكن هي الهدف)
+    cornerSet('cpCarC', car && pos && !isCarTarget(t) ? fmtDist(haversine(pos.lat, pos.lng, car.lat, car.lng)).replace(/ (كم|م)$/, '<small>$1</small>') : null);
   }
   setInterval(()=>{
     // اتجاه GPS القديم لا يُعرض كأنه حي بعد 5 ثوانٍ بلا تحديث.
