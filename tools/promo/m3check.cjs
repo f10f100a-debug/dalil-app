@@ -1,15 +1,22 @@
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch({ args: ['--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-  for (const [name, q] of [['m3-plain', ''], ['m3-nav', '&tLat=27.56&tLng=41.70&tName=' + encodeURIComponent('جبل السمراء')]]) {
+  const nav = '&tLat=27.56&tLng=41.70&tName=' + encodeURIComponent('جبل السمراء');
+  const cases = [
+    ['m3-plain-z145', '', m => m.jumpTo({ zoom: 14.5, pitch: 65, bearing: 52 })],
+    ['m3-nav-wait', nav, null],
+    ['m3-nav-nofollow', nav, m => { document.getElementById('tdFollow').click(); m.jumpTo({ zoom: 13, pitch: 62, bearing: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }); }],
+  ];
+  for (const [name, q, fn] of cases) {
     const c = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, geolocation: { latitude: 27.505, longitude: 41.62 }, permissions: ['geolocation'], extraHTTPHeaders: { Referer: 'https://f10f100a-debug.github.io/' } });
     const p = await c.newPage(); const errs = [];
     p.on('pageerror', e => errs.push(e.message));
-    p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 120)); });
     await p.goto('http://localhost:8765/map2.html?mode=3d&sat=1&lat=27.505&lng=41.62&z=13' + q);
-    await p.waitForTimeout(25000);
-    const info = await p.evaluate(() => { const m = window.__map3; return { c: m.getCenter(), z: m.getZoom(), p: m.getPitch(), b: m.getBearing(), pad: m.getPadding(), loaded: m.loaded(), layers: m.getStyle().layers.length } });
-    console.log(name, JSON.stringify(info), (await p.textContent('#tdNav')).trim(), 'errors:', errs.slice(0, 4).join(' | '));
+    await p.waitForTimeout(12000);
+    if (fn) await p.evaluate(`(${fn.toString()})(window.__map3)`);
+    await p.waitForTimeout(name === 'm3-nav-wait' ? 40000 : 15000);
+    const info = await p.evaluate(() => { const m = window.__map3; return { z: m.getZoom().toFixed(2), p: m.getPitch(), terrain: !!m.getTerrain(), moving: m.isMoving(), loaded: m.loaded() } });
+    console.log(name, JSON.stringify(info), 'errors:', errs.slice(0, 4).join(' | '));
     await p.screenshot({ path: `shots/${name}.png`, timeout: 60000 });
     await c.close();
   }
