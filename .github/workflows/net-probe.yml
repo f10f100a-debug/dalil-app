@@ -8,6 +8,8 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pillow
       - run: |
           out=$(bash -c "$CMD" 2>&1 | head -c 3500)
           echo "::notice::$(echo "$out" | tr '\n' ' ')"
