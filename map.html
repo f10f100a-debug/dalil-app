@@ -655,7 +655,11 @@ function loadRadarFrames(){
   return radarLoading;
 }
 // تحديث الرادار كل 5 دقائق ما دام ظاهرًا
-setInterval(()=>{if(LP.radar&&glReady&&!playTimer&&Date.now()-radarLoadedAt>5*60e3)loadRadarFrames()},60000);
+// تحديث الرادار كل 5 دقائق ما دام ظاهرًا (حتى أثناء التحريك)، وفورًا عند الرجوع للتطبيق
+const radarStale=()=>LP.radar&&glReady&&Date.now()-radarLoadedAt>5*60e3;
+setInterval(()=>{if(radarStale())loadRadarFrames()},60000);
+const radarWake=()=>{if(document.visibilityState==='visible'&&radarStale())loadRadarFrames()};
+document.addEventListener('visibilitychange',radarWake);window.addEventListener('focus',radarWake);window.addEventListener('pageshow',radarWake);
 // البرق: مساحة الومضات المتراكمة من حساس البرق في القمر الأوروبي MTG (EUMETSAT)، تُحدَّث كل 5 دقائق
 let lightningAt=0;
 function refreshLightning(){
@@ -674,7 +678,8 @@ function showSetFrame(set,i){set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id!=='rain')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
   if(set.id==='radar')showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);
-  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():''):' ('+(i+1)+'/'+n+')'))}
+  const age=set.id==='radar'&&/^\d{4}-/.test(set.frames[i])?Math.round((Date.now()-Date.parse(set.frames[i]))/60e3):0;
+  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():age>25?' · قبل '+age+' د':' · الآن'):' ('+(i+1)+'/'+n+')'))}
 function stopRain(){clearInterval(playTimer);playTimer=0;setText($('#rainPlay'),'▶')}
 $('#rainPlay').onclick=()=>{if(playTimer){stopRain();showFrame(playSet().frames.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;showFrame(0);playTimer=setInterval(()=>{const n=playSet().frames.length;i=(i+1)%n;showFrame(i)},1100)};
 // خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
