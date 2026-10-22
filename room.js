@@ -264,10 +264,10 @@
     const e = $('rmErr'); e.textContent = msg; e.hidden = false;
     if(focusId && $(focusId)) $(focusId).focus();
   }
-  async function leave(){
+  async function leave(silent){
     if(!R.sess) return;
     const rn = R.room && R.room.name ? ' «' + R.room.name + '»' : '';
-    if(!confirm('تبي تطلع من غرفة' + rn + '؟\nما راح توصلك رسائلهم ولا يشوفون موقعك بعدها.')) return;
+    if(!silent && !confirm('تبي تطلع من غرفة' + rn + '؟\nما راح توصلك رسائلهم ولا يشوفون موقعك بعدها.')) return;
     RT.send('leave', {});
     api('leave', authBody());
     endRoom('غادرت الغرفة');
@@ -674,10 +674,19 @@
   function open(prefillCode, prefillPin){
     build();
     R.open = true;
+    // دعوة لغرفة ثانية وأنت داخل غرفة: نسأل بدل ما نعرض الغرفة القديمة بصمت
+    if(prefillCode && R.sess && R.sess.code !== prefillCode){
+      const rn = R.room && R.room.name ? '«' + R.room.name + '»' : R.sess.code;
+      if(confirm('أنت الحين في غرفة ' + rn + '.\nتبي تطلع منها وتدخل الغرفة الجديدة ' + prefillCode + '؟')) leave(true);
+      else prefillCode = null;
+    }
+    if(prefillCode && R.sess && R.sess.code === prefillCode) prefillCode = null;   // أنت داخلها أصلًا
     if(prefillCode){ R.tab = 'join'; R.prefill = prefillCode; R.prefillPin = prefillPin || ''; }
     $('roomOverlay').classList.add('show');
     render();
     if(R.sess) refreshState();
+    // من رابط دعوة: إذا اسمك محفوظ ووافقت على الشروط سابقًا وفيه رمز، ندخلك مباشرة
+    else if(prefillCode && prefillPin && lsGet(LS.name) && lsGet(LS.terms)) setTimeout(()=>{ if(!R.sess && $('rmGo') && R.tab === 'join') enter('join'); }, 300);
   }
   function close(){
     R.open = false;
