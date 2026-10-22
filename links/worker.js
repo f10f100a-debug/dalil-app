@@ -4,7 +4,7 @@
 //   /.well-known/apple-app-site-association → لفتح التطبيق مباشرة من 1.5 فما فوق
 const APP = "https://f10f100a-debug.github.io/dalil-app/";
 const STORE = "https://apps.apple.com/app/id6822651903";
-const OG_IMG = APP + "assets/og-room.jpg";
+const OG_IMG = APP + "assets/og-room.jpg", ICON = APP + "assets/icon-192.png";
 const AASA = {
   applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }] }] },
 };
@@ -45,7 +45,7 @@ img{width:96px;height:96px;border-radius:22px}h1{font-size:23px;margin:14px 0 4p
 a.b{display:block;text-decoration:none;border-radius:16px;padding:15px;font-weight:700;margin-top:10px}
 .g{background:var(--gold);color:#fff}.w{border:1px solid var(--line);color:var(--ink)}small{display:block;color:var(--dim);margin-top:16px;font-size:13px}
 </style></head><body><main class="c">
-<img src="${OG_IMG}" alt="">
+<img src="${ICON}" alt="دليل">
 <h1>🏕️ دعوة لغرفة الرحلة</h1>
 <p>نتكلم بالصوت مثل اللاسلكي ونشوف مواقع بعض في البر</p>
 <div class="code">رقم الغرفة ${code}${pin ? " · الرمز " + pin : ""}</div>

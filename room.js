@@ -11,6 +11,7 @@
   const WS = 'wss://penhpgvjtxytgyrhmetg.supabase.co/realtime/v1/websocket?apikey=' + KEY + '&vsn=1.0.0';
   const APP_LINK = 'https://apps.apple.com/sa/app/id6822651903';
   const WEB_LINK = 'https://f10f100a-debug.github.io/dalil-app/';
+  const SHORT_LINK = 'https://dalilbarr.com/r/';
   const LS = {sess:'dalil_room_v1', name:'dalil_room_name', terms:'dalil_room_terms_v1'};
   const LAG_M = 3000, LAG_RESET_M = 2500, STALE_MS = 3 * 60e3, MAX_REC_S = 30;
   const $ = id=>document.getElementById(id);
@@ -283,10 +284,10 @@
   function shareRoom(){
     if(!R.sess) return;
     const nm = R.room && R.room.name ? ' «' + R.room.name + '»' : '';
-    // الرابط أولًا حتى يعرضه واتساب بطاقة كبيرة قابلة للضغط («تعال انضم لنا في غرفة الرحلة»)
-    const text = WEB_LINK + '?room=' + R.sess.code + '&pin=' + encodeURIComponent(R.sess.pin) + '\n\n'
+    // رابط قصير على نطاق دليل (dalilbarr.com) — الرابط أولًا حتى يعرضه واتساب بطاقة قابلة للضغط
+    const text = SHORT_LINK + R.sess.code + '/' + encodeURIComponent(R.sess.pin) + '\n\n'
       + 'يا هلا 👋 تعال انضم لنا في غرفة الرحلة' + nm + ' على تطبيق دليل 🏕️\n'
-      + 'اضغط البطاقة فوق وتدخل معنا على طول\n'
+      + 'اضغط الرابط وتدخل معنا على طول\n'
       + '(رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ')';
     if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>B.toast('تم نسخ بيانات الغرفة'), ()=>{
