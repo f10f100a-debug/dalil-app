@@ -80,11 +80,25 @@ NEW IN 1.4 — Push to Talk (PushToTalk framework, UIBackgroundModes: push-to-ta
 - Incoming voice messages from room members are delivered with a pushtotalk APNs push and played immediately while the phone is locked; the user can reply with the system Talk button. No other use of the channel.
 - To test: create a room on device A (any 4-digit PIN), join it on device B with the room number + PIN, lock device B, hold "اضغط مطوّلًا وتكلّم" on A — B plays the message.
 - Universal links: https://f10f100a-debug.github.io/dalil-app/?room=... opens the join screen in the app."""
+WHATS_NEW_15 = """جديد في هذا التحديث:
+• اللاسلكي أثبت: زر «تحدّث» في شاشة القفل ما يعلق ولا يفصل، والرسائل المتتالية تشتغل كلها.
+• زر الكلام داخل التطبيق يبدأ فورًا بدون انتظار.
+• ✓✓ تعرف مين سمع رسالتك الصوتية، حتى والجوال مقفل.
+• روابط الدعوة القصيرة dalilbarr.com تفتح الغرفة في التطبيق مباشرة.
+• تنبيه مطر أدق: يعرف هل المطر جاي عليك أو بيمر جنبك، وتنبيه البرق القريب.
+• تحسينات وإصلاحات."""
+NOTES_15 = """
+
+NEW IN 1.5:
+- Push to Talk reliability: the in-app talk button now transmits through PTChannelManager (requestBeginTransmitting/stopTransmitting) so the system owns the microphone; the audio session is kept .playAndRecord; the active remote participant is always cleared after playback (with a 20 s safety timeout).
+- Read receipts for trip-room voice messages ("heard by").
+- Universal links now also include applinks:dalilbarr.com (short invite links https://dalilbarr.com/r/<room>/<pin>, AASA served from that domain).
+- To test: same as 1.4 — two devices in one room, lock device B, talk from A, then reply from B with the system Talk button."""
 # ما الجديد (كل اللغات الموجودة؛ العربية بالنص العربي والإنجليزية بملخص)
 locs = asc.get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:
     loc = l["attributes"]["locale"]
-    text = (WHATS_NEW_14 if VERSION.startswith("1.4") else WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: real walkie-talkie — trip room voice plays on the lock screen and you can reply with the system Talk button; invite links open the app; faster launch on weak networks; auto-updating rain radar." if VERSION.startswith("1.4") else "New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
+    text = (WHATS_NEW_15 if VERSION.startswith("1.5") else WHATS_NEW_14 if VERSION.startswith("1.4") else WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: more reliable walkie-talkie (lock-screen Talk button no longer sticks or cuts out), instant in-app talk button, 'heard by' receipts for voice messages, short invite links that open the app, and smarter rain alerts that tell whether rain is heading to you or passing by, plus nearby-lightning warnings." if VERSION.startswith("1.5") else "New: real walkie-talkie — trip room voice plays on the lock screen and you can reply with the system Talk button; invite links open the app; faster launch on weak networks; auto-updating rain radar." if VERSION.startswith("1.4") else "New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
     asc.note("What's New " + loc, asc.patch(f"/v1/appStoreVersionLocalizations/{l['id']}", {"data": {"type": "appStoreVersionLocalizations", "id": l["id"], "attributes": {"whatsNew": text}}}))
 
 # ربط البناء
@@ -101,8 +115,8 @@ prev = asc.get(f"/v1/appStoreVersions/{old['id']}/appStoreReviewDetail").get("da
 pa = prev["attributes"] if prev else {}
 base = (pa.get("notes") or "").split("\n\nNEW IN")[0]   # ملاحظات المراجع الأساسية بدون أقسام الإصدارات
 attrs = {k: pa.get(k) for k in ["contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired"] if pa.get(k) is not None}
-cur_notes = NOTES_14 if VERSION.startswith("1.4") else NOTES_13 if VERSION.startswith("1.3") else NOTES_12 if VERSION.startswith("1.2") else ""
-older = [n for n in (NOTES_13, NOTES_12) if n != cur_notes]
+cur_notes = NOTES_15 if VERSION.startswith("1.5") else NOTES_14 if VERSION.startswith("1.4") else NOTES_13 if VERSION.startswith("1.3") else NOTES_12 if VERSION.startswith("1.2") else ""
+older = [n for n in (NOTES_14, NOTES_13, NOTES_12) if n != cur_notes]
 attrs["notes"] = (base + cur_notes + "".join(older) + NOTES_11)[:4000]   # الإصدار الحالي أولًا حتى لا يُقص
 rd = asc.get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail").get("data")
 if rd:
