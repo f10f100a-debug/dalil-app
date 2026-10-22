@@ -10,7 +10,7 @@
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://penhpgvjtxytgyrhmetg.supabase.co; connect-src 'self' https://api.rainviewer.com https://tilecache.rainviewer.com https://gibs.earthdata.nasa.gov https://api.open-meteo.com https://air-quality-api.open-meteo.com https://penhpgvjtxytgyrhmetg.supabase.co wss://penhpgvjtxytgyrhmetg.supabase.co; media-src 'self' blob: https://penhpgvjtxytgyrhmetg.supabase.co; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://tile.openstreetmap.org https://penhpgvjtxytgyrhmetg.supabase.co; connect-src 'self' https://view.eumetsat.int https://api.rainviewer.com https://tilecache.rainviewer.com https://gibs.earthdata.nasa.gov https://api.open-meteo.com https://air-quality-api.open-meteo.com https://penhpgvjtxytgyrhmetg.supabase.co wss://penhpgvjtxytgyrhmetg.supabase.co; media-src 'self' blob: https://penhpgvjtxytgyrhmetg.supabase.co; frame-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'"><meta name="referrer" content="strict-origin-when-cross-origin">
 <meta property="og:type" content="website"><meta property="og:site_name" content="دليل — بوصلة البر">
 <meta property="og:title" content="🏕️ تعال انضم لنا في غرفة الرحلة"><meta property="og:description" content="اضغط هنا وتدخل الغرفة على طول — نتكلم بالصوت مثل اللاسلكي ونشوف مواقع بعض في البر">
 <meta property="og:image" content="https://f10f100a-debug.github.io/dalil-app/assets/og-room.jpg"><meta property="og:image:width" content="800"><meta property="og:image:height" content="800">
@@ -2585,7 +2585,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     if(!Number.isFinite(best)) return null;
     const p = pxToLatLng(bx+ox, by+oy, RV_Z);
-    return {dist: best*mpp, brg: bearing(pos.lat, pos.lng, p.lat, p.lng)};
+    return {dist: best*mpp, brg: bearing(pos.lat, pos.lng, p.lat, p.lng), x:bx, y:by, lat:p.lat, lng:p.lng};
   }
   // شدة المطر من ألوان الرادار (Universal Blue: لون ← dBZ)
   const RV_PAL = [[0,0x82,0x7b,0x69],[5,0x92,0x88,0x71],[10,0xce,0xc0,0x87],[15,0x88,0xdd,0xee],[20,0x00,0xa3,0xe0],[25,0x00,0x77,0xaa],[30,0x00,0x55,0x88],[35,0xff,0xee,0x00],[40,0xff,0xaa,0x00],[45,0xff,0x44,0x00],[50,0xc1,0x00,0x00],[55,0xff,0xaa,0xff],[60,0xff,0x77,0xff],[65,0xff,0xff,0xff]];
@@ -2601,13 +2601,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   const dbzWord = d=>d == null ? 'مطر' : d < 25 ? 'مطر خفيف' : d < 35 ? 'مطر متوسط' : d < 45 ? 'مطر غزير' : d < 55 ? 'مطر غزير جدًا (عاصفة رعدية)' : 'مطر مع احتمال برد';
   // حركة المطر: أفضل إزاحة بين لقطتين (قبل 30 دقيقة والآن) — اتجاه وسرعة الكتل حولك
-  function rainMotion(Ga, Gb, clutter){
+  // (cx, cy, rad): حركة الكتلة القريبة منك فقط بدل متوسط كل الرادار
+  function rainMotion(Ga, Gb, clutter, cx, cy, rad){
     const S = 2, w = Math.floor(Ga.W/S), h = Math.floor(Ga.H/S), A = [], B = new Uint8Array(w*h);
     for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
       const k = (y*S)*Ga.W + x*S; if(clutter[k]) continue;
-      if(Ga.wet[k]) A.push(y*w+x); if(Gb.wet[k]) B[y*w+x] = 1;
+      if(Ga.wet[k] && (rad == null || Math.hypot(x*S-cx, y*S-cy) <= rad)) A.push(y*w+x); if(Gb.wet[k]) B[y*w+x] = 1;
     }
-    if(A.length < 40) return null;
+    if(A.length < (rad == null ? 40 : 15)) return null;
     const pts = A.length > 5000 ? A.filter((_, i)=>i % Math.ceil(A.length/5000) === 0) : A;
     let best = -1, bx = 0, by = 0; const R = 18;
     for(let dy = -R; dy <= R; dy++) for(let dx = -R; dx <= R; dx++){
@@ -2616,6 +2617,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     if(best < pts.length * 0.3) return null;
     return {dx:bx*S, dy:by*S};
+  }
+  // البرق (EUMETSAT MTG): نقاط الومضات حولك ±1.6° — للتحذير من البرق القريب ولتمييز العواصف الرعدية والبرد من تشويش الرادار
+  async function lightningAround(pos){
+    try{
+      const R = 1.6, N = 96, la0 = pos.lat-R, la1 = pos.lat+R, lo0 = pos.lng-R, lo1 = pos.lng+R;
+      const u = `https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&transparent=true&crs=EPSG:4326&width=${N}&height=${N}&layers=mtg_fd:li_afa&bbox=${la0},${lo0},${la1},${lo1}`;
+      const r = await fetch(u); if(!r.ok) return null;
+      const im = await createImageBitmap(await r.blob()), cv = document.createElement('canvas'); cv.width = N; cv.height = N;
+      const g = cv.getContext('2d', {willReadFrequently:true}); g.drawImage(im, 0, 0, N, N);
+      const d = g.getImageData(0, 0, N, N).data, pts = [];
+      for(let j = 0; j < N; j++) for(let i = 0; i < N; i++) if(d[(j*N+i)*4+3] > 30) pts.push({lat:la1-(j+.5)/N*(la1-la0), lng:lo0+(i+.5)/N*(lo1-lo0)});
+      return pts;
+    }catch(e){ return null; }
   }
   async function checkStorm(force){
     const pos = state.pos;
@@ -2627,26 +2641,48 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const past = j.radar && j.radar.past || []; if(past.length < 4) throw 0;
       const now = past[past.length-1], prev = past[Math.max(0, past.length-4)];
       const old = past[0], mid = past[Math.floor(past.length/2)];
-      const [Gn, Gp, Go, Gm] = await Promise.all([now, prev, old, mid].map(f => rainGrid(j.host, f.path, pos)));
+      const [Gn, Gp, Go, Gm, LT] = await Promise.all([...[now, prev, old, mid].map(f => rainGrid(j.host, f.path, pos)), lightningAround(pos)]);
       // تشويش ثابت: مبلول في الآن ومنتصف المدة وقبل ساعتين (مع هامش بكسل واحد)
       const clutter = new Uint8Array(Gn.W*Gn.H), near = (G, x, y) => { for(let j = -1; j <= 1; j++) for(let i = -1; i <= 1; i++){ const X = x+i, Y = y+j; if(X >= 0 && Y >= 0 && X < G.W && Y < G.H && G.wet[Y*G.W+X]) return true; } return false; };
       for(let y = 0; y < Gn.H; y++) for(let x = 0; x < Gn.W; x++) if(Gn.wet[y*Gn.W+x] && near(Go, x, y) && near(Gm, x, y)) clutter[y*Gn.W+x] = 1;
       const a = rainNearest(Gn, clutter, pos), b = rainNearest(Gp, clutter, pos);
       let r = {kind:'none'};
-      const mv = rainMotion(Gp, Gn, clutter), mmins = (now.time - prev.time)/60;
-      const motion = mv && mmins > 0 ? {kmh:Math.round(Math.hypot(mv.dx, mv.dy) * Gn.mpp / 1000 / mmins * 60), brg:(Math.atan2(mv.dx, -mv.dy) * 180 / Math.PI + 360) % 360} : null;
+      const mmins = (now.time - prev.time)/60;
+      // الحركة: أولًا حركة الكتلة القريبة منك (60 كم حولها)، وإذا ما تكفي فمتوسط الرادار حولك
+      const mvLocal = a ? rainMotion(Gp, Gn, clutter, a.x, a.y, 60000 / Gn.mpp) : null, mv = mvLocal || rainMotion(Gp, Gn, clutter);
+      const motion = mv && mmins > 0 ? {kmh:Math.round(Math.hypot(mv.dx, mv.dy) * Gn.mpp / 1000 / mmins * 60), brg:(Math.atan2(mv.dx, -mv.dy) * 180 / Math.PI + 360) % 360, local:!!mvLocal} : null;
+      const mOk = motion && motion.kmh >= 5 && motion.kmh <= 120;
       if(a){
-        const mins = (now.time - prev.time)/60;
-        const speed = b ? (b.dist - a.dist)/1000/mins : 0;   // كم/دقيقة (موجب = يقترب)
+        const km = a.dist/1000;
         if(a.dist < 4000) r = {kind:'here'};
-        else if(speed > 0.15){ const eta = Math.round(a.dist/1000/speed); r = eta <= 180 ? {kind:'coming', eta, km:a.dist/1000, brg:a.brg, kmh:Math.round(speed*60)} : {kind:'far', km:a.dist/1000, brg:a.brg}; }
-        else r = {kind: a.dist < 10000 ? 'close' : 'far', km:a.dist/1000, brg:a.brg, away: speed < -0.15};
+        else if(mOk){
+          // مسار المطر: هل يمر عليك؟ (المسافة الجانبية بين مساره وبينك، والمسافة على المسار)
+          const toUser = (a.brg + 180) % 360, ang = (motion.brg - toUser) * Math.PI / 180;
+          const along = km * Math.cos(ang), cross = Math.abs(km * Math.sin(ang));
+          const reach = 12 + Math.min(10, km * 0.08);   // هامش لعرض السحابة
+          if(along > 0 && cross <= reach){ const eta = Math.round(along / motion.kmh * 60); r = eta <= 180 ? {kind:'coming', eta, km, brg:a.brg, kmh:motion.kmh} : {kind:'far', km, brg:a.brg}; }
+          else if(along > 0 && cross <= 40) r = {kind:'pass', km, brg:a.brg, cross:Math.round(cross)};
+          else r = {kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, away: along <= 0};
+        }else{
+          // بدون حركة واضحة: نعتمد تغيّر المسافة لنفس الكتلة فقط (نفس الجهة تقريبًا)
+          const same = b && Math.abs(((b.brg - a.brg + 540) % 360) - 180) < 25;
+          const speed = same ? (b.dist - a.dist)/1000/mmins : 0;
+          if(speed > 0.15){ const eta = Math.round(km/speed); r = eta <= 180 ? {kind:'coming', eta, km, brg:a.brg, kmh:Math.round(speed*60)} : {kind:'far', km, brg:a.brg}; }
+          else r = {kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, away: speed < -0.15};
+        }
       }
+      // البرق: أقرب ومضة لك، وهل الكتلة القريبة فيها برق (عاصفة رعدية)
+      if(LT && LT.length){
+        let lu = Infinity, lb = 0, lc = Infinity;
+        for(const q of LT){ const du = haversine(pos.lat, pos.lng, q.lat, q.lng); if(du < lu){ lu = du; lb = bearing(pos.lat, pos.lng, q.lat, q.lng); } if(a){ const dc = haversine(a.lat, a.lng, q.lat, q.lng); if(dc < lc) lc = dc; } }
+        r.ltKm = lu / 1000; r.ltBrg = lb; r.storm = lc < 20000 || (r.kind === 'here' && lu < 20000);
+      }
+      r.ltKnown = !!LT;
       if(a){
         // الشدة: فوقك (3 كم حولك) أو عند أقرب كتلة مطر
         r.dbz = r.kind === 'here' ? dbzAt(Gn, Gn.ux, Gn.uy, 3) : (()=>{ let best = null; const rr = Math.round(a.dist / Gn.mpp);
           const bx = Gn.ux + Math.sin(a.brg*Math.PI/180) * rr, by = Gn.uy - Math.cos(a.brg*Math.PI/180) * rr; best = dbzAt(Gn, bx, by, 4); return best; })(); }
-      r.motion = motion && motion.kmh >= 5 && motion.kmh <= 120 ? motion : null;
+      r.motion = mOk ? motion : null;
       try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_RAIN_MOTION', kmh:r.motion ? r.motion.kmh : 0, dir:r.motion ? directionWord(r.motion.brg) : ''}, location.origin); }catch(e){}
       r.time = now.time; STORM.res = r;
     }catch(e){}
@@ -2660,17 +2696,23 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const dir = r.brg != null ? directionWord(r.brg) : '', km = r.km != null ? iso(r.km >= 10 ? Math.round(r.km) : r.km.toFixed(1)) + ' كم' : '';
     const etaTxt = m => m < 60 ? iso(m) + ' دقيقة' : iso(Math.floor(m/60)) + ' س ' + (m%60 ? iso(m%60) + ' د' : '');
     let icon = '☀️', t = 'لا أمطار حولك', sub = 'الرادار لا يظهر مطرًا خلال ' + iso(150) + ' كم من موقعك', cls = '', showStrip = false;
-    const what = dbzWord(r.dbz), mvTxt = r.motion ? ' · يتحرك نحو ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س' : '';
-    if(r.kind === 'here'){ icon = r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = 'انتبه للشعبان والأودية — اضغط لرؤية الرادار' + mvTxt; cls = 'near'; showStrip = true; }
-    else if(r.kind === 'coming'){ icon = '⛈️'; t = (r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، يقترب بسرعة ' + iso(r.kmh) + ' كم/س'; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
-    else if(r.kind === 'close'){ icon = '🌦️'; t = what + ' قريب منك — ' + km + ' ' + dir; sub = (r.away ? 'يبتعد عنك' : 'لا يقترب منك حاليًا') + mvTxt + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
-    else if(r.kind === 'far'){ icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = what + ' · ' + (r.away ? 'يبتعد عنك' : 'لا يقترب منك حاليًا') + mvTxt; }
+    // البرد يُذكر فقط إذا فيه برق (وإلا غالبًا تشويش رادار)، والبرق يحوّل الوصف لعاصفة رعدية
+    const what = r.dbz >= 55 ? (r.storm ? 'عاصفة رعدية مع احتمال برد' : r.ltKnown ? 'مطر غزير' : dbzWord(r.dbz)) : r.storm ? (r.dbz >= 35 ? 'عاصفة رعدية' : dbzWord(r.dbz) + ' مع برق') : dbzWord(r.dbz);
+    const mvTxt = r.motion ? ' · يتحرك نحو ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س' : '';
+    const ltNear = r.ltKm != null && r.ltKm <= 20, ltTxt = r.ltKm != null && r.ltKm <= 60 ? ' · ⚡ برق على بعد ' + iso(Math.round(r.ltKm)) + ' كم' : '';
+    if(r.kind === 'here'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = (r.storm ? 'برق قريب: ابتعد عن المرتفعات والأماكن المكشوفة وادخل السيارة · ' : '') + 'انتبه للشعبان والأودية' + mvTxt; cls = 'near'; showStrip = true; }
+    else if(r.kind === 'coming'){ icon = '⛈️'; t = (r.storm || r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، متجه نحوك بسرعة ' + iso(r.kmh) + ' كم/س' + ltTxt; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
+    else if(r.kind === 'pass'){ icon = '🌦️'; t = what + ' ' + km + ' — ' + dir; sub = 'يتجه ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س ويمر على بعد ' + iso(r.cross) + ' كم منك تقريبًا — غالبًا ما يوصلك' + ltTxt; cls = r.km < 40 ? 'app' : ''; showStrip = r.km < 40; }
+    else if(r.kind === 'close'){ icon = '🌦️'; t = what + ' قريب منك — ' + km + ' ' + dir; sub = (r.away ? 'يبتعد عنك' : 'لا يتجه نحوك حاليًا') + mvTxt + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
+    else if(r.kind === 'far'){ icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = what + ' · ' + (r.away ? 'يبتعد عنك' : 'لا يتجه نحوك حاليًا') + mvTxt; }
+    // برق قريب منك (20 كم) أهم من أي شيء غير المطر فوقك أو الجاي خلال 45 دقيقة
+    if(ltNear && !(r.kind === 'here' || (r.kind === 'coming' && r.eta <= 45))){ icon = '⚡'; t = 'برق قريب منك — ' + iso(Math.round(r.ltKm)) + ' كم ' + directionWord(r.ltBrg); sub = 'ابتعد عن المرتفعات والأماكن المكشوفة والأشجار المنفردة، والسيارة أأمن مكان'; cls = 'near'; showStrip = true; }
     card.hidden = false; card.className = 'storm-card ' + cls;
     card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
-    const key = r.kind === 'here' ? 'here' : r.kind === 'coming' && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : r.kind === 'close' && !r.away ? 'close' : '';
+    const key = r.kind === 'here' ? 'here' : r.kind === 'coming' && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
     if(key && STORM.warned !== key){
       STORM.warned = key; toast(t);
       if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
