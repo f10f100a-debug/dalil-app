@@ -330,6 +330,14 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
+    // فحص صامت للصوت (مؤقت): خطوات التسجيل والتشغيل بدون أي صوت أو موقع — 200 سطر يوميًا لكل عضو
+    if (action === "diag") {
+      const src = "room:" + room.code + ":" + member.member_id.slice(0, 6);
+      const { count } = await sb.from("client_errors").select("id", { count: "exact", head: true }).eq("src", src).gte("at", new Date(Date.now() - 86400e3).toISOString());
+      if ((count ?? 0) < 200) await sb.from("client_errors").insert({ ip_hash: ip, msg: JSON.stringify(body.e ?? {}).slice(0, 300), src, ver: "voice-diag", page: "voice" });
+      return json(req, { ok: true });
+    }
+
     if (action === "leave") {
       await sb.from("room_members").update({ left_room: true, push_token: null, ptt_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
       return json(req, { ok: true });

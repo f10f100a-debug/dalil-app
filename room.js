@@ -347,7 +347,7 @@
     playing = v; R.heard.add(v.id); reportHeard(v);
     player.src = v.url;
     const wait = noTone ? 0 : tone('in');
-    (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>player.play()).then(()=>{ renderVoiceSoon(); }, ()=>{ playing = null; renderVoiceSoon(); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
+    (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>player.play()).then(()=>{ renderVoiceSoon(); diag({s:'play_ok', auto:!noTone}); }, e=>{ playing = null; renderVoiceSoon(); diag({s:'play_fail', auto:!noTone, err:String(e && e.name || e).slice(0, 40)}); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
     renderVoiceSoon(); updateBtn();
   }
   player.addEventListener('ended', ()=>{ playing = null; renderVoiceSoon(); playNext(); });
@@ -366,22 +366,25 @@
     if(mime === null) return B.toast('جهازك لا يدعم التسجيل الصوتي');
     rec.on = true; rec.cancelled = false; player.pause(); playing = null;
     renderPtt('wait');
+    const g0 = Date.now(); rec.d = {s:'start', fresh:!micLive()};
     try{
-      if(!rec.stream || !rec.stream.active) rec.stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}});
+      if(!micLive()){ releaseMicNow(); rec.stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}}); }
     }catch(e){
-      rec.on = false; renderPtt();
+      rec.on = false; renderPtt(); diag({...rec.d, s:'mic_fail', err:String(e && e.name || e).slice(0, 40), gum:Date.now() - g0});
       return B.toast(window.DALIL_NATIVE ? 'اسمح لدليل باستخدام الميكروفون: الإعدادات ← دليل ← الميكروفون' : 'اسمح باستخدام الميكروفون لإرسال الصوت');
     }
-    if(!rec.on){ releaseMicLater(); return; }   // رفع الإصبع قبل جاهزية الميكروفون
+    rec.d.gum = Date.now() - g0;
+    const tk = rec.stream.getAudioTracks()[0]; rec.d.tr = tk ? tk.readyState + (tk.muted ? '/muted' : '') : 'none';
+    if(!rec.on){ diag({...rec.d, s:'released_early'}); releaseMicLater(); renderPtt(); return; }   // رفع الإصبع قبل جاهزية الميكروفون
     clearTimeout(rec.idle);
     rec.chunks = [];
-    const tw = tone('start'); if(tw) await new Promise(res=>setTimeout(res, tw + 40));
-    if(!rec.on){ releaseMicLater(); renderPtt(); return; }
     try{ rec.mr = mime ? new MediaRecorder(rec.stream, {mimeType:mime, audioBitsPerSecond:24000}) : new MediaRecorder(rec.stream); }
     catch(e){ rec.mr = new MediaRecorder(rec.stream); }
     rec.mr.ondataavailable = e=>{ if(e.data && e.data.size) rec.chunks.push(e.data); };
     rec.mr.onstop = onRecStop;
-    rec.mr.start();
+    rec.mr.onerror = e=>diag({...rec.d, s:'rec_error', err:String(e && e.error && e.error.name || 'x')});
+    try{ rec.mr.start(); }catch(e){ rec.on = false; rec.mr = null; releaseMicNow(); renderPtt(); diag({...rec.d, s:'start_fail', err:String(e && e.name || e).slice(0, 40)}); return B.toast('تعذّر بدء التسجيل — حاول مرة ثانية'); }
+    tone('start');   // النغمة مع بداية التسجيل مو قبلها: ما يضيع أول الكلام
     rec.t0 = Date.now();
     if(navigator.vibrate) navigator.vibrate(30);
     renderPtt('rec');
@@ -403,8 +406,9 @@
     const blob = new Blob(rec.chunks, {type});
     rec.mr = null; releaseMicLater(); renderPtt();
     setTimeout(playNext, 300);
-    if(rec.cancelled) return;
-    if(dur < 0.6 || blob.size < 400) return B.toast('اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك');
+    const d = {...(rec.d || {}), dur:+dur.toFixed(1), size:blob.size, mime:type.split(';')[0]};
+    if(rec.cancelled){ diag({...d, s:'cancelled'}); return; }
+    if(dur < 0.5 || blob.size < 400){ diag({...d, s:'too_short'}); return B.toast(blob.size < 400 && dur >= 0.5 ? 'ما انسجل صوت — حاول مرة ثانية' : 'اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك'); }
     renderPtt('send');
     tone('end');
     const vid = (crypto.randomUUID && crypto.randomUUID()) || '';
@@ -430,6 +434,7 @@
       if(!r.ok) j.ok = false;
     }catch(e){ j = {ok:false, error:'net'}; }
     renderPtt();
+    diag({...d, s:j.ok ? 'sent' : 'upload_fail', live:liveSent, err:j.ok ? undefined : String(j.error || '')});
     if(!j.ok){
       if(['kicked', 'not_member', 'expired'].includes(j.error)) return endRoom(errText(j.error));
       return liveSent ? null : B.toast(errText(j.error));
@@ -438,7 +443,13 @@
     else addVoice(j.voice, false);
     RT.send('voice', {v:j.voice});
   }
+  // فحص صامت للصوت: سطر واحد لكل ضغطة/تشغيل يصل للسيرفر (بدون صوت ولا بيانات شخصية)
+  function diag(e){ try{ if(R.sess) api('diag', authBody({e:{...e, n:!!window.DALIL_NATIVE, v:document.visibilityState}})); }catch(_){} }
+  // تطبيق الآيفون: الميكروفون يُفك فورًا حتى لا يتعارض مع لاسلكي Apple (زر «تحدّث» في الجزيرة وشاشة القفل)
+  function micLive(){ const t = rec.stream && rec.stream.getAudioTracks()[0]; return !!(t && t.readyState === 'live' && !t.muted && rec.stream.active); }
+  function releaseMicNow(){ clearTimeout(rec.idle); if(rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }
   function releaseMicLater(){
+    if(window.DALIL_NATIVE) return releaseMicNow();
     clearTimeout(rec.idle);
     rec.idle = setTimeout(()=>{ if(!rec.on && rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }, 90000);
   }
