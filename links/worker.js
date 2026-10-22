@@ -4,6 +4,7 @@
 //   /.well-known/apple-app-site-association → لفتح التطبيق مباشرة من 1.5 فما فوق
 const APP = "https://f10f100a-debug.github.io/dalil-app/";
 const STORE = "https://apps.apple.com/app/id6822651903";
+const GUIDE = "https://drive.google.com/file/d/1hQ5nAQ-XCc0M0zRzuh3vERQ3kJlQNukb/view";
 const OG_IMG = APP + "assets/og-room.jpg", ICON = APP + "assets/icon-192.png";
 const AASA = {
   applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }] }] },
@@ -19,6 +20,8 @@ export default {
     const m = p.match(/^\/r\/(\d{4,8})(?:\/([0-9A-Za-z]{1,12}))?\/?$/);
     if (m) return room(m[1], m[2] || url.searchParams.get("p") || "");
     if (p === "/" || p === "") return Response.redirect(STORE, 302);
+    // دليل المستخدم (PDF على Google Drive) — نغيّر الرابط هنا فقط إذا تحدّث الدليل
+    if (/^\/(guide|dalil|manual|دليل)\/?$/i.test(decodeURIComponent(p))) return Response.redirect(GUIDE, 302);
     return new Response("الرابط غير صحيح", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
   },
 };
