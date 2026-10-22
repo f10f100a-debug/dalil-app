@@ -480,8 +480,14 @@
   // تطبيق الآيفون: الميكروفون يُفك فورًا حتى لا يتعارض مع لاسلكي Apple (زر «تحدّث» في الجزيرة وشاشة القفل)
   function micLive(){ const t = rec.stream && rec.stream.getAudioTracks()[0]; return !!(t && t.readyState === 'live' && !t.muted && rec.stream.active); }
   function releaseMicNow(){ clearTimeout(rec.idle); if(rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }
+  // الآيفون: تجهيز الميكروفون ياخذ ~1 ثانية، فنخليه جاهز دقيقة بعد آخر رسالة والتطبيق قدامك،
+  // ونفكّه فورًا إذا طلعت من التطبيق أو قفلت الجوال (عشان لاسلكي Apple في شاشة القفل يلقاه فاضي)
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState !== 'visible' && !rec.on) releaseMicNow(); });
   function releaseMicLater(){
-    if(window.DALIL_NATIVE) return releaseMicNow();
+    if(window.DALIL_NATIVE){
+      if(document.visibilityState !== 'visible') return releaseMicNow();
+      clearTimeout(rec.idle); rec.idle = setTimeout(()=>{ if(!rec.on) releaseMicNow(); }, 60000); return;
+    }
     clearTimeout(rec.idle);
     rec.idle = setTimeout(()=>{ if(!rec.on && rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }, 90000);
   }
@@ -958,7 +964,7 @@
     mode = mode || (rec.on ? 'rec' : '');
     b.className = 'rm-ptt' + (mode ? ' ' + mode : '');
     b.innerHTML = mode === 'rec' ? '● يسجّل… <span id="rmPttTime">0ث</span> — ارفع إصبعك للإرسال'
-      : mode === 'wait' ? 'لحظة…' : mode === 'send' ? 'جارٍ الإرسال…' : ico('radio') + 'اضغط مطوّلًا وتكلّم';
+      : mode === 'wait' ? 'لحظة… يجهّز الميكروفون' : mode === 'send' ? 'جارٍ الإرسال…' : ico('radio') + 'اضغط مطوّلًا وتكلّم';
   }
 
   function onBodyClick(e){
