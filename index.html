@@ -2596,13 +2596,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return {wet, rgba:d, W, H, ox:x0*256, oy:y0*256, ux:cx-x0*256, uy:cy-y0*256, rp, mpp};
   }
   // أقرب كتلة مطر حقيقية: نتجاهل النقاط المتفرقة، والصدى الثابت حول الرادارات (يظهر في كل الصور منذ ساعتين = تشويش وليس مطرًا)
-  function rainNearest(G, clutter, pos){
+  // (brg, span): أقرب كتلة في نفس الجهة فقط (لمتابعة تغيّر مسافة نفس الكتلة عبر الصور)
+  function rainNearest(G, clutter, pos, brg, span){
     const {wet, W, H, ux, uy, rp, mpp, ox, oy} = G;
     const at = (x, y) => x >= 0 && y >= 0 && x < W && y < H && wet[y*W+x] && !(clutter && clutter[y*W+x]);
     let best = Infinity, bx = 0, by = 0;
     for(let y = Math.max(2, Math.floor(uy-rp)); y < Math.min(H-2, uy+rp); y += 2) for(let x = Math.max(2, Math.floor(ux-rp)); x < Math.min(W-2, ux+rp); x += 2){
       if(!at(x, y)) continue;
       const dd = Math.hypot(x-ux, y-uy); if(dd >= best) continue;
+      if(brg != null && angDiff((Math.atan2(x-ux, -(y-uy))*180/Math.PI+360) % 360, brg) > span) continue;
       let c = 0; for(let j = -2; j <= 2; j++) for(let i = -2; i <= 2; i++) if(at(x+i, y+j)) c++;
       if(c >= 12){ best = dd; bx = x; by = y; }
     }
@@ -2625,21 +2627,69 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const dbzWord = d=>d == null ? 'مطر' : d < 25 ? 'مطر خفيف' : d < 35 ? 'مطر متوسط' : d < 45 ? 'مطر غزير' : d < 55 ? 'مطر غزير جدًا (عاصفة رعدية)' : 'مطر مع احتمال برد';
   // حركة المطر: أفضل إزاحة بين لقطتين (قبل 30 دقيقة والآن) — اتجاه وسرعة الكتل حولك
   // (cx, cy, rad): حركة الكتلة القريبة منك فقط بدل متوسط كل الرادار
-  function rainMotion(Ga, Gb, clutter, cx, cy, rad){
-    const S = 2, w = Math.floor(Ga.W/S), h = Math.floor(Ga.H/S), A = [], B = new Uint8Array(w*h);
+  // مطابقة باتجاهين (القديم داخل الجديد + الجديد داخل القديم): السحابة اللي «تكبر» في مكانها تطلع إزاحتها صفر، مو حركة وهمية
+  // وعند التعادل نختار أقل إزاحة. S: دقة البكسل، R: أقصى إزاحة
+  function angDiff(a, b){ return Math.abs(((a - b) % 360 + 540) % 360 - 180); }
+  function rainMotion(Ga, Gb, clutter, cx, cy, rad, S, R){
+    const w = Math.floor(Ga.W/S), h = Math.floor(Ga.H/S), A = [], B = [], Am = new Uint8Array(w*h), Bm = new Uint8Array(w*h);
     for(let y = 0; y < h; y++) for(let x = 0; x < w; x++){
       const k = (y*S)*Ga.W + x*S; if(clutter[k]) continue;
-      if(Ga.wet[k] && (rad == null || Math.hypot(x*S-cx, y*S-cy) <= rad)) A.push(y*w+x); if(Gb.wet[k]) B[y*w+x] = 1;
+      const inR = rad == null || Math.hypot(x*S-cx, y*S-cy) <= rad, i = y*w+x;
+      if(Ga.wet[k]){ Am[i] = 1; if(inR) A.push(i); }
+      if(Gb.wet[k]){ Bm[i] = 1; if(inR) B.push(i); }
     }
-    if(A.length < (rad == null ? 40 : 15)) return null;
-    const pts = A.length > 5000 ? A.filter((_, i)=>i % Math.ceil(A.length/5000) === 0) : A;
-    let best = -1, bx = 0, by = 0; const R = 18;
+    const min = Math.round((rad == null ? 40 : 15) * 4 / (S*S));
+    if(A.length < min || B.length < min) return null;
+    const thin = L => L.length > 3000 ? L.filter((_, i)=>i % Math.ceil(L.length/3000) === 0) : L;
+    const pa = thin(A), pb = thin(B);
+    let best = -1, bx = 0, by = 0;
     for(let dy = -R; dy <= R; dy++) for(let dx = -R; dx <= R; dx++){
-      let c = 0; for(const k of pts){ const x = k % w + dx, y = (k / w | 0) + dy; if(x >= 0 && y >= 0 && x < w && y < h && B[y*w+x]) c++; }
-      if(c > best){ best = c; bx = dx; by = dy; }
+      let f = 0, g = 0;
+      for(const k of pa){ const x = k % w + dx, y = (k / w | 0) + dy; if(x >= 0 && y >= 0 && x < w && y < h && Bm[y*w+x]) f++; }
+      for(const k of pb){ const x = k % w - dx, y = (k / w | 0) - dy; if(x >= 0 && y >= 0 && x < w && y < h && Am[y*w+x]) g++; }
+      const s = f/pa.length + g/pb.length;
+      if(s > best + 1e-9 || (Math.abs(s - best) <= 1e-9 && dx*dx+dy*dy < bx*bx+by*by)){ best = s; bx = dx; by = dy; }
     }
-    if(best < pts.length * 0.3) return null;
-    return {dx:bx*S, dy:by*S};
+    const q = best / 2;
+    if(q < 0.35) return null;
+    return {dx:bx*S, dy:by*S, q};
+  }
+  // حركة موثوقة: 3 مقارنات (قبل 10 و20 و30 دقيقة) لازم تتفق في الاتجاه والسرعة، وإلا «حركته غير منتظمة»
+  function motionFrom(pairs, G0, clutter, cx, cy, rad){
+    const E = [];
+    for(const [Gi, lag] of pairs){
+      if(!(lag > 0)) continue;
+      const S = lag <= 12 ? 1 : 2, R = Math.ceil(120 * lag / 60 * 1000 / G0.mpp / S) + 1;
+      const m = rainMotion(Gi, G0, clutter, cx, cy, rad, S, R);
+      if(m) E.push({vx:m.dx/lag, vy:m.dy/lag, lag, q:m.q});
+    }
+    if(E.length < 2) return null;
+    const Wt = E.reduce((s, e)=>s + e.lag, 0), vx = E.reduce((s, e)=>s + e.vx*e.lag, 0)/Wt, vy = E.reduce((s, e)=>s + e.vy*e.lag, 0)/Wt;
+    const toKmh = (x, y)=>Math.hypot(x, y) * G0.mpp / 1000 * 60, dirOf = (x, y)=>(Math.atan2(x, -y) * 180 / Math.PI + 360) % 360;
+    const kmh = toKmh(vx, vy), brg = dirOf(vx, vy);
+    if(kmh < 5) return {kmh:Math.round(kmh), brg, stable:true, still:true, n:E.length};
+    const stable = E.every(e=>{ const k = toKmh(e.vx, e.vy); return Math.abs(k - kmh) <= Math.max(15, 0.6*kmh) && (k < 5 ? kmh < 12 : angDiff(dirOf(e.vx, e.vy), brg) <= 50); });
+    return {kmh:Math.round(kmh), brg, stable, still:false, n:E.length};
+  }
+  // تغيّر مسافة نفس الكتلة (نفس الجهة) عبر آخر 30 دقيقة: ميل الخط (كم/دقيقة) ومدى انتظامه
+  function distTrend(pts){
+    if(pts.length < 3) return null;
+    const n = pts.length, mt = pts.reduce((s, p)=>s + p.t, 0)/n, md = pts.reduce((s, p)=>s + p.d, 0)/n;
+    let sxy = 0, sxx = 0; for(const p of pts){ sxy += (p.t-mt)*(p.d-md); sxx += (p.t-mt)**2; }
+    const slope = sxx ? sxy/sxx : 0, rms = Math.sqrt(pts.reduce((s, p)=>s + (p.d - (md + slope*(p.t-mt)))**2, 0)/n);
+    const oldest = pts.reduce((o, p)=>p.t < o.t ? p : o);
+    return {rate:-slope, fit:rms <= 2.5, d0:oldest.d, t0:-oldest.t};
+  }
+  // رياح المستوى 700 هكتوباسكال (~3 كم): السحب الرعدية تمشي معها غالبًا — نستخدمها للتحقق فقط
+  async function steeringWind(pos){
+    const W = STORM.wind;
+    if(W && Date.now() - W.at < 3600e3 && haversine(pos.lat, pos.lng, W.lat, W.lng) < 30000) return W;
+    try{
+      const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.lat.toFixed(2)}&longitude=${pos.lng.toFixed(2)}&hourly=wind_speed_700hPa,wind_direction_700hPa&forecast_days=1&timezone=GMT`)).json();
+      const hr = new Date().getUTCHours(), sp = j.hourly.wind_speed_700hPa[hr], dr = j.hourly.wind_direction_700hPa[hr];
+      if(sp == null || dr == null) return null;
+      return STORM.wind = {at:Date.now(), lat:pos.lat, lng:pos.lng, kmh:sp, to:(dr + 180) % 360};
+    }catch(e){ return null; }
   }
   // البرق (EUMETSAT MTG): نقاط الومضات حولك ±1.6° — للتحذير من البرق القريب ولتمييز العواصف الرعدية والبرد من تشويش الرادار
   async function lightningAround(pos){
@@ -2662,37 +2712,52 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     try{
       const j = await (await fetch('https://api.rainviewer.com/public/weather-maps.json', {cache:'no-store'})).json();
       const past = j.radar && j.radar.past || []; if(past.length < 4) throw 0;
-      const now = past[past.length-1], prev = past[Math.max(0, past.length-4)];
-      const old = past[0], mid = past[Math.floor(past.length/2)];
-      const [Gn, Gp, Go, Gm, LT] = await Promise.all([...[now, prev, old, mid].map(f => rainGrid(j.host, f.path, pos)), lightningAround(pos)]);
+      const L = past.length, now = past[L-1], f10 = past[L-2], f20 = past[L-3], prev = past[L-4];
+      const old = past[0], mid = past[Math.floor(L/2)];
+      const [Gn, G10, G20, Gp, Go, Gm, LT, WND] = await Promise.all([...[now, f10, f20, prev, old, mid].map(f => rainGrid(j.host, f.path, pos)), lightningAround(pos), steeringWind(pos)]);
       // تشويش ثابت: مبلول في الآن ومنتصف المدة وقبل ساعتين (مع هامش بكسل واحد)
       const clutter = new Uint8Array(Gn.W*Gn.H), near = (G, x, y) => { for(let j = -1; j <= 1; j++) for(let i = -1; i <= 1; i++){ const X = x+i, Y = y+j; if(X >= 0 && Y >= 0 && X < G.W && Y < G.H && G.wet[Y*G.W+X]) return true; } return false; };
       for(let y = 0; y < Gn.H; y++) for(let x = 0; x < Gn.W; x++) if(Gn.wet[y*Gn.W+x] && near(Go, x, y) && near(Gm, x, y)) clutter[y*Gn.W+x] = 1;
-      const a = rainNearest(Gn, clutter, pos), b = rainNearest(Gp, clutter, pos);
+      const a = rainNearest(Gn, clutter, pos);
       let r = {kind:'none'};
-      const mmins = (now.time - prev.time)/60;
-      // الحركة: أولًا حركة الكتلة القريبة منك (60 كم حولها)، وإذا ما تكفي فمتوسط الرادار حولك
-      const mvLocal = a ? rainMotion(Gp, Gn, clutter, a.x, a.y, 60000 / Gn.mpp) : null, mv = mvLocal || rainMotion(Gp, Gn, clutter);
-      const motion = mv && mmins > 0 ? {kmh:Math.round(Math.hypot(mv.dx, mv.dy) * Gn.mpp / 1000 / mmins * 60), brg:(Math.atan2(mv.dx, -mv.dy) * 180 / Math.PI + 360) % 360, local:!!mvLocal} : null;
-      const mOk = motion && motion.kmh >= 5 && motion.kmh <= 120;
+      const lags = [[G10, (now.time - f10.time)/60], [G20, (now.time - f20.time)/60], [Gp, (now.time - prev.time)/60]];
+      // الحركة: أولًا الكتلة القريبة منك (60 كم حولها)، وإذا ما تكفي فالرادار حولك كله
+      let motion = (a && motionFrom(lags, Gn, clutter, a.x, a.y, 60000 / Gn.mpp)) || motionFrom(lags, Gn, clutter, Gn.ux, Gn.uy, null);
+      if(motion && !motion.still){
+        // انقلاب مفاجئ عن الفحص السابق (>90°) ما نصدّقه إلا إذا تكرر
+        const lm = STORM.lastMv;
+        if(motion.stable && lm && Date.now() - lm.at < 30*60000 && lm.kmh >= 10 && motion.kmh >= 10 && angDiff(lm.brg, motion.brg) > 90) motion.stable = false;
+        // يعاكس رياح الأعلى بوضوح؟ نخفف الجزم
+        if(motion.stable && WND && WND.kmh >= 20 && angDiff(WND.to, motion.brg) > 110) motion.stable = false;
+        STORM.lastMv = {brg:motion.brg, kmh:motion.kmh, at:Date.now()};
+      }
+      const mOk = !!(motion && motion.stable && !motion.still && motion.kmh >= 5 && motion.kmh <= 120);
       if(a){
         const km = a.dist/1000;
+        // تغيّر مسافة نفس الكتلة (نفس الجهة ±35°) قبل 10 و20 و30 دقيقة
+        const tp = [{t:0, d:km}];
+        for(const [Gi, lag] of lags){ const q = rainNearest(Gi, clutter, pos, a.brg, 35); if(q) tp.push({t:-lag, d:q.dist/1000}); }
+        const tr = distTrend(tp), appr = !!(tr && tr.fit && tr.rate >= 0.12 && tr.d0 - km >= 2), rec = !!(tr && tr.fit && tr.rate <= -0.12);
+        const nearing = ()=>{ const eta = Math.round(km / tr.rate); return eta <= 180 ? {kind:'nearing', eta, km, brg:a.brg, was:tr.d0, ago:Math.round(tr.t0)} : {kind:'far', km, brg:a.brg}; };
+        const vague = extra => ({kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, ...extra});
         if(a.dist < 4000) r = {kind:'here'};
         else if(mOk){
           // مسار المطر: هل يمر عليك؟ (المسافة الجانبية بين مساره وبينك، والمسافة على المسار)
           const toUser = (a.brg + 180) % 360, ang = (motion.brg - toUser) * Math.PI / 180;
           const along = km * Math.cos(ang), cross = Math.abs(km * Math.sin(ang));
           const reach = 12 + Math.min(10, km * 0.08);   // هامش لعرض السحابة
-          if(along > 0 && cross <= reach){ const eta = Math.round(along / motion.kmh * 60); r = eta <= 180 ? {kind:'coming', eta, km, brg:a.brg, kmh:motion.kmh} : {kind:'far', km, brg:a.brg}; }
+          if(along > 0 && cross <= reach){
+            // الحركة تقول «جايك» لكن المسافة تزيد فعلًا → ما نجزم
+            if(rec) r = vague({irregular:true});
+            else { const eta = Math.round(along / motion.kmh * 60); r = eta <= 180 ? {kind:'coming', eta, km, brg:a.brg, kmh:motion.kmh} : {kind:'far', km, brg:a.brg}; }
+          }
           else if(along > 0 && cross <= 40) r = {kind:'pass', km, brg:a.brg, cross:Math.round(cross)};
-          else r = {kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, away: along <= 0};
-        }else{
-          // بدون حركة واضحة: نعتمد تغيّر المسافة لنفس الكتلة فقط (نفس الجهة تقريبًا)
-          const same = b && Math.abs(((b.brg - a.brg + 540) % 360) - 180) < 25;
-          const speed = same ? (b.dist - a.dist)/1000/mmins : 0;
-          if(speed > 0.15){ const eta = Math.round(km/speed); r = eta <= 180 ? {kind:'coming', eta, km, brg:a.brg, kmh:Math.round(speed*60)} : {kind:'far', km, brg:a.brg}; }
-          else r = {kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, away: speed < -0.15};
+          // الحركة تقول «يبتعد» لكن المسافة تنقص فعلًا → نصدّق المسافة
+          else r = appr ? nearing() : vague({away: along <= 0 && !!(tr && !(tr.rate > 0.05))});
         }
+        else if(appr) r = nearing();
+        else if(motion && motion.still) r = vague({still:true});
+        else r = vague({irregular:true, away: rec});
       }
       // البرق: أقرب ومضة لك، وهل الكتلة القريبة فيها برق (عاصفة رعدية)
       if(LT && LT.length){
@@ -2726,16 +2791,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(r.kind === 'here'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = (r.storm ? 'برق قريب: ابتعد عن المرتفعات والأماكن المكشوفة وادخل السيارة · ' : '') + 'انتبه للشعبان والأودية' + mvTxt; cls = 'near'; showStrip = true; }
     else if(r.kind === 'coming'){ icon = '⛈️'; t = (r.storm || r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، متجه نحوك بسرعة ' + iso(r.kmh) + ' كم/س' + ltTxt; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
     else if(r.kind === 'pass'){ icon = '🌦️'; t = what + ' ' + km + ' — ' + dir; sub = 'يتجه ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س ويمر على بعد ' + iso(r.cross) + ' كم منك تقريبًا — غالبًا ما يوصلك' + ltTxt; cls = r.km < 40 ? 'app' : ''; showStrip = r.km < 40; }
-    else if(r.kind === 'close'){ icon = '🌦️'; t = what + ' قريب منك — ' + km + ' ' + dir; sub = (r.away ? 'يبتعد عنك' : 'لا يتجه نحوك حاليًا') + mvTxt + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
-    else if(r.kind === 'far'){ icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = what + ' · ' + (r.away ? 'يبتعد عنك' : 'لا يتجه نحوك حاليًا') + mvTxt; }
+    else if(r.kind === 'nearing'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌦️'; t = what + ' يقترب منك — ' + km + ' ' + dir; sub = 'كان على بعد ' + iso(Math.round(r.was)) + ' كم قبل ' + iso(r.ago) + ' دقيقة — قد يوصلك خلال ' + etaTxt(r.eta) + ' تقريبًا إذا استمر' + ltTxt; cls = 'app'; showStrip = true; }
+    else if(r.kind === 'close' || r.kind === 'far'){
+      const how = r.away ? 'يبتعد عنك' : r.still ? 'شبه ثابت في مكانه' : r.irregular ? 'حركته غير منتظمة (سحب تتكوّن وتتلاشى) — راقب الرادار' : 'لا يتجه نحوك حاليًا';
+      if(r.kind === 'close'){ icon = '🌦️'; t = what + ' قريب منك — ' + km + ' ' + dir; sub = how + mvTxt + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
+      else { icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = what + ' · ' + how + mvTxt; }
+    }
     // برق قريب منك (20 كم) أهم من أي شيء غير المطر فوقك أو الجاي خلال 45 دقيقة
-    if(ltNear && !(r.kind === 'here' || (r.kind === 'coming' && r.eta <= 45))){ icon = '⚡'; t = 'برق قريب منك — ' + iso(Math.round(r.ltKm)) + ' كم ' + directionWord(r.ltBrg); sub = 'ابتعد عن المرتفعات والأماكن المكشوفة والأشجار المنفردة، والسيارة أأمن مكان'; cls = 'near'; showStrip = true; }
+    if(ltNear && !(r.kind === 'here' || ((r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 45))){ icon = '⚡'; t = 'برق قريب منك — ' + iso(Math.round(r.ltKm)) + ' كم ' + directionWord(r.ltBrg); sub = 'ابتعد عن المرتفعات والأماكن المكشوفة والأشجار المنفردة، والسيارة أأمن مكان'; cls = 'near'; showStrip = true; }
     card.hidden = false; card.className = 'storm-card ' + cls;
     card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
-    const key = r.kind === 'here' ? 'here' : r.kind === 'coming' && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
+    const key = r.kind === 'here' ? 'here' : (r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
     if(key && STORM.warned !== key){
       STORM.warned = key; toast(t);
       if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
