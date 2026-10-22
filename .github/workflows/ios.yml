@@ -234,9 +234,16 @@ jobs:
                   timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.tick() }
               }
               func openURL(_ url: URL) { pendingURL = url.absoluteString }
+              func js(_ code: String) { DispatchQueue.main.async { self.webView()?.evaluateJavaScript(code, completionHandler: nil) } }
+              private var pttReady: Bool?
               private func tick() {
                   guard let w = webView() else { return }
                   if !attached { attached = true; w.configuration.userContentController.add(self, name: "dalil") }
+                  // 1.5: الصفحة تعرف إن لاسلكي Apple جاهز، فزر التطبيق يسجّل عن طريقه (مالك واحد للميكروفون)
+                  if #available(iOS 16.0, *) {
+                      let r = DalilPTT.shared.ready
+                      if r != pttReady { pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false"), completionHandler: nil) }
+                  }
                   if let u = pendingURL, UIApplication.shared.applicationState == .active,
                      let d = try? JSONSerialization.data(withJSONObject: [u]), var js = String(data: d, encoding: .utf8) {
                       js = String(js.dropFirst().dropLast())
@@ -260,6 +267,8 @@ jobs:
                           lm.stopUpdatingLocation()
                           lm.allowsBackgroundLocationUpdates = false
                       }
+                  } else if cmd == "ptt" {
+                      if #available(iOS 16.0, *) { if (b["on"] as? Bool) == true { DalilPTT.shared.beginTx() } else { DalilPTT.shared.endTx() } }
                   } else if cmd == "drain" {
                       let pts = buffer; buffer.removeAll()
                       if let d = try? JSONSerialization.data(withJSONObject: pts), let s = String(data: d, encoding: .utf8) {
@@ -335,7 +344,19 @@ jobs:
               private var recStart = Date()
               private var transmitting = false
               private var token = ""
+              var ready: Bool { mgr != nil && joined != nil }
+              private func evt(_ name: String, _ json: String = "null") { DalilBg.shared.js("window.__dalilPttEvt && window.__dalilPttEvt('" + name + "'," + json + ")") }
+              func beginTx() {
+                  guard let m = mgr, let c = joined else { evt("fail"); return }
+                  m.requestBeginTransmitting(channelUUID: c)
+              }
+              func endTx() { if let m = mgr, let c = joined { m.stopTransmitting(channelUUID: c) } }
+              func channelManager(_ channelManager: PTChannelManager, failedToBeginTransmittingInChannel channelUUID: UUID, error: Error) {
+                  NSLog("dalil ptt tx: \\(error)"); DispatchQueue.main.async { self.transmitting = false; self.evt("fail") }
+              }
               func setup() {
+                  // إعداد الصوت مرة وحدة قبل أي إرسال أو استقبال (تغييره والصوت مفعّل يقطع زر «تحدّث»)
+                  try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
                   NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.unstick(); self?.reconcile() }
                   NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
                   Task { @MainActor in
@@ -392,7 +413,7 @@ jobs:
                   return .activeRemoteParticipant(PTParticipant(name: who, image: nil))
               }
               func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {
-                  try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                  if audioSession.category != .playAndRecord { try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
                   DispatchQueue.main.async { self.sessionOn = true; if self.transmitting { self.startRec() } else { self.playNext() } }
               }
               func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) { DispatchQueue.main.async { self.sessionOn = false } }
@@ -429,9 +450,10 @@ jobs:
               }
               private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
               // الكلام من زر اللاسلكي في شاشة القفل
-              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = true } }
-              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.stopRec() } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); self.player = nil; self.startRec() } } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.evt("end"); self.stopRec() } }
               private func startRec() {
+                  guard recorder == nil else { return }
                   let url = FileManager.default.temporaryDirectory.appendingPathComponent("ptt-" + UUID().uuidString + ".m4a")
                   let set: [String: Any] = [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 22050, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 24000]
                   recorder = try? AVAudioRecorder(url: url, settings: set)
@@ -442,7 +464,7 @@ jobs:
                   r.stop(); recorder = nil
                   let dur = Date().timeIntervalSince(recStart)
                   defer { try? FileManager.default.removeItem(at: r.url) }
-                  guard dur > 0.6, let data = try? Data(contentsOf: r.url), data.count > 200 else { return }
+                  guard dur > 0.4, let data = try? Data(contentsOf: r.url), data.count > 200 else { evt("short"); return }
                   upload(data, dur)
               }
               private func endpoint(_ action: String) -> (URL, String, [String: Any])? {
@@ -479,7 +501,15 @@ jobs:
                   var req = URLRequest(url: url); req.httpMethod = "POST"
                   req.setValue("multipart/form-data; boundary=" + b, forHTTPHeaderField: "content-type"); req.setValue(key, forHTTPHeaderField: "apikey")
                   req.httpBody = body
-                  send(req)
+                  // نرجّع نتيجة الرفع للصفحة حتى تظهر الرسالة عند المرسل نفسه
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { d, _, _ in
+                      if let d = d, let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let v = o["voice"],
+                         let vd = try? JSONSerialization.data(withJSONObject: v), let vs = String(data: vd, encoding: .utf8) { self.evt("sent", vs) }
+                      else { self.evt("upload_fail") }
+                      UIApplication.shared.endBackgroundTask(task)
+                  }.resume()
               }
           }
           """

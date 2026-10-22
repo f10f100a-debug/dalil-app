@@ -359,8 +359,39 @@
     const c = ['audio/mp4', 'audio/aac', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
     return c.find(t=>MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) || '';
   }
+  // 1.5: في تطبيق الآيفون زر التطبيق يسجّل عن طريق لاسلكي Apple نفسه (نفس شاشة القفل) — مالك واحد للميكروفون
+  const nativePtt = ()=>!!(window.DALIL_NATIVE && window.__dalilPttReady && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dalil);
+  const pttMsg = on=>{ try{ window.webkit.messageHandlers.dalil.postMessage({cmd:'ptt', on}); }catch(e){} };
+  window.__dalilPttEvt = function(ev, data){
+    if(ev === 'rec'){
+      clearTimeout(rec.nWait);
+      if(!rec.native) return;
+      rec.t0 = Date.now(); renderPtt('rec'); if(navigator.vibrate) navigator.vibrate(30);
+      clearInterval(rec.timer);
+      rec.timer = setInterval(()=>{ const sec = (Date.now() - rec.t0) / 1000; const el = $('rmPttTime'); if(el) el.textContent = Math.floor(sec) + 'ث'; if(sec >= MAX_REC_S) recStop(); }, 250);
+      if(!rec.on){ pttMsg(false); }   // رفع إصبعه قبل ما يبدأ
+    }else if(ev === 'end'){
+      clearInterval(rec.timer); if(rec.native) renderPtt('send');
+    }else if(ev === 'sent'){
+      const was = rec.native; rec.native = false; renderPtt();
+      if(data && data.id){ addVoice(data, false); diag({s:'sent', path:'native', dur:data.duration, mine:was}); }
+    }else if(ev === 'fail' || ev === 'short' || ev === 'upload_fail'){
+      const was = rec.native; clearTimeout(rec.nWait); clearInterval(rec.timer); rec.native = false; rec.on = false; renderPtt();
+      diag({s:'native_' + ev});
+      if(was) B.toast(ev === 'short' ? 'اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك' : ev === 'upload_fail' ? 'تعذّر إرسال الرسالة — تأكد من الاتصال' : 'ما قدر يبدأ اللاسلكي — حاول مرة ثانية');
+    }
+  };
   async function recStart(){
-    if(rec.on || !R.sess) return;
+    if(rec.on || rec.native || !R.sess) return;
+    if(nativePtt()){
+      unlockAudio(); player.pause(); playing = null;
+      rec.on = true; rec.native = true; renderPtt('wait');
+      pttMsg(true);
+      clearTimeout(rec.nWait);
+      rec.nWait = setTimeout(()=>{ if(rec.native && rec.t0 < Date.now() - 2000){ window.__dalilPttEvt('fail'); pttMsg(false); } }, 2500);
+      rec.t0 = 0;
+      return;
+    }
     unlockAudio();
     const mime = pickMime();
     if(mime === null) return B.toast('جهازك لا يدعم التسجيل الصوتي');
@@ -395,6 +426,7 @@
     }, 250);
   }
   function recStop(cancel){
+    if(rec.native){ rec.on = false; clearInterval(rec.timer); if(rec.t0) pttMsg(false); return; }
     if(!rec.on) return;
     rec.on = false; rec.cancelled = !!cancel;
     clearInterval(rec.timer);
