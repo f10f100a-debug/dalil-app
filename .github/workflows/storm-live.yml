@@ -1,0 +1,19 @@
+# فحص تنبيه المطر على بيانات الرادار الحقيقية (آخر ساعتين) لموقع معيّن
+name: Storm live replay
+on:
+  workflow_dispatch:
+    inputs:
+      pos: { description: "lat,lng", type: string, default: "27.9196,42.3619" }
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm i --no-save playwright@1.47.2 && npx playwright install --with-deps chromium
+      - run: |
+          node tools/storm/live.cjs > out.txt 2>&1 || true
+          cat out.txt
+          while IFS= read -r l; do echo "::notice::$l"; done < out.txt
+        env: { POS: "${{ inputs.pos }}" }
