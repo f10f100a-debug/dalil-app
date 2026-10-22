@@ -425,6 +425,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .storm-strip.near{background:linear-gradient(135deg,#8E2A1F,#C0392B); box-shadow:0 6px 16px rgba(192,57,43,.3);}
   .storm-strip[hidden], .storm-card[hidden]{display:none;}
   .storm-strip .sx{font-size:24px;} .storm-strip b{display:block; font-size:15px;} .storm-strip small{display:block; font-size:12px; opacity:.85;}
+  .cp-pill.rain{background:#E8F1FB; color:#1C4E86; border-color:#BCD5EF; font-weight:700; gap:4px}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .cp-pill.rain{background:#16273A; color:#9CC6F0; border-color:#2B4560}
+  .rain-card{margin:0 0 12px; padding:14px}
+  .rain-card h3{margin:0; font-size:16px; display:flex; align-items:center; gap:6px}
+  .rain-card .rc-sum{margin:6px 0 10px; font-size:14.5px; line-height:1.7; color:var(--cp-ink)}
+  .rain-card .rc-sum b{color:#1C4E86} :is(html[data-theme="dark"], html[data-theme="red"]) .rain-card .rc-sum b{color:#9CC6F0}
+  .rc-lv{display:inline-block; padding:1px 9px; border-radius:20px; font-size:12.5px; font-weight:800; margin-inline-start:4px}
+  .rc-lv.l1{background:#EEF3F8; color:#5A7896} .rc-lv.l2{background:#DCEBFA; color:#1F64B5} .rc-lv.l3{background:#1F64B5; color:#fff}
+  .rc-bars{display:flex; align-items:flex-end; gap:1px; height:54px; direction:rtl; border-bottom:1px solid var(--cp-line)}
+  .rc-bars i{flex:1; min-width:2px; border-radius:2px 2px 0 0; background:#DCE7F2}
+  .rc-bars i.l1{background:#A9C6E4} .rc-bars i.l2{background:#4F92D9} .rc-bars i.l3{background:#1F64B5} .rc-bars i.t{box-shadow:inset 0 3px 0 #F2B233}
+  .rc-ticks{display:flex; direction:rtl; font-size:11px; color:var(--cp-dim); margin-top:3px}
+  .rc-ticks span{flex:1; text-align:right; white-space:nowrap}
+  .rc-days{display:grid; grid-template-columns:repeat(7, 1fr); gap:4px; margin-top:12px}
+  .rc-days div{text-align:center; font-size:11.5px; color:var(--cp-dim); background:var(--cp-soft); border-radius:10px; padding:6px 2px}
+  .rc-days b{display:block; font-size:12.5px; color:var(--cp-ink)} .rc-days .d{display:block; width:10px; height:10px; border-radius:50%; margin:4px auto; background:#DCE7F2}
+  .rc-days .d.l1{background:#A9C6E4} .rc-days .d.l2{background:#4F92D9} .rc-days .d.l3{background:#1F64B5}
+  .rc-note{font-size:11.5px; color:var(--cp-dim); margin-top:10px}
   .storm-card{margin:0 0 12px; padding:12px 14px; border-radius:16px; border:1px solid var(--cp-line); background:var(--cp-card); display:flex; gap:10px; align-items:center;}
   .storm-card .sx{font-size:26px;} .storm-card b{display:block; font-size:15px; color:var(--cp-ink);} .storm-card small{display:block; font-size:12.5px; color:var(--cp-dim); margin-top:2px;}
   .storm-card.app{border-color:#2F6FD6; background:rgba(47,111,214,.08);} .storm-card.near{border-color:#C0392B; background:rgba(192,57,43,.08);}
@@ -960,6 +978,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           <button type="button" class="cp-badge" id="cpWeatherBadge" hidden aria-label="الطقس الحالي — عرض التفاصيل">
             <span class="cp-pill"><span class="cp-ic" id="cpWeatherIcon"></span><span id="cpWeatherTemp" dir="ltr"></span></span>
           </button>
+          <button type="button" class="cp-badge" id="cpRainBadge" hidden aria-label="متى المطر — عرض التوقع">
+            <span class="cp-pill rain"><span>🌧️</span><span id="cpRainText"></span></span>
+          </button>
           <div class="cp-badge" role="status" aria-label="دقة GPS">
             <span class="cp-pill"><span class="cp-dot" id="cpGpsDot"></span><span id="cpGpsText">GPS…</span></span>
           </div>
@@ -1107,6 +1128,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
       <div id="wxPane">
       <div class="storm-card" id="stormCard" hidden></div>
+      <div class="cp-card rain-card" id="rainCard" hidden></div>
       <button type="button" class="wx-radar-cta" id="openRadarBtn">
         <span class="cp-ic" data-ico="rain"></span>
         <span><b>رادار الأمطار والبرق — مباشر</b><small>من رادارات الأرصاد · يتحدث كل 10 دقائق</small></span>
@@ -2720,6 +2742,103 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     } else if(!key) STORM.warned = '';
   }
   document.getElementById('stormStrip').addEventListener('click', ()=>document.getElementById('openRadarBtn').click());
+  // ---------- «متى المطر؟»: اتفاق 3 نماذج عالمية (الأوروبي والأمريكي والألماني) ساعة بساعة لـ 7 أيام ----------
+  const RAIN_OUT = {at:0, lat:null, lng:null, data:null, busy:false};
+  const RAIN_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
+  const LV_WORD = ['', 'ضعيف', 'محتمل', 'مرجّح'];
+  const hm = d=>{ const h = d.getHours(); return (h % 12 || 12) + (h < 12 ? 'ص' : 'م'); };
+  function dayWord(d){
+    const t = new Date(); t.setHours(0,0,0,0); const x = new Date(d); x.setHours(0,0,0,0);
+    const diff = Math.round((x - t) / 864e5);
+    return diff === 0 ? 'اليوم' : diff === 1 ? 'بكرة' : x.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', {weekday:'long'});
+  }
+  const amountWord = mm=>mm < 1 ? 'خفيف جدًا' : mm < 5 ? 'خفيف' : mm < 15 ? 'متوسط' : mm < 30 ? 'غزير' : 'غزير جدًا';
+  function rainHours(j){
+    const H = j.hourly || {}, T = H.time || [], out = [];
+    for(let i = 0; i < T.length; i++){
+      let agree = 0, pr = [], mm = [], thunder = 0, hail = 0, cape = 0;
+      for(const m of RAIN_MODELS){
+        const p = (H['precipitation_' + m] || [])[i], q = (H['precipitation_probability_' + m] || [])[i], w = (H['weather_code_' + m] || [])[i], c = (H['cape_' + m] || [])[i];
+        if(p == null && q == null) continue;
+        const wet = (p || 0) >= 0.2 || (q || 0) >= 50;
+        if(wet) agree++;
+        if(q != null) pr.push(q); if(p != null) mm.push(p);
+        if(w >= 95) thunder++; if(w === 96 || w === 99) hail++;
+        if(c != null) cape = Math.max(cape, c);
+      }
+      mm.sort((a, b)=>a - b);
+      const prob = pr.length ? Math.round(pr.reduce((a, b)=>a + b, 0) / pr.length) : 0;
+      let lv = agree >= 3 || (agree >= 2 && prob >= 60) ? 3 : agree;
+      out.push({t:new Date(T[i]), lv, prob, mm:mm.length ? mm[Math.floor(mm.length / 2)] : 0, thunder:lv && (thunder >= 1 || cape >= 800), hail:lv >= 2 && hail >= 1});
+    }
+    return out;
+  }
+  // فترات المطر: ساعات متتالية (نسمح بفجوة ساعة) من الآن
+  function rainWindows(hrs){
+    const now = Date.now() - 3600e3, wins = [];
+    let cur = null, gap = 0;
+    for(const h of hrs){
+      if(h.t.getTime() < now) continue;
+      if(h.lv){ if(!cur) cur = {start:h.t, end:h.t, lv:0, mm:0, prob:0, thunder:false, hail:false}; cur.end = h.t; cur.lv = Math.max(cur.lv, h.lv); cur.mm += h.mm; cur.prob = Math.max(cur.prob, h.prob); cur.thunder = cur.thunder || h.thunder; cur.hail = cur.hail || h.hail; gap = 0; }
+      else if(cur && ++gap > 1){ wins.push(cur); cur = null; gap = 0; }
+    }
+    if(cur) wins.push(cur);
+    return wins;
+  }
+  function renderRainOutlook(){
+    const card = document.getElementById('rainCard'), badge = document.getElementById('cpRainBadge');
+    const j = RAIN_OUT.data; if(!card || !j){ return; }
+    const hrs = rainHours(j), wins = rainWindows(hrs);
+    const main = wins.find(w=>w.lv >= 2) || wins[0];
+    let sum;
+    if(!main) sum = '☀️ لا يُتوقع مطر على مكانك خلال <b>7 أيام</b> — النماذج الثلاثة متفقة.';
+    else{
+      const end = new Date(main.end.getTime() + 3600e3), same = main.start.toDateString() === end.toDateString();
+      sum = 'احتمال مطر <span class="rc-lv l' + main.lv + '">' + LV_WORD[main.lv] + '</span> <b>' + dayWord(main.start) + ' من ' + hm(main.start) + ' لين ' + (same ? '' : dayWord(end) + ' ') + hm(end) + '</b>'
+        + '، كميته ' + amountWord(main.mm) + (main.mm >= 0.5 ? ' (' + iso(main.mm < 10 ? main.mm.toFixed(1) : Math.round(main.mm)) + ' ملم تقريبًا)' : '')
+        + (main.hail ? '، <b>مع رعد واحتمال برد</b>' : main.thunder ? '، <b>مع رعد</b>' : '') + '.';
+      const more = wins.filter(w=>w !== main && w.lv >= 2).slice(0, 2);
+      if(more.length) sum += '<br>وبعدها: ' + more.map(w=>dayWord(w.start) + ' ' + hm(w.start) + ' (' + LV_WORD[w.lv] + ')').join('، ') + '.';
+    }
+    // شريط 48 ساعة
+    const now = Date.now() - 3600e3, next = hrs.filter(h=>h.t.getTime() >= now).slice(0, 48);
+    const bars = next.map(h=>'<i class="' + (h.lv ? 'l' + h.lv : '') + (h.thunder ? ' t' : '') + '" style="height:' + Math.max(6, h.lv ? 30 + h.prob * 0.7 : 6) + '%" title="' + hm(h.t) + ' ' + h.prob + '%"></i>').join('');
+    let lastDay = '';
+    const ticks = next.filter((h, i)=>i % 12 === 0).map(h=>{ const dw = dayWord(h.t), lbl = (dw !== lastDay ? dw + ' ' : '') + hm(h.t); lastDay = dw; return '<span>' + lbl + '</span>'; }).join('');
+    // الأيام السبعة
+    const days = {}; for(const h of hrs){ const k = h.t.toDateString(); const d = days[k] || (days[k] = {t:h.t, lv:0, mm:0, prob:0}); d.lv = Math.max(d.lv, h.lv); d.mm += h.mm; d.prob = Math.max(d.prob, h.prob); }
+    const dayHtml = Object.values(days).slice(0, 7).map(d=>'<div><b>' + (dayWord(d.t) === 'اليوم' || dayWord(d.t) === 'بكرة' ? dayWord(d.t) : d.t.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', {weekday:'short'})) + '</b><span class="d ' + (d.lv ? 'l' + d.lv : '') + '"></span>' + (d.lv ? iso(d.prob) + '%' : '—') + '</div>').join('');
+    card.innerHTML = '<h3>🌧️ متى المطر؟</h3><div class="rc-sum">' + sum + '</div><div class="rc-bars">' + bars + '</div><div class="rc-ticks">' + ticks + '</div><div class="rc-days">' + dayHtml + '</div>'
+      + '<div class="rc-note">الـ 48 ساعة الجاية · كل ما غمق اللون زاد الاحتمال · الخط الأصفر = رعد. مرجّح = اتفقت 3 نماذج (الأوروبي والأمريكي والألماني)، محتمل = اثنين، ضعيف = واحد. القريب (أول ساعتين) من الرادار فوق.</div>';
+    card.hidden = false;
+    // أيقونة البوصلة: مطر محتمل أو مرجّح خلال 48 ساعة
+    const soon = wins.find(w=>w.lv >= 2 && w.start.getTime() - Date.now() < 48 * 3600e3);
+    if(soon){ setText('cpRainText', (soon.start.getTime() <= Date.now() ? 'الحين' : dayWord(soon.start) + ' ' + hm(soon.start)) + ' · ' + LV_WORD[soon.lv]); badge.hidden = false; }
+    else badge.hidden = true;
+  }
+  async function updateRainOutlook(force){
+    const pos = state.pos; if(!pos || RAIN_OUT.busy) return;
+    const moved = RAIN_OUT.lat == null || haversine(pos.lat, pos.lng, RAIN_OUT.lat, RAIN_OUT.lng) > 20000;
+    if(!force && !moved && Date.now() - RAIN_OUT.at < 60 * 60e3) return;
+    if(navigator.onLine === false) return;
+    RAIN_OUT.busy = true;
+    try{
+      const qs = new URLSearchParams({latitude:pos.lat.toFixed(3), longitude:pos.lng.toFixed(3), hourly:'precipitation,precipitation_probability,cape,weather_code', models:RAIN_MODELS.join(','), forecast_days:'7', timezone:'auto'});
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?' + qs); if(!r.ok) throw 0;
+      RAIN_OUT.data = await r.json(); RAIN_OUT.at = Date.now(); RAIN_OUT.lat = pos.lat; RAIN_OUT.lng = pos.lng;
+      try{ localStorage.setItem('dalil_rain_outlook', JSON.stringify({at:RAIN_OUT.at, lat:pos.lat, lng:pos.lng, data:RAIN_OUT.data})); }catch(e){}
+    }catch(e){}
+    RAIN_OUT.busy = false;
+    renderRainOutlook();
+  }
+  try{ const c = JSON.parse(localStorage.getItem('dalil_rain_outlook') || 'null'); if(c && Date.now() - c.at < 6 * 3600e3){ Object.assign(RAIN_OUT, {at:c.at, lat:c.lat, lng:c.lng, data:c.data}); setTimeout(renderRainOutlook, 0); } }catch(e){}
+  setTimeout(()=>updateRainOutlook(false), 7000);
+  setInterval(()=>{ if(document.visibilityState === 'visible') updateRainOutlook(false); }, 5 * 60e3);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') updateRainOutlook(false); });
+  document.getElementById('cpRainBadge').addEventListener('click', ()=>{
+    document.querySelector('.tab[data-screen="weather"]').click();
+    setTimeout(()=>{ const c = document.getElementById('rainCard'); if(c) c.scrollIntoView({behavior:'smooth', block:'start'}); }, 250);
+  });
   setInterval(()=>{ if(document.visibilityState === 'visible') checkStorm(false); }, 60000);
   setTimeout(()=>checkStorm(true), 6000);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkStorm(false); });
