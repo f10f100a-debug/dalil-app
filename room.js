@@ -870,8 +870,12 @@
     for(let i = 1; i <= 3; i++) svg += `<circle cx="${cx}" cy="${cy}" r="${Rm * i / 3}" class="rr-ring"/><text x="${cx + 4}" y="${cy - Rm * i / 3 + 11}" class="rr-lab">${lab(step * i)}</text>`;
     svg += `<text x="${cx}" y="${cy - Rm - 4}" class="rr-n">ش</text>`;
     // نقطة التجمع أولًا ثم الأعضاء فوقها
+    // الأعضاء اللي معك (أقرب من 10 م) ما تختفي تحت نقطتك: تطلع حولك بمسافة صغيرة مع كلمة «معك»
+    const withMe = pts.filter(p=>!p.rally && p.d < 10);
+    withMe.forEach((p, i)=>{ const ang = (-90 + i * 360 / Math.max(3, withMe.length)) * Math.PI / 180; p.fx = cx + Math.cos(ang) * 22; p.fy = cy + Math.sin(ang) * 22; p.near = true; });
     for(const p of pts.sort((x, y)=>(y.rally ? 1 : 0) - (x.rally ? 1 : 0))){
-      const x = cx + p.dx * sc, y = cy - p.dy * sc;
+      const x = p.near ? p.fx : cx + p.dx * sc, y = p.near ? p.fy : cy - p.dy * sc;
+      if(p.near) svg += `<text x="${x}" y="${y + 24}" class="rr-lab" text-anchor="middle">معك</text>`;
       if(p.rally) svg += `<text x="${x}" y="${y + 6}" class="rr-flag">🚩</text>`;
       else svg += `<g class="${p.stale ? 'rr-stale' : ''}">${p.sos ? `<circle cx="${x}" cy="${y}" r="17" class="rr-sos"/>` : ''}<circle cx="${x}" cy="${y}" r="12" fill="${esc(p.color)}" stroke="#fff" stroke-width="2"/><text x="${x}" y="${y + 5}" class="rr-ch">${esc(p.ch)}</text></g>`;
     }
