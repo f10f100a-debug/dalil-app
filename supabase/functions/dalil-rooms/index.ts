@@ -101,7 +101,10 @@ async function recentVoice(sb: SupabaseClient, roomId: string) {
   const { data } = await sb.from("room_voice").select("id,member_id,path,mime,duration,created_at").eq("room_id", roomId).gte("created_at", since).order("created_at", { ascending: false }).limit(40);
   if (!data?.length) return [];
   const { data: signed } = await sb.storage.from("room-voice").createSignedUrls(data.map((v) => v.path), 3600);
-  return data.map((v, i) => ({ id: v.id, member_id: v.member_id, mime: v.mime, duration: v.duration, created_at: v.created_at, url: signed?.[i]?.signedUrl || null })).reverse();
+  const { data: hr } = await sb.from("room_voice_heard").select("voice_id,member_id").in("voice_id", data.map((v) => v.id)).limit(600);
+  const heard: Record<string, string[]> = {};
+  for (const h of hr || []) (heard[h.voice_id] ||= []).push(h.member_id);
+  return data.map((v, i) => ({ id: v.id, member_id: v.member_id, mime: v.mime, duration: v.duration, created_at: v.created_at, url: signed?.[i]?.signedUrl || null, heard: heard[v.id] || [] })).reverse();
 }
 
 Deno.serve(async (req) => {
@@ -308,6 +311,23 @@ Deno.serve(async (req) => {
           payload: { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, acc: Number.isFinite(acc) ? Math.round(acc) : null, spd: Number.isFinite(spd) ? Math.round(spd * 10) / 10 : null, m: member.member_id, bg: true } }] }) });
       await sb.from("room_members").update({ last_seen: new Date().toISOString() }).eq("room_id", room.id).eq("member_id", member.member_id);
       return json(req, { ok: r.ok });
+    }
+
+    // «سمعها»: العضو شغّل رسائل غيره (من التطبيق أو من شاشة القفل) — نحفظها ونبثّها للغرفة
+    if (action === "heard") {
+      const ids = (Array.isArray(body.ids) ? body.ids : []).map(String).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 20);
+      if (!ids.length) return json(req, { ok: true });
+      const { data: vs } = await sb.from("room_voice").select("id,member_id").eq("room_id", room.id).in("id", ids);
+      const ok = (vs || []).filter((v) => v.member_id !== member.member_id).map((v) => v.id);
+      if (ok.length) {
+        await sb.from("room_voice_heard").upsert(ok.map((voice_id) => ({ voice_id, member_id: member.member_id })), { onConflict: "voice_id,member_id", ignoreDuplicates: true });
+        const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const job = fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", { method: "POST",
+          headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" },
+          body: JSON.stringify({ messages: [{ topic: "room:" + room.secret, event: "heard", private: false, payload: { m: member.member_id, ids: ok } }] }) }).catch(() => {});
+        (globalThis as any).EdgeRuntime?.waitUntil?.(job);
+      }
+      return json(req, { ok: true });
     }
 
     if (action === "leave") {

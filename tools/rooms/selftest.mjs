@@ -35,6 +35,11 @@ ok(v.ok && v.voice?.url, `voice upload ${vr.status} ${v.error || ""}`);
 if (v.voice?.url) { const g = await fetch(v.voice.url); ok(g.ok && (await g.arrayBuffer()).byteLength === 4000, `voice signed url fetch ${g.status}`); }
 const st2 = await call("state", auth(C));
 ok(st2.voice?.length === 1 && st2.rally?.label === "عند الطلح", `state sees voice=${st2.voice?.length} rally`);
+// «سمعها»: C و B يسمعون رسالة A، وA نفسه ما يُحسب
+await call("heard", { ...auth(C), ids: [v.voice?.id] }); await call("heard", { ...auth(B), ids: [v.voice?.id] }); await call("heard", { ...auth(A), ids: [v.voice?.id] });
+const st2b = await call("state", auth(A));
+const hd = st2b.voice?.[0]?.heard || [];
+ok(hd.length === 2 && hd.includes(C.me.member_id) && hd.includes(B.me.member_id), `heard receipts ${JSON.stringify(hd.length)}`);
 
 const tokBad = await call("state", { ...auth(A), token: "x" + A.token });
 ok(tokBad.status === 403, `bad token rejected ${tokBad.status}`);

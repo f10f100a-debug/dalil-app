@@ -32,7 +32,7 @@
     room:null,           // آخر رد من الخادم
     members:new Map(),   // member_id -> {name, color}
     pos:new Map(),       // member_id -> {lat,lng,acc,spd,t}
-    voice:[], heard:new Set(), muted:new Set(),
+    voice:[], heard:new Set(), muted:new Set(), heardBy:new Map(),   // voice_id -> Set(member_id) سمعوها
     lagging:new Set(), sos:new Map(), mySos:null,
     navObj:null, open:false, tab:'join'
   };
@@ -120,6 +120,7 @@
         clearTimeout(helloReply); helloReply = setTimeout(()=>{ const mp = myPosPayload(); if(mp) RT.send('pos', mp); }, 300 + Math.random() * 1500);
         break;
       case 'voice': if(p.v && p.v.url) addVoice(p.v, true); break;
+      case 'heard': if(Array.isArray(p.ids)){ let ch = false; for(const vid of p.ids) ch = markHeard(String(vid), [id]) || ch; if(ch) renderVoiceSoon(); } break;
       case 'voice_live':
         if(p.id && typeof p.b64 === 'string' && p.b64.length < 160000 && /^audio\//.test(p.mime || '')){
           try{
@@ -251,7 +252,7 @@
     btn.disabled = false; renderLobbyBtn();
     if(!j.ok) return formErr(errText(j.error));
     R.sess = {room_id:j.room_id, member_id:j.me.member_id, token:j.token, code:j.code, pin, name};
-    R.muted = new Set(); R.voice = []; R.heard = new Set(); R.pos.clear(); R.lagging.clear();
+    R.muted = new Set(); R.voice = []; R.heard = new Set(); R.heardBy = new Map(); R.pos.clear(); R.lagging.clear();
     (j.voice || []).forEach(v=>R.heard.add(v.id));   // لا نشغّل القديم تلقائيًا
     saveSess(); B.startGeo && B.startGeo(); bgSync();
     setTimeout(roomPush, 1500);
@@ -275,7 +276,7 @@
   function endRoom(msg){
     if(R.mySos) stopMySos(true);
     RT.stop(); stopLoops();
-    R.sess = null; R.room = null; R.members.clear(); R.pos.clear(); R.voice = []; R.sos.clear(); R.rally = null;
+    R.sess = null; R.room = null; R.members.clear(); R.pos.clear(); R.voice = []; R.heardBy = new Map(); R.sos.clear(); R.rally = null;
     if(R.navObj) R.navObj = null;
     saveSess(); syncMap(); updateBtn(); renderSos(); bgSync();
     if(msg) B.toast(msg);
@@ -311,7 +312,23 @@
     player.src = URL.createObjectURL(new Blob([buf], {type:'audio/wav'}));
     player.play().catch(()=>{});
   }
+  function markHeard(vid, mids){
+    if(!vid || !mids || !mids.length) return false;
+    let set = R.heardBy.get(vid), ch = false;
+    if(!set){ set = new Set(); R.heardBy.set(vid, set); }
+    for(const m of mids) if(m && !set.has(m)){ set.add(m); ch = true; }
+    return ch;
+  }
+  // نبلّغ السيرفر إننا سمعنا رسائل غيرنا (دفعة كل ثانية)
+  let heardQ = new Set(), heardT = null;
+  function reportHeard(v){
+    if(!R.sess || !v || v.member_id === me() || !/^[0-9a-f-]{36}$/.test(v.id)) return;
+    heardQ.add(v.id);
+    clearTimeout(heardT);
+    heardT = setTimeout(()=>{ const ids = [...heardQ]; heardQ = new Set(); if(ids.length && R.sess) api('heard', authBody({ids})); }, 1000);
+  }
   function addVoice(v, live){
+    if(v && v.id && Array.isArray(v.heard) && markHeard(v.id, v.heard)) renderVoiceSoon();
     if(!v || !v.id || R.voice.some(x=>x.id === v.id)) return;
     R.voice.push(v);
     R.voice.sort((a, b)=>new Date(a.created_at) - new Date(b.created_at));
@@ -327,7 +344,7 @@
     playClip(v);
   }
   function playClip(v, noTone){
-    playing = v; R.heard.add(v.id);
+    playing = v; R.heard.add(v.id); reportHeard(v);
     player.src = v.url;
     const wait = noTone ? 0 : tone('in');
     (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>player.play()).then(()=>{ renderVoiceSoon(); }, ()=>{ playing = null; renderVoiceSoon(); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
@@ -603,6 +620,9 @@
   .rm-invite small{display:block; font-size:11.5px; color:var(--text-dim)}
   .rm-invite .cp-btn{width:auto; min-height:44px; padding:0 14px; font-size:14px}
   .rm-out{height:40px; padding:0 14px; border-radius:20px; border:1px solid rgba(193,85,63,.3); background:var(--cp-red-bg); color:var(--cp-red); font:inherit; font-size:14px; font-weight:700; cursor:pointer}
+  .rm-hd{display:block; font-size:12px; color:var(--text-faint); margin-top:1px}
+  .rm-hd.on{color:#2F7A4B}
+  html[data-theme=dark] .rm-hd.on{color:#7CC495}
   .rm-more{display:block; width:100%; margin:2px 0 8px; padding:10px; border:1px dashed var(--line); border-radius:14px; background:none; color:var(--text-dim); font:inherit; font-size:14px; cursor:pointer}
   .rm-leave{display:block; margin:4px auto 6px; border:0; background:none; color:var(--danger); font:inherit; font-size:13.5px; font-weight:600; text-decoration:underline; cursor:pointer; padding:8px}
   .rm-foot{border-top:1px solid var(--line); padding:12px 0 calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center}
@@ -875,10 +895,20 @@
       const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = playing && playing.id === v.id;
       return `<div class="rm-v${isNew ? ' new' : ''}${muted ? ' muted' : ''}${pl ? ' playing' : ''}">
         <span class="dot" style="background:${esc(memberColor(v.member_id))}"></span>
-        <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small></span>
+        <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small>${mine ? heardLine(v) : ''}</span>
         <button class="rm-play" type="button" data-rm="play" data-id="${esc(v.id)}">${pl ? '■' : '▶'}</button>
       </div>`;
     }).join('') + (all.length > 3 ? `<button type="button" class="rm-more" data-rm="voice-all">${R.voiceAll ? 'عرض أقل' : 'عرض الكل (' + all.length + ')'}</button>` : '');
+  }
+  // تحت رسالتي: ✓ أُرسلت / ✓✓ سمعها فلان / ✓✓ سمعها الكل
+  function heardLine(v){
+    const set = R.heardBy.get(v.id), others = [...R.members.keys()].filter(id=>id !== me());
+    const who = set ? [...set].filter(id=>id !== me()) : [];
+    if(!who.length) return '<small class="rm-hd">✓ أُرسلت</small>';
+    const all = others.length && others.every(id=>who.includes(id));
+    const names = who.map(id=>memberName(id));
+    const txt = all && others.length > 1 ? 'سمعها الكل' : 'سمعها ' + (names.length <= 2 ? names.join(' و') : names.slice(0, 2).join('، ') + ' و' + (names.length - 2) + ' غيرهم');
+    return '<small class="rm-hd on">✓✓ ' + esc(txt) + '</small>';
   }
   function renderPtt(mode){
     const b = $('rmPtt'); if(!b) return;
