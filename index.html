@@ -237,7 +237,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .um-row .n{flex:1;min-width:0}.um-row .n b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.um-row .n small{color:var(--text-dim);font-size:12px}
   .um-row button{width:auto;padding:0 12px;height:36px}
   .rec-pill{
-    position:absolute; top:70px; left:50%; transform:translateX(-50%); white-space:nowrap; pointer-events:none;
+    /* تحت الخريطة (مو فوقها) حتى ما يغطي وقت الرادار وأزراره */
+    width:fit-content; margin:8px auto 0; white-space:nowrap; pointer-events:none;
     background:#FBE9E5; color:var(--danger); box-shadow:0 2px 8px rgba(60,45,20,.12);
     border:1px solid rgba(193,85,63,.35); font-size:11px; font-weight:800; padding:5px 11px;
     border-radius:100px; display:flex; align-items:center; gap:6px;
@@ -1050,8 +1051,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="track-svg-wrap">
         <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261022-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
-        <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ التسجيل</div>
       </div>
+      <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
       <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false">⌃ تسجيل المسار وأدواته</button>
       <div class="track-tools-panel" id="trackToolsPanel">
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-top:12px;">
