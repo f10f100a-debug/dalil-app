@@ -193,6 +193,8 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
 <div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div><div id="navRain" class="nav-rain" hidden></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
 <script>
 const query=new URLSearchParams(location.search);
+// زر الرجوع يعيدك للشاشة اللي فتحت منها الخريطة (الأماكن/الأجواء…) بدل البوصلة دائمًا
+{const bk=query.get('back'),BK={places:'الأماكن',weather:'الأجواء',settings:'الإعدادات',track:'الخريطة',compass:'البوصلة'};const a=document.querySelector('.back-link');if(a&&BK[bk]){a.href='index.html?screen='+bk;a.textContent='← رجوع إلى '+BK[bk]}}
 const isEmbedded=query.get('embed')==='1';
 if(isEmbedded)document.body.classList.add('embed');
 const S=256,minZ=5,maxZ=20,maxLocalZ=18,maxOnlineTileZ=19;
