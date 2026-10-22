@@ -4461,8 +4461,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   window.__dalilOpenUrl = function(u){
     try{
       const url = new URL(String(u).replace(/^dalil:\/\//, 'https://x/'));
-      const code = (url.searchParams.get('code') || url.searchParams.get('room') || '').replace(/\D/g, '').slice(0, 6);
-      const pin = (url.searchParams.get('pin') || '').replace(/\D/g, '').slice(0, 8);
+      // dalilbarr.com/r/رقم/رمز (الرابط القصير) أو ?room=…&pin=… أو dalil://room?code=…
+      const short = String(u).match(/\/r\/(\d{6})(?:\/(\d{4,8}))?/);
+      const code = (short ? short[1] : (url.searchParams.get('code') || url.searchParams.get('room') || '')).replace(/\D/g, '').slice(0, 6);
+      const pin = (short ? (short[2] || '') : (url.searchParams.get('pin') || url.searchParams.get('p') || '')).replace(/\D/g, '').slice(0, 8);
       if(code) loadRoom().then(m=>m.open(code, pin)).catch(()=>{});
     }catch(e){}
     return true;

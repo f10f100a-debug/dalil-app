@@ -119,8 +119,10 @@ jobs:
           case "$MARKETING_VERSION" in 1.0|1.1|1.2|1.3) echo "::notice::Associated domains: skipped for $MARKETING_VERSION";; *)
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains array" ios/App/App/App.entitlements
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:f10f100a-debug.github.io" ios/App/App/App.entitlements
+            # 1.5: الروابط القصيرة dalilbarr.com/r/… تفتح التطبيق مباشرة
+            case "$MARKETING_VERSION" in 1.4) ;; *) /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:1 string applinks:dalilbarr.com" ios/App/App/App.entitlements ;; esac
             plutil -lint ios/App/App/App.entitlements
-            echo "::notice::Associated domains: applinks:f10f100a-debug.github.io"
+            echo "::notice::Associated domains: $(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' ios/App/App/App.entitlements | tr -d '\n ')"
             # 1.4: اللاسلكي (Apple PushToTalk) — الصوت يشتغل والجوال مقفل
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.push-to-talk bool true" ios/App/App/App.entitlements
             $PB -c "Print :UIBackgroundModes" "$P" | grep -q push-to-talk || $PB -c "Add :UIBackgroundModes: string push-to-talk" "$P"
@@ -324,14 +326,17 @@ jobs:
               private var joined: UUID?
               private var joining = false
               private var active = true
-              private var queue: [URL] = []
+              private var queue: [(URL, String)] = []
+              private var playingId = ""
+              private var sessionOn = false
+              private var watchdog: DispatchWorkItem?
               private var player: AVAudioPlayer?
               private var recorder: AVAudioRecorder?
               private var recStart = Date()
               private var transmitting = false
               private var token = ""
               func setup() {
-                  NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.reconcile() }
+                  NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.unstick(); self?.reconcile() }
                   NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
                   Task { @MainActor in
                       do { self.mgr = try await PTChannelManager.channelManager(delegate: self, restorationDelegate: self) } catch { NSLog("dalil ptt manager: \\(error)") }
@@ -376,8 +381,10 @@ jobs:
               func incomingPushResult(channelManager: PTChannelManager, channelUUID: UUID, pushPayload: [String: Any]) -> PTPushResult {
                   if (pushPayload["leave"] as? Bool) == true { return .leaveChannel }
                   let who = (pushPayload["activeSpeaker"] as? String) ?? "عضو في الغرفة"
+                  let vid = (pushPayload["id"] as? String) ?? ""
                   if !active, let s = pushPayload["url"] as? String, let u = URL(string: s) {
-                      DispatchQueue.main.async { self.queue.append(u); if self.player != nil { return } }
+                      // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
+                      DispatchQueue.main.async { self.queue.append((u, vid)); self.arm(); if self.player == nil && self.sessionOn { self.playNext() } }
                   } else {
                       // التطبيق مفتوح: الصفحة تشغّل الصوت بنفسها
                       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { channelManager.setActiveRemoteParticipant(nil, channelUUID: channelUUID, completionHandler: nil) }
@@ -386,23 +393,41 @@ jobs:
               }
               func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {
                   try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
-                  DispatchQueue.main.async { if self.transmitting { self.startRec() } else { self.playNext() } }
+                  DispatchQueue.main.async { self.sessionOn = true; if self.transmitting { self.startRec() } else { self.playNext() } }
               }
-              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) {}
+              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) { DispatchQueue.main.async { self.sessionOn = false } }
+              // صمّام أمان: «المتكلم الحالي» ما يعلق أبدًا (وإلا يقفل زر «تحدّث» في شاشة القفل)
+              private func arm() {
+                  watchdog?.cancel()
+                  let w = DispatchWorkItem { [weak self] in
+                      guard let self = self else { return }
+                      if self.player == nil { self.queue.removeAll(); self.finish() } else { self.arm() }
+                  }
+                  watchdog = w
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: w)
+              }
+              private func unstick() { if player == nil { queue.removeAll(); finish() } }
               private func playNext() {
                   guard player == nil else { return }
                   guard !queue.isEmpty else { finish(); return }
-                  let u = queue.removeFirst()
+                  let (u, vid) = queue.removeFirst()
+                  arm()
                   URLSession.shared.dataTask(with: u) { d, _, _ in
                       DispatchQueue.main.async {
                           guard let d = d, let p = try? AVAudioPlayer(data: d) else { self.playNext(); return }
-                          self.player = p; p.delegate = self; p.prepareToPlay()
-                          if !p.play() { self.player = nil; self.playNext() }
+                          self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
+                          if !p.play() { self.player = nil; self.playingId = ""; self.playNext() }
                       }
                   }.resume()
               }
-              func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) { DispatchQueue.main.async { self.player = nil; self.playNext() } }
-              private func finish() { if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
+              func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+                  DispatchQueue.main.async {
+                      // «سمعها»: نبلّغ المرسل إن الرسالة اشتغلت والجوال مقفل
+                      if flag && !self.playingId.isEmpty { self.post("heard", ["ids": [self.playingId]]) }
+                      self.player = nil; self.playingId = ""; self.playNext()
+                  }
+              }
+              private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
               // الكلام من زر اللاسلكي في شاشة القفل
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = true } }
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.stopRec() } }
