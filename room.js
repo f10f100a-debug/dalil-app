@@ -266,7 +266,8 @@
   }
   async function leave(){
     if(!R.sess) return;
-    if(!confirm('تغادر غرفة الرحلة؟ لن يرى الأعضاء موقعك بعد الآن.')) return;
+    const rn = R.room && R.room.name ? ' «' + R.room.name + '»' : '';
+    if(!confirm('تبي تطلع من غرفة' + rn + '؟\nما راح توصلك رسائلهم ولا يشوفون موقعك بعدها.')) return;
     RT.send('leave', {});
     api('leave', authBody());
     endRoom('غادرت الغرفة');
@@ -594,6 +595,8 @@
   .rm-invite .grow{flex:1; min-width:0}
   .rm-invite small{display:block; font-size:11.5px; color:var(--text-dim)}
   .rm-invite .cp-btn{width:auto; min-height:44px; padding:0 14px; font-size:14px}
+  .rm-out{height:40px; padding:0 14px; border-radius:20px; border:1px solid rgba(193,85,63,.3); background:var(--cp-red-bg); color:var(--cp-red); font:inherit; font-size:14px; font-weight:700; cursor:pointer}
+  .rm-more{display:block; width:100%; margin:2px 0 8px; padding:10px; border:1px dashed var(--line); border-radius:14px; background:none; color:var(--text-dim); font:inherit; font-size:14px; cursor:pointer}
   .rm-leave{display:block; margin:4px auto 6px; border:0; background:none; color:var(--danger); font:inherit; font-size:13.5px; font-weight:600; text-decoration:underline; cursor:pointer; padding:8px}
   .rm-foot{border-top:1px solid var(--line); padding:12px 0 calc(12px + env(safe-area-inset-bottom)); display:flex; gap:10px; align-items:center}
   .rm-ptt{flex:1; min-height:64px; border-radius:22px; border:0; background:var(--sand); color:#1C1A17; font:inherit; font-size:16px; font-weight:800; display:flex; align-items:center; justify-content:center; gap:8px;
@@ -624,7 +627,7 @@
     const ov = document.createElement('div');
     ov.className = 'overlay'; ov.id = 'roomOverlay';
     ov.innerHTML = `<div class="sheet cp-sheet rm-sheet" role="dialog" aria-modal="true" aria-labelledby="rmTitle">
-      <div class="rm-head"><h3 id="rmTitle">غرفة الرحلة</h3><button class="rm-x" type="button" id="rmClose" aria-label="إغلاق">×</button></div>
+      <div class="rm-head"><h3 id="rmTitle">غرفة الرحلة</h3><button class="rm-out" type="button" id="rmLeave" hidden>خروج</button><button class="rm-x" type="button" id="rmClose" aria-label="إغلاق">×</button></div>
       <div class="rm-scroll" id="rmBody"></div>
       <div class="rm-foot" id="rmFoot" hidden>
         <button class="rm-sos" type="button" id="rmSos">استغاثة</button>
@@ -644,6 +647,7 @@
     menu.addEventListener('click', e=>{ if(e.target === menu) menu.classList.remove('show'); });
     ov.addEventListener('pointerdown', unlockAudio, {passive:true});
     $('rmClose').onclick = close;
+    $('rmLeave').onclick = ()=>leave();
     $('rmBody').addEventListener('click', onBodyClick);
     $('rmBody').addEventListener('input', e=>{ if(e.target.classList.contains('num')) e.target.value = e.target.value.replace(/\D/g, ''); if($('rmErr')) $('rmErr').hidden = true; });
     const ptt = $('rmPtt');
@@ -684,6 +688,7 @@
   function render(){
     if(!$('rmBody')) return;
     $('rmFoot').hidden = !R.sess;
+    $('rmLeave').hidden = !R.sess;
     if(!R.sess) return renderLobby();
     renderRoomBody();
   }
@@ -725,16 +730,15 @@
       <button type="button" class="rm-radar" data-rm="map" aria-label="عرض الأعضاء على الخريطة" id="rmRadar"></button>
       <div class="rm-title" id="rmMemTitle">الأعضاء</div>
       <div id="rmMembers"></div>
-      <div class="rm-title">الرسائل الصوتية</div>
-      <div id="rmVoice"></div>
-      <div id="rmRally"></div>
       <div class="rm-invite">
         <div class="grow"><small>رقم الغرفة</small><b class="rm-code">${esc(R.sess.code)}</b></div>
         <div class="grow"><small>الرمز السري</small><b class="rm-code">${esc(R.sess.pin || '••••')}</b></div>
         <button class="cp-btn cp-btn-gold" type="button" data-rm="share">دعوة أصحابك</button>
       </div>
-      <div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية.</div>
-      <button type="button" class="rm-leave" data-rm="leave">مغادرة الغرفة</button>`;
+      <div class="rm-title">الرسائل الصوتية</div>
+      <div id="rmVoice"></div>
+      <div id="rmRally"></div>
+      ${window.DALIL_NATIVE ? '' : '<div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية.</div>'}`;
     renderRadar(); renderRally(); renderMembers(); renderVoice(); renderStatus(); renderPtt();
     $('rmSos').classList.toggle('on', !!R.mySos);
     $('rmSos').textContent = R.mySos ? 'إلغاء' : 'استغاثة';
@@ -822,8 +826,8 @@
   function renderVoiceSoon(){ if(!voiceTimer) voiceTimer = setTimeout(()=>{ voiceTimer = null; renderVoice(); }, 120); }
   function renderVoice(){
     const el = $('rmVoice'); if(!el) return;
-    const list = R.voice.slice(-6).reverse();
-    if(!list.length){ el.innerHTML = '<div class="rm-note" style="margin:0">لا توجد رسائل بعد. اضغط مطوّلًا على «اضغط وتكلّم» بالأسفل.</div>'; return; }
+    const all = R.voice.slice(-6).reverse(), list = R.voiceAll ? all : all.slice(0, 3);
+    if(!all.length){ el.innerHTML = '<div class="rm-note" style="margin:0">لا توجد رسائل بعد. اضغط مطوّلًا على «اضغط وتكلّم» بالأسفل.</div>'; return; }
     el.innerHTML = list.map(v=>{
       const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = playing && playing.id === v.id;
       return `<div class="rm-v${isNew ? ' new' : ''}${muted ? ' muted' : ''}${pl ? ' playing' : ''}">
@@ -831,7 +835,7 @@
         <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small></span>
         <button class="rm-play" type="button" data-rm="play" data-id="${esc(v.id)}">${pl ? '■' : '▶'}</button>
       </div>`;
-    }).join('');
+    }).join('') + (all.length > 3 ? `<button type="button" class="rm-more" data-rm="voice-all">${R.voiceAll ? 'عرض أقل' : 'عرض الكل (' + all.length + ')'}</button>` : '');
   }
   function renderPtt(mode){
     const b = $('rmPtt'); if(!b) return;
@@ -852,6 +856,7 @@
     else if(act === 'go') enter(R.tab);
     else if(act === 'share') shareRoom();
     else if(act === 'leave') leave();
+    else if(act === 'voice-all'){ R.voiceAll = !R.voiceAll; renderVoice(); }
     else if(act === 'map'){ close(); B.showMap(); setTimeout(()=>syncMap(true), 400); }
     else if(act === 'nav') navTo(id);
     else if(act === 'navcar') navToCar(id);
