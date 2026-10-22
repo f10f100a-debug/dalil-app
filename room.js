@@ -576,7 +576,14 @@
   .rm-sosnote{background:var(--cp-red-bg); color:var(--cp-red); border-color:#EFCFC9}
   .rm-radar{display:block; position:relative; width:100%; padding:0; border:1px solid var(--line); background:var(--panel-2); border-radius:18px; cursor:pointer; overflow:hidden; min-height:120px; font:inherit; color:var(--text)}
   .rm-radar svg{display:block; width:100%; height:auto}
-  .rr-ring{fill:none; stroke:var(--line); stroke-width:1.3}
+  .rr-bg{position:absolute; inset:0; pointer-events:none}
+  .rr-bg svg{width:100%; height:100%}
+  .rr-bg image{opacity:.42; filter:grayscale(.55) sepia(.25)}
+  html[data-theme=dark] .rr-bg image, html[data-theme=red] .rr-bg image{opacity:.35; filter:invert(.92) hue-rotate(180deg) grayscale(.5)}
+  .rm-radar > svg{position:relative}
+  .rr-osm{position:absolute; right:6px; bottom:3px; font-size:8px; color:var(--text-faint); direction:ltr}
+  .rr-ring{fill:none; stroke:var(--text-faint); stroke-opacity:.55; stroke-width:1.3}
+  .rr-lab{paint-order:stroke; stroke:var(--panel-2); stroke-width:3px; stroke-linejoin:round}
   .rr-lab{font-size:10px; fill:var(--text-faint); direction:ltr}
   .rr-n{font-size:12px; font-weight:800; fill:#C0392B; text-anchor:middle}
   .rr-ch{font-size:12px; font-weight:800; fill:#fff; text-anchor:middle}
@@ -801,7 +808,34 @@
     }
     svg += `<circle cx="${cx}" cy="${cy}" r="7" class="rr-me"/></svg><span class="rm-radar-go">${ico('map')}الخريطة</span>`;
     if(!pts.some(p=>!p.rally)) svg += '<span class="rm-radar-wait bottom">بانتظار مواقع الأعضاء…</span>';
+    // الخريطة تحت الدوائر: طبقة مستقلة لا تُعاد إلا إذا تغيّر المقياس أو تحرّكت كثيرًا (بدون وميض)
+    let bg = el.querySelector('.rr-bg');
+    const map = radarMap(a, sc, W, H);
+    if(!bg || bg.dataset.k !== map.k){ bg = null; }
+    const keep = bg;
     el.innerHTML = svg;
+    if(keep) el.prepend(keep);
+    else if(map.html){ const d = document.createElement('div'); d.className = 'rr-bg'; d.dataset.k = map.k; d.innerHTML = map.html; el.prepend(d); }
+  }
+  // بلاطات OpenStreetMap باهتة بنفس مقياس الرادار والشمال للأعلى (بدون إنترنت تبقى الدوائر فقط)
+  function radarMap(a, sc, W, H){
+    const lat = a.lat * Math.PI / 180, mppTarget = 1 / sc;   // متر لكل وحدة رسم
+    let z = Math.ceil(Math.log2(156543.034 * Math.cos(lat) / mppTarget));
+    z = Math.max(3, Math.min(17, z));
+    const n = 256 * Math.pow(2, z), u = 156543.034 * Math.cos(lat) / Math.pow(2, z) * sc;   // وحدة رسم لكل بكسل خريطة
+    const wx = (a.lng + 180) / 360 * n, wy = (1 - Math.log(Math.tan(lat) + 1 / Math.cos(lat)) / Math.PI) / 2 * n;
+    const k = z + ':' + Math.round(wx / 6) + ':' + Math.round(wy / 6) + ':' + Math.round(u * 1000);
+    if(navigator.onLine === false) return {k, html:''};
+    const hw = W / 2 / u, hh = H / 2 / u, t = Math.pow(2, z);
+    let img = '';
+    for(let ty = Math.floor((wy - hh) / 256); ty <= Math.floor((wy + hh) / 256); ty++){
+      if(ty < 0 || ty >= t) continue;
+      for(let tx = Math.floor((wx - hw) / 256); tx <= Math.floor((wx + hw) / 256); tx++){
+        const x = W / 2 + (tx * 256 - wx) * u, y = H / 2 + (ty * 256 - wy) * u, sz = 256 * u + .6;
+        img += `<image href="https://tile.openstreetmap.org/${z}/${((tx % t) + t) % t}/${ty}.png" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${sz.toFixed(1)}" height="${sz.toFixed(1)}" preserveAspectRatio="none"/>`;
+      }
+    }
+    return {k, html:`<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${img}</svg><span class="rr-osm">© OpenStreetMap</span>`};
   }
   let memTimer = null;
   function renderMembersSoon(){ if(R.open && !memTimer) memTimer = setTimeout(()=>{ memTimer = null; renderMembers(); renderRally(); renderRadar(); }, 700); }
