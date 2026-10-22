@@ -345,9 +345,16 @@ jobs:
               private var transmitting = false
               private var token = ""
               var ready: Bool { mgr != nil && joined != nil }
+              // صفحة الويب (تشغيل الصوت داخل التطبيق) تغيّر نوع الصوت إلى «تشغيل فقط»، فيقطع النظام الإرسال بعد ثانية.
+              // نرجّعه «تسجيل وتشغيل» قبل كل إرسال، وعند بدايته، وكل ما تطلع من التطبيق.
+              private func ensureCategory() {
+                  let a = AVAudioSession.sharedInstance()
+                  if a.category != .playAndRecord { try? a.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
+              }
               private func evt(_ name: String, _ json: String = "null") { DalilBg.shared.js("window.__dalilPttEvt && window.__dalilPttEvt('" + name + "'," + json + ")") }
               func beginTx() {
                   guard let m = mgr, let c = joined else { evt("fail"); return }
+                  ensureCategory()
                   m.requestBeginTransmitting(channelUUID: c)
               }
               func endTx() { if let m = mgr, let c = joined { m.stopTransmitting(channelUUID: c) } }
@@ -358,7 +365,7 @@ jobs:
                   // إعداد الصوت مرة وحدة قبل أي إرسال أو استقبال (تغييره والصوت مفعّل يقطع زر «تحدّث»)
                   try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
                   NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.unstick(); self?.reconcile() }
-                  NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
+                  NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false; self?.ensureCategory() }
                   Task { @MainActor in
                       do { self.mgr = try await PTChannelManager.channelManager(delegate: self, restorationDelegate: self) } catch { NSLog("dalil ptt manager: \\(error)") }
                       self.joined = self.mgr?.activeChannelUUID
@@ -450,7 +457,7 @@ jobs:
               }
               private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
               // الكلام من زر اللاسلكي في شاشة القفل
-              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); self.player = nil; self.startRec() } } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { ensureCategory(); DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); self.player = nil; self.startRec() } } }
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.evt("end"); self.stopRec() } }
               private func startRec() {
                   guard recorder == nil else { return }
