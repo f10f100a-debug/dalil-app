@@ -682,7 +682,7 @@ setInterval(()=>{if(LP.clouds&&!playTimer&&glReady)showFrame(playSet().frames.le
 const cloudFrameTimes=()=>{const out=[],b=Math.floor((Date.now()-40*60e3)/1800e3)*1800e3;for(let k=5;k>=0;k--)out.push(new Date(b-k*1800e3).toISOString().slice(0,16)+':00Z');out.push('latest:'+Math.floor(Date.now()/600e3));return out};
 let CLOUD_FRAMES=cloudFrameTimes();
 // تحديث تلقائي كل 10 دقائق ما دامت الطبقة ظاهرة (والتحريك متوقف)
-setInterval(()=>{if(!LP.clouds||!glReady||playTimer)return;const nf=cloudFrameTimes();if(nf[nf.length-1]===CLOUD_FRAMES[CLOUD_FRAMES.length-1])return;CLOUD_FRAMES=nf;CLOUD_FRAMES.forEach((t,k)=>{const sc=gl.getSource('clouds-'+k);if(sc)sc.setTiles(['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'])})},60000);
+setInterval(()=>{if(!LP.clouds||!glReady||playTimer)return;const nf=cloudFrameTimes();if(nf[nf.length-1]===CLOUD_FRAMES[CLOUD_FRAMES.length-1])return;CLOUD_FRAMES=nf;CLOUD_FRAMES.forEach((t,k)=>{if(gl.getSource('clouds-'+k))rebuildRaster('clouds-'+k,['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'])})},60000);
 // طبقة المطر: معدل الهطول من IMERG (NASA GIBS، كل 30 دقيقة، دقة ~10 كم). الصور شفافة حيث لا مطر.
 // ست لقطات: خمس ساعات معروفة الوقت + «الأحدث» (default)، للتحريك ومعرفة اتجاه السحب الممطرة.
 const RAIN_TMS=['GoogleMapsCompatible_Level6','GoogleMapsCompatible_Level7','GoogleMapsCompatible_Level8','GoogleMapsCompatible_Level9'];let rainTms=0;
@@ -733,12 +733,17 @@ const radarStale=()=>LP.radar&&glReady&&Date.now()-radarLoadedAt>5*60e3;
 setInterval(()=>{if(radarStale())loadRadarFrames()},60000);
 const radarWake=()=>{if(document.visibilityState==='visible'&&radarStale())loadRadarFrames()};
 document.addEventListener('visibilitychange',radarWake);window.addEventListener('focus',radarWake);window.addEventListener('pageshow',radarWake);
+// تبديل روابط طبقة صور (البرق/السحب) بإعادة بناء المصدر والطبقة في نفس مكانها، لأن setTiles وقت الرسم
+// مع بلاطات فاشلة يسبب خطأ في MapLibre (texture.bind) — نفس إصلاح الرادار
+function rebuildRaster(id,tiles){const src=gl.getSource(id);if(!src)return;const spec={...src.serialize(),tiles};
+  const st=gl.getStyle().layers,i=st.findIndex(l=>l.id===id),def=i>=0?st[i]:null,before=i>=0&&st[i+1]?st[i+1].id:undefined;
+  if(def)gl.removeLayer(id);gl.removeSource(id);gl.addSource(id,spec);if(def)gl.addLayer(def,before)}
 // البرق: مساحة الومضات المتراكمة من حساس البرق في القمر الأوروبي MTG (EUMETSAT)، تُحدَّث كل 5 دقائق
 let lightningAt=0;
 function refreshLightning(){
   if(!glReady||Date.now()-lightningAt<4*60e3&&gl.getSource('lightning'))return;lightningAt=Date.now();
   const url='https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&styles=&format=image/png&transparent=true&crs=EPSG:3857&width=256&height=256&layers=mtg_fd:li_afa&bbox={bbox-epsg-3857}&_='+Math.floor(lightningAt/300e3);
-  if(gl.getSource('lightning'))gl.getSource('lightning').setTiles([url]);
+  if(gl.getSource('lightning'))rebuildRaster('lightning',[url]);
   else{gl.addSource('lightning',{type:'raster',tiles:[url],tileSize:256,minzoom:3,maxzoom:9});
     gl.addLayer({id:'lightning',type:'raster',source:'lightning',layout:{visibility:LP.lightning?'visible':'none'},paint:{'raster-opacity':.55,'raster-fade-duration':0,'raster-saturation':-1,'raster-brightness-max':.6,'raster-contrast':.5}},'slot:dalil')}
 }

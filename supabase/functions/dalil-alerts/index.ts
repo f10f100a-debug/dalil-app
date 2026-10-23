@@ -23,6 +23,8 @@ function dbz(r: number, g: number, b: number, a: number) {
   for (const [d, R, G, B] of PAL) { const e = (r - R) ** 2 + (g - G) ** 2 + (b - B) ** 2; if (e < best) { best = e; v = d; } }
   return v;
 }
+// بصمة شبكة المناطق: للتأكد أنها نُشرت كاملة بدون تغيير (تظهر في الفحص التجريبي فقط)
+const GRID_SUM = [...GRID.g].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) + ":" + GRID.g.length;
 const DIRS = ["شمال", "شمال شرق", "شرق", "جنوب شرق", "جنوب", "جنوب غرب", "غرب", "شمال غرب"];
 const dirWord = (deg: number) => DIRS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 function bearing(la1: number, lo1: number, la2: number, lo2: number) {
@@ -181,7 +183,7 @@ Deno.serve(async (req) => {
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 30 * 86400e3).toISOString());
-    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out });
+    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
   } catch (e) {
     console.error("dalil-alerts", e);
     return done({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, 500);
