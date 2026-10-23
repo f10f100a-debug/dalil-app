@@ -146,19 +146,22 @@ Deno.serve(async (req) => {
       if (!byRegion.has(reg)) byRegion.set(reg, []);
       byRegion.get(reg)!.push({ i, j: jj, d });
     }
-    // حركة المطر: أفضل إزاحة بين قبل 30 د والآن لخلايا ≥30 dBZ
-    const motion = (() => {
-      const A: number[] = []; for (let k = 0; k < ROWS * COLS; k++) if (P.g[k] >= 30) A.push(k);
+    // حركة المطر: أفضل إزاحة بين قبل 30 د والآن لخلايا ≥30 dBZ — لكل منطقة حول مطرها (~200 كم)، مو رقم واحد للمملكة كلها
+    // (لو فيه مطرين يتحركون باتجاهات مختلفة، الرقم الواحد يعطي اتجاهًا غلط لأحدهم). عند التعادل نأخذ أصغر إزاحة.
+    const motionAt = (ci: number, cj: number, R = 40) => {
+      const A: number[] = [];
+      for (let y = Math.max(0, ci - R); y <= Math.min(ROWS - 1, ci + R); y++) for (let x = Math.max(0, cj - R); x <= Math.min(COLS - 1, cj + R); x++) if (P.g[y * COLS + x] >= 30) A.push(y * COLS + x);
       if (A.length < 20) return null;
       let best = -1, bx = 0, by = 0;
       for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
         let c = 0; for (const k of A) { const y = (k / COLS | 0) + dy, x = k % COLS + dx; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && N.g[y * COLS + x] >= 30) c++; }
-        if (c > best) { best = c; bx = dx; by = dy; }
+        if (c > best || (c === best && dx * dx + dy * dy < bx * bx + by * by)) { best = c; bx = dx; by = dy; }
       }
       if (best < A.length * 0.25) return null;
       const mins = (now.time - prev.time) / 60, kmh = Math.hypot(bx * STEP * 111 * Math.cos(25 * Math.PI / 180), by * STEP * 111) / mins * 60;
       return kmh >= 8 && kmh <= 120 ? { kmh: Math.round(kmh), dir: dirWord(Math.atan2(bx * Math.cos(25 * Math.PI / 180), by) * 180 / Math.PI) } : null;
-    })();
+    };
+    const motion = motionAt(ROWS >> 1, COLS >> 1, Math.max(ROWS, COLS));   // للسجل فقط
 
     const since = new Date(Date.now() - COOLDOWN_H * 3600e3).toISOString();
     const { data: recent } = await sb.from("auto_alerts").select("region").gte("at", since);
@@ -169,11 +172,12 @@ Deno.serve(async (req) => {
       const max = Math.max(...cells.map((c) => c.d));
       const cLat = LAT0 + (cells.reduce((s, c) => s + c.i, 0) / cells.length + .5) * STEP, cLng = LNG0 + (cells.reduce((s, c) => s + c.j, 0) / cells.length + .5) * STEP;
       const [city, la, lo] = CITY[region] || [region, cLat, cLng];
+      const mv = motionAt(Math.round((cLat - LAT0) / STEP - .5), Math.round((cLng - LNG0) / STEP - .5));
       const dist = km(la, lo, cLat, cLng), where = dist < 15 ? "على " + city : dir2(bearing(la, lo, cLat, cLng)) + " " + city + " بنحو " + Math.round(dist / 5) * 5 + " كم";
       const what = max >= 55 ? "عواصف رعدية قوية مع احتمال برد" : max >= 50 ? "عواصف رعدية وأمطار غزيرة جدًا" : "أمطار غزيرة وبرق";
       const p = {
         title: (max >= 50 ? "⛈️ " : "🌧️ ") + what + " — منطقة " + region,
-        body: "الآن " + where + (motion ? "، تتجه " + motion.dir + " (" + motion.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
+        body: "الآن " + where + (mv ? "، تتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
         url: "./?screen=track", tag: "auto-rain-" + region,
       };
       if (cooled.has(region)) { out.push({ region, cells: cells.length, max, skipped: "cooldown", ...p }); continue; }
