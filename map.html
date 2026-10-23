@@ -842,6 +842,20 @@ const TPL=[
   {id:'dalil-label',src:'vt',type:'symbol','source-layer':'dalil',minzoom:12,layout:{'text-field':['get','name'],'text-font':TF,'text-size':TS(11.5),'text-offset':[0,.9],'text-anchor':'top','text-optional':true},paint:{'text-color':kindColor,'text-halo-color':'#fff','text-halo-width':1.5}},
   {id:'place',src:'vt',type:'symbol','source-layer':'places',layout:{'text-field':['get','name'],'text-font':TF,'text-size':TS(['match',['get','kind'],'city',17,'town',14,'village',12.5,'hamlet',11.5,11]),'text-max-width':8},paint:{'text-color':['match',['get','kind'],'neighborhood','#6F665A','#231F1A'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.6}}
 ];
+// محرك الرسم (WebGL) يرفضه الآيفون إذا انفتحت الصفحة والتطبيق بالخلفية أو الذاكرة ممتلئة:
+// نعيد التحميل أول ما يرجع المستخدم (أو بعد لحظة)، 3 مرات بالكثير، وبعدها رسالة واضحة بدل خريطة فاضية
+const GL_RETRY='dalil_gl_retry';
+function glFail(){
+  let n=0;try{n=+(sessionStorage.getItem(GL_RETRY)||0)}catch(e){}
+  const again=()=>{if(document.hidden)return;try{sessionStorage.setItem(GL_RETRY,n+1)}catch(e){}location.reload()};
+  if(n<3){status.textContent='يجهّز الخريطة…';if(document.hidden)document.addEventListener('visibilitychange',again);else setTimeout(again,1500)}
+  else{status.textContent='تعذّر تشغيل الخريطة — اقفل التطبيق وافتحه من جديد';document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{sessionStorage.setItem(GL_RETRY,0)}catch(e){}location.reload()}})}
+  return 'dalil:nogl '+(document.hidden?'hidden':'visible')+' try'+n;
+}
+{let ok=false;try{const c=document.createElement('canvas');ok=!!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){}
+  if(!ok)throw new Error(glFail());}
+// الفحص نجح لكن المحرك نفسه فشل؟ نفس المعالجة
+addEventListener('error',e=>{if(!glReady&&/WebGL/.test(e.message||''))glFail()});
 const gl=new maplibregl.Map({container:layer,interactive:false,attributionControl:false,fadeDuration:0,minZoom:2,maxZoom:19,center:[45,24],zoom:6,
   style:{version:8,glyphs:abs('vendor/glyphs/')+'{fontstack}/{range}.pbf',
     sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19},
@@ -960,7 +974,7 @@ $('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]'
 gl.on('load',async()=>{
   try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}
   await Promise.all(REGIONS.map(attachSaved));
-  glReady=true;gl.on('error',e=>{if(e&&e.sourceId&&/^radar-/.test(e.sourceId)){radarErr[e.sourceId]=(radarErr[e.sourceId]||0)+1;radarRetry(e.sourceId)}});
+  glReady=true;try{sessionStorage.removeItem(GL_RETRY)}catch(e){}gl.on('error',e=>{if(e&&e.sourceId&&/^radar-/.test(e.sourceId)){radarErr[e.sourceId]=(radarErr[e.sourceId]||0)+1;radarRetry(e.sourceId)}});
   gl.on('sourcedata',e=>{if(e&&e.tile&&e.sourceId&&/^radar-/.test(e.sourceId)){radarTilesOk[e.sourceId]=(radarTilesOk[e.sourceId]||0)+1;if(e.sourceId===radarShown&&$('#rainTime').dataset.weak){radarNetMsg(false)}}});
   gl.addSource('ndvi',{type:'raster',tiles:['ndvi://{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
   CLOUD_FRAMES.forEach((t,k)=>{gl.addSource('clouds-'+k,{type:'raster',tiles:['clouds://'+encodeURIComponent(t)+'/{bbox-epsg-3857}'],tileSize:256,minzoom:3,maxzoom:8});
