@@ -18,7 +18,8 @@ export default {
     if (p === "/.well-known/apple-app-site-association" || p === "/apple-app-site-association")
       return new Response(JSON.stringify(AASA), { headers: { "content-type": "application/json", "cache-control": "max-age=3600" } });
     const m = p.match(/^\/r\/(\d{4,8})(?:\/([0-9A-Za-z]{1,12}))?\/?$/);
-    if (m) return room(m[1], m[2] || url.searchParams.get("p") || "");
+    // الرمز من المسار أو ?p= — أرقام وحروف إنجليزية فقط، وإلا يُتجاهل (حماية من حقن الصفحة)
+    if (m) { const pin = m[2] || url.searchParams.get("p") || ""; return room(m[1], /^[0-9A-Za-z]{1,12}$/.test(pin) ? pin : ""); }
     if (p === "/" || p === "") return Response.redirect(STORE, 302);
     // دليل المستخدم (PDF على Google Drive) — نغيّر الرابط هنا فقط إذا تحدّث الدليل
     if (/^\/(guide|dalil|manual|دليل)\/?$/i.test(decodeURIComponent(p))) return Response.redirect(GUIDE, 302);
