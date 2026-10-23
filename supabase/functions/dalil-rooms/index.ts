@@ -162,8 +162,8 @@ Deno.serve(async (req) => {
       }
       if (!a.member.last_push_at || Date.now() - new Date(a.member.last_push_at).getTime() > 60e3) {
         await sb.from("room_members").update({ last_push_at: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
-        // مؤقت لين 1.6: الإشعار العادي يوصل حتى لأعضاء اللاسلكي، لأن 1.5 ما يشغّل الصوت إذا كان التطبيق مقفول
-        await notifyRoom(sb, a.room.id, a.member.member_id, { title: "🎙️ " + a.member.name, body: "أرسل رسالة صوتية في " + (a.room.name || "غرفة الرحلة"), tag: "room-voice" }, false);
+        // أعضاء اللاسلكي (1.6+) يسمعون الصوت مباشرة والجوال مقفل، فما نرسل لهم إشعار عادي مكرر
+        await notifyRoom(sb, a.room.id, a.member.member_id, { title: "🎙️ " + a.member.name, body: "أرسل رسالة صوتية في " + (a.room.name || "غرفة الرحلة"), tag: "room-voice" }, true);
       }
       await sb.from("room_members").update({ last_seen: new Date().toISOString() }).eq("room_id", a.room.id).eq("member_id", a.member.member_id);
       return json(req, { ok: true, voice });
