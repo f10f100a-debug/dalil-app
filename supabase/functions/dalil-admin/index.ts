@@ -389,7 +389,18 @@ Deno.serve(async (req) => {
         byRegion[k] = (byRegion[k] || 0) + r.opens;
         m += r.opens; if (r.day >= d7) w += r.opens; if (r.day === today) t += r.opens;
       }
-      return json(req, { today: t, week: w, month: m, byDay, byRegion });
+      // أجهزة مختلفة: فتح بيوم d بعد غياب gap يوم يُحسب في النافذة إذا آخر فتح قبله كان قبل بداية النافذة
+      const { data: gaps } = await sb.from("usage_gaps").select("day,gap,n").gte("day", since);
+      const DAY = 86400e3, todayMs = Date.parse(today);
+      let u7 = 0, u30 = 0;
+      for (const r of gaps || []) {
+        const ago = Math.round((todayMs - Date.parse(r.day)) / DAY);   // 0 = اليوم
+        if (ago <= 6 && r.gap > 6 - ago) u7 += r.n;
+        if (ago <= 29 && r.gap > 29 - ago) u30 += r.n;
+      }
+      const { data: first } = await sb.from("usage_gaps").select("day").order("day").limit(1);
+      const since0 = first?.[0]?.day || today, tracked = Math.round((todayMs - Date.parse(since0)) / DAY) + 1;
+      return json(req, { today: t, week: w, month: m, byDay, byRegion, u7, u30, tracked });
     }
 
     if (action === "ads_list") {

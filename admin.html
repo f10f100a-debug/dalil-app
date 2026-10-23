@@ -96,7 +96,9 @@
     <div data-perm="usage">
     <h2>الاستخدام <span class="muted" style="font-weight:400">· فتح التطبيق مرة يوميًا لكل جهاز، بلا أي بيانات شخصية</span></h2>
     <div class="card">
-      <div class="kpis"><div><b id="uToday">–</b><span>اليوم</span></div><div><b id="uWeek">–</b><span>آخر 7 أيام</span></div><div><b id="uMonth">–</b><span>آخر 30 يومًا</span></div></div>
+      <div class="kpis"><div><b id="uToday">–</b><span>أجهزة اليوم</span></div><div><b id="uU7">–</b><span>أجهزة مختلفة آخر 7 أيام</span></div><div><b id="uU30">–</b><span>أجهزة مختلفة آخر 30 يومًا</span></div></div>
+      <div class="muted" id="uNote" style="font-size:12.5px; margin-top:6px"></div>
+      <div class="kpis" style="margin-top:10px"><div><b id="uWeek">–</b><span>مرات الفتح 7 أيام</span></div><div><b id="uMonth">–</b><span>مرات الفتح 30 يومًا</span></div><div><b id="uRet">–</b><span>متوسط أيام الاستخدام بالأسبوع</span></div></div>
       <div class="bars" id="uBars" aria-label="الاستخدام اليومي لآخر 30 يومًا"></div>
       <div class="stats" id="uRegions" style="margin-top:10px"></div>
     </div>
@@ -435,6 +437,11 @@
   async function loadUsage(){
     const u = await api('usage');
     $('uToday').textContent = u.today; $('uWeek').textContent = u.week; $('uMonth').textContent = u.month;
+    $('uU7').textContent = u.u7 ?? '–'; $('uU30').textContent = u.u30 ?? '–';
+    $('uRet').textContent = u.u7 ? (Math.min(7, u.week / u.u7)).toFixed(1) : '–';
+    // العدّ بدأ 23 أكتوبر: الأرقام تكتمل بعد 7 و30 يومًا من بدايته
+    const tr = u.tracked || 0;
+    $('uNote').textContent = tr < 30 ? `«الأجهزة المختلفة» بدأ عدّها قبل ${tr} ${tr === 1 ? 'يوم' : 'أيام'} — ${tr < 7 ? 'رقم 7 أيام يكتمل بعد ' + (7 - tr) + ' أيام، و' : ''}رقم 30 يومًا يكتمل بعد ${30 - tr} يومًا.` : '';
     const days = []; for(let i = 29; i >= 0; i--){ days.push(new Date(Date.now() + 3 * 3600e3 - i * 86400e3).toISOString().slice(0, 10)); }
     const max = Math.max(1, ...days.map(d=>u.byDay[d] || 0));
     $('uBars').innerHTML = days.map(d=>`<i title="${d}: ${u.byDay[d] || 0}" style="height:${Math.round((u.byDay[d] || 0) / max * 100)}%"></i>`).join('');

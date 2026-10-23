@@ -5777,7 +5777,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     let last = ''; try{ last = localStorage.getItem('dalil_ping_day') || ''; }catch(e){}
     const day = riyadhDay(); if(last === day) return;
     await refreshMyRegion();
-    dalilPost('ping', {region:myRegion}).then(r=>{ if(r.ok) try{ localStorage.setItem('dalil_ping_day', day); }catch(e){} }).catch(()=>{});
+    // أيام من آخر فتح (لعدّ الأجهزة المختلفة بدون أي معرّف) — 31 = أول مرة أو أكثر من شهر
+    const gap = /^\d{4}-\d\d-\d\d$/.test(last) ? Math.max(1, Math.min(31, Math.round((Date.parse(day) - Date.parse(last)) / 864e5))) : 31;
+    dalilPost('ping', {region:myRegion, gap}).then(r=>{ if(r.ok) try{ localStorage.setItem('dalil_ping_day', day); }catch(e){} }).catch(()=>{});
   }, 8000);
 
   // الإعلانات معطّلة: التطبيق بلا إعلانات (قرار نسخة المتجر). لإعادتها: ADS_ENABLED = true

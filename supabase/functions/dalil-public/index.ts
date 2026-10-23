@@ -142,7 +142,10 @@ Deno.serve(async (req) => {
     if (action === "ping") {
       const regionIn = cleanText(body.region, 40);
       const region = REGIONS.includes(regionIn) ? regionIn : "";
-      await sb.rpc("dalil_count", { p_ip: ip, p_key: "open", p_region: region, p_ad: null, p_kind: "open" });
+      const { data: fresh } = await sb.rpc("dalil_count", { p_ip: ip, p_key: "open", p_region: region, p_ad: null, p_kind: "open" });
+      // أجهزة مختلفة بدون معرّف: «كم يوم من آخر فتح» (31 = أول مرة)
+      const gap = Math.round(Number(body.gap));
+      if (fresh === true && gap >= 1 && gap <= 31) await sb.rpc("dalil_gap", { p_gap: gap }).then(() => {}, () => {});
       return json(req, { ok: true });
     }
 
