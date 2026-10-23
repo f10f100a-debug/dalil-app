@@ -19,6 +19,16 @@ async function newSubLimited(sb: ReturnType<typeof db>, ip: string) {
   return false;
 }
 
+// تقارير المطارات (METAR): ذاكرة 10 دقائق لكل منطقة، وأسماء عربية لمحطات المملكة
+const OBS_CACHE = new Map<string, { at: number; list: unknown[] }>();
+const STATION_AR: Record<string, string> = {
+  OEHL: "مطار حائل", OERK: "مطار الرياض", OEJN: "مطار جدة", OEDF: "مطار الدمام", OEMA: "مطار المدينة", OETB: "مطار تبوك",
+  OEGS: "مطار القصيم", OEAB: "مطار أبها", OEGN: "مطار جازان", OENG: "مطار نجران", OESK: "مطار الجوف", OEAR: "مطار عرعر",
+  OERF: "مطار رفحاء", OETF: "مطار الطائف", OEBA: "مطار الباحة", OEWD: "مطار وادي الدواسر", OEBH: "مطار بيشة", OEPA: "مطار القيصومة",
+  OEAH: "مطار الأحساء", OEYN: "مطار ينبع", OEWJ: "مطار الوجه", OEUL: "مطار العلا", OETR: "مطار طريف", OEDW: "مطار الدوادمي",
+  OESH: "مطار شرورة", OEKK: "مدينة الملك خالد العسكرية", OEDR: "الظهران", OERY: "الرياض", OEKM: "خميس مشيط",
+};
+
 function isJpeg(b: Uint8Array) { return b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff; }
 function num(v: FormDataEntryValue | null, min: number, max: number): number | null {
   if (v === null || v === "") return null;
@@ -166,6 +176,34 @@ Deno.serve(async (req) => {
       if ((count ?? 0) >= 60) return json(req, { ok: true });
       await sb.from("client_errors").insert({ ip_hash: ip, msg, src: "heading:" + (Number(body.n) || 0), ver: cleanText(body.ver, 40), page: "heading" });
       return json(req, { ok: true });
+    }
+
+    // الرياح الفعلية الآن من أقرب محطة رصد (تقارير المطارات METAR) — المتصفح ما يقدر يقرأها مباشرة (CORS)
+    if (action === "obs") {
+      const lat = Number(body.lat), lng = Number(body.lng);
+      if (!(lat > 12 && lat < 35 && lng > 32 && lng < 60)) return json(req, { error: "bad_request" }, 400);
+      const key = (Math.round(lat * 2) / 2) + "," + (Math.round(lng * 2) / 2);
+      let hit = OBS_CACHE.get(key);
+      if (!hit || Date.now() - hit.at > 10 * 60e3) {
+        const r = await fetch(`https://aviationweather.gov/api/data/metar?bbox=${(lat - 1.5).toFixed(2)},${(lng - 1.5).toFixed(2)},${(lat + 1.5).toFixed(2)},${(lng + 1.5).toFixed(2)}&format=json&hours=2`).catch(() => null);
+        const list = r && r.ok ? await r.json().catch(() => []) : [];
+        hit = { at: Date.now(), list: Array.isArray(list) ? list : [] };
+        OBS_CACHE.set(key, hit);
+        if (OBS_CACHE.size > 200) OBS_CACHE.delete(OBS_CACHE.keys().next().value!);
+      }
+      const km = (a: number, b: number) => { const p = Math.PI / 180, x = Math.sin((a - lat) * p / 2) ** 2 + Math.cos(lat * p) * Math.cos(a * p) * Math.sin((b - lng) * p / 2) ** 2; return 12742 * Math.asin(Math.sqrt(x)); };
+      const latest = new Map<string, Record<string, unknown>>();
+      for (const m of hit.list as Record<string, unknown>[]) { const id = String(m.icaoId || ""); const prev = latest.get(id); if (!prev || Number(m.obsTime) > Number(prev.obsTime)) latest.set(id, m); }
+      const best = [...latest.values()].map((m) => ({ m, d: km(Number(m.lat), Number(m.lon)) })).filter((x) => Number.isFinite(x.d) && x.d <= 120).sort((a, b) => a.d - b.d)[0];
+      if (!best) return json(req, { ok: true, obs: null });
+      const m = best.m, icao = String(m.icaoId || "");
+      return json(req, { ok: true, obs: {
+        icao, name: STATION_AR[icao] || ("محطة " + icao), km: Math.round(best.d),
+        dir: typeof m.wdir === "number" ? m.wdir : null, vrb: m.wdir === "VRB",
+        kmh: Number.isFinite(Number(m.wspd)) ? Math.round(Number(m.wspd) * 1.852) : null,
+        gust: Number.isFinite(Number(m.wgst)) ? Math.round(Number(m.wgst) * 1.852) : null,
+        temp: Number.isFinite(Number(m.temp)) ? Number(m.temp) : null, at: Number(m.obsTime) * 1000,
+      } });
     }
 
     // «مطر عندي الآن»: موقع تقريبي (منزلتان عشريتان ≈ 1 كم) + الشدة. بلاغ كل 10 دقائق و12 في اليوم لكل IP

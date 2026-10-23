@@ -948,6 +948,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wd-h .g{color:var(--text-dim); font-variant-numeric:tabular-nums;}
   .wd-h .dn{display:block; font-size:10.5px; font-weight:700; color:var(--text-dim); margin:-1px 0 3px;}
   .wd-chart{padding:12px 10px 10px; margin-bottom:12px;}
+  .wd-obs{display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:12px;}
+  .wd-obs .wd-arrow{width:30px; height:30px; flex:0 0 30px; color:var(--cp-ink);}
+  .wd-obs b{display:block; font-size:15px; color:var(--cp-ink);} .wd-obs small{display:block; font-size:12px; color:var(--cp-dim); margin-top:2px;}
   .wc-head{display:flex; flex-direction:column; gap:2px; padding:0 4px 6px;}
   .wc-head b{font-size:15px; color:var(--cp-ink);} #wcRead{font-size:12.5px; color:var(--cp-dim); font-weight:700; min-height:1.3em;}
   #wcSvg{width:100%; height:auto; display:block; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
@@ -1197,6 +1200,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
             <button class="cp-icon-btn" type="button" id="windRefresh" aria-label="تحديث الرياح"><span class="cp-ic" data-ico="refresh"></span></button></div>
         </div>
         <div id="windBest" hidden></div>
+        <div class="cp-card wd-obs" id="windObs" hidden></div>
         <div class="cp-card wd-chart" id="windChart" hidden>
           <div class="wc-head"><b id="wcTitle">الرياح — 48 ساعة</b><span id="wcRead"></span></div>
           <svg id="wcSvg" viewBox="0 0 340 196" role="img" aria-label="رسم بياني لسرعة الرياح والهبّات"></svg>
@@ -5966,6 +5970,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const i = Math.round((wcGeo.R - px) / (wcGeo.R - wcGeo.L) * (wcPts.length - 1)); wcShow(Math.max(0, Math.min(wcPts.length - 1, i)), false); };
     svg.addEventListener('pointerdown', pick); svg.addEventListener('pointermove', e=>{ if(e.buttons || e.pointerType === 'touch') pick(e); });
   })();
+  // الرياح الفعلية الآن من أقرب محطة رصد (مطار) — عن طريق السيرفر، ذاكرة 10 دقائق
+  let windObsAt = 0, windObsKey = '';
+  async function loadWindObs(pt){
+    const el = document.getElementById('windObs'); if(!el) return;
+    const key = pt.lat.toFixed(1) + ',' + pt.lng.toFixed(1);
+    if(key === windObsKey && Date.now() - windObsAt < 10 * 60e3) return;
+    windObsKey = key; windObsAt = Date.now();
+    try{
+      const r = await fetch('https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-public?a=obs', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({lat:pt.lat, lng:pt.lng})});
+      const o = r.ok ? (await r.json()).obs : null;
+      const ageMin = o ? Math.round((Date.now() - o.at) / 60e3) : 0;
+      if(!o || o.kmh == null || ageMin > 150){ el.hidden = true; return; }
+      const calm = o.kmh < 2, dirTxt = calm ? 'ساكنة' : o.vrb || o.dir == null ? 'متغيّرة الاتجاه' : windDirName(o.dir);
+      const ago = ageMin < 60 ? 'قبل ' + iso(Math.max(1, ageMin)) + ' دقيقة' : 'قبل ' + iso(Math.round(ageMin / 60)) + ' ساعة';
+      el.innerHTML = (o.dir != null && !calm ? windArrow(o.dir) : icoSpan('wind')) +
+        `<span><b>المرصود الآن: ${escapeHtml(dirTxt)}${calm ? '' : ' ' + iso(o.kmh) + ' كم/س'}${o.gust ? ' · هبّات ' + iso(o.gust) : ''}</b>` +
+        `<small>${escapeHtml(o.name)} (${iso(o.km)} كم منك) · ${escapeHtml(ago)} — قراءة فعلية، والرسم تحت توقّع</small></span>`;
+      el.hidden = false;
+    }catch(e){ el.hidden = true; windObsAt = 0; }
+  }
   function renderWind(bundle, stale){
     const days = windDays(bundle);
     const at = new Date(bundle.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
@@ -5981,6 +6005,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     bestEl.innerHTML = msgs.join(''); bestEl.hidden = !msgs.length;
     windChartDays = days; drawWindChart();
+    { const pt = windPoint(); if(pt) loadWindObs(pt); }
     const nowH = new Date().getHours();
     document.getElementById('windWeek').innerHTML = days.map((d, i)=>{
       const pct = Math.min(100, Math.round(d.max / 60 * 100));
