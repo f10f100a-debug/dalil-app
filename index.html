@@ -5917,7 +5917,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const nowIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 13);
     let pts, title;
     if(windOpenDay > 0){ pts = days[windOpenDay].hours.filter(x=>Number.isFinite(x.v)); title = 'الرياح — ' + dayLabel(days[windOpenDay].day, windOpenDay); }
-    else{ const k = Math.max(0, all.findIndex(x=>x.t.slice(0, 13) >= nowIso) - 2); pts = all.slice(k, k + 50); title = 'الرياح — 48 ساعة'; }
+    else{ const k = Math.max(0, all.findIndex(x=>x.t.slice(0, 13) >= nowIso)); pts = all.slice(k, k + 49); title = 'الرياح — 48 ساعة من الآن'; }
     if(pts.length < 4){ box.hidden = true; return; }
     box.hidden = false; setText('wcTitle', title);
     const W = 340, H = 196, L = 8, R = 312, T = 30, B = 160;               // R: يمين منطقة الرسم (أرقام المحور على اليمين)
@@ -5934,14 +5934,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(ni > 0) o += `<rect class="past" x="${X(ni)}" y="${T}" width="${R - X(ni)}" height="${B - T}"/>`;
     // ساعات وأيام
     pts.forEach((x, i)=>{
-      if(x.hour % 6 === 0){ o += `<line class="grid" x1="${X(i)}" x2="${X(i)}" y1="${T}" y2="${B}" opacity=".6"/><text x="${X(i)}" y="${B + 13}" text-anchor="middle">${escapeHtml(hourLabel(x.hour))}</text>`; }
+      // الأرقام القريبة من طرفي الرسم تنقص، فنتجاوزها (الخط يبقى)
+      if(x.hour % 6 === 0){ o += `<line class="grid" x1="${X(i)}" x2="${X(i)}" y1="${T}" y2="${B}" opacity=".6"/>` + (X(i) > R - (ni === 0 ? 34 : 12) || X(i) < L + 12 ? '' : `<text x="${X(i)}" y="${B + 13}" text-anchor="middle">${escapeHtml(hourLabel(x.hour))}</text>`); }
       if(x.hour === 0 && i > 0 && windOpenDay <= 0){ const di = days.findIndex(d=>d.day === x.t.slice(0, 10)); o += `<text x="${X(i)}" y="${B + 27}" text-anchor="middle" style="font-weight:700">${escapeHtml(dayLabel(x.t.slice(0, 10), di))}</text>`; }
       if(i % 3 === 1){ const rot = Math.round(((x.dir || 0) + 180) % 360); o += `<path class="arw" d="M0 -6 L4 5 L0 2.5 L-4 5Z" transform="translate(${X(i).toFixed(1)} 14) rotate(${rot})"/>`; }
     });
     const line = k=>pts.map((x, i)=>(i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x[k] || 0).toFixed(1)).join(' ');
     o += `<path class="spdA" d="${line('v')} L${X(pts.length - 1).toFixed(1)} ${B} L${X(0).toFixed(1)} ${B}Z"/>`;
     o += `<path class="gst" d="${line('g')}"/><path class="spd" d="${line('v')}"/>`;
-    if(ni >= 0){ const x = X(ni); o += `<line class="now" x1="${x}" x2="${x}" y1="${T}" y2="${B}"/><circle cx="${x}" cy="${Y(pts[ni].v)}" r="4.2" fill="#1F9C8A" stroke="var(--cp-card)" stroke-width="2"/>`; }
+    if(ni >= 0){ const x = X(ni); o += (ni === 0 ? `<text x="${x}" y="${B + 13}" text-anchor="start" style="font-weight:700">الآن</text>` : '') + `<line class="now" x1="${x}" x2="${x}" y1="${T}" y2="${B}"/><circle cx="${x}" cy="${Y(pts[ni].v)}" r="4.2" fill="#1F9C8A" stroke="var(--cp-card)" stroke-width="2"/>`; }
     o += `<g id="wcCur" style="display:none"><line class="cur" y1="${T}" y2="${B}"/><circle r="4" fill="var(--cp-ink)"/></g>`;
     svg.innerHTML = o;
     wcShow(ni >= 0 ? ni : 0, true);
