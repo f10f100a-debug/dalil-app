@@ -946,6 +946,22 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wd-h .t{color:var(--text-dim);} .wd-h svg{width:22px; height:22px; margin:3px auto; display:block; color:var(--text);}
   .wd-h .v{display:block; font-size:14px; font-weight:700; border-radius:8px; margin:2px 3px; padding:1px 0; font-variant-numeric:tabular-nums;}
   .wd-h .g{color:var(--text-dim); font-variant-numeric:tabular-nums;}
+  .wd-chart{padding:12px 10px 10px; margin-bottom:12px;}
+  .wc-head{display:flex; flex-direction:column; gap:2px; padding:0 4px 6px;}
+  .wc-head b{font-size:15px; color:var(--cp-ink);} #wcRead{font-size:12.5px; color:var(--cp-dim); font-weight:700; min-height:1.3em;}
+  #wcSvg{width:100%; height:auto; display:block; touch-action:pan-y; user-select:none; -webkit-user-select:none;}
+  #wcSvg text{font-family:inherit; fill:var(--cp-dim); font-size:9.5px;}
+  #wcSvg .grid{stroke:var(--cp-line); stroke-width:1;}
+  #wcSvg .spd{stroke:#1F9C8A; stroke-width:2.4; fill:none; stroke-linejoin:round;}
+  #wcSvg .spdA{fill:#1F9C8A; opacity:.22;}
+  #wcSvg .gst{stroke:#C47A2C; stroke-width:1.8; fill:none; stroke-dasharray:5 4; stroke-linejoin:round;}
+  #wcSvg .arw{fill:var(--cp-ink); opacity:.75;}
+  #wcSvg .now{stroke:var(--cp-ink); stroke-width:1; stroke-dasharray:2 3; opacity:.6;}
+  #wcSvg .cur{stroke:var(--cp-ink); stroke-width:1.2;}
+  #wcSvg .past{fill:var(--cp-card); opacity:.45;}
+  .wc-key{display:flex; gap:14px; align-items:center; font-size:12px; color:var(--cp-dim); padding:4px 4px 0; flex-wrap:wrap;}
+  .wc-key i{display:inline-block; width:16px; height:0; border-top:3px solid #1F9C8A; vertical-align:middle; margin-left:5px;}
+  .wc-key i.wc-k2{border-top:2px dashed #C47A2C;} .wc-key small{margin-right:auto; font-size:11px; opacity:.8;}
   .wd-c0{background:#DDF0E2; color:#1F5E36;} .wd-c1{background:#F7EBC9; color:#6B4E08;} .wd-c2{background:#F8D9BE; color:#8A3E0A;} .wd-c3{background:#F4C7C1; color:#8E1E17;}
   .wd-bar i.wd-c0{background:#5DB27A;} .wd-bar i.wd-c1{background:#E0B84A;} .wd-bar i.wd-c2{background:#E5873F;} .wd-bar i.wd-c3{background:#D0493A;}
   .wd-legend{display:flex; flex-wrap:wrap; gap:6px; font-size:11.5px; margin:10px 2px 0;}
@@ -1180,6 +1196,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
             <button class="cp-icon-btn" type="button" id="windRefresh" aria-label="تحديث الرياح"><span class="cp-ic" data-ico="refresh"></span></button></div>
         </div>
         <div id="windBest" hidden></div>
+        <div class="cp-card wd-chart" id="windChart" hidden>
+          <div class="wc-head"><b id="wcTitle">الرياح — 48 ساعة</b><span id="wcRead"></span></div>
+          <svg id="wcSvg" viewBox="0 0 340 196" role="img" aria-label="رسم بياني لسرعة الرياح والهبّات"></svg>
+          <div class="wc-key"><span><i class="wc-k1"></i>السرعة</span><span><i class="wc-k2"></i>الهبّات</span><small>المس الرسم لتشوف أي ساعة</small></div>
+        </div>
         <div class="wd-week" id="windWeek"></div>
         <div class="wd-legend"><span class="wd-c0">هادئة &lt;20</span><span class="wd-c1">معتدلة 20–35</span><span class="wd-c2">قوية 35–50</span><span class="wd-c3">خطرة &gt;50</span><span>كم/س</span></div>
         <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة التي تهبّ منها الرياح، والسهم يشير لوجهتها.</div>
@@ -5886,6 +5907,60 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     });
     return best && best.len >= 3 ? best : null;
   }
+  // ---------- رسم بياني للرياح: 48 ساعة من الآن (أو اليوم المفتوح من القائمة) — الزمن من اليمين لليسار ----------
+  let windChartDays = null, wcPts = [], wcGeo = null;
+  const WC_BANDS = [[0, 20, '#5DB27A'], [20, 35, '#E0B84A'], [35, 50, '#E5873F'], [50, 999, '#D0493A']];
+  function drawWindChart(){
+    const box = document.getElementById('windChart'), svg = document.getElementById('wcSvg');
+    const days = windChartDays; if(!box || !days || !days.length){ if(box) box.hidden = true; return; }
+    const all = days.flatMap(d=>d.hours).filter(x=>Number.isFinite(x.v));
+    const nowIso = new Date(Date.now() - new Date().getTimezoneOffset() * 60e3).toISOString().slice(0, 13);
+    let pts, title;
+    if(windOpenDay > 0){ pts = days[windOpenDay].hours.filter(x=>Number.isFinite(x.v)); title = 'الرياح — ' + dayLabel(days[windOpenDay].day, windOpenDay); }
+    else{ const k = Math.max(0, all.findIndex(x=>x.t.slice(0, 13) >= nowIso) - 2); pts = all.slice(k, k + 50); title = 'الرياح — 48 ساعة'; }
+    if(pts.length < 4){ box.hidden = true; return; }
+    box.hidden = false; setText('wcTitle', title);
+    const W = 340, H = 196, L = 8, R = 312, T = 30, B = 160;               // R: يمين منطقة الرسم (أرقام المحور على اليمين)
+    const ymax = Math.max(30, Math.ceil(Math.max(...pts.map(x=>Math.max(x.v, x.g || 0))) / 10) * 10);
+    const X = i=>R - (R - L) * i / (pts.length - 1), Y = v=>B - (B - T) * Math.min(v, ymax) / ymax;
+    wcPts = pts; wcGeo = {X, Y, L, R, T, B, W};
+    let o = '';
+    // خلفية الخطورة
+    for(const [a, b, c] of WC_BANDS){ if(a >= ymax) break; o += `<rect x="${L}" y="${Y(Math.min(b, ymax)).toFixed(1)}" width="${R - L}" height="${(Y(a) - Y(Math.min(b, ymax))).toFixed(1)}" fill="${c}" opacity=".09"/>`; }
+    // شبكة وأرقام
+    for(let v = 0; v <= ymax; v += ymax > 60 ? 20 : 10){ o += `<line class="grid" x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${W - 3}" y="${Y(v) + 3}" text-anchor="start">${iso(v)}</text>`; }
+    // الماضي باهت + خط الآن
+    const ni = pts.findIndex(x=>x.t.slice(0, 13) >= nowIso);
+    if(ni > 0) o += `<rect class="past" x="${X(ni)}" y="${T}" width="${R - X(ni)}" height="${B - T}"/>`;
+    // ساعات وأيام
+    pts.forEach((x, i)=>{
+      if(x.hour % 6 === 0){ o += `<line class="grid" x1="${X(i)}" x2="${X(i)}" y1="${T}" y2="${B}" opacity=".6"/><text x="${X(i)}" y="${B + 13}" text-anchor="middle">${escapeHtml(hourLabel(x.hour))}</text>`; }
+      if(x.hour === 0 && i > 0 && windOpenDay <= 0){ const di = days.findIndex(d=>d.day === x.t.slice(0, 10)); o += `<text x="${X(i)}" y="${B + 27}" text-anchor="middle" style="font-weight:700">${escapeHtml(dayLabel(x.t.slice(0, 10), di))}</text>`; }
+      if(i % 3 === 1){ const rot = Math.round(((x.dir || 0) + 180) % 360); o += `<path class="arw" d="M0 -6 L4 5 L0 2.5 L-4 5Z" transform="translate(${X(i).toFixed(1)} 14) rotate(${rot})"/>`; }
+    });
+    const line = k=>pts.map((x, i)=>(i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x[k] || 0).toFixed(1)).join(' ');
+    o += `<path class="spdA" d="${line('v')} L${X(pts.length - 1).toFixed(1)} ${B} L${X(0).toFixed(1)} ${B}Z"/>`;
+    o += `<path class="gst" d="${line('g')}"/><path class="spd" d="${line('v')}"/>`;
+    if(ni >= 0){ const x = X(ni); o += `<line class="now" x1="${x}" x2="${x}" y1="${T}" y2="${B}"/><circle cx="${x}" cy="${Y(pts[ni].v)}" r="4.2" fill="#1F9C8A" stroke="var(--cp-card)" stroke-width="2"/>`; }
+    o += `<g id="wcCur" style="display:none"><line class="cur" y1="${T}" y2="${B}"/><circle r="4" fill="var(--cp-ink)"/></g>`;
+    svg.innerHTML = o;
+    wcShow(ni >= 0 ? ni : 0, true);
+  }
+  function wcShow(i, quiet){
+    const x = wcPts[i]; if(!x || !wcGeo) return;
+    const isNow = !quiet ? false : true;
+    setText('wcRead', (quiet && windOpenDay <= 0 ? 'الآن' : hourLabel(x.hour)) + ' · ' + iso(Math.round(x.v)) + ' كم/س · هبّات ' + iso(Math.round(x.g || 0)) + ' · من ' + windDirName(x.dir || 0));
+    const g = document.getElementById('wcCur'); if(!g) return;
+    if(quiet){ g.style.display = 'none'; return; }
+    const cx = wcGeo.X(i); g.style.display = '';
+    g.querySelector('line').setAttribute('x1', cx); g.querySelector('line').setAttribute('x2', cx);
+    const c = g.querySelector('circle'); c.setAttribute('cx', cx); c.setAttribute('cy', wcGeo.Y(x.v));
+  }
+  (()=>{ const svg = document.getElementById('wcSvg'); if(!svg) return;
+    const pick = e=>{ if(!wcGeo || !wcPts.length) return; const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * wcGeo.W;
+      const i = Math.round((wcGeo.R - px) / (wcGeo.R - wcGeo.L) * (wcPts.length - 1)); wcShow(Math.max(0, Math.min(wcPts.length - 1, i)), false); };
+    svg.addEventListener('pointerdown', pick); svg.addEventListener('pointermove', e=>{ if(e.buttons || e.pointerType === 'touch') pick(e); });
+  })();
   function renderWind(bundle, stale){
     const days = windDays(bundle);
     const at = new Date(bundle.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
@@ -5900,6 +5975,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       msgs.push(`<div class="wd-best">${icoSpan('check')}<span><b>أهدأ فترة:</b> ${escapeHtml(dayLabel(days[best.di].day, best.di))} من ${escapeHtml(hourLabel(best.from))} إلى ${escapeHtml(hourLabel(best.to + 1))} — رياح أقل من ${iso(20)} كم/س.</span></div>`);
     }
     bestEl.innerHTML = msgs.join(''); bestEl.hidden = !msgs.length;
+    windChartDays = days; drawWindChart();
     const nowH = new Date().getHours();
     document.getElementById('windWeek').innerHTML = days.map((d, i)=>{
       const pct = Math.min(100, Math.round(d.max / 60 * 100));
@@ -5921,7 +5997,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   document.getElementById('windWeek').addEventListener('click', e=>{
     const b = e.target.closest('[data-wind-day]'); if(!b) return;
-    const i = +b.dataset.windDay; windOpenDay = windOpenDay === i ? -1 : i;
+    const i = +b.dataset.windDay; windOpenDay = windOpenDay === i ? -1 : i; drawWindChart();
     document.querySelectorAll('#windWeek .wd-row').forEach(r=>{ const on = +r.dataset.windDay === windOpenDay; r.setAttribute('aria-expanded', on); r.nextElementSibling.hidden = !on; });
     const open = b.nextElementSibling; if(!open.hidden){ const n = open.querySelector('.now'); (n || open.firstElementChild)?.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'}); }
   });
