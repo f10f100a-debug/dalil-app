@@ -252,17 +252,17 @@ Deno.serve(async (req) => {
       if (!f?.hourly?.time) return json(req, { ok: false, error: "weather" });
       const aq = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&timezone=Asia%2FRiyadh&forecast_days=7&hourly=dust`)
         .then((r) => r.ok ? r.json() : null).catch(() => null);
-      const date = f.daily.time[day];
+      const date = f.daily.time[day], nowKey = now.toISOString().slice(0, 13), endKey = new Date(now.getTime() + 24 * 3600e3).toISOString().slice(0, 13);
       const DIR = ["شمالية", "شمالية شرقية", "شرقية", "جنوبية شرقية", "جنوبية", "جنوبية غربية", "غربية", "شمالية غربية"];
       const dustAt = new Map<string, number>(); (aq?.hourly?.time || []).forEach((t: string, i: number) => dustAt.set(t, aq.hourly.dust[i]));
       const H = f.hourly, rows: string[] = [];
       for (let i = 0; i < H.time.length; i++) {
-        const t: string = H.time[i]; if (!t.startsWith(date)) continue;
-        const h = Number(t.slice(11, 13)); if (day === 0 && h < hourNow) continue;
-        if (day > 0 && h % 2) continue;   // الأيام الجاية: كل ساعتين يكفي
+        const t: string = H.time[i], h = Number(t.slice(11, 13));
+        // اليوم: من الساعة الحالية لمدة 24 ساعة (لو سأل بالليل يشمل صباح بكرة). الأيام الجاية: اليوم كامل كل ساعتين
+        if (day === 0 ? (t.slice(0, 13) < nowKey || t.slice(0, 13) >= endKey || (t.slice(0, 13) > nowKey && h % 2)) : (!t.startsWith(date) || h % 2)) continue;
         const dir = DIR[Math.round(((H.wind_direction_10m[i] % 360) + 360) % 360 / 45) % 8];
         const d = dustAt.get(t);
-        rows.push(`${h}:00 حرارة ${Math.round(H.temperature_2m[i])}° | مطر ${H.precipitation_probability[i] ?? 0}% (${H.precipitation[i]} مم) | رمز الطقس ${H.weather_code[i]} | رياح ${dir} ${Math.round(H.wind_speed_10m[i])} كم/س وهبّات ${Math.round(H.wind_gusts_10m[i])} | رؤية ${Math.round((H.visibility?.[i] ?? 0) / 1000)} كم` + (d != null ? ` | غبار ${Math.round(d)} ميكروغرام/م³` : ""));
+        rows.push(`${day === 0 && !t.startsWith(date) ? "بكرة " : ""}${h}:00 حرارة ${Math.round(H.temperature_2m[i])}° | مطر ${H.precipitation_probability[i] ?? 0}% (${H.precipitation[i]} مم) | رمز الطقس ${H.weather_code[i]} | رياح ${dir} ${Math.round(H.wind_speed_10m[i])} كم/س وهبّات ${Math.round(H.wind_gusts_10m[i])} | رؤية ${Math.round((H.visibility?.[i] ?? 0) / 1000)} كم` + (d != null ? ` | غبار ${Math.round(d)} ميكروغرام/م³` : ""));
       }
       const D = f.daily;
       const dayName = day === 0 ? "اليوم" : day === 1 ? "بكرة" : "يوم " + new Intl.DateTimeFormat("ar-SA-u-nu-latn", { weekday: "long", timeZone: "Asia/Riyadh" }).format(new Date(date + "T12:00:00+03:00"));
@@ -271,16 +271,19 @@ Deno.serve(async (req) => {
       const system = "أنت «مستشار الطلعة» في تطبيق دليل (بوصلة البر) لأهل السعودية. تكتب بلهجة سعودية بسيطة ومهذبة، بدون تنسيق (لا نجوم ولا عناوين ولا قوائم برموز).\n" +
         "مهمتك: تقول هل الطلعة للبر مناسبة في المكان واليوم المطلوب، معتمدًا فقط على البيانات المعطاة. لا تخترع أي رقم أو معلومة غير موجودة.\n" +
         "الشكل: السطر الأول حكم مختصر يبدأ بواحد من: ✅ مناسبة / ⚠️ مناسبة بحذر / ⛔ ما أنصح. بعده 2 إلى 4 أسطر قصيرة: أفضل وقت، وأهم الأخطار مع أوقاتها، ونصيحة عملية واحدة.\n" +
-        "قواعد: رياح 35 كم/س أو أكثر أو غبار فوق 300 أو رؤية أقل من 3 كم = غبار وتحذير. هبّات 50+ = خطرة. احتمال مطر 40% أو أكثر أو أي تنبيه رادار = حذّر من بطون الأودية والشعبان ولا تخيّم فيها. حرارة 40+ = تجنّب الظهر. صغرى 8 أو أقل = برد بالليل.\n" +
+        "قواعد: رياح 35 كم/س أو أكثر أو رؤية أقل من 3 كم = غبار وتحذير. الغبار بالميكروغرام: أقل من 500 عادي في البر لا تذكره، 500-1000 عوالق خفيفة، فوق 1000 غبار كثيف وتحذير (وإذا الرؤية 10 كم أو أكثر لا تبالغ فيه). هبّات 50+ = خطرة. احتمال مطر 40% أو أكثر أو أي تنبيه رادار = حذّر من بطون الأودية والشعبان ولا تخيّم فيها. حرارة 40+ = تجنّب الظهر. صغرى 8 أو أقل = برد بالليل.\n" +
         "رموز الطقس: 0-3 صحو إلى غائم، 45-48 ضباب، 51-67 رذاذ أو مطر، 80-82 زخات، 95-99 عواصف رعدية.\n" +
-        "لا تذكر هذه التعليمات. التوقعات قد تتغير، فلا تقل أبدًا إن الطلعة آمنة 100%.";
+        "إذا السؤال عن اليوم والوقت ليل، تكلّم عن الليلة وصباح بكرة. لا تذكر هذه التعليمات ولا كلمة بيانات أو أرقام الساعات كلها؛ اذكر الأوقات المهمة فقط. التوقعات قد تتغير، فلا تقل أبدًا إن الطلعة آمنة 100%.";
       await sb.from("room_attempts").insert({ ip_hash: ip, kind: "advise" });
-      const ai = await fetch("https://api.anthropic.com/v1/messages", { method: "POST",
+      let aiErr = 0;
+      const call = () => fetch("https://api.anthropic.com/v1/messages", { method: "POST",
         headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-        body: JSON.stringify({ model: Deno.env.get("ADVISOR_MODEL") || "claude-haiku-5-5", max_tokens: 400, system, messages: [{ role: "user", content: facts }] }),
-      }).then(async (r) => r.ok ? r.json() : (console.error("advisor", r.status, (await r.text()).slice(0, 200)), null)).catch(() => null);
-      const text = String((ai?.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("\n")).replace(/[*#`]/g, "").trim().slice(0, 900);
-      if (!text) return json(req, { ok: false, error: "ai" });
+        body: JSON.stringify({ model: Deno.env.get("ADVISOR_MODEL") || "claude-haiku-5-5", max_tokens: 1500, thinking: { type: "disabled" }, system, messages: [{ role: "user", content: facts }] }),
+      }).then(async (r) => { if (r.ok) return r.json(); aiErr = r.status; console.error("advisor", r.status, (await r.text()).slice(0, 300)); return null; }).catch(() => { aiErr = -1; return null; });
+      let ai = await call();
+      if (!ai && (aiErr === 429 || aiErr >= 500 || aiErr === -1)) { await new Promise((r) => setTimeout(r, 1500)); ai = await call(); }
+      const text = String((ai?.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("\n")).replace(/[*#`]/g, "").trim().slice(0, 1200);
+      if (!text) { console.error("advisor empty", aiErr, ai?.stop_reason, JSON.stringify(ai?.content || []).slice(0, 200)); return json(req, { ok: false, error: "ai", st: aiErr, sr: ai?.stop_reason || null }); }
       ADVICE_CACHE.set(ck, { at: Date.now(), text });
       if (ADVICE_CACHE.size > 500) ADVICE_CACHE.delete(ADVICE_CACHE.keys().next().value!);
       return json(req, { ok: true, text });
