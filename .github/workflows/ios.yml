@@ -126,6 +126,8 @@ jobs:
             # 1.4: اللاسلكي (Apple PushToTalk) — الصوت يشتغل والجوال مقفل
             /usr/libexec/PlistBuddy -c "Add :com.apple.developer.push-to-talk bool true" ios/App/App/App.entitlements
             $PB -c "Print :UIBackgroundModes" "$P" | grep -q push-to-talk || $PB -c "Add :UIBackgroundModes: string push-to-talk" "$P"
+            # 1.6: Apple تنصح بخاصية الصوت في الخلفية لتطبيقات اللاسلكي (تشغيل الرسالة والتطبيق مقفول)
+            $PB -c "Print :UIBackgroundModes" "$P" | grep -q audio || $PB -c "Add :UIBackgroundModes: string audio" "$P"
             plutil -lint ios/App/App/App.entitlements; plutil -lint "$P"
             echo "::notice::Push to Talk: entitlement + background mode";;
           esac
@@ -242,7 +244,8 @@ jobs:
                   // 1.5: الصفحة تعرف إن لاسلكي Apple جاهز، فزر التطبيق يسجّل عن طريقه (مالك واحد للميكروفون)
                   if #available(iOS 16.0, *) {
                       let r = DalilPTT.shared.ready
-                      if r != pttReady { pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false"), completionHandler: nil) }
+                      // 1.6: كل ثانية (مو بس عند التغيّر) — إذا انعادت الصفحة (تحديث) تنسى القيمة فيرجع التسجيل لطريقة الويب
+                      pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false"), completionHandler: nil)
                   }
                   if let u = pendingURL, UIApplication.shared.applicationState == .active,
                      let d = try? JSONSerialization.data(withJSONObject: [u]), var js = String(data: d, encoding: .utf8) {
@@ -334,7 +337,10 @@ jobs:
               private var room: [String: Any]? = UserDefaults.standard.dictionary(forKey: "dalil_ptt_room")
               private var joined: UUID?
               private var joining = false
-              private var active = true
+              // 1.6: افتراضيًا «مو قدام المستخدم». لما تصحّي Apple التطبيق بالخفاء (كان مقفول) ما يصير «نشط» أبدًا،
+              // فلازم نشغّل الصوت بأنفسنا. قبل كانت true فيترك التشغيل للصفحة المتوقفة = ما يطلع صوت
+              private var active = false
+              private var pre: [URL: Data] = [:]
               private var queue: [(URL, String)] = []
               private var playingId = ""
               private var sessionOn = false
@@ -364,6 +370,8 @@ jobs:
               func setup() {
                   // إعداد الصوت مرة وحدة قبل أي إرسال أو استقبال (تغييره والصوت مفعّل يقطع زر «تحدّث»)
                   try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                  active = UIApplication.shared.applicationState == .active
+                  NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
                   NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.unstick(); self?.reconcile() }
                   NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false; self?.ensureCategory() }
                   Task { @MainActor in
@@ -389,6 +397,8 @@ jobs:
                   }
               }
               func channelDescriptor(restoredChannelUUID channelUUID: UUID) -> PTChannelDescriptor {
+                  // Apple: جهّز الصوت هنا (لما يصحى التطبيق المقفول) قبل ما يفعّله النظام، وإلا ما ينادى didActivate
+                  try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
                   let n = (room?["name"] as? String) ?? ""
                   return PTChannelDescriptor(name: n.isEmpty ? "غرفة الرحلة — دليل" : n, image: nil)
               }
@@ -412,6 +422,8 @@ jobs:
                   let vid = (pushPayload["id"] as? String) ?? ""
                   if !active, let s = pushPayload["url"] as? String, let u = URL(string: s) {
                       // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
+                      // نبدأ التحميل فورًا (ما ننتظر تفعيل الصوت) حتى يشتغل أول ما يجهز
+                      URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
                       DispatchQueue.main.async { self.queue.append((u, vid)); self.arm(); if self.player == nil && self.sessionOn { self.playNext() } }
                   } else {
                       // التطبيق مفتوح: الصفحة تشغّل الصوت بنفسها
@@ -440,13 +452,15 @@ jobs:
                   guard !queue.isEmpty else { finish(); return }
                   let (u, vid) = queue.removeFirst()
                   arm()
-                  URLSession.shared.dataTask(with: u) { d, _, _ in
+                  let start: (Data?) -> Void = { d in
                       DispatchQueue.main.async {
                           guard let d = d, let p = try? AVAudioPlayer(data: d) else { self.playNext(); return }
                           self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
                           if !p.play() { self.player = nil; self.playingId = ""; self.playNext() }
                       }
-                  }.resume()
+                  }
+                  if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
+                  else { URLSession.shared.dataTask(with: u) { d, _, _ in start(d) }.resume() }
               }
               func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
                   DispatchQueue.main.async {
