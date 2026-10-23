@@ -121,6 +121,7 @@
         break;
       // الصوت: من تخزيننا فقط ومن نفس المرسل (ما نشغّل روابط غريبة)
       case 'voice': if(p.v && typeof p.v.url === 'string' && p.v.url.startsWith(SB + '/storage/') && String(p.v.member_id || id) === id) addVoice({...p.v, member_id:id}, true); break;
+      case 'vtext': if(typeof p.text === 'string' && p.id){ const v = R.voice.find(x=>x.id === String(p.id) && x.member_id === id); if(v){ v.text = p.text.slice(0, 600); renderVoiceSoon(); } } break;
       case 'heard': if(Array.isArray(p.ids)){ let ch = false; for(const vid of p.ids) ch = markHeard(String(vid), [id]) || ch; if(ch) renderVoiceSoon(); } break;
       case 'voice_live':
         if(p.id && typeof p.b64 === 'string' && p.b64.length < 160000 && /^audio\//.test(p.mime || '')){
@@ -424,6 +425,8 @@
       if(!rec.on){ pttMsg(false); }   // رفع إصبعه قبل ما يبدأ
     }else if(ev === 'end'){
       clearInterval(rec.timer); if(rec.native) renderPtt('send');
+    }else if(ev === 'vtext'){
+      const v = data && R.voice.find(x=>x.id === String(data.id)); if(v && typeof data.text === 'string'){ v.text = data.text.slice(0, 600); renderVoiceSoon(); }
     }else if(ev === 'sent'){
       const was = rec.native; rec.native = false; renderPtt();
       if(data && data.id){ addVoice(data, false); diag({s:'sent', path:'native', dur:data.duration, mine:was}); }
@@ -682,6 +685,7 @@
   .rm-ib{width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:var(--panel); color:var(--sand-dim); display:grid; place-items:center; cursor:pointer; flex:0 0 auto}
   .rm-ib svg{width:20px; height:20px}
   .rm-v{display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:12px; font-size:13px}
+  .rm-v .rm-tx{display:block; margin-top:3px; font-size:13px; line-height:1.55; color:inherit; opacity:.85; white-space:normal; overflow-wrap:anywhere}
   .rm-v.new{background:var(--panel-2)}
   .rm-v .dot{width:10px; height:10px; border-radius:50%; flex:0 0 auto}
   .rm-v .grow{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
@@ -1000,7 +1004,7 @@
       const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = (playing && playing.id === v.id) || nPlay === v.id;
       return `<div class="rm-v${isNew ? ' new' : ''}${muted ? ' muted' : ''}${pl ? ' playing' : ''}">
         <span class="dot" style="background:${esc(memberColor(v.member_id))}"></span>
-        <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small>${mine ? heardLine(v) : ''}</span>
+        <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small>${mine ? heardLine(v) : ''}${v.text ? `<small class="rm-tx">📝 ${esc(v.text)}</small>` : ''}</span>
         <button class="rm-play" type="button" data-rm="play" data-id="${esc(v.id)}">${pl ? '■' : '▶'}</button>
       </div>`;
     }).join('') + (all.length > 3 ? `<button type="button" class="rm-more" data-rm="voice-all">${R.voiceAll ? 'عرض أقل' : 'عرض الكل (' + all.length + ')'}</button>` : '');

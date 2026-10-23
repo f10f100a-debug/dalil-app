@@ -89,6 +89,7 @@ jobs:
           set_str NSMotionUsageDescription "يستخدم دليل مستشعرات الحركة لتشغيل البوصلة وتحديد اتجاهك."
           set_str NSCameraUsageDescription "لالتقاط صورة حدث (سيل أو مطر) ونشرها لمستخدمي منطقتك إن اخترت ذلك."
           set_str NSMicrophoneUsageDescription "لإرسال رسائل صوتية لأعضاء غرفة الرحلة عند الضغط على «اضغط وتكلّم» فقط."
+          set_str NSSpeechRecognitionUsageDescription "لتحويل رسائلك الصوتية في غرفة الرحلة إلى نص يقرؤه أعضاء الغرفة إذا ما قدروا يسمعون."
           set_str NSPhotoLibraryUsageDescription "لاختيار صورة حدث من ألبومك أو استيراد ملفات خرائطك."
           $PB -c "Delete :ITSAppUsesNonExemptEncryption" "$P" 2>/dev/null || true
           $PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$P"
@@ -327,7 +328,7 @@ jobs:
           # 1.4: اللاسلكي في الخلفية (Apple PushToTalk) — يُفعَّل فقط مع صلاحيته (1.4+)، ويعمل من iOS 16
           s = open(p).read()
           if "class DalilPTT" not in s:
-              s = s.replace("import UIKit", "import UIKit\nimport AVFoundation\nimport PushToTalk", 1)
+              s = s.replace("import UIKit", "import UIKit\nimport AVFoundation\nimport PushToTalk\nimport Speech", 1)
               i = s.find("didFinishLaunchingWithOptions")
               j = s.find("return true", i)
               s = s[:j] + "if #available(iOS 16.0, *) { DalilPTT.shared.setup() }\n        " + s[j:]
@@ -499,9 +500,44 @@ jobs:
                   guard let r = recorder else { return }
                   r.stop(); recorder = nil
                   let dur = Date().timeIntervalSince(recStart)
-                  defer { try? FileManager.default.removeItem(at: r.url) }
-                  guard dur > 0.4, let data = try? Data(contentsOf: r.url), data.count > 200 else { evt("short"); return }
-                  upload(data, dur)
+                  guard dur > 0.4, let data = try? Data(contentsOf: r.url), data.count > 200 else { try? FileManager.default.removeItem(at: r.url); evt("short"); return }
+                  let vid = UUID().uuidString.lowercased()
+                  upload(data, dur, vid)
+                  transcribe(r.url, vid)
+              }
+              // 1.7: نص الرسالة — يحوّلها الجوال (على الجهاز إذا يدعم العربي، وإلا خدمة Apple) ويرسل النص بعد ما يكتمل الرفع
+              private var speech: SFSpeechRecognitionTask?
+              private var upDone = Set<String>()
+              private var vtxt: [String: String] = [:]
+              private func flushText(_ vid: String) {
+                  guard upDone.contains(vid), let t = vtxt.removeValue(forKey: vid) else { return }
+                  upDone.remove(vid)
+                  post("voice_text", ["id": vid, "text": t])
+                  if let d = try? JSONSerialization.data(withJSONObject: ["id": vid, "text": t]), let js = String(data: d, encoding: .utf8) { evt("vtext", js) }
+              }
+              private func transcribe(_ url: URL, _ vid: String) {
+                  let cleanup = { try? FileManager.default.removeItem(at: url) }
+                  let go = {
+                      guard let rec = SFSpeechRecognizer(locale: Locale(identifier: "ar-SA")), rec.isAvailable else { cleanup(); return }
+                      let req = SFSpeechURLRecognitionRequest(url: url)
+                      req.shouldReportPartialResults = false
+                      req.addsPunctuation = true
+                      if rec.supportsOnDeviceRecognition { req.requiresOnDeviceRecognition = true }
+                      var task: UIBackgroundTaskIdentifier = .invalid
+                      task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                      self.speech = rec.recognitionTask(with: req) { res, err in
+                          let fin = res?.isFinal ?? false
+                          if fin, let t = res?.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+                              DispatchQueue.main.async { self.vtxt[vid] = String(t.prefix(600)); self.flushText(vid) }
+                          }
+                          if fin || err != nil { cleanup(); UIApplication.shared.endBackgroundTask(task) }
+                      }
+                  }
+                  switch SFSpeechRecognizer.authorizationStatus() {
+                  case .authorized: go()
+                  case .notDetermined: SFSpeechRecognizer.requestAuthorization { st in DispatchQueue.main.async { if st == .authorized { go() } else { cleanup() } } }
+                  default: cleanup()
+                  }
               }
               private func endpoint(_ action: String) -> (URL, String, [String: Any])? {
                   guard let r = room, let base = r["url"] as? String, let key = r["key"] as? String,
@@ -524,14 +560,14 @@ jobs:
                   req.httpBody = try? JSONSerialization.data(withJSONObject: body)
                   send(req)
               }
-              private func upload(_ data: Data, _ dur: Double) {
+              private func upload(_ data: Data, _ dur: Double, _ vid: String) {
                   guard let ep = endpoint("voice") else { return }
                   let (url, key, auth) = ep
                   let b = "dalil-" + UUID().uuidString
                   var body = Data()
                   func field(_ n: String, _ v: String) { body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"" + n + "\\"\\r\\n\\r\\n" + v + "\\r\\n").data(using: .utf8)!) }
                   for (k, v) in auth { field(k, (v as? String) ?? "") }
-                  field("id", UUID().uuidString.lowercased()); field("duration", String(format: "%.1f", dur)); field("native", "1")
+                  field("id", vid); field("duration", String(format: "%.1f", dur)); field("native", "1")
                   body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"audio\\"; filename=\\"voice.m4a\\"\\r\\nContent-Type: audio/mp4\\r\\n\\r\\n").data(using: .utf8)!)
                   body.append(data); body.append(("\\r\\n--" + b + "--\\r\\n").data(using: .utf8)!)
                   var req = URLRequest(url: url); req.httpMethod = "POST"
@@ -542,7 +578,7 @@ jobs:
                   task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
                   URLSession.shared.dataTask(with: req) { d, _, _ in
                       if let d = d, let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let v = o["voice"],
-                         let vd = try? JSONSerialization.data(withJSONObject: v), let vs = String(data: vd, encoding: .utf8) { self.evt("sent", vs) }
+                         let vd = try? JSONSerialization.data(withJSONObject: v), let vs = String(data: vd, encoding: .utf8) { self.evt("sent", vs); DispatchQueue.main.async { self.upDone.insert(vid); self.flushText(vid) } }
                       else { self.evt("upload_fail") }
                       UIApplication.shared.endBackgroundTask(task)
                   }.resume()
