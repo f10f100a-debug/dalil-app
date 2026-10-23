@@ -1,0 +1,150 @@
+10-23 22:06:11.741   551   572 W ziparchive: Unable to open '/data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.dm': No such file or directory
+10-23 22:06:11.756  2001  2001 D Capacitor: App paused
+10-23 22:06:11.758  2001  2001 D Capacitor: App stopped
+10-23 22:06:11.759  2001  2001 D Capacitor: Saving instance state!
+10-23 22:06:11.760  2001  2001 D Capacitor: App destroyed
+10-23 22:06:11.768   551  1928 D CoreBackPreview: Window{e48ca77 u0 com.alluhaybi.dalil/com.alluhaybi.dalil.MainActivity}: Setting back callback null
+10-23 22:06:11.772   551  1705 D CoreBackPreview: Window{e56eef8 u0 Splash Screen com.alluhaybi.dalil}: Setting back callback null
+10-23 22:06:11.772   551  1943 W InputManager-JNI: Input channel object 'e56eef8 Splash Screen com.alluhaybi.dalil (client)' was disposed without first being removed with the input manager!
+10-23 22:06:11.776   551  1943 W InputManager-JNI: Input channel object 'e48ca77 com.alluhaybi.dalil/com.alluhaybi.dalil.MainActivity (client)' was disposed without first being removed with the input manager!
+10-23 22:06:11.778   551   572 I ActivityTaskManager: Displayed com.alluhaybi.dalil/.MainActivity for user 0: +2s723ms
+10-23 22:06:11.857  2001  2001 D Capacitor: Starting BridgeActivity
+10-23 22:06:11.863  2001  2001 D Capacitor: Registering plugin instance: CapacitorCookies
+10-23 22:06:11.864  2001  2001 D Capacitor: Registering plugin instance: WebView
+10-23 22:06:11.864  2001  2001 D Capacitor: Registering plugin instance: CapacitorHttp
+10-23 22:06:11.867  2001  2001 D Capacitor: Registering plugin instance: PushNotifications
+10-23 22:06:11.908  2001  2001 W Capacitor: Unable to read file at path public/plugins
+10-23 22:06:11.910  2001  2001 D Capacitor: Loading app at https://f10f100a-debug.github.io/dalil-app/
+10-23 22:06:11.921  2001  2001 D Capacitor: App started
+10-23 22:06:11.923  2001  2001 D Capacitor: App resumed
+10-23 22:06:11.944  2233  2288 W chromium: [WARNING:runtime_features.cc(694)] SharedStorage for M118+ cannot be enabled in this configuration. Use --enable-features=SharedStorageAPI,SharedStorageAPIM118 in addition.
+10-23 22:06:11.951  2233  2288 W chromium: [WARNING:runtime_features.cc(730)] AttributionReportingCrossAppWeb cannot be enabled in this configuration. Use --enable-features=ConversionMeasurement,AttributionReportingCrossAppWeb in addition.
+10-23 22:06:12.089   551   995 D CoreBackPreview: Window{bb2ac51 u0 com.alluhaybi.dalil/com.alluhaybi.dalil.MainActivity}: Setting back callback OnBackInvokedCallbackInfo{mCallback=android.window.IOnBackInvokedCallback$Stub$Proxy@3209a12, mPriority=0, mIsAnimationCallback=false}
+10-23 22:06:12.118  1437  1437 I AiAiEcho: AppFetcherImplV2 updateApps package:[com.alluhaybi.dalil], userId:[0], reason:[package is added.].
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at org.chromium.android_webview.AwContents.t(chromium-TrichromeWebViewGoogle6432.apk-stable-636771938:10)
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at org.chromium.android_webview.AwContents.m(chromium-TrichromeWebViewGoogle6432.apk-stable-636771938:2)
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at com.android.webview.chromium.WebViewChromium.evaluateJavaScript(chromium-TrichromeWebViewGoogle6432.apk-stable-636771938:46)
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl.lambda$eval$0(MockCordovaWebViewImpl.java:189)
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl.$r8$lambda$4KdV8CYlWQxu6zbahMKlKsvDFpM(Unknown Source:0)
+10-23 22:06:12.202  2001  2001 W cr_AwContents: 	at com.getcapacitor.cordova.MockCordovaWebViewImpl$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+10-23 22:06:12.209  2001  2194 D Capacitor: Handling local request: https://localhost/offline.html
+10-23 22:06:12.470  2001  2008 I alluhaybi.dalil: Compiler allocated 5174KB to compile void android.view.ViewRootImpl.performTraversals()
+10-23 22:06:12.771  2233  2288 I chromium: [INFO:viewport_data.cc(133)] E2E_Used ViewportFitCover
+10-23 22:06:12.947  1070  1070 D CarrierSvcBindHelper: onPackageAdded: com.alluhaybi.dalil
+10-23 22:06:13.028  1070  1313 D ImsResolver: maybeAddedImsService, packageName: com.alluhaybi.dalil
+10-23 22:06:13.134   551   844 I AppWidgetServiceImpl: Updating package stopped masked state for uid 10209 package com.alluhaybi.dalil isStopped false
+10-23 22:06:13.166   551   871 I SdkSandboxManager: No SDKs used. Skipping SDK data reconcilation for CallingInfo{mUid=10209, mPackageName='com.alluhaybi.dalil, mAppProcessToken='null'}
+10-23 22:06:13.215   551   551 I AppsFilter: interaction: PackageSetting{f645eaa com.android.microdroid.empty_payload/10205} -> PackageSetting{4104a9b com.alluhaybi.dalil/10209} BLOCKED
+10-23 22:06:13.290  1256  2507 W chromium: [1023/220613.289435:WARNING:dns_config_service_android.cc(81)] Failed to read DnsConfig.
+10-23 22:06:13.388   551   860 D ShortcutService: adding package: com.alluhaybi.dalil userId0
+10-23 22:06:13.388   551   860 D ShortcutService: handlePackageAdded: com.alluhaybi.dalil user=0
+10-23 22:06:13.388   551   860 D ShortcutService: rescanPackageIfNeeded 0@com.alluhaybi.dalil, forceRescan=true , isNewApp=true
+10-23 22:06:13.388   551   860 D ShortcutService: Package com.alluhaybi.dalil has 0 manifest shortcut(s), and 0 share target(s)
+10-23 22:06:14.180  1142  1161 I Launcher.IconCache: Database bulk icon loading failed, using fallback bulk icon loading for: ComponentInfo{com.alluhaybi.dalil/com.alluhaybi.dalil.MainActivity}
+10-23 22:06:14.257  1256  1694 W FontLog : 	at org.chromium.net.impl.CronetUrlRequest.onError(:com.google.android.gms.dynamite_cronetdynamite@242335041@24.23.35 (190800-0):4)
+10-23 22:06:14.345  1256  2541 W FontLog : No resolver, short-circuit {Noto Color Emoji Compat, wdth 100.0, wght 400, ital 0.0, bestEffort false} for com.alluhaybi.dalil to failure [CONTEXT service_id=132 ]
+10-23 22:06:14.435  1256  1694 W FontLog : No resolver, short-circuit {Noto Color Emoji Compat, wdth 100.0, wght 400, ital 0.0, bestEffort false} for com.alluhaybi.dalil to failure [CONTEXT service_id=132 ]
+10-23 22:06:14.632   894   901 W ndroid.systemui: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:14.668   551   860 D ShortcutService: changing package: com.alluhaybi.dalil userId0
+10-23 22:06:14.668   551   860 D ShortcutService: handlePackageChanged: com.alluhaybi.dalil user=0
+10-23 22:06:14.674  2233  2288 E chromium: [ERROR:font_unique_name_lookup_android.cc(223)] Received platform font handle invalid, fd: -1
+10-23 22:06:14.721   551   860 D ShortcutService: rescanPackageIfNeeded 0@com.alluhaybi.dalil, forceRescan=true , isNewApp=true
+10-23 22:06:14.722   551   860 D ShortcutService: Package com.alluhaybi.dalil has 0 manifest shortcut(s), and 0 share target(s)
+10-23 22:06:14.912  1437  1437 I AiAiEcho: AppFetcherImpl onPackageChanged com.alluhaybi.dalil.
+10-23 22:06:14.914   551   565 W system_server: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:14.915  1437  2297 I AiAiEcho: AppIndexer Package:[com.alluhaybi.dalil] UserProfile:[0] Enabled:[true].
+10-23 22:06:14.915  1437  2297 I AiAiEcho: AppFetcherImplV2 updateApps package:[com.alluhaybi.dalil], userId:[0], reason:[package is updated.].
+10-23 22:06:15.257  1070  1070 D CarrierSvcBindHelper: onPackageModified: com.alluhaybi.dalil
+10-23 22:06:15.513  1142  1148 W s.nexuslauncher: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:15.538   551   669 I ImeTracker: com.alluhaybi.dalil:7e6dcaa7: onRequestHide at ORIGIN_SERVER reason HIDE_UNSPECIFIED_WINDOW fromUser false
+10-23 22:06:15.538   551   669 I ImeTracker: com.alluhaybi.dalil:7e6dcaa7: onCancelled at PHASE_SERVER_SHOULD_HIDE
+10-23 22:06:15.609  1337  1337 I GoogleInputMethodService: GoogleInputMethodService.onStartInput():1986 onStartInput(EditorInfo{EditorInfo{packageName=com.alluhaybi.dalil, inputType=0, inputTypeString=NULL, enableLearning=false, autoCorrection=false, autoComplete=false, imeOptions=12000000, privateImeOptions=null, actionName=UNSPECIFIED, actionLabel=null, initialSelStart=-1, initialSelEnd=-1, initialCapsMode=0, label=null, fieldId=0, fieldName=null, extras=null, hintText=null, hintLocales=[]}}, false)
+10-23 22:06:15.670   551  1705 W PackageConfigPersister: App-specific configuration not found for packageName: com.alluhaybi.dalil and userId: 0
+10-23 22:06:15.786   551   585 I ActivityManager: Start proc 2617:com.google.android.webview:webview_apk/u0a152 for service {com.google.android.webview/org.chromium.android_webview.nonembedded.AwComponentUpdateService}
+10-23 22:06:15.791  1070  1313 D ImsResolver: maybeAddedImsService, packageName: com.alluhaybi.dalil
+10-23 22:06:16.410  2233  2288 I chromium: [INFO:viewport_data.cc(133)] E2E_Used ViewportFitCover
+10-23 22:06:16.477  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:16.613  2001  2669 D ProfileInstaller: Installing profile for com.alluhaybi.dalil
+10-23 22:06:16.746  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:16.746  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:16.746  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:16.767  1437  1456 W ogle.android.as: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:17.375  2617  2689 W cr_AWNetworkFetcherTask: 	at org.chromium.android_webview.nonembedded.NetworkFetcherTask.download(chromium-TrichromeWebViewGoogle6432.apk-stable-636771938:56)
+10-23 22:06:17.895   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{bc56bec com.google.android.googlequicksearchbox/10144} BLOCKED
+10-23 22:06:17.903   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{e935ad8 com.google.android.as/10137} BLOCKED
+10-23 22:06:17.903   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{cf1e0a2 com.google.android.inputmethod.latin/10156} BLOCKED
+10-23 22:06:17.996  1534  2734 W chromium: [1023/220617.996049:WARNING:url_request_context_config.cc(716)] Unrecognized Cronet experimental option "enable_telemetry" with params "false
+10-23 22:06:17.996  1534  2734 W chromium: 
+10-23 22:06:19.232   906   906 I SafetyLabelChangedBroadcastReceiver: received broadcast packageName: com.alluhaybi.dalil, current user: UserHandle{0}, packageChangeEvent: NEW_INSTALL, intent user: UserHandle{0}
+10-23 22:06:19.559  1142  1161 D PackageUpdatedTask: Package updated: mOp=ADD packages=[com.alluhaybi.dalil]
+10-23 22:06:20.129  2001  2011 W alluhaybi.dalil: Cleared Reference was only reachable from finalizer (only reported once)
+10-23 22:06:20.445  1142  1148 W s.nexuslauncher: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:20.677  2001  2011 I alluhaybi.dalil: Background concurrent mark compact GC freed 5925KB AllocSpace bytes, 48(2212KB) LOS objects, 49% free, 4041KB/8083KB, paused 52us,3.749ms total 839.228ms
+10-23 22:06:20.681  2001  2013 W alluhaybi.dalil: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~KPdZuhpYhclq9TycAeFf4w==/com.google.android.webview-5C8X0sfhjxKVZRZkDstBoA==/WebViewGoogle.apk' with 2 weak references
+10-23 22:06:20.945  1534  2832 W chromium: [1023/220620.945425:WARNING:url_request_context_config.cc(716)] Unrecognized Cronet experimental option "enable_telemetry" with params "false
+10-23 22:06:20.945  1534  2832 W chromium: 
+10-23 22:06:21.816  2001  2001 D Capacitor: onGeolocationPermissionsShowPrompt: DOING IT HERE FOR ORIGIN: https://f10f100a-debug.github.io/
+10-23 22:06:21.827  2001  2001 D Capacitor: onGeolocationPermissionsShowPrompt: has required permission
+10-23 22:06:22.544  1142  1161 D PackageUpdatedTask: Package updated: mOp=UPDATE packages=[com.alluhaybi.dalil]
+10-23 22:06:23.521  1142  1161 D SessionCommitReceiver: Removing PromiseIcon for package: com.alluhaybi.dalil, install reason: 0, alreadyAddedPromiseIcon: false
+10-23 22:06:24.655  2983  3011 D nativeloader: Load /data/app/~~cq6I6CGkfBYKmWJZS71F1A==/com.android.chrome-uBe27UcgZHyQ36oSnpd9fQ==/Chrome.apk!/lib/x86_64/libchromium_android_linker.so using ns clns-8 from class loader (caller=/data/app/~~cq6I6CGkfBYKmWJZS71F1A==/com.android.chrome-uBe27UcgZHyQ36oSnpd9fQ==/Chrome.apk): ok
+10-23 22:06:25.385  1142  1148 W s.nexuslauncher: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:27.278   551  1575 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{e4fd3f8 com.google.android.documentsui/10096} BLOCKED
+10-23 22:06:27.672  1563  1570 W gle.android.gms: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:28.328   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{763d81c com.google.android.youtube/10167} BLOCKED
+10-23 22:06:28.392   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{27edf5a com.google.android.apps.maps/10151} BLOCKED
+10-23 22:06:28.392   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{bfbbd23 com.google.android.rkpdapp/10196} BLOCKED
+10-23 22:06:28.407   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{9e26220 com.google.android.partnersetup/10131} BLOCKED
+10-23 22:06:28.407   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{ab6eac5 com.google.android.settings.intelligence/10139} BLOCKED
+10-23 22:06:28.407   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{4c82c1a com.google.android.cellbroadcastreceiver/10195} BLOCKED
+10-23 22:06:28.548  1563  1828 I Blockstore: [DataStoreImpl] Clearing Blockstore Data for package com.alluhaybi.dalil [CONTEXT service_id=258 ]
+10-23 22:06:29.969  1563  1570 W gle.android.gms: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:32.875   551  1943 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{94522ac com.google.android.devicelockcontroller/10197} BLOCKED
+10-23 22:06:33.229   551  1698 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{c653299 com.google.android.healthconnect.controller/10206} BLOCKED
+10-23 22:06:33.257  1563  1570 W gle.android.gms: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:33.497   551  1702 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{78895a com.google.android.settings.intelligence/10139} BLOCKED
+10-23 22:06:33.499   551  1702 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{2c8178b com.google.android.settings.intelligence/10139} BLOCKED
+10-23 22:06:34.450  1364  1384 W .apps.wellbeing: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:35.034   551  1703 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{c4cb097 com.google.android.apps.messaging/10134} BLOCKED
+10-23 22:06:35.048   551  1928 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{958db23 com.google.android.apps.safetyhub/10130} BLOCKED
+10-23 22:06:36.338  3018  3024 W ndroid.settings: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:38.805   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{1b591af com.google.android.googlequicksearchbox/10144} BLOCKED
+10-23 22:06:38.808   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{90c89bc com.google.android.apps.messaging/10134} BLOCKED
+10-23 22:06:38.808   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{fb61d45 com.google.android.apps.safetyhub/10130} BLOCKED
+10-23 22:06:38.808   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{5d3ac9a com.android.camera2/10157} BLOCKED
+10-23 22:06:38.808   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{2d399cb com.google.android.as/10137} BLOCKED
+10-23 22:06:38.808   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{af685a8 com.google.android.rkpdapp/10196} BLOCKED
+10-23 22:06:39.937   551  1928 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{7151393 com.google.android.settings.intelligence/10139} BLOCKED
+10-23 22:06:40.033  3018  3024 W ndroid.settings: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:40.259  3018  3024 W ndroid.settings: ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~0l2Lbi1Bb2ruT2IYBqWEDA==/com.alluhaybi.dalil-Wy1B_jksy6uM1IRSl2WdXA==/base.apk' with 1 weak references
+10-23 22:06:45.462  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:45.604  2233  2288 I chromium: [INFO:document_style_environment_variables.cc(104)] E2E_Used SafeAreaInsetBottom
+10-23 22:06:48.917  1563  3485 I cr_CronetUrlRequestContext: destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@cb2008a
+10-23 22:06:49.916   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{62d7c87 com.google.android.as/10137} BLOCKED
+10-23 22:06:49.916   551   609 I AppsFilter: interaction: PackageSetting{4104a9b com.alluhaybi.dalil/10209} -> PackageSetting{4b957b4 com.google.android.settings.intelligence/10139} BLOCKED
+10-23 22:06:50.695  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.695  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.695  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.695  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.703  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.706  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.707  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.getEnabledCronetProviders(PG:25)
+10-23 22:06:50.707  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.createBuilderDelegate(PG:16)
+10-23 22:06:50.707  3502  3596 D StrictMode: 	at org.chromium.net.CronetEngine$Builder.<init>(PG:1)
+10-23 22:06:50.707  3502  3596 D StrictMode: 	at org.chromium.net.ExperimentalCronetEngine$Builder.<init>(PG:1)
+10-23 22:06:51.202  3502  4128 I cr_CronetUrlRequestContext: destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@a0af707
+10-23 22:06:52.170  3502  4128 I cr_CronetUrlRequestContext: destroyNativeStreamLocked org.chromium.net.impl.CronetBidirectionalStream@c8cce4f

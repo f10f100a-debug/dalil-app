@@ -1,0 +1,1 @@
+  mCurrentFocus=Window{bb2ac51 u0 com.alluhaybi.dalil/com.alluhaybi.dalil.MainActivity}
