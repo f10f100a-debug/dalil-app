@@ -536,6 +536,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wx-radar-cta b{display:block; font-size:15px;}
   .wx-radar-cta small{display:block; font-size:12px; color:var(--text-dim); margin-top:2px;}
   .wx-radar-cta .wx-ext{width:20px; height:20px; color:var(--text-dim);}
+  /* مستشار الطلعة */
+  .adv-card{padding:12px 14px; margin-bottom:12px;}
+  .adv-card[hidden]{display:none;}
+  .adv-head{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .adv-head .adv-ic{font-size:24px; line-height:1;}
+  .adv-head b{display:block; font-size:15px; color:var(--text);} .adv-head small{display:block; font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .adv-days{display:flex; gap:6px; overflow-x:auto; margin:10px 0; padding-bottom:2px;}
+  .adv-days button{flex:0 0 auto; min-height:36px; padding:0 12px; border-radius:100px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font:inherit; font-size:13.5px; cursor:pointer;}
+  .adv-days button[aria-checked="true"]{background:var(--cp-gold); border-color:var(--cp-gold); color:#1d1606; font-weight:700;}
+  .adv-ask{width:100%; min-height:46px; border:0; border-radius:14px; background:var(--cp-gold); color:#1d1606; font:inherit; font-size:15px; font-weight:700; cursor:pointer;}
+  .adv-ask:disabled{opacity:.6;}
+  .adv-out{margin-top:12px; padding:12px; border-radius:14px; background:var(--panel-2); font-size:14.5px; line-height:1.75; color:var(--text);}
+  .adv-out[hidden]{display:none;}
+  .adv-out small{display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
   /* زر غرفة الرحلة: أخضر صحراوي مميز (لون اللاسلكي) */
   .cp-room{display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:8px 14px; border:0; border-radius:18px; cursor:pointer; text-align:right; font-family:inherit; color:#fff;
     background:linear-gradient(135deg, #17594F 0%, #1F7A6B 55%, #2E9481 100%); box-shadow:0 6px 18px rgba(23,89,79,.28), inset 0 1px 0 rgba(255,255,255,.14); -webkit-tap-highlight-color:transparent; transition:transform .12s;}
@@ -1158,6 +1172,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <span><b>رادار الأمطار والبرق — مباشر</b><small>من رادارات الأرصاد · يتحدث كل 10 دقائق</small></span>
         <span class="cp-ic wx-ext" data-ico="map"></span>
       </button>
+      <div class="cp-card adv-card" id="advCard" hidden>
+        <div class="adv-head"><span class="adv-ic" aria-hidden="true">🧭</span><span><b>مستشار الطلعة</b><small>وش رأيك أطلع البر؟ اختر المكان واليوم</small></span></div>
+        <label class="wd-loc"><span class="cp-ic" data-ico="pin"></span><select id="advLoc" aria-label="مكان الطلعة"></select></label>
+        <div class="adv-days" id="advDays" role="radiogroup" aria-label="يوم الطلعة"></div>
+        <button type="button" class="adv-ask" id="advAsk">اسأل المستشار</button>
+        <div class="adv-out" id="advOut" aria-live="polite" hidden></div>
+      </div>
       <div class="cp-card wx-hero" aria-live="polite">
         <div class="wx-top">
           <span class="wx-icon" id="wxIcon"></span>
@@ -4744,6 +4765,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }catch(e){ return null; }
   }
   async function updateWeather(force=false){
+    setTimeout(()=>{ try{ advInit(); }catch(e){} }, 0);   // بعد ما يكتمل تحميل السكربت
     if(!state.pos) return;
     if(!force && Date.now()-lastWeatherFetch<15*60*1000) return;
     lastWeatherFetch=Date.now();
@@ -5857,6 +5879,61 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(key === 'here') return state.pos ? {lat:state.pos.lat, lng:state.pos.lng, name:'موقعي الحالي'} : null;
     return windPlaces().find(p=>p.key === key) || null;
   }
+  // ---------- مستشار الطلعة (ذكاء اصطناعي يلخّص التوقعات) ----------
+  const ADV_PROBE_KEY = 'dalil_adv_on';
+  let advDay = 0, advBusy = false;
+  async function advProbe(){
+    const c = readStoredJson(ADV_PROBE_KEY, null);
+    if(c && Date.now() - c.at < 6 * 3600e3) return !!c.on;
+    try{
+      const j = await (await dalilPost('advise', {probe:true})).json();
+      try{ localStorage.setItem(ADV_PROBE_KEY, JSON.stringify({at:Date.now(), on:!!j.on})); }catch(e){}
+      return !!j.on;
+    }catch(e){ return !!(c && c.on); }
+  }
+  function advDayLabel(i){
+    if(i === 0) return 'اليوم'; if(i === 1) return 'بكرة';
+    try{ return new Intl.DateTimeFormat('ar-SA-u-nu-latn', {weekday:'long', timeZone:'Asia/Riyadh'}).format(new Date(Date.now() + i * 864e5)); }catch(e){ return 'بعد ' + i + ' أيام'; }
+  }
+  function advFill(){
+    const sel = document.getElementById('advLoc'), cur = sel.value || 'here';
+    const list = windPlaces();
+    sel.innerHTML = list.map(p=>`<option value="${escapeHtml(p.key)}">${escapeHtml(p.name)}</option>`).join('');
+    sel.value = list.some(p=>p.key === cur) ? cur : 'here';
+    document.getElementById('advDays').innerHTML = [0,1,2,3,4,5,6].map(i=>`<button type="button" role="radio" aria-checked="${i === advDay}" data-advday="${i}">${advDayLabel(i)}</button>`).join('');
+  }
+  async function advInit(){
+    const card = document.getElementById('advCard'); if(!card) return;
+    const on = await advProbe();
+    card.hidden = !on;
+    if(on) advFill();
+  }
+  document.getElementById('advDays').addEventListener('click', e=>{
+    const b = e.target.closest('[data-advday]'); if(!b) return;
+    advDay = Number(b.dataset.advday); advFill();
+  });
+  document.getElementById('advAsk').addEventListener('click', async ()=>{
+    if(advBusy) return;
+    const out = document.getElementById('advOut'), btn = document.getElementById('advAsk');
+    const key = document.getElementById('advLoc').value || 'here';
+    const pt = key === 'here' ? (state.pos ? {lat:state.pos.lat, lng:state.pos.lng, name:'موقعي الحالي'} : null) : windPlaces().find(p=>p.key === key);
+    out.hidden = false;
+    if(!pt){ out.textContent = 'فعّل الموقع أو اختر مكانًا محفوظًا.'; return; }
+    if(navigator.onLine === false){ out.textContent = 'تحتاج إنترنت عشان المستشار يقرأ التوقعات.'; return; }
+    // تنبيه الرادار الحالي (لموقعي اليوم فقط) يوصل للمستشار كمعلومة إضافية
+    const sc = document.getElementById('stormCard');
+    const storm = advDay === 0 && key === 'here' && sc && !sc.hidden ? sc.innerText.replace(/\s+/g, ' ').trim().slice(0, 160) : '';
+    advBusy = true; btn.disabled = true; out.textContent = '🧭 المستشار يقرأ التوقعات…';
+    try{
+      const j = await (await dalilPost('advise', {lat:pt.lat, lng:pt.lng, day:advDay, name:pt.name, storm})).json();
+      if(j.ok && j.text){
+        out.innerHTML = escapeHtml(j.text).replace(/\n+/g, '<br>') + '<small>تلخيص آلي لتوقعات Open-Meteo لـ' + escapeHtml(pt.name) + ' — التوقعات قد تتغير، والإنذارات الرسمية من المركز الوطني للأرصاد.</small>';
+      }else if(j.error === 'limit') out.textContent = 'وصلت حد الأسئلة اليوم (٨) — جرّب بكرة.';
+      else if(j.error === 'off'){ out.textContent = 'المستشار متوقف مؤقتًا.'; try{ localStorage.removeItem(ADV_PROBE_KEY); }catch(e){} }
+      else out.textContent = 'تعذّر الحين — حاول بعد شوي.';
+    }catch(e){ out.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وحاول مرة ثانية.'; }
+    advBusy = false; btn.disabled = false;
+  });
   function windCacheRead(){ return readStoredJson(WIND_CACHE_KEY, {}) || {}; }
   const windKey = pt=>pt.lat.toFixed(2) + ',' + pt.lng.toFixed(2);
   async function loadWind(force){
