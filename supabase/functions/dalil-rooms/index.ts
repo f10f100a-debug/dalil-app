@@ -1,6 +1,6 @@
 // غرفة الرحلة: إنشاء غرفة برقم سري، الدخول، حالة الغرفة، الرسائل الصوتية، نقطة التجمع، الكتم والطرد الجماعي، البلاغات.
 // المواقع لا تمر من هنا ولا تُخزَّن: تنتقل بين الأعضاء مباشرة عبر Realtime Broadcast على قناة سرية (secret).
-import { b64uEncode, cleanText, config, cors, db, ipHash, json } from "../_shared/common.ts";
+import { b64uEncode, cleanText, config, cors, db, ipHash, json, rotateRoomSecret } from "../_shared/common.ts";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { sendApnsTo, sendPttTo } from "../_shared/apns.ts";
 
@@ -197,8 +197,16 @@ Deno.serve(async (req) => {
       if (!name) return json(req, { error: "name_required" }, 400);
       if (await banned(sb, ip)) return json(req, { error: "banned" }, 403);
       if (await tooMany(sb, ip, "join", 20, 15)) return json(req, { error: "rate_limited" }, 429);
+      // حماية الرمز من التخمين من أجهزة كثيرة: 30 محاولة غلط بالساعة لكل غرفة، بعدها تُقفل الغرفة للدخول ساعة
+      // (اللي داخلها ما يتأثرون). 4 أرقام = 10000 احتمال، فالتخمين يحتاج أيامًا والغرفة تنتهي خلال 24 ساعة
+      const roomKey = "room:" + code, hourAgo = new Date(Date.now() - 3600e3).toISOString();
+      const { count: fails } = await sb.from("room_attempts").select("ip_hash", { count: "exact", head: true }).eq("ip_hash", roomKey).eq("kind", "pinfail").gte("created_at", hourAgo);
+      if ((fails ?? 0) >= 30) return json(req, { error: "room_locked" }, 429);
       const { data: room } = await sb.from("rooms").select("*").eq("code", code).maybeSingle();
-      if (!room || room.pin_hash !== await sha(cfg.ip_salt + "|room|" + code + "|" + pin)) return json(req, { error: "wrong_code" }, 403);
+      if (!room || room.pin_hash !== await sha(cfg.ip_salt + "|room|" + code + "|" + pin)) {
+        if (room) await sb.from("room_attempts").insert({ ip_hash: roomKey, kind: "pinfail" });
+        return json(req, { error: "wrong_code" }, 403);
+      }
       if (new Date(room.expires_at).getTime() < Date.now()) return json(req, { error: "expired" }, 410);
       const m = await newMember(sb, room.id, name, ip);
       if (!m) return json(req, { error: "full" }, 409);
@@ -246,9 +254,8 @@ Deno.serve(async (req) => {
       const n = (votes || []).filter((v) => others.includes(v.muter_id)).length;
       const need = Math.max(1, Math.min(3, others.length));
       if (others.length >= 2 && n >= need) {
-        const secret = rnd(18);
         await sb.from("room_members").update({ kicked: true }).eq("room_id", room.id).eq("member_id", target);
-        await sb.from("rooms").update({ secret }).eq("id", room.id);
+        const secret = await rotateRoomSecret(sb, room.id, room.secret);
         return json(req, { ok: true, kicked: true, votes: n, need, secret });
       }
       return json(req, { ok: true, kicked: false, votes: n, need });
@@ -340,6 +347,7 @@ Deno.serve(async (req) => {
 
     if (action === "leave") {
       await sb.from("room_members").update({ left_room: true, push_token: null, ptt_token: null }).eq("room_id", room.id).eq("member_id", member.member_id);
+      await rotateRoomSecret(sb, room.id, room.secret);   // اللي طلع ما يقدر يستمر يسمع المواقع
       return json(req, { ok: true });
     }
 

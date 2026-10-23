@@ -20,7 +20,7 @@
   const lsSet = (k, v)=>{ try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} };
   const ERR = {
     wrong_code:'رقم الغرفة أو الرمز السري غير صحيح', expired:'انتهت مدة الغرفة (24 ساعة)', full:'الغرفة ممتلئة (15 عضوًا)',
-    rate_limited:'محاولات كثيرة، انتظر قليلًا ثم حاول', bad_pin:'الرمز السري من 4 إلى 8 أرقام', name_required:'اكتب اسمك أولًا',
+    rate_limited:'محاولات كثيرة، انتظر قليلًا ثم حاول', room_locked:'الغرفة مقفلة للدخول مؤقتًا بسبب محاولات رمز خاطئة كثيرة — حاول بعد ساعة', bad_pin:'الرمز السري من 4 إلى 8 أرقام', name_required:'اكتب اسمك أولًا',
     kicked:'أُخرجت من الغرفة بتصويت الأعضاء', not_member:'لم تعد عضوًا في هذه الغرفة', bad_code:'تأكد من رقم الغرفة (6 أرقام) والرمز السري',
     bad_audio:'تعذّر إرسال التسجيل', banned:'تم إيقاف استخدامك لغرف الرحلة بسبب مخالفة الشروط', too_large:'التسجيل طويل جدًا', server:'تعذّر الاتصال بالخادم، حاول مرة أخرى', net:'لا يوجد اتصال بالإنترنت'
   };
@@ -119,7 +119,8 @@
         if(!R.members.has(id)) refreshState();
         clearTimeout(helloReply); helloReply = setTimeout(()=>{ const mp = myPosPayload(); if(mp) RT.send('pos', mp); }, 300 + Math.random() * 1500);
         break;
-      case 'voice': if(p.v && p.v.url) addVoice(p.v, true); break;
+      // الصوت: من تخزيننا فقط ومن نفس المرسل (ما نشغّل روابط غريبة)
+      case 'voice': if(p.v && typeof p.v.url === 'string' && p.v.url.startsWith(SB + '/storage/') && String(p.v.member_id || id) === id) addVoice({...p.v, member_id:id}, true); break;
       case 'heard': if(Array.isArray(p.ids)){ let ch = false; for(const vid of p.ids) ch = markHeard(String(vid), [id]) || ch; if(ch) renderVoiceSoon(); } break;
       case 'voice_live':
         if(p.id && typeof p.b64 === 'string' && p.b64.length < 160000 && /^audio\//.test(p.mime || '')){

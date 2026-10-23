@@ -80,18 +80,18 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
   let web = 0, ios = 0;
   try {
     webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
-    const { data } = await sb.from("push_subs").select("endpoint,p256dh,auth").filter("region", "in", `("${region}","")`).limit(5000);
+    const { data } = await sb.from("push_subs").select("endpoint,p256dh,auth").filter("region", "in", `("${region}","")`).order("created_at", { ascending: true }).limit(5000);
     const gone: string[] = [];
     await Promise.allSettled((data || []).map(async (s) => {
       try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(p), { TTL: 2 * 3600, urgency: "high" }); web++; }
-      catch (e) { const c = (e as { statusCode?: number }).statusCode; if (c === 404 || c === 410) gone.push(s.endpoint); }
+      catch (e) { const c = (e as { statusCode?: number }).statusCode; if (c === 400 || c === 403 || c === 404 || c === 410) gone.push(s.endpoint); }
     }));
     if (gone.length) await sb.from("push_subs").delete().in("endpoint", gone);
   } catch (e) { console.error("web push", e); }
   try {
     const jwt = await apnsToken(sb);
     if (jwt) {
-      const { data } = await sb.from("push_native").select("token").in("region", [region, ""]).limit(20000);
+      const { data } = await sb.from("push_native").select("token").in("region", [region, ""]).order("updated_at", { ascending: false }).limit(20000);
       const body = JSON.stringify({ aps: { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": p.tag }, url: p.url });
       const gone: string[] = [];
       await Promise.allSettled((data || []).map(async (r) => {
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
   };
   try {
     const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
-    if (!dry && (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value)) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
+    if (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
     const cfg = await config(sb);
     // يُقرأ مباشرة (بدون الذاكرة المؤقتة) حتى يسري زر الإيقاف في لوحة الإدارة فورًا
     const { data: sw } = await sb.from("app_config").select("value").eq("key", "auto_alerts").maybeSingle();

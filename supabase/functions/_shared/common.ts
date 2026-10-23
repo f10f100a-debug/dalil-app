@@ -107,3 +107,21 @@ export async function cleanup(sb: SupabaseClient) {
   await sb.from("events").update({ ip_hash: "" }).lt("created_at", new Date(Date.now() - 2 * 86400e3).toISOString()).neq("ip_hash", "");
   await sb.from("admin_attempts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());
 }
+
+// مفتاح قناة الغرفة: يتغيّر إذا خرج أحد (مغادرة أو طرد أو حظر) حتى ما يقدر يستمر يسمع المواقع.
+// نبلّغ الباقين على القناة القديمة «rekey» فيطلبون حالة الغرفة ويتحولون للمفتاح الجديد.
+export async function rotateRoomSecret(sb: SupabaseClient, roomId: string, oldSecret?: string | null): Promise<string> {
+  const secret = b64uEncode(crypto.getRandomValues(new Uint8Array(18)));
+  if (!oldSecret) {
+    const { data } = await sb.from("rooms").select("secret").eq("id", roomId).maybeSingle();
+    oldSecret = data?.secret || null;
+  }
+  await sb.from("rooms").update({ secret }).eq("id", roomId);
+  if (oldSecret) {
+    const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    await fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", { method: "POST",
+      headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" },
+      body: JSON.stringify({ messages: [{ topic: "room:" + oldSecret, event: "rekey", private: false, payload: {} }] }) }).catch(() => {});
+  }
+  return secret;
+}

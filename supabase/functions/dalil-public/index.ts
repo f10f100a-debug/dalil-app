@@ -9,6 +9,15 @@ const isMp4 = (b: Uint8Array) => b.length > 12 && b[4] === 0x66 && b[5] === 0x74
 const MAX_POSTS_PER_DAY = 10;
 const MAX_PENDING = 300;
 const REPORTS_TO_HIDE = 3;
+// اشتراكات تنبيهات «جديدة» من نفس الشبكة: 50 باليوم بالكثير (يمنع إغراق النظام باشتراكات وهمية).
+// تجديد اشتراك موجود ما يُحسب (التطبيق يجدّده عند كل فتح)
+async function newSubLimited(sb: ReturnType<typeof db>, ip: string) {
+  const since = new Date(Date.now() - 86400e3).toISOString();
+  const { count } = await sb.from("room_attempts").select("ip_hash", { count: "exact", head: true }).eq("ip_hash", ip).eq("kind", "newsub").gte("created_at", since);
+  if ((count ?? 0) >= 50) return true;
+  await sb.from("room_attempts").insert({ ip_hash: ip, kind: "newsub" });
+  return false;
+}
 
 function isJpeg(b: Uint8Array) { return b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff; }
 function num(v: FormDataEntryValue | null, min: number, max: number): number | null {
@@ -112,6 +121,8 @@ Deno.serve(async (req) => {
       }
       const regionIn = cleanText(body.region, 40);
       const region = REGIONS.includes(regionIn) ? regionIn : "";
+      const { data: had } = await sb.from("push_subs").select("endpoint").eq("endpoint", endpoint).maybeSingle();
+      if (!had && await newSubLimited(sb, ip)) return json(req, { error: "rate_limited" }, 429);
       const { error } = await sb.from("push_subs").upsert({ endpoint, p256dh, auth, region }, { onConflict: "endpoint" });
       if (error) throw error;
       return json(req, { ok: true });
@@ -171,6 +182,8 @@ Deno.serve(async (req) => {
       if (!/^[0-9a-f]{64,200}$/.test(token)) return json(req, { error: "bad_token" }, 400);
       const regionIn = cleanText(body.region, 40);
       const region = REGIONS.includes(regionIn) ? regionIn : "";
+      const { data: had } = await sb.from("push_native").select("token").eq("token", token).maybeSingle();
+      if (!had && await newSubLimited(sb, ip)) return json(req, { error: "rate_limited" }, 429);
       const { error } = await sb.from("push_native").upsert({ token, region, updated_at: new Date().toISOString() }, { onConflict: "token" });
       if (error) throw error;
       return json(req, { ok: true });

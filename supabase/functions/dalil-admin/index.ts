@@ -2,7 +2,7 @@
 // Every call carries the admin password; failed attempts are throttled per IP.
 import webpush from "npm:web-push@3.6.7";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
-import { b64uDecode, b64uEncode, cleanText, cleanup, config, cors, db, ipHash, json, KIND_AR, KINDS, REGIONS } from "../_shared/common.ts";
+import { b64uDecode, b64uEncode, cleanText, cleanup, config, cors, db, ipHash, json, KIND_AR, KINDS, REGIONS, rotateRoomSecret } from "../_shared/common.ts";
 
 const MAX_FAILS = 5;
 const FAIL_WINDOW_MS = 15 * 60e3;
@@ -80,7 +80,8 @@ async function sendApns(sb: SupabaseClient, region: string, payload: Record<stri
   if (!jwt) return { sent: 0, failed: 0, removed: 0, total: 0, skipped: true };
   let q = sb.from("push_native").select("token");
   if (region) q = q.in("region", [region, ""]);
-  const { data, error } = await q.limit(20000);
+  // الأنشط أولًا (التطبيق يجدّد الرمز عند كل فتح) — الرموز الوهمية تنحذف تلقائيًا (BadDeviceToken)
+  const { data, error } = await q.order("updated_at", { ascending: false }).limit(20000);
   if (error) throw error;
   const toks = (data || []).map((r) => r.token as string);
   const body = JSON.stringify({ aps: { alert: { title: payload.title, body: payload.body }, sound: "default", "thread-id": String(payload.tag || "dalil") }, url: payload.url || "./" });
@@ -118,7 +119,8 @@ async function sendWebPush(sb: SupabaseClient, cfg: Record<string,string>, regio
   webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
   let q = sb.from("push_subs").select("endpoint,p256dh,auth");
   if (region) q = q.filter("region", "in", `("${region}","")`);
-  const { data, error } = await q.limit(5000);
+  // الأقدم أولًا (المشتركون الحقيقيون)، وأي اشتراك وهمي يرد 400/403 ينحذف
+  const { data, error } = await q.order("created_at", { ascending: true }).limit(5000);
   if (error) throw error;
   const subs = (data || []) as Sub[];
   const body = JSON.stringify(payload);
@@ -134,7 +136,7 @@ async function sendWebPush(sb: SupabaseClient, cfg: Record<string,string>, regio
       else {
         failed++;
         const code = (r.reason as { statusCode?: number })?.statusCode;
-        if (code === 404 || code === 410) gone.push(batch[j].endpoint);
+        if (code === 400 || code === 403 || code === 404 || code === 410) gone.push(batch[j].endpoint);
         else console.error("push failed", code, String((r.reason as Error)?.message || r.reason).slice(0, 200));
       }
     });
@@ -474,7 +476,9 @@ Deno.serve(async (req) => {
         const until = Number.isFinite(days) && days > 0 ? new Date(Date.now() + days * 86400e3).toISOString() : null;
         await sb.from("room_bans").upsert({ ip_hash: r.target_ip, reason: cleanText(body.note, 200) || "بلاغ غرفة رحلة", until });
         // يخرج من كل الغرف الحالية فورًا
+        const { data: inRooms } = await sb.from("room_members").select("room_id").eq("ip_hash", r.target_ip).eq("kicked", false);
         await sb.from("room_members").update({ kicked: true }).eq("ip_hash", r.target_ip).eq("kicked", false);
+        for (const rid of new Set((inRooms || []).map((x) => x.room_id))) await rotateRoomSecret(sb, rid);
       }
       if (r.voice_path) await sb.storage.from("room-voice").remove([r.voice_path]);
       await sb.from("room_reports").update({ status: body.ban ? "banned" : "dismissed", voice_path: null }).eq("id", id);
