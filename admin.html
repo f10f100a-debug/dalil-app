@@ -135,6 +135,23 @@
     <div id="roomReports"></div>
     </div>
     <div data-perm="moderate">
+    <h2>أسئلة الناس — «اسأل دليل» <span class="badge" id="askOpen">0</span> <span class="muted" style="font-weight:400">· بدون أي معلومة عن السائل، وتنحذف بعد 90 يومًا</span></h2>
+    <div class="card">
+      <div class="kpis"><div><b id="askToday">–</b><span>أسئلة اليوم</span></div><div><b id="askMonth">–</b><span>أسئلة 30 يومًا</span></div><div><b id="askKbN">–</b><span>أجوبة مضافة منك</span></div></div>
+      <div class="row" style="align-items:center;margin-top:10px">
+        <div style="font-weight:700">المساعد: <span id="askState">–</span></div>
+        <button class="white" id="askToggle" style="flex:0 0 auto" hidden></button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="gold" id="askFNa" style="flex:0 0 auto">ما لقى لها جواب</button>
+        <button class="white" id="askFAll" style="flex:0 0 auto">كل الأسئلة</button>
+        <button class="white" id="askFKb" style="flex:0 0 auto">أجوبتي</button>
+      </div>
+      <div class="muted" style="font-size:12.5px;margin-top:6px">اكتب جوابًا لأي سؤال، ويصير جزء من معرفة المساعد خلال 5 دقائق.</div>
+    </div>
+    <div id="askList"></div>
+    </div>
+    <div data-perm="moderate">
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
     <div id="pending"></div>
 
@@ -622,6 +639,67 @@
     catch(e){ showErr(e); card.querySelectorAll('button').forEach(x=>x.disabled = false); }
   });
 
+  // ---------- «اسأل دليل»: أسئلة الناس وأجوبة الإدارة ----------
+  let askView = 'na', askData = null;
+  const SCR_AR = {compass:'البوصلة', places:'الأماكن', map:'الخريطة', weather:'الأجواء', settings:'الإعدادات', room:'الغرفة'};
+  async function loadAsk(){
+    askData = await api('ask_list', {filter: askView === 'all' ? 'all' : 'na'});
+    $('askOpen').textContent = askData.open;
+    $('askToday').textContent = askData.today; $('askMonth').textContent = askData.month; $('askKbN').textContent = askData.kb.length;
+    $('askState').innerHTML = askData.on ? '<span class="badge on">شغّال</span>' : '<span class="badge off">موقوف</span>';
+    $('askToggle').hidden = !(me && me.role === 'owner');
+    $('askToggle').textContent = askData.on ? 'إيقاف المساعد' : 'تشغيل المساعد';
+    $('askToggle').className = askData.on ? 'danger' : 'gold';
+    ['askFNa','askFAll','askFKb'].forEach(id=>{ $(id).className = (id === {na:'askFNa', all:'askFAll', kb:'askFKb'}[askView]) ? 'gold' : 'white'; });
+    renderAsk();
+  }
+  function renderAsk(){
+    const box = $('askList');
+    if(askView === 'kb'){
+      box.innerHTML = askData.kb.length ? askData.kb.map(k=>`<div class="card" data-kb="${k.id}">
+        <div style="font-weight:700">س: ${esc(k.q)}</div><div style="white-space:pre-line;margin-top:4px">ج: ${esc(k.a)}</div>
+        <div class="muted" style="font-size:12px;margin-top:4px">${esc(when(k.at))}${k.by_user ? ' · ' + esc(k.by_user) : ''}</div>
+        <div class="row" style="margin-top:8px"><button class="danger" data-aact="kbdel" style="flex:0 0 auto">حذف الجواب</button></div></div>`).join('')
+        : '<div class="card muted">ما أضفت أجوبة بعد. افتح «ما لقى لها جواب» واكتب جواب لأي سؤال.</div>';
+      return;
+    }
+    const rows = askData.rows || [];
+    box.innerHTML = rows.length ? rows.map(r=>`<div class="card" data-ask="${r.id}">
+      <div style="font-weight:700">${esc(r.q)} ${r.answered ? '' : (r.resolved ? '<span class="badge">تمت</span>' : '<span class="badge warn">ما لقى جواب</span>')}</div>
+      <div class="muted" style="font-size:12px;margin-top:2px">${esc(when(r.at))}${r.screen ? ' · من شاشة ' + esc(SCR_AR[r.screen] || r.screen) : ''}</div>
+      ${r.a ? `<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">رد المساعد</summary><div style="white-space:pre-line;margin-top:4px">${esc(r.a)}</div></details>` : ''}
+      ${r.resolved ? '' : `<label style="margin-top:8px">جوابك (اختياري)</label><textarea class="askA" maxlength="1500" placeholder="اكتب الجواب الصحيح بكلام بسيط…"></textarea>
+      <div class="row" style="margin-top:8px"><button class="gold" data-aact="answer" style="flex:0 0 auto">حفظ الجواب</button>${r.answered ? '' : '<button class="white" data-aact="dismiss" style="flex:0 0 auto">تجاهل</button>'}</div>`}
+      </div>`).join('') : `<div class="card muted">${askView === 'na' ? 'ما فيه أسئلة بدون جواب 👍' : 'ما فيه أسئلة بعد.'}</div>`;
+  }
+  ['askFNa','askFAll','askFKb'].forEach(id=>$(id).addEventListener('click', ()=>{ askView = {askFNa:'na', askFAll:'all', askFKb:'kb'}[id]; loadAsk().catch(showErr); }));
+  $('askToggle').addEventListener('click', async ()=>{
+    if(askData.on && !confirm('إيقاف «اسأل دليل» لكل المستخدمين؟')) return;
+    $('askToggle').disabled = true;
+    try{ await api('ask_toggle', {on: !askData.on}); await loadAsk(); }catch(e){ showErr(e); }
+    finally{ $('askToggle').disabled = false; }
+  });
+  $('askList').addEventListener('click', async ev=>{
+    const b = ev.target.closest('button[data-aact]'); if(!b) return;
+    const act = b.dataset.aact;
+    try{
+      if(act === 'kbdel'){
+        if(!confirm('حذف هذا الجواب من معرفة المساعد؟')) return;
+        await api('ask_kb_delete', {kb_id: Number(b.closest('[data-kb]').dataset.kb)});
+      }else{
+        const card = b.closest('[data-ask]'), id = Number(card.dataset.ask);
+        const row = askData.rows.find(r=>r.id === id);
+        if(act === 'dismiss') await api('ask_dismiss', {log_id:id});
+        else{
+          const a = card.querySelector('.askA').value.trim();
+          if(a.length < 2) return alert('اكتب الجواب أول');
+          await api('ask_answer', {log_id:id, q:row.q, a});
+        }
+      }
+      await loadAsk();
+    }catch(e){ showErr(e); }
+  });
+
 
   // ---------- تنبيهات المطر التلقائية ----------
   let aaOn = true;
@@ -652,7 +730,7 @@
     $('login').hidden = true; $('app').hidden = false;
     const jobs = [];
     if(can('moderate') || can('publish') || can('push')) jobs.push(load());
-    if(can('moderate')) jobs.push(loadRoomReports());
+    if(can('moderate')) jobs.push(loadRoomReports(), loadAsk());
     if(can('usage')) jobs.push(loadUsage());
     if(can('ads')) jobs.push(loadAds());
     if(can('push')) jobs.push(loadAutoAlerts());

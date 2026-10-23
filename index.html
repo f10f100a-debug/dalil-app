@@ -550,6 +550,28 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .adv-out{margin-top:12px; padding:12px; border-radius:14px; background:var(--panel-2); font-size:14.5px; line-height:1.75; color:var(--text);}
   .adv-out[hidden]{display:none;}
   .adv-out small{display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
+  /* «اسأل دليل» */
+  .ask-btn .cp-pill{gap:4px; padding:0 10px;}
+  .ask-sheet{max-height:86dvh; display:flex; flex-direction:column;}
+  .ask-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .ask-head h3{display:flex; align-items:center; gap:8px; margin:0;}
+  .ask-head h3 .cp-ic{color:var(--cp-gold-ink);}
+  .ask-x{width:40px; height:40px; border-radius:50%; border:1px solid var(--cp-line); background:none; color:var(--cp-ink); font:inherit; font-size:16px; cursor:pointer;}
+  .ask-log{flex:1 1 auto; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin:12px 0 8px; min-height:60px;}
+  .ask-log:empty::before{content:"اسألني عن أي شي في التطبيق: وين الزر، كيف أسوي، ليش ما يشتغل…"; color:var(--text-dim); font-size:13.5px; line-height:1.7;}
+  .ask-m{max-width:88%; padding:10px 12px; border-radius:16px; font-size:14.5px; line-height:1.75; white-space:pre-line; word-break:break-word;}
+  .ask-m.q{align-self:flex-start; background:var(--cp-gold); color:#1d1606; border-bottom-right-radius:6px;}
+  .ask-m.a{align-self:flex-end; background:var(--panel-2); color:var(--text); border-bottom-left-radius:6px;}
+  .ask-m.a.wait{color:var(--text-dim);}
+  .ask-m.a a{color:var(--cp-gold-ink); font-weight:700;}
+  .ask-sugs{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;}
+  .ask-sugs:empty{display:none;}
+  .ask-sugs button{min-height:36px; padding:6px 12px; border-radius:100px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font:inherit; font-size:13px; text-align:start; cursor:pointer;}
+  .ask-form{display:flex; gap:8px;}
+  .ask-form input{flex:1 1 auto; min-width:0; min-height:46px; padding:0 14px; border-radius:14px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); font:inherit; font-size:16px;}
+  .ask-form button{flex:0 0 auto; min-height:46px; padding:0 16px; border:0; border-radius:14px; background:var(--cp-gold); color:#1d1606; font:inherit; font-size:15px; font-weight:700; cursor:pointer;}
+  .ask-form button:disabled{opacity:.55;}
+  .ask-note{display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
   /* زر غرفة الرحلة: أخضر صحراوي مميز (لون اللاسلكي) */
   .cp-room{display:flex; align-items:center; gap:12px; width:100%; min-height:56px; padding:8px 14px; border:0; border-radius:18px; cursor:pointer; text-align:right; font-family:inherit; color:#fff;
     background:linear-gradient(135deg, #17594F 0%, #1F7A6B 55%, #2E9481 100%); box-shadow:0 6px 18px rgba(23,89,79,.28), inset 0 1px 0 rgba(255,255,255,.14); -webkit-tap-highlight-color:transparent; transition:transform .12s;}
@@ -995,6 +1017,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   <header class="topbar app-head">
     <h1 class="cp-title" id="screenTitle">دليل</h1>
     <div class="cp-badges">
+      <button type="button" class="cp-badge ask-btn" hidden aria-label="اسأل دليل — مساعد الاستخدام"><span class="cp-pill"><span class="cp-ic" data-ico="help"></span><span>اسأل</span></span></button>
       <div class="cp-badge" role="status" aria-label="دقة GPS"><span class="cp-pill"><span class="cp-dot" id="gpsDot"></span><span id="gpsLabel">GPS…</span></span></div>
     </div>
   </header>
@@ -1013,6 +1036,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <header class="cp-head">
         <h1 class="cp-title">البوصلة</h1>
         <div class="cp-badges">
+          <button type="button" class="cp-badge ask-btn" hidden aria-label="اسأل دليل — مساعد الاستخدام"><span class="cp-pill"><span class="cp-ic" data-ico="help"></span><span>اسأل</span></span></button>
           <button type="button" class="cp-badge" id="cpWeatherBadge" hidden aria-label="الطقس الحالي — عرض التفاصيل">
             <span class="cp-pill"><span class="cp-ic" id="cpWeatherIcon"></span><span id="cpWeatherTemp" dir="ltr"></span></span>
           </button>
@@ -1252,6 +1276,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <span class="cp-ic" data-ico="send"></span>
         <span><b>شارك دليل مع ربعك</b><small id="shareAppSub">رابط التطبيق مع طريقة تثبيته</small></span>
         <button type="button" class="cp-btn cp-btn-gold" id="shareAppBtn">مشاركة</button>
+      </div>
+      <div class="ev-push share-card ask-card" id="askSettingsCard" hidden>
+        <span class="cp-ic" data-ico="help"></span>
+        <span><b>اسأل دليل</b><small>أي سؤال عن استخدام التطبيق، ويرد عليك فورًا</small></span>
+        <button type="button" class="cp-btn cp-btn-gold" id="askSettingsBtn">اسأل</button>
       </div>
       <div class="section-title">المظهر</div>
       <div class="theme-chips" id="themeChips" role="radiogroup" aria-label="المظهر">
@@ -1582,6 +1611,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   </div>
 
   <div class="toast" id="toast"></div>
+
+  <!-- «اسأل دليل»: مساعد استخدام التطبيق -->
+  <div class="overlay" id="askOverlay">
+    <div class="sheet cp-sheet ask-sheet" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+      <div class="sheet-handle"></div>
+      <div class="ask-head"><h3 id="askTitle"><span class="cp-ic" data-ico="help"></span>اسأل دليل</h3><button type="button" class="ask-x" id="askClose" aria-label="إغلاق">✕</button></div>
+      <div class="ask-log" id="askLog" aria-live="polite"></div>
+      <div class="ask-sugs" id="askSugs"></div>
+      <form class="ask-form" id="askForm" autocomplete="off">
+        <input id="askInput" type="text" maxlength="300" placeholder="اكتب سؤالك عن التطبيق…" enterkeyhint="send" aria-label="سؤالك">
+        <button type="submit" id="askSend" aria-label="إرسال">إرسال</button>
+      </form>
+      <small class="ask-note">مساعد بالذكاء الاصطناعي (Anthropic Claude) يجاوب من دليل المستخدم وقد يخطئ. سؤالك يُحفظ بدون أي معلومة عنك لتحسين التطبيق، فلا تكتب فيه معلومات شخصية.</small>
+    </div>
+  </div>
 
   <!-- Car options bottom sheet -->
   <div class="overlay" id="carSheetOverlay">
@@ -2381,6 +2425,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     camera:'<path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2.3l1.4-2h5.6l1.4 2h2.3A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="12.8" r="3.3"/>',
     bell:'<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
     flag:'<path d="M5.5 21V4"/><path d="M5.5 4.5h11l-2 4 2 4h-11"/>',
+    help:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2 1-1.2 1.8v.6"/><path d="M12 17.2v.01"/>',
     leaf:'<path d="M5 19.5c0-8.5 5.5-14 14.5-14.5.5 9-5 14.5-13.5 14.5z"/><path d="M5 19.5 13 11.5"/>'
   };
   function ico(name){
@@ -5907,6 +5952,88 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }catch(e){ out.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وحاول مرة ثانية.'; }
     advBusy = false; btn.disabled = false;
   });
+  // ---------- «اسأل دليل»: مساعد استخدام التطبيق (يجاوب من دليل المستخدم) ----------
+  const ASK_PROBE_KEY = 'dalil_ask_on';
+  const ASK_SUGS = {
+    compass:['كيف أحفظ مكان سيارتي؟', 'البوصلة ما تتحرك، وش أسوي؟', 'وش معنى السهم الذهبي؟'],
+    places:['كيف أحفظ مكان جديد؟', 'كيف ألصق إحداثيات وصلتني؟', 'وش هي المواقع المدمجة؟'],
+    track:['كيف أحفظ الخريطة بدون إنترنت؟', 'كيف أسجّل مساري وأرجع منه؟', 'وش معنى ألوان الرادار؟'],
+    weather:['كيف أفعّل تنبيهات الأمطار؟', 'وش معنى ألوان الرياح؟', 'كيف أضيف حدث؟'],
+    settings:['كيف أنقل بياناتي لجوال جديد؟', 'كيف أفعّل الوضع الليلي؟', 'كيف أستورد ملف KML؟'],
+  };
+  const ASK_SCREEN = {compass:'compass', places:'places', track:'map', weather:'weather', settings:'settings'};
+  let askHist = [], askBusy = false, askScreen = 'compass';
+  async function askProbe(){
+    const c = readStoredJson(ASK_PROBE_KEY, null);
+    if(c && Date.now() - c.at < 6 * 3600e3) return !!c.on;
+    try{
+      const j = await (await dalilPost('ask', {probe:true})).json();
+      try{ localStorage.setItem(ASK_PROBE_KEY, JSON.stringify({at:Date.now(), on:!!j.on})); }catch(e){}
+      return !!j.on;
+    }catch(e){ return !!(c && c.on); }
+  }
+  async function askInit(){
+    const on = await askProbe();
+    document.querySelectorAll('.ask-btn').forEach(b=>{ b.hidden = !on; });
+    const card = document.getElementById('askSettingsCard'); if(card) card.hidden = !on;
+  }
+  function askCurScreen(){
+    const t = document.querySelector('.tab.active[data-screen]');
+    return t ? t.dataset.screen : 'compass';
+  }
+  function askLinkify(t){
+    return escapeHtml(t).replace(/(https:\/\/[^\s<]+[^\s<.،,)])/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+      .replace(/(dalilbarr\.app@gmail\.com)/g, '<a href="mailto:$1">$1</a>');
+  }
+  function askAdd(kind, text, wait){
+    const log = document.getElementById('askLog');
+    const el = document.createElement('div');
+    el.className = 'ask-m ' + kind + (wait ? ' wait' : '');
+    el.dir = 'auto';
+    if(kind === 'a') el.innerHTML = askLinkify(text); else el.textContent = text;
+    log.appendChild(el); log.scrollTop = log.scrollHeight;
+    return el;
+  }
+  function askRenderSugs(){
+    const box = document.getElementById('askSugs');
+    box.innerHTML = askHist.length ? '' : (ASK_SUGS[askScreen] || ASK_SUGS.compass).map(q=>`<button type="button" data-askq="${escapeHtml(q)}">${escapeHtml(q)}</button>`).join('');
+  }
+  function openAsk(){
+    askScreen = askCurScreen();
+    askRenderSugs();
+    document.getElementById('askOverlay').classList.add('show');
+  }
+  function closeAsk(){ document.getElementById('askOverlay').classList.remove('show'); document.getElementById('askInput').blur(); }
+  async function askSend(q){
+    q = String(q || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+    if(q.length < 3 || askBusy) return;
+    const input = document.getElementById('askInput'), send = document.getElementById('askSend');
+    input.value = '';
+    document.getElementById('askSugs').innerHTML = '';
+    askAdd('q', q);
+    if(navigator.onLine === false){ askAdd('a', 'تحتاج إنترنت عشان أجاوبك. وتقدر تفتح دليل المستخدم من الإعدادات.'); return; }
+    const w = askAdd('a', '… لحظة', true);
+    askBusy = true; send.disabled = true;
+    try{
+      const j = await (await dalilPost('ask', {q, screen:ASK_SCREEN[askScreen] || '', history:askHist.slice(-2)})).json();
+      w.classList.remove('wait');
+      if(j.ok && j.text){
+        w.innerHTML = askLinkify(j.text);
+        askHist.push({q, a:j.text}); if(askHist.length > 6) askHist.shift();
+      }else if(j.error === 'limit') w.textContent = 'وصلت حد الأسئلة اليوم (٨) — جرّب بكرة، أو افتح دليل المستخدم من الإعدادات.';
+      else if(j.error === 'off'){ w.textContent = 'المساعد متوقف مؤقتًا.'; try{ localStorage.removeItem(ASK_PROBE_KEY); }catch(e){} }
+      else w.textContent = 'تعذّر الحين — حاول بعد شوي.';
+    }catch(e){ w.classList.remove('wait'); w.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وحاول مرة ثانية.'; }
+    askBusy = false; send.disabled = false;
+    const log = document.getElementById('askLog'); log.scrollTop = log.scrollHeight;
+  }
+  document.querySelectorAll('.ask-btn').forEach(b=>b.addEventListener('click', openAsk));
+  document.getElementById('askSettingsBtn').addEventListener('click', openAsk);
+  document.getElementById('askClose').addEventListener('click', closeAsk);
+  document.getElementById('askOverlay').addEventListener('click', e=>{ if(e.target.id === 'askOverlay') closeAsk(); });
+  document.getElementById('askSugs').addEventListener('click', e=>{ const b = e.target.closest('[data-askq]'); if(b) askSend(b.dataset.askq); });
+  document.getElementById('askForm').addEventListener('submit', e=>{ e.preventDefault(); askSend(document.getElementById('askInput').value); });
+  setTimeout(()=>{ askInit().catch(()=>{}); }, 1500);
   function windCacheRead(){ return readStoredJson(WIND_CACHE_KEY, {}) || {}; }
   const windKey = pt=>pt.lat.toFixed(2) + ',' + pt.lng.toFixed(2);
   async function loadWind(force){

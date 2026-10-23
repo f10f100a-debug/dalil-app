@@ -175,6 +175,7 @@ Deno.serve(async (req) => {
       list: ["moderate", "publish", "push"], approve: ["moderate"], reject: ["moderate"], restore: ["moderate"],
       publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
       room_reports: ["moderate"], room_report_close: ["moderate"], auto_alerts: ["push"],
+      ask_list: ["moderate", "usage"], ask_answer: ["moderate"], ask_dismiss: ["moderate"], ask_kb_delete: ["moderate"],
     };
     if (NEED[action] && !NEED[action].some(can)) return forbidden();
     if (["admins_list", "admin_save", "admin_delete", "log"].includes(action) && !isOwner) return forbidden();
@@ -494,6 +495,50 @@ Deno.serve(async (req) => {
       if (r.voice_path) await sb.storage.from("room-voice").remove([r.voice_path]);
       await sb.from("room_reports").update({ status: body.ban ? "banned" : "dismissed", voice_path: null }).eq("id", id);
       await log(body.ban ? "room_ban" : "room_report_dismiss", (r.target_name || "") + (body.ban ? ` (${Number.isFinite(days) && days > 0 ? days + " يوم" : "دائم"})` : ""));
+      return json(req, { ok: true });
+    }
+
+    // ---------- «اسأل دليل»: أسئلة الناس (بدون أي معرّف) وأجوبة الإدارة ----------
+    if (action === "ask_list") {
+      const onlyNa = body.filter === "na";
+      let q = sb.from("ask_log").select("id,at,q,screen,answered,a,resolved").order("at", { ascending: false }).limit(150);
+      if (onlyNa) q = q.eq("answered", false).eq("resolved", false);
+      const d1 = new Date(Date.now() - 86400e3).toISOString(), d30 = new Date(Date.now() - 30 * 86400e3).toISOString();
+      const [{ data: rows }, { data: kb }, { count: c1 }, { count: c30 }, { count: na }, { data: sw }] = await Promise.all([
+        q,
+        sb.from("ask_kb").select("id,at,q,a,by_user").order("id", { ascending: false }).limit(200),
+        sb.from("ask_log").select("id", { count: "exact", head: true }).gte("at", d1),
+        sb.from("ask_log").select("id", { count: "exact", head: true }).gte("at", d30),
+        sb.from("ask_log").select("id", { count: "exact", head: true }).eq("answered", false).eq("resolved", false),
+        sb.from("app_config").select("value").eq("key", "ask").maybeSingle(),
+      ]);
+      return json(req, { rows: rows || [], kb: kb || [], today: c1 ?? 0, month: c30 ?? 0, open: na ?? 0, on: sw?.value !== "off" });
+    }
+    if (action === "ask_answer") {
+      const q = cleanText(body.q, 400), a = cleanText(body.a, 1500), logId = Number(body.log_id);
+      if (q.length < 3 || a.length < 2) return json(req, { error: "bad_request" }, 400);
+      const { error } = await sb.from("ask_kb").insert({ q, a, by_user: me.username });
+      if (error) throw error;
+      if (Number.isInteger(logId) && logId > 0) await sb.from("ask_log").update({ resolved: true }).eq("id", logId);
+      await log("ask_answer", q);
+      return json(req, { ok: true });
+    }
+    if (action === "ask_dismiss") {
+      const logId = Number(body.log_id);
+      if (Number.isInteger(logId) && logId > 0) await sb.from("ask_log").update({ resolved: true }).eq("id", logId);
+      return json(req, { ok: true });
+    }
+    if (action === "ask_kb_delete") {
+      const kid = Number(body.kb_id);
+      if (Number.isInteger(kid) && kid > 0) await sb.from("ask_kb").delete().eq("id", kid);
+      await log("ask_kb_delete", String(kid));
+      return json(req, { ok: true });
+    }
+    if (action === "ask_toggle") {
+      if (!isOwner) return forbidden();
+      const { error } = await sb.from("app_config").upsert({ key: "ask", value: body.on ? "on" : "off" });
+      if (error) throw error;
+      await log("ask_toggle", body.on ? "on" : "off");
       return json(req, { ok: true });
     }
 
