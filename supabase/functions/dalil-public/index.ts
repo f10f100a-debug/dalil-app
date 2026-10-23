@@ -172,16 +172,6 @@ Deno.serve(async (req) => {
       return json(req, { ok: true });
     }
 
-    // تشخيص البوصلة أثناء القيادة (مؤقت، يُفعَّل يدويًا في جوال صاحب التطبيق): زوايا وسرعات وأوقات فقط — بدون أي موقع
-    if (action === "hdiag") {
-      const msg = String(body.msg || "").slice(0, 4000);
-      if (!msg || !/^[a-z0-9,;.\-]+$/i.test(msg)) return json(req, { ok: true });
-      const { count } = await sb.from("client_errors").select("id", { count: "exact", head: true }).eq("ip_hash", ip).eq("page", "heading").gte("at", new Date(Date.now() - 86400e3).toISOString());
-      if ((count ?? 0) >= 60) return json(req, { ok: true });
-      await sb.from("client_errors").insert({ ip_hash: ip, msg, src: "heading:" + (Number(body.n) || 0), ver: cleanText(body.ver, 40), page: "heading" });
-      return json(req, { ok: true });
-    }
-
     // الرياح الفعلية الآن من أقرب محطة رصد (تقارير المطارات METAR) — المتصفح ما يقدر يقرأها مباشرة (CORS)
     if (action === "obs") {
       const lat = Number(body.lat), lng = Number(body.lng);

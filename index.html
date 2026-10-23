@@ -1721,32 +1721,6 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     gpsTurn.cRaw = lastCompassRaw !== null && now - lastCompassAt < 2000 ? lastCompassRaw : null;
   }
 
-  // ---------- تشخيص البوصلة أثناء القيادة (مؤقت) ----------
-  // يُفعَّل يدويًا (5 ضغطات على اسم المطوّر في الإعدادات) ويعمل فوق 12 كم/س فقط، 3 دقائق ثم يتوقف.
-  // يسجّل زوايا وسرعات وأوقات فقط — بدون أي إحداثيات. g = قراءة GPS، c = عيّنة البوصلة كل ربع ثانية.
-  const HDIAG = {on:false, t0:0, buf:[], sent:0, timer:0, sampler:0, ori:0};
-  try{ HDIAG.on = localStorage.getItem('dalil_hdiag') === '1'; }catch(e){}
-  const r1 = x=>x == null || !Number.isFinite(x) ? '' : Math.round(x);
-  const hdiagFast = ()=>{ const k = state.pos && Number.isFinite(state.pos.speed) ? state.pos.speed*3.6 : 0; return k >= GPS_DIRECT_KMH; };
-  function hdiagRow(kind, ...vals){
-    if(!HDIAG.on || HDIAG.sent >= 18) return;
-    if(!HDIAG.t0) HDIAG.t0 = Date.now();
-    HDIAG.buf.push([kind, ((Date.now() - HDIAG.t0)/1000).toFixed(2), ...vals].join(','));
-    if(!HDIAG.timer) HDIAG.timer = setInterval(hdiagFlush, 10000);
-  }
-  function hdiagFlush(){
-    if(!HDIAG.buf.length) return;
-    const msg = HDIAG.buf.join(';'); HDIAG.buf = []; HDIAG.sent++;
-    dalilPost('hdiag', {msg:msg.slice(0, 4000), n:HDIAG.sent, ver:(navigator.userAgent.match(/DalilApp\/[\d.]+/) || ['web'])[0]}).catch(()=>{});
-    if(HDIAG.sent >= 18){ hdiagStop(); toast('انتهى تشخيص البوصلة ✓ — شكرًا'); }
-  }
-  function hdiagStop(){ clearInterval(HDIAG.timer); clearInterval(HDIAG.sampler); HDIAG.on = false; HDIAG.timer = HDIAG.sampler = 0; try{ localStorage.removeItem('dalil_hdiag'); }catch(e){} }
-  function hdiagStart(){
-    HDIAG.on = true; HDIAG.t0 = 0; HDIAG.sent = 0; HDIAG.buf = [];
-    clearInterval(HDIAG.sampler);
-    HDIAG.sampler = setInterval(()=>{ if(HDIAG.on && hdiagFast()) hdiagRow('c', r1(lastCompassRaw), r1(state.heading), (state.headingSource || '-')[0]); }, 250);
-  }
-  if(HDIAG.on) hdiagStart();
 
   function save(){
     try{
@@ -2269,7 +2243,6 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       state.headingSource = 'gps';
       lastHeadingAt = Date.now();
     }
-    if(HDIAG.on && hdiagFast()){ hdiagRow('g', r1(gpsCourse), r1(gpsSpeed*3.6), r1(state.heading), (state.headingSource || '-')[0], carMag.score, r1(p.coords.accuracy), perfStats.ori - HDIAG.ori); HDIAG.ori = perfStats.ori; }
     renderCompassScreen();
     updateNavActivation();
     maybeUpdateWeather();
@@ -6148,11 +6121,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(!state.pos || !compassLive()) showCompassActivation();
     }, 1800);
   }
-  // 5 ضغطات سريعة على اسم المطوّر: تشغيل/إيقاف تشخيص البوصلة أثناء القيادة
-  (()=>{ let n = 0, t = 0; const el = document.getElementById('devName'); if(!el) return;
-    el.addEventListener('click', ()=>{ const now = Date.now(); n = now - t < 1500 ? n + 1 : 1; t = now; if(n < 5) return; n = 0;
-      if(HDIAG.on){ hdiagFlush(); hdiagStop(); toast('أُوقف تشخيص البوصلة'); }
-      else{ try{ localStorage.setItem('dalil_hdiag', '1'); }catch(e){} hdiagStart(); toast('🧭 تشخيص البوصلة مفعّل — يسجّل 3 دقائق أثناء القيادة'); } }); })();
+  try{ localStorage.removeItem('dalil_hdiag'); }catch(e){}   // تنظيف مفتاح التشخيص القديم
   drawTrackSvg();
   document.querySelectorAll('[data-fmt-set]').forEach(c=>c.classList.toggle('active', c.dataset.fmtSet===state.coordFmt));
   renderPlaces();
