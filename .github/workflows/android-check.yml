@@ -16,20 +16,20 @@ jobs:
         run: curl -sL -o dalil.apk https://raw.githubusercontent.com/${{ github.repository }}/android-build/dalil.apk && ls -la dalil.apk
       - uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 35
           arch: x86_64
           profile: pixel_6
           target: google_apis
           disable-animations: true
           script: |
-            adb install -r dalil.apk
+            mkdir -p shots
+            adb install -r dalil.apk > shots/install.txt 2>&1 || (sleep 20; adb install -r dalil.apk >> shots/install.txt 2>&1) || true
             adb shell pm grant com.alluhaybi.dalil android.permission.ACCESS_FINE_LOCATION || true
             adb shell pm grant com.alluhaybi.dalil android.permission.ACCESS_COARSE_LOCATION || true
             adb emu geo fix 41.69 27.52 || true
             adb logcat -c
             adb shell monkey -p com.alluhaybi.dalil -c android.intent.category.LAUNCHER 1
             sleep 35
-            mkdir -p shots
             adb exec-out screencap -p > shots/android-1-start.png
             W=$(adb shell wm size | grep -o "[0-9]*x[0-9]*" | tail -1); adb shell input tap $(( ${W%x*} / 2 )) $(( ${W#*x} * 76 / 100 )) || true
             sleep 8
@@ -44,4 +44,5 @@ jobs:
           git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm "android check ${{ github.run_number }}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" android-shots
+          echo "::notice::install: $(tail -c 300 install.txt 2>/dev/null | tr '\n' ' ')"
           echo "::notice::$(grep -ciE 'FATAL|AndroidRuntime' android-logcat.txt || true) fatal lines; focus: $(cat android-focus.txt 2>/dev/null | head -1)"
