@@ -4,7 +4,7 @@
 //   /.well-known/apple-app-site-association → لفتح التطبيق مباشرة من 1.5 فما فوق
 const APP = "https://f10f100a-debug.github.io/dalil-app/";
 const STORE = "https://apps.apple.com/app/id6822651903";
-const GUIDE = "https://f10f100a-debug.github.io/dalil-app/guide.html";   // كان ملف Drive القديم
+const GUIDE = "https://drive.google.com/file/d/1hQ5nAQ-XCc0M0zRzuh3vERQ3kJlQNukb/view";
 const OG_IMG = APP + "assets/og-room.jpg", ICON = APP + "assets/icon-192.png";
 const AASA = {
   applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }] }] },
