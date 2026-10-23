@@ -5381,6 +5381,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   window.DalilBridge = {
     toast, escapeHtml, ico, fmtDist, haversine, nearestRegion,
     getPos: ()=>state.pos,
+    myRegion: ()=>refreshMyRegion(),
     bearing, directionWord,
     getNavTarget: ()=>state.navTarget,
     getCar: ()=>getCar(),
@@ -5456,7 +5457,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=14';
+      sc.src = 'events.js?v=15';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

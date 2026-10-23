@@ -24,6 +24,13 @@
   const esc = B.escapeHtml, ico = B.ico;
   const lsGet = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
+  // منطقة التنبيهات: «auto» (الافتراضي) = منطقتك الحالية من الموقع وتتبعك إذا سافرت، '' = كل المناطق، أو منطقة ثابتة.
+  // من لم يختر شيئًا سابقًا (المفتاح غير موجود) يُعامل كتلقائي.
+  const AUTO = 'auto', LS_AUTO_REG = 'dalil_push_auto_region', LS_SENT_REG = 'dalil_push_sent_region';
+  const regionPref = ()=>{ const v = lsGet('dalil_push_region'); return v === null ? AUTO : v; };
+  const autoRegion = ()=>lsGet(LS_AUTO_REG) || '';
+  // المنطقة الفعلية للاشتراك (تلقائي بدون موقع معروف = كل المناطق مؤقتًا)
+  const effRegion = ()=>{ const p = regionPref(); return p === AUTO ? autoRegion() : p; };
 
   // الناشرون المحظورون (بصمة مجهولة من الخادم) — لا تظهر صورهم لهذا المستخدم
   const blocked = new Set((()=>{ try{ return JSON.parse(lsGet(LS.blocked) || '[]'); }catch(e){ return []; } })());
@@ -453,7 +460,7 @@
     const token = await nativeToken();
     const r = await fetch(FN + 'dalil-public?a=subscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token, region})});
     if(!r.ok) throw new Error('subscribe ' + r.status);
-    lsSet(LS_TOKEN, token);
+    lsSet(LS_TOKEN, token); lsSet(LS_SENT_REG, region || '');
   }
   // سريع: يطلب الإذن فقط ويرجع فورًا، والتسجيل (رمز Apple + سيرفرنا) يكمل في الخلفية مع إعادة المحاولة
   async function nativePermission(){
@@ -489,7 +496,7 @@
     });
     PN().addListener('pushNotificationReceived', n=>{ if(n && (n.title || n.body)) B.toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' — ')); });
     // تحديث الرمز بصمت عند كل فتح (قد يتغير بعد تحديث النظام)
-    if(lsGet(LS_TOKEN)) PN().checkPermissions().then(p=>{ if(p.receive === 'granted') nativeSubscribe(lsGet(LS.pushRegion) || '').catch(()=>{}); });
+    if(lsGet(LS_TOKEN)) PN().checkPermissions().then(p=>{ if(p.receive === 'granted') nativeSubscribe(effRegion()).catch(()=>{}); });
   }
   function b64uToU8(s){ const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(b, c=>c.charCodeAt(0)); }
   async function currentSub(){
@@ -497,6 +504,27 @@
     try{ const reg = await navigator.serviceWorker.getRegistration(); return reg ? await reg.pushManager.getSubscription() : null; }catch(e){ return null; }
   }
   let pushOn = false, nativeDenied = false;
+  // يحدّث «منطقتي الحالية» من الموقع (محليًا — الموقع لا يُرسل)
+  async function syncAuto(){
+    if(regionPref() !== AUTO) return;
+    try{ const r = await B.myRegion(); if(r) lsSet(LS_AUTO_REG, r); }catch(e){}
+  }
+  // التلقائي يتبعك: إذا تغيّرت منطقتك (سفر/رحلة) نحدّث اشتراك التنبيهات بصمت
+  let following = false;
+  async function followRegion(){
+    if(following || regionPref() !== AUTO) return;
+    following = true;
+    try{
+      await syncAuto();
+      const r = autoRegion();
+      if(!r || !pushOn || lsGet(LS_SENT_REG) === r) return;
+      const first = !lsGet(LS_SENT_REG);
+      if(NATIVE) await nativeSubscribe(r);
+      else{ const sub = await currentSub(); if(!sub) return; await postSub(sub, r); }
+      B.toast(first ? '🔔 صارت تنبيهاتك لمنطقة ' + r + ' حسب موقعك — تقدر تغيّرها من الإعدادات' : '🔔 تنبيهاتك صارت لمنطقة ' + r + ' (منطقتك الحالية)');
+    }catch(e){}
+    finally{ following = false; renderPushSettings(); }
+  }
   async function refreshPushState(){
     if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); return; }
     if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
@@ -510,8 +538,11 @@
     if(NATIVE){ const t=$('pushTitle'); if(t) t.hidden=false; box.hidden=false; }
     const sel = $('pushRegion');
     if(sel && !sel.options.length){
-      sel.innerHTML = '<option value="">كل المناطق</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
-      sel.value = lsGet(LS.pushRegion) || '';
+      sel.innerHTML = '<option value="auto">منطقتي الحالية (تلقائي)</option><option value="">كل المناطق</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
+    }
+    if(sel){
+      sel.value = regionPref();
+      const o = sel.querySelector('option[value="auto"]'); if(o) o.textContent = 'منطقتي الحالية (تلقائي)' + (autoRegion() ? ' — ' + autoRegion() : '');
     }
     const status = $('pushStatus'), btn = $('pushToggle');
     if(!pushSupported()){
@@ -526,7 +557,7 @@
       status.textContent = 'التنبيهات مرفوضة. فعّلها من إعدادات الجوال ← دليل ← الإشعارات.';
       btn.hidden = true; return;
     }
-    status.textContent = pushOn ? 'التنبيهات مفعّلة ✓ — تصلك أحداث ' + (sel.value || 'كل المناطق') + '.' : 'تصلك صور السيول والأمطار والإعلانات المهمة فور نشرها. لا نحفظ اسمك ولا رقمك.';
+    status.textContent = pushOn ? 'التنبيهات مفعّلة ✓ — تصلك أحداث ' + (effRegion() ? 'منطقة ' + effRegion() : 'كل المناطق') + (regionPref() === AUTO ? '، وتتغير تلقائيًا إذا سافرت لمنطقة ثانية' : '') + '.' : 'تصلك صور السيول والأمطار والإعلانات المهمة فور نشرها. لا نحفظ اسمك ولا رقمك.';
     btn.textContent = pushOn ? 'إيقاف التنبيهات' : 'تفعيل التنبيهات';
     btn.className = 'cp-btn ' + (pushOn ? 'cp-btn-white' : 'cp-btn-gold');
     if(NATIVE && bgSub && !pushOn){ status.textContent = 'جاري تسجيل جوالك للتنبيهات…'; btn.textContent = '⏳ جاري التفعيل…'; }
@@ -536,6 +567,7 @@
     const j = sub.toJSON();
     const r = await fetch(FN + 'dalil-public?a=subscribe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:j.endpoint, keys:j.keys, region})});
     if(!r.ok) throw new Error('subscribe ' + r.status);
+    lsSet(LS_SENT_REG, region || '');
   }
   async function togglePush(){
     const btn = $('pushToggle'); btn.disabled = true;
@@ -545,8 +577,9 @@
         else{
           lsSet('dalil_apns_asked', '1'); btn.textContent = '⏳ جاري التفعيل…';
           if(!(await nativePermission())) throw Object.assign(new Error('denied'), {denied:true});
+          await syncAuto();
           // بعد «سماح» نرجع على طول، والتسجيل يكمل في الخلفية
-          nativeSubscribeBg($('pushRegion').value, ok=>B.toast(ok ? 'تم تفعيل التنبيهات ✓' : 'التنبيهات بانتظار الشبكة — حاول لاحقًا'));
+          nativeSubscribeBg(effRegion(), ok=>B.toast(ok ? 'تم تفعيل التنبيهات ✓' : 'التنبيهات بانتظار الشبكة — حاول لاحقًا'));
           $('pushStatus').textContent = 'جاري تسجيل جوالك للتنبيهات…';
           btn.disabled = false; return;
         }
@@ -560,9 +593,10 @@
       }else{
         const perm = await Notification.requestPermission();
         if(perm !== 'granted'){ B.toast('لم يُسمح بالتنبيهات'); return; }
+        await syncAuto();
         const reg = await navigator.serviceWorker.ready;
         const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
-        await postSub(sub, $('pushRegion').value);
+        await postSub(sub, effRegion());
         B.toast('تم تفعيل التنبيهات');
       }
     }catch(e){
@@ -573,8 +607,9 @@
     }
   }
   async function regionChanged(){
-    const region = $('pushRegion').value;
-    lsSet(LS.pushRegion, region);
+    lsSet(LS.pushRegion, $('pushRegion').value);
+    if(regionPref() === AUTO) await B.myRegion().then(r=>{ if(r) lsSet(LS_AUTO_REG, r); }).catch(()=>{});
+    const region = effRegion();
     if(NATIVE){ if(pushOn){ try{ await nativeSubscribe(region); B.toast('تم تحديث منطقة التنبيهات'); }catch(e){ B.toast('تعذّر تحديث المنطقة'); } } renderPushSettings(); return; }
     const sub = await currentSub();
     if(sub && pushOn){ try{ await postSub(sub, region); B.toast('تم تحديث منطقة التنبيهات'); }catch(e){ B.toast('تعذّر تحديث المنطقة'); } }
@@ -634,10 +669,11 @@
     settings(){ refreshPushState(); },
     // يُستدعى بعد منح إذن الإشعارات من شاشة البداية.
     async subscribeNow(){
-      if(NATIVE){ lsSet('dalil_apns_asked', '1'); await nativeSubscribe(lsGet(LS.pushRegion) || ''); await refreshPushState(); return; }
+      await syncAuto();
+      if(NATIVE){ lsSet('dalil_apns_asked', '1'); await nativeSubscribe(effRegion()); await refreshPushState(); return; }
       const reg = await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
-      await postSub(sub, lsGet(LS.pushRegion) || '');
+      await postSub(sub, effRegion());
       await refreshPushState();
     },
     // تطبيق الآيفون: يرجع بعد نافذة الإذن مباشرة (true/false)، والتسجيل يكمل في الخلفية
@@ -645,9 +681,14 @@
       if(!NATIVE){ await this.subscribeNow(); return true; }
       lsSet('dalil_apns_asked', '1');
       if(!(await nativePermission())) return false;
-      nativeSubscribeBg(lsGet(LS.pushRegion) || '', onDone);
+      await syncAuto();
+      nativeSubscribeBg(effRegion(), onDone);
       return true;
     }
   };
-  refreshPushState();
+  refreshPushState().then(followRegion);
+  // التلقائي يتبع موقعك: عند الرجوع للتطبيق، وكل 10 دقائق، وبعد وصول أول موقع
+  setTimeout(followRegion, 20000);
+  setInterval(()=>{ if(document.visibilityState === 'visible') followRegion(); }, 10 * 60e3);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') followRegion(); });
 })();
