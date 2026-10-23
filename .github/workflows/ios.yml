@@ -245,7 +245,7 @@ jobs:
                   if #available(iOS 16.0, *) {
                       let r = DalilPTT.shared.ready
                       // 1.6: كل ثانية (مو بس عند التغيّر) — إذا انعادت الصفحة (تحديث) تنسى القيمة فيرجع التسجيل لطريقة الويب
-                      pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false"), completionHandler: nil)
+                      pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false") + ";window.__dalilPttFg=true", completionHandler: nil)
                   }
                   if let u = pendingURL, UIApplication.shared.applicationState == .active,
                      let d = try? JSONSerialization.data(withJSONObject: [u]), var js = String(data: d, encoding: .utf8) {
@@ -272,6 +272,8 @@ jobs:
                       }
                   } else if cmd == "ptt" {
                       if #available(iOS 16.0, *) { if (b["on"] as? Bool) == true { DalilPTT.shared.beginTx() } else { DalilPTT.shared.endTx() } }
+                  } else if cmd == "played" {
+                      if #available(iOS 16.0, *), let id = b["id"] as? String { DalilPTT.shared.markWebPlayed(id) }
                   } else if cmd == "drain" {
                       let pts = buffer; buffer.removeAll()
                       if let d = try? JSONSerialization.data(withJSONObject: pts), let s = String(data: d, encoding: .utf8) {
@@ -341,6 +343,16 @@ jobs:
               // فلازم نشغّل الصوت بأنفسنا. قبل كانت true فيترك التشغيل للصفحة المتوقفة = ما يطلع صوت
               private var active = false
               private var pre: [URL: Data] = [:]
+              // 1.6 (44): رسائل شغّلتها الصفحة بنفسها — ما نعيدها لو وصل تنبيه اللاسلكي بعدها
+              private var webPlayed: [String] = []
+              private let lk = NSLock()
+              func markWebPlayed(_ id: String) { lk.lock(); webPlayed.append(id); if webPlayed.count > 50 { webPlayed.removeFirst() }; lk.unlock() }
+              private func playedByWeb(_ id: String) -> Bool { lk.lock(); defer { lk.unlock() }; return !id.isEmpty && webPlayed.contains(id) }
+              // نبلّغ الصفحة بحالة التشغيل (تعرض «يشتغل» وتعرف إن التطبيق تكفّل بالرسالة)
+              private func pev(_ name: String, _ id: String) {
+                  let sid = String(id.filter { $0.isHexDigit || $0 == "-" }.prefix(36))
+                  DalilBg.shared.js("window.__dalilPttPlay && window.__dalilPttPlay('" + name + "','" + sid + "')")
+              }
               private var queue: [(URL, String)] = []
               private var playingId = ""
               private var sessionOn = false
@@ -420,13 +432,15 @@ jobs:
                   if (pushPayload["leave"] as? Bool) == true { return .leaveChannel }
                   let who = (pushPayload["activeSpeaker"] as? String) ?? "عضو في الغرفة"
                   let vid = (pushPayload["id"] as? String) ?? ""
-                  if !active, let s = pushPayload["url"] as? String, let u = URL(string: s) {
+                  // 1.6 (44): نشغّل الرسالة بأنفسنا حتى والتطبيق مفتوح. قبل كانت الصفحة تشغّلها، فيأخذ النظام الصوت منها لحظة
+                  // تفعيل اللاسلكي وينقطع التشغيل (AbortError ~45%). إلا إذا الصفحة شغّلتها قبلنا
+                  if let s = pushPayload["url"] as? String, let u = URL(string: s), !playedByWeb(vid) {
                       // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
                       // نبدأ التحميل فورًا (ما ننتظر تفعيل الصوت) حتى يشتغل أول ما يجهز
                       URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
                       DispatchQueue.main.async { self.queue.append((u, vid)); self.arm(); if self.player == nil && self.sessionOn { self.playNext() } }
                   } else {
-                      // التطبيق مفتوح: الصفحة تشغّل الصوت بنفسها
+                      // الصفحة شغّلتها (أو ما فيه رابط): نفك «المتكلم الحالي» على طول
                       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { channelManager.setActiveRemoteParticipant(nil, channelUUID: channelUUID, completionHandler: nil) }
                   }
                   return .activeRemoteParticipant(PTParticipant(name: who, image: nil))
@@ -454,9 +468,9 @@ jobs:
                   arm()
                   let start: (Data?) -> Void = { d in
                       DispatchQueue.main.async {
-                          guard let d = d, let p = try? AVAudioPlayer(data: d) else { self.playNext(); return }
+                          guard let d = d, let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid); self.playNext(); return }
                           self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
-                          if !p.play() { self.player = nil; self.playingId = ""; self.playNext() }
+                          if p.play() { self.pev("nplay", vid) } else { self.player = nil; self.playingId = ""; self.pev("nfail", vid); self.playNext() }
                       }
                   }
                   if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
@@ -466,12 +480,13 @@ jobs:
                   DispatchQueue.main.async {
                       // «سمعها»: نبلّغ المرسل إن الرسالة اشتغلت والجوال مقفل
                       if flag && !self.playingId.isEmpty { self.post("heard", ["ids": [self.playingId]]) }
+                      self.pev(flag ? "ndone" : "nfail", self.playingId)
                       self.player = nil; self.playingId = ""; self.playNext()
                   }
               }
               private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
               // الكلام من زر اللاسلكي في شاشة القفل
-              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { ensureCategory(); DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); self.player = nil; self.startRec() } } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { ensureCategory(); DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); if !self.playingId.isEmpty { self.pev("ndone", self.playingId); self.playingId = "" }; self.player = nil; self.startRec() } } }
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.evt("end"); self.stopRec() } }
               private func startRec() {
                   guard recorder == nil else { return }

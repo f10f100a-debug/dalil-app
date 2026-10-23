@@ -335,20 +335,71 @@
     R.voice.sort((a, b)=>new Date(a.created_at) - new Date(b.created_at));
     if(R.voice.length > 60) R.voice.splice(0, R.voice.length - 60);
     if(v.member_id === me()) R.heard.add(v.id);
-    else if(live && !R.muted.has(v.member_id)){ queue.push(v); playNext(); }
+    else if(live && !R.muted.has(v.member_id)){
+      // 1.6+: والتطبيق مفتوح، تطبيق الآيفون نفسه يشغّل الرسالة عن طريق لاسلكي Apple (تشغيلها من الصفحة كان ينقطع AbortError).
+      // الصفحة تنتظره، وإذا ما بدأ خلال 4 ث تشغّلها هي (مثلًا رسالة من جوال ما يدعم اللاسلكي)
+      if(nativeFg() && /mp4|aac|m4a|mpeg/.test(v.mime || '') && /^[0-9a-f-]{36}$/.test(v.id)){
+        const t0 = Date.now();
+        const check = ()=>{
+          nWait.delete(v.id);
+          if(!R.sess || !R.voice.includes(v) || R.heard.has(v.id) || nPlay === v.id || R.muted.has(v.member_id)) return;
+          if(nPlay && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
+          diag({s:'native_timeout'}); queue.push(v); playNext();
+        };
+        nWait.set(v.id, setTimeout(check, 4000));
+      }else{ queue.push(v); playNext(); }
+    }
     renderVoiceSoon(); updateBtn();
   }
+  // تشغيل التطبيق نفسه (1.6+) — الصفحة تعرض حالة التشغيل فقط، والتطبيق يبلّغ «سمعها» بنفسه
+  let nPlay = null;
+  const nWait = new Map();
+  const nativeFg = ()=>!!(window.__dalilPttFg && nativePtt());
+  window.__dalilPttPlay = function(ev, id){
+    id = String(id || '');
+    if(nWait.has(id)){ clearTimeout(nWait.get(id)); nWait.delete(id); }
+    if(ev === 'nplay'){ nPlay = id; R.heard.add(id); diag({s:'play_ok', path:'native'}); }
+    else if(ev === 'ndone'){ if(nPlay === id) nPlay = null; }
+    else if(ev === 'nfail'){
+      if(nPlay === id) nPlay = null;
+      const v = R.voice.find(x=>x.id === id);
+      diag({s:'native_fail'});
+      if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !queue.includes(v)){ queue.push(v); playNext(); }
+    }
+    renderVoiceSoon(); updateBtn();
+  };
   function playNext(){
     if(playing || rec.on || !queue.length) return;
     const v = queue.shift();
     if(R.muted.has(v.member_id) || !v.url) return playNext();
     playClip(v);
   }
-  function playClip(v, noTone){
-    playing = v; R.heard.add(v.id); reportHeard(v);
+  const RETRY_MS = [800, 1500, 3000];
+  function playClip(v, noTone, tries){
+    tries = tries || 0;
+    playing = v;
+    // نقول لتطبيق الآيفون إن الصفحة شغّلتها (ما يعيدها مرة ثانية لو وصله تنبيه اللاسلكي متأخر)
+    if(window.DALIL_NATIVE){ try{ window.webkit.messageHandlers.dalil.postMessage({cmd:'played', id:String(v.id)}); }catch(e){} }
     player.src = v.url;
-    const wait = noTone ? 0 : tone('in');
-    (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>player.play()).then(()=>{ renderVoiceSoon(); diag({s:'play_ok', auto:!noTone}); }, e=>{ playing = null; renderVoiceSoon(); diag({s:'play_fail', auto:!noTone, err:String(e && e.name || e).slice(0, 40)}); if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id)); });
+    const wait = noTone || tries ? 0 : tone('in');
+    (wait ? new Promise(res=>setTimeout(res, wait)) : Promise.resolve()).then(()=>{ if(playing !== v) throw {name:'Superseded'}; return player.play(); }).then(()=>{
+      if(playing !== v) return;
+      // «سمعها» بعد ما يشتغل الصوت فعلًا (قبل كانت تنحسب حتى لو فشل التشغيل)
+      R.heard.add(v.id); reportHeard(v);
+      renderVoiceSoon(); diag({s:'play_ok', auto:!noTone, tries});
+    }, e=>{
+      if(playing !== v) return;   // انضغطت رسالة ثانية أو بدأ تسجيل
+      const err = String(e && e.name || e).slice(0, 40);
+      // انقطع التشغيل (غالبًا النظام أخذ الصوت لحظة): نعيد المحاولة تلقائيًا 3 مرات
+      if(err === 'AbortError' && tries < RETRY_MS.length && R.sess){
+        diag({s:'play_retry', auto:!noTone, tries});
+        setTimeout(()=>{ if(playing === v) playClip(v, noTone, tries + 1); }, RETRY_MS[tries]);
+        return;
+      }
+      playing = null; renderVoiceSoon(); diag({s:'play_fail', auto:!noTone, err, tries});
+      if(R.open) B.toast('اضغط ▶ لتشغيل رسالة ' + memberName(v.member_id));
+      setTimeout(playNext, 300);   // ما نوقف باقي الرسائل
+    });
     renderVoiceSoon(); updateBtn();
   }
   player.addEventListener('ended', ()=>{ playing = null; renderVoiceSoon(); playNext(); });
@@ -946,7 +997,7 @@
     const all = R.voice.slice(-6).reverse(), list = R.voiceAll ? all : all.slice(0, 3);
     if(!all.length){ el.innerHTML = '<div class="rm-note" style="margin:0">لا توجد رسائل بعد. اضغط مطوّلًا على «اضغط وتكلّم» بالأسفل.</div>'; return; }
     el.innerHTML = list.map(v=>{
-      const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = playing && playing.id === v.id;
+      const mine = v.member_id === me(), muted = R.muted.has(v.member_id), isNew = !R.heard.has(v.id), pl = (playing && playing.id === v.id) || nPlay === v.id;
       return `<div class="rm-v${isNew ? ' new' : ''}${muted ? ' muted' : ''}${pl ? ' playing' : ''}">
         <span class="dot" style="background:${esc(memberColor(v.member_id))}"></span>
         <span class="grow">${mine ? 'أنت' : esc(memberName(v.member_id))}${v.duration ? ' · ' + Math.round(v.duration) + 'ث' : ''} <small>${ago(new Date(v.created_at).getTime())}</small>${mine ? heardLine(v) : ''}</span>
