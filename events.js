@@ -455,6 +455,26 @@
     if(!r.ok) throw new Error('subscribe ' + r.status);
     lsSet(LS_TOKEN, token);
   }
+  // سريع: يطلب الإذن فقط ويرجع فورًا، والتسجيل (رمز Apple + سيرفرنا) يكمل في الخلفية مع إعادة المحاولة
+  async function nativePermission(){
+    let perm = await PN().checkPermissions();
+    if(perm.receive !== 'granted') perm = await PN().requestPermissions();
+    return perm.receive === 'granted';
+  }
+  let bgSub = null;
+  function nativeSubscribeBg(region, onDone){
+    if(bgSub) return bgSub;
+    const waits = [0, 5000, 20000, 60000];
+    bgSub = (async()=>{
+      for(let i = 0; i < waits.length; i++){
+        if(waits[i]) await new Promise(r=>setTimeout(r, waits[i]));
+        if(!navigator.onLine) await new Promise(r=>addEventListener('online', r, {once:true}));
+        try{ await nativeSubscribe(region); await refreshPushState(); onDone && onDone(true); return true; }catch(e){ if(e && e.denied) break; }
+      }
+      onDone && onDone(false); return false;
+    })().finally(()=>{ bgSub = null; });
+    return bgSub;
+  }
   async function nativeUnsubscribe(){
     const token = lsGet(LS_TOKEN);
     if(token) fetch(FN + 'dalil-public?a=unsubscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})}).catch(()=>{});
@@ -509,6 +529,7 @@
     status.textContent = pushOn ? 'التنبيهات مفعّلة ✓ — تصلك أحداث ' + (sel.value || 'كل المناطق') + '.' : 'تصلك صور السيول والأمطار والإعلانات المهمة فور نشرها. لا نحفظ اسمك ولا رقمك.';
     btn.textContent = pushOn ? 'إيقاف التنبيهات' : 'تفعيل التنبيهات';
     btn.className = 'cp-btn ' + (pushOn ? 'cp-btn-white' : 'cp-btn-gold');
+    if(NATIVE && bgSub && !pushOn){ status.textContent = 'جاري تسجيل جوالك للتنبيهات…'; btn.textContent = '⏳ جاري التفعيل…'; }
     const p = $('evPane'); if(p && !p.hidden) render();
   }
   async function postSub(sub, region){
@@ -521,7 +542,14 @@
     try{
       if(NATIVE){
         if(pushOn){ await nativeUnsubscribe(); B.toast('أُوقفت التنبيهات'); }
-        else{ lsSet('dalil_apns_asked', '1'); await nativeSubscribe($('pushRegion').value); B.toast('تم تفعيل التنبيهات'); }
+        else{
+          lsSet('dalil_apns_asked', '1'); btn.textContent = '⏳ جاري التفعيل…';
+          if(!(await nativePermission())) throw Object.assign(new Error('denied'), {denied:true});
+          // بعد «سماح» نرجع على طول، والتسجيل يكمل في الخلفية
+          nativeSubscribeBg($('pushRegion').value, ok=>B.toast(ok ? 'تم تفعيل التنبيهات ✓' : 'التنبيهات بانتظار الشبكة — حاول لاحقًا'));
+          $('pushStatus').textContent = 'جاري تسجيل جوالك للتنبيهات…';
+          btn.disabled = false; return;
+        }
       }else if(pushOn){
         const sub = await currentSub();
         if(sub){
@@ -541,7 +569,7 @@
       B.toast(e && e.denied ? 'التنبيهات مرفوضة. فعّلها من إعدادات الجوال ← دليل ← الإشعارات.' : 'تعذّر تغيير التنبيهات. تأكد من الاتصال وحاول مجددًا.');
     }finally{
       btn.disabled = false;
-      await refreshPushState();
+      await refreshPushState();   // أثناء التسجيل بالخلفية يعرض «جاري التفعيل»
     }
   }
   async function regionChanged(){
@@ -611,6 +639,14 @@
       const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
       await postSub(sub, lsGet(LS.pushRegion) || '');
       await refreshPushState();
+    },
+    // تطبيق الآيفون: يرجع بعد نافذة الإذن مباشرة (true/false)، والتسجيل يكمل في الخلفية
+    async subscribeFast(onDone){
+      if(!NATIVE){ await this.subscribeNow(); return true; }
+      lsSet('dalil_apns_asked', '1');
+      if(!(await nativePermission())) return false;
+      nativeSubscribeBg(lsGet(LS.pushRegion) || '', onDone);
+      return true;
     }
   };
   refreshPushState();

@@ -1823,14 +1823,25 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     toast('يمكنك تفعيلها لاحقًا من الإعدادات ← التنبيهات');
   });
   document.getElementById('pushAskYes').addEventListener('click', async ()=>{
-    const btn = document.getElementById('pushAskYes');
-    btn.disabled = true;
+    const btn = document.getElementById('pushAskYes'), label = btn.textContent;
+    btn.disabled = true; btn.textContent = '⏳ جاري التفعيل…';
+    const restore = ()=>{ btn.disabled = false; btn.textContent = label; };
+    // تطبيق الآيفون: نافذة الإذن فورًا، وبعد «سماح» تنقفل الشاشة والتسجيل يكمل في الخلفية
+    if(window.DALIL_NATIVE_PUSH){
+      try{
+        const ev = window.DalilEvents || await loadEvents();
+        const ok = await ev.subscribeFast(done=>toast(done ? 'تم تفعيل التنبيهات ✓' : 'التنبيهات بانتظار الشبكة — جرّب من الإعدادات ← التنبيهات'));
+        restore();
+        if(ok) closePushAsk(3650);
+        else{ closePushAsk(3650); toast('لم يُسمح بالتنبيهات. يمكنك تفعيلها من إعدادات الجوال'); }
+      }catch(e){ restore(); closePushAsk(1); toast('تعذّر التفعيل الآن. جرّب من الإعدادات ← التنبيهات'); }
+      return;
+    }
     let perm = 'default';
     // اطلب الإذن مباشرة من ضغطة المستخدم (شرط Safari) ثم أكمل الاشتراك.
-    if(window.DALIL_NATIVE_PUSH) perm = 'granted';   // تطبيق الآيفون: نافذة الإذن تظهر من subscribeNow
-    else try{ perm = await Notification.requestPermission(); }catch(e){}
+    try{ perm = await Notification.requestPermission(); }catch(e){}
     if(perm !== 'granted'){
-      btn.disabled = false;
+      restore();
       closePushAsk(perm === 'denied' ? 3650 : 7);
       toast('لم يُسمح بالتنبيهات. يمكنك تفعيلها من إعدادات الجوال');
       return;
@@ -1843,7 +1854,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }catch(e){
       closePushAsk(1);
       toast('تعذّر التفعيل الآن. جرّب من الإعدادات ← التنبيهات');
-    }finally{ btn.disabled = false; }
+    }finally{ restore(); }
   });
   skipPermissionsBtn.addEventListener('click', ()=>{
     document.getElementById('onboard').style.display = 'none';
@@ -5445,7 +5456,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=13';
+      sc.src = 'events.js?v=14';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
