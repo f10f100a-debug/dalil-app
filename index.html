@@ -1204,7 +1204,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         </div>
         <div class="wd-week" id="windWeek"></div>
         <div class="wd-legend"><span class="wd-c0">هادئة &lt;20</span><span class="wd-c1">معتدلة 20–35</span><span class="wd-c2">قوية 35–50</span><span class="wd-c3">خطرة &gt;50</span><span>كم/س</span></div>
-        <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة اللي تهبّ منها الرياح، والسهم يشير لها (رياح شمالية: السهم للشمال).</div>
+        <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة اللي تهبّ منها الرياح، والسهم يمشي مع الرياح (رياح شرقية: السهم للغرب).</div>
       </div>
       <div id="springPane" hidden>
         <div class="cp-card sp-card">
@@ -5829,10 +5829,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const WIND_DIRS = ['شمالية','شمالية شرقية','شرقية','جنوبية شرقية','جنوبية','جنوبية غربية','غربية','شمالية غربية'];
   const windDirName = d=>WIND_DIRS[Math.round(((d % 360) + 360) % 360 / 45) % 8];
   const windClass = v=>v < 20 ? 'wd-c0' : v < 35 ? 'wd-c1' : v < 50 ? 'wd-c2' : 'wd-c3';
-  // السهم يشير للجهة اللي تجي منها الرياح (مثل ما نقول «شمالي») — نفس معنى الكلمة
+  // السهم يمشي مع الرياح (رياح شرقية = السهم للغرب)، والكلمة تقول من وين تهب
   const WIND_SHORT = ['ش','ش ق','ق','ج ق','ج','ج غ','غ','ش غ'];
   const windShort = d=>WIND_SHORT[Math.round(((d % 360) + 360) % 360 / 45) % 8];
-  const windArrow = d=>`<svg class="wd-arrow" viewBox="0 0 24 24" style="transform:rotate(${Math.round(d)}deg)" aria-hidden="true"><path d="M12 3 18 19 12 15 6 19Z" fill="currentColor"/></svg>`;
+  const windArrow = d=>`<svg class="wd-arrow" viewBox="0 0 24 24" style="transform:rotate(${Math.round(d + 180)}deg)" aria-hidden="true"><path d="M12 3 18 19 12 15 6 19Z" fill="currentColor"/></svg>`;
   let windLoaded = null, windLoading = false, windOpenDay = -1;
   function windPlaces(){
     const out = [{key:'here', name:'موقعي الحالي'}];
@@ -5941,7 +5941,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       // الأرقام القريبة من طرفي الرسم تنقص، فنتجاوزها (الخط يبقى)
       if(x.hour % 6 === 0){ o += `<line class="grid" x1="${X(i)}" x2="${X(i)}" y1="${T}" y2="${B}" opacity=".6"/>` + (X(i) > R - (ni === 0 ? 34 : 12) || X(i) < L + 12 ? '' : `<text x="${X(i)}" y="${B + 13}" text-anchor="middle">${escapeHtml(hourLabel(x.hour))}</text>`); }
       if(x.hour === 0 && i > 0 && windOpenDay <= 0){ const di = days.findIndex(d=>d.day === x.t.slice(0, 10)); o += `<text x="${X(i)}" y="${B + 27}" text-anchor="middle" style="font-weight:700">${escapeHtml(dayLabel(x.t.slice(0, 10), di))}</text>`; }
-      if(i % 3 === 1){ const rot = Math.round((x.dir || 0) % 360); o += `<path class="arw" d="M0 -6 L4 5 L0 2.5 L-4 5Z" transform="translate(${X(i).toFixed(1)} 14) rotate(${rot})"/>`; }
+      if(i % 3 === 1){ const rot = Math.round(((x.dir || 0) + 180) % 360); o += `<path class="arw" d="M0 -6 L4 5 L0 2.5 L-4 5Z" transform="translate(${X(i).toFixed(1)} 14) rotate(${rot})"/>`; }
     });
     const line = k=>pts.map((x, i)=>(i ? 'L' : 'M') + X(i).toFixed(1) + ' ' + Y(x[k] || 0).toFixed(1)).join(' ');
     o += `<path class="spdA" d="${line('v')} L${X(pts.length - 1).toFixed(1)} ${B} L${X(0).toFixed(1)} ${B}Z"/>`;
