@@ -425,6 +425,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .storm-strip{display:flex; align-items:center; gap:10px; width:100%; margin:0 0 12px; padding:12px 14px; border:0; border-radius:16px; cursor:pointer; text-align:right; font-family:inherit; color:#fff;
     background:linear-gradient(135deg,#1F4FA8,#2F6FD6); box-shadow:0 6px 16px rgba(31,79,168,.3);}
   .storm-strip.near{background:linear-gradient(135deg,#8E2A1F,#C0392B); box-shadow:0 6px 16px rgba(192,57,43,.3);}
+  .storm-strip.calm{background:linear-gradient(135deg,#55606E,#7A8796); box-shadow:0 4px 12px rgba(60,70,85,.2);}
   .storm-strip[hidden], .storm-card[hidden]{display:none;}
   .storm-strip .sx{font-size:24px;} .storm-strip b{display:block; font-size:15px;} .storm-strip small{display:block; font-size:12px; opacity:.85;}
   .cp-pill.rain{background:#E8F1FB; color:#1C4E86; border-color:#BCD5EF; font-weight:700; gap:4px}
@@ -1073,7 +1074,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261023-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261023-3" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2720,7 +2721,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     return max;
   }
-  const dbzWord = d=>d == null ? 'مطر' : d < 25 ? 'مطر خفيف' : d < 35 ? 'مطر متوسط' : d < 45 ? 'مطر غزير' : d < 55 ? 'مطر غزير جدًا (عاصفة رعدية)' : 'مطر مع احتمال برد';
+  const dbzWord = d=>d == null ? 'مطر' : d < 15 ? 'سحب ممطرة خفيفة' : d < 25 ? 'مطر خفيف' : d < 35 ? 'مطر متوسط' : d < 45 ? 'مطر غزير' : d < 55 ? 'مطر غزير جدًا (عاصفة رعدية)' : 'مطر مع احتمال برد';
   // حركة المطر: أفضل إزاحة بين لقطتين (قبل 30 دقيقة والآن) — اتجاه وسرعة الكتل حولك
   // (cx, cy, rad): حركة الكتلة القريبة منك فقط بدل متوسط كل الرادار
   // مطابقة باتجاهين (القديم داخل الجديد + الجديد داخل القديم): السحابة اللي «تكبر» في مكانها تطلع إزاحتها صفر، مو حركة وهمية
@@ -2779,12 +2780,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // رياح المستوى 700 هكتوباسكال (~3 كم): السحب الرعدية تمشي معها غالبًا — نستخدمها للتحقق فقط
   async function steeringWind(pos){
     const W = STORM.wind;
-    if(W && Date.now() - W.at < 3600e3 && haversine(pos.lat, pos.lng, W.lat, W.lng) < 30000) return W;
+    if(W && Date.now() - W.at < 1800e3 && haversine(pos.lat, pos.lng, W.lat, W.lng) < 30000) return W;
     try{
-      const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.lat.toFixed(2)}&longitude=${pos.lng.toFixed(2)}&hourly=wind_speed_700hPa,wind_direction_700hPa&forecast_days=1&timezone=GMT`)).json();
+      const j = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${pos.lat.toFixed(2)}&longitude=${pos.lng.toFixed(2)}&hourly=wind_speed_700hPa,wind_direction_700hPa&current=temperature_2m,dew_point_2m&forecast_days=1&timezone=GMT`)).json();
       const hr = new Date().getUTCHours(), sp = j.hourly.wind_speed_700hPa[hr], dr = j.hourly.wind_direction_700hPa[hr];
       if(sp == null || dr == null) return null;
-      return STORM.wind = {at:Date.now(), lat:pos.lat, lng:pos.lng, kmh:sp, to:(dr + 180) % 360};
+      // جفاف الهواء قرب الأرض (الحرارة − نقطة الندى): ≥15° = المطر الخفيف غالبًا يتبخر قبل ما يوصل (virga)
+      const c = j.current || {}, dd = Number.isFinite(c.temperature_2m) && Number.isFinite(c.dew_point_2m) ? c.temperature_2m - c.dew_point_2m : null;
+      return STORM.wind = {at:Date.now(), lat:pos.lat, lng:pos.lng, kmh:sp, to:(dr + 180) % 360, dd};
     }catch(e){ return null; }
   }
   // البرق (EUMETSAT MTG): نقاط الومضات حولك ±1.6° — للتحذير من البرق القريب ولتمييز العواصف الرعدية والبرد من تشويش الرادار
@@ -2867,6 +2870,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         r.dbz = r.kind === 'here' ? dbzAt(Gn, Gn.ux, Gn.uy, 3) : (()=>{ let best = null; const rr = Math.round(a.dist / Gn.mpp);
           const bx = Gn.ux + Math.sin(a.brg*Math.PI/180) * rr, by = Gn.uy - Math.cos(a.brg*Math.PI/180) * rr; best = dbzAt(Gn, bx, by, 4); return best; })(); }
       r.motion = mOk ? motion : null;
+      // صدى ضعيف جدًا (<15) أو خفيف في جو جاف = غالبًا ما ينزل مطر فعلي
+      r.weak = r.kind !== 'none' && (r.dbz == null || r.dbz < 15) && !r.storm;
+      r.dryAir = WND && WND.dd != null ? Math.round(WND.dd) : null;
+      r.virga = r.kind !== 'none' && !r.storm && r.dbz != null && r.dbz < 25 && r.dryAir != null && r.dryAir >= 15;
       try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_RAIN_MOTION', kmh:r.motion ? r.motion.kmh : 0, dir:r.motion ? directionWord(r.motion.brg) : ''}, location.origin); }catch(e){}
       r.time = now.time; STORM.res = r;
     }catch(e){}
@@ -2884,13 +2891,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const what = r.dbz >= 55 ? (r.storm ? 'عاصفة رعدية مع احتمال برد' : r.ltKnown ? 'مطر غزير' : dbzWord(r.dbz)) : r.storm ? (r.dbz >= 35 ? 'عاصفة رعدية' : dbzWord(r.dbz) + ' مع برق') : dbzWord(r.dbz);
     const mvTxt = r.motion ? ' · يتحرك نحو ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س' : '';
     const ltNear = r.ltKm != null && r.ltKm <= 20, ltTxt = r.ltKm != null && r.ltKm <= 60 ? ' · ⚡ برق على بعد ' + iso(Math.round(r.ltKm)) + ' كم' : '';
-    if(r.kind === 'here'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = (r.storm ? 'برق قريب: ابتعد عن المرتفعات والأماكن المكشوفة وادخل السيارة · ' : '') + 'انتبه للشعبان والأودية' + mvTxt; cls = 'near'; showStrip = true; }
+    const soft = r.weak || r.virga, dryTxt = r.virga ? 'الجو جاف — غالبًا يتبخر قبل ما يوصل الأرض' : 'صدى ضعيف جدًا على الرادار — غالبًا ما ينزل منها شيء';
+    if(r.kind === 'here' && soft){ icon = '☁️'; t = (r.weak ? 'سحب ممطرة خفيفة' : 'رذاذ محتمل') + ' فوقك'; sub = dryTxt + mvTxt; cls = 'calm'; showStrip = true; }
+    else if(r.kind === 'here'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = (r.storm ? 'برق قريب: ابتعد عن المرتفعات والأماكن المكشوفة وادخل السيارة · ' : '') + 'انتبه للشعبان والأودية' + mvTxt; cls = 'near'; showStrip = true; }
+    else if((r.kind === 'coming' || r.kind === 'nearing') && soft){ icon = '☁️'; t = (r.weak ? 'سحب ممطرة خفيفة' : 'مطر خفيف') + ' تقترب منك — ' + km + ' ' + dir; sub = dryTxt + mvTxt + ltTxt; cls = 'calm'; showStrip = r.km < 20; }
     else if(r.kind === 'coming'){ icon = '⛈️'; t = (r.storm || r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، متجه نحوك بسرعة ' + iso(r.kmh) + ' كم/س' + ltTxt; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
     else if(r.kind === 'pass'){ icon = '🌦️'; t = what + ' ' + km + ' — ' + dir; sub = 'يتجه ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س ويمر على بعد ' + iso(r.cross) + ' كم منك تقريبًا — غالبًا ما يوصلك' + ltTxt; cls = r.km < 40 ? 'app' : ''; showStrip = r.km < 40; }
     else if(r.kind === 'nearing'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌦️'; t = what + ' يقترب منك — ' + km + ' ' + dir; sub = 'كان على بعد ' + iso(Math.round(r.was)) + ' كم قبل ' + iso(r.ago) + ' دقيقة — قد يوصلك خلال ' + etaTxt(r.eta) + ' تقريبًا إذا استمر' + ltTxt; cls = 'app'; showStrip = true; }
     else if(r.kind === 'close' || r.kind === 'far'){
       const how = r.away ? 'يبتعد عنك' : r.still ? 'شبه ثابت في مكانه' : r.irregular ? 'حركته غير منتظمة (سحب تتكوّن وتتلاشى) — راقب الرادار' : 'لا يتجه نحوك حاليًا';
-      if(r.kind === 'close'){ icon = '🌦️'; t = what + ' قريب منك — ' + km + ' ' + dir; sub = how + mvTxt + ' — انتبه للأودية والشعبان'; cls = 'app'; showStrip = true; }
+      if(r.kind === 'close'){ icon = soft ? '☁️' : '🌦️'; t = what + (r.weak ? ' قريبة منك — ' : ' قريب منك — ') + km + ' ' + dir; sub = soft ? dryTxt + mvTxt : how + mvTxt + ' — انتبه للأودية والشعبان'; cls = soft ? 'calm' : 'app'; showStrip = true; }
       else { icon = '🌦️'; t = 'أقرب مطر على بعد ' + km + ' — ' + dir; sub = what + ' · ' + how + mvTxt; }
     }
     // برق قريب منك (20 كم) أهم من أي شيء غير المطر فوقك أو الجاي خلال 45 دقيقة
@@ -2900,7 +2910,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
-    const key = r.kind === 'here' ? 'here' : (r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
+    const key = soft && !ltNear ? '' : r.kind === 'here' ? 'here' : (r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
     if(key && STORM.warned !== key){
       STORM.warned = key; toast(t);
       if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
