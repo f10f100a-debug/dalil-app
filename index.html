@@ -1624,6 +1624,39 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const kmh = state.pos && Number.isFinite(state.pos.speed) ? state.pos.speed*3.6 : 0;
     return Date.now() - gpsCourseAt < 4000 && kmh > GPS_COURSE_MIN_KMH;
   }
+  // البوصلة داخل السيارة (خصوصًا على حامل) يشدّها حديد السيارة فتلف أقل من الحقيقة ويتأخر السهم.
+  // فوق 12 كم/س نعتمد اتجاه GPS مباشرة، إلا إذا أثبتت البوصلة صحتها في اللفّات (لفّتها ≈ لفّة GPS).
+  // وبين قراءات GPS (كل ثانية تقريبًا) نكمّل اللفّة بنفس سرعة دورانها حتى يتحرك السهم بنعومة.
+  const GPS_DIRECT_KMH = 12;
+  const carMag = {score:0};                 // +: البوصلة تتفق مع GPS في اللفّات، −: متشوشة
+  const gpsTurn = {course:null, at:0, rate:0, cRaw:null};
+  let gpsPredictTimer = 0;
+  function gpsDirectActive(){
+    const kmh = state.pos && Number.isFinite(state.pos.speed) ? state.pos.speed*3.6 : 0;
+    return gpsCourseActive() && kmh >= GPS_DIRECT_KMH && carMag.score < 2;
+  }
+  function gpsPredictTick(){
+    if(!gpsDirectActive() || gpsTurn.course === null){ clearInterval(gpsPredictTimer); gpsPredictTimer = 0; return; }
+    // تكملة مخففة (60%، وبحد 12°) حتى ما «يتجاوز» السهم إذا انتهت اللفّة قبل قراءة GPS التالية
+    const el = Math.min(1, (Date.now() - gpsTurn.at)/1000);
+    state.heading = norm360(gpsTurn.course + Math.max(-12, Math.min(12, gpsTurn.rate * el * 0.6)));
+    renderCompassScreen();
+  }
+  function onGpsCourse(course, kmh){
+    const now = Date.now();
+    if(now - gpsCourseAt > 60000) carMag.score = 0;   // وقفة طويلة: يمكن تغيّر مكان الجوال
+    if(gpsTurn.course !== null && now - gpsTurn.at < 3000){
+      const dt = Math.max(0.3, (now - gpsTurn.at)/1000), dG = angleDiff(course, gpsTurn.course);
+      gpsTurn.rate = Math.abs(dG) < 90 ? Math.max(-45, Math.min(45, dG/dt)) : 0;
+      // فحص البوصلة في لفّة واضحة
+      if(kmh >= GPS_DIRECT_KMH && Math.abs(dG) >= 8 && gpsTurn.cRaw !== null && lastCompassRaw !== null && now - lastCompassAt < 2000){
+        const ratio = angleDiff(lastCompassRaw, gpsTurn.cRaw) / dG, good = ratio > 0.7 && ratio < 1.4;
+        carMag.score = Math.max(-3, Math.min(3, carMag.score + (good ? 1 : -1)));
+      }
+    }else gpsTurn.rate = 0;
+    gpsTurn.course = course; gpsTurn.at = now;
+    gpsTurn.cRaw = lastCompassRaw !== null && now - lastCompassAt < 2000 ? lastCompassRaw : null;
+  }
 
   function save(){
     try{
@@ -2110,12 +2143,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const gpsCourse = p.coords.heading, gpsSpeed = p.coords.speed;
     const hasCourse = typeof gpsCourse === 'number' && Number.isFinite(gpsCourse) && gpsCourse >= 0;
     if(hasCourse && Number.isFinite(gpsSpeed) && gpsSpeed*3.6 > GPS_COURSE_MIN_KMH){
+      onGpsCourse(gpsCourse, gpsSpeed*3.6);
       gpsCourseAt = Date.now();
       if(lastCompassRaw !== null && Date.now() - lastCompassAt < 2000){
         const measured = angleDiff(gpsCourse, lastCompassRaw);
         gpsOffset = gpsOffset === null || Math.abs(angleDiff(measured, gpsOffset)) > 45
           ? measured
           : norm360(gpsOffset + 0.35 * angleDiff(measured, gpsOffset));
+      }
+      if(gpsDirectActive()){
+        state.heading = gpsCourse;
+        state.headingSource = 'gps';
+        if(!gpsPredictTimer) gpsPredictTimer = setInterval(gpsPredictTick, 100);
+      }else if(lastCompassRaw !== null && Date.now() - lastCompassAt < 2000){
         state.heading = norm360(lastCompassRaw + gpsOffset);
         state.headingSource = 'fused';
       }else{
@@ -2178,6 +2218,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         lastCompassRaw = raw; lastCompassAt = Date.now();
         lastHeadingAt = Date.now();
         if(gpsCourseActive()){
+          // فوق 12 كم/س والبوصلة غير مثبتة الصحة: GPS وحده (البوصلة تُقرأ للفحص فقط)
+          if(gpsDirectActive()) return;
           // أثناء القيادة: اتجاه GPS + التغيّر اللحظي من المستشعر.
           if(gpsOffset !== null){
             state.heading = smoothHeading(state.headingSource === 'fused' ? state.heading : null, norm360(raw + gpsOffset));
