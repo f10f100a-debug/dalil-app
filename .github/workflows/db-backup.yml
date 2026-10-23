@@ -1,0 +1,58 @@
+# نسخة احتياطية يومية لقاعدة بيانات دليل (Supabase) — مشفّرة، لأن المستودع عام.
+# الأسرار المطلوبة (مرة وحدة من صاحب التطبيق):
+#   SUPABASE_DB_URL     رابط «Session pooler» من Supabase (Connect ← Session pooler) مع كلمة سر القاعدة
+#   BACKUP_PASSPHRASE   كلمة سر التشفير (تُحفظ عند صاحب التطبيق — بدونها ما تنفتح النسخة)
+# الاسترجاع: docs/SECURITY-RUNBOOK.md
+name: DB backup
+on:
+  schedule:
+    - cron: "7 0 * * *"        # 3:07 الفجر بتوقيت السعودية
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PASS" ]; then
+            echo "::error::أسرار النسخ الاحتياطي غير مضافة بعد (SUPABASE_DB_URL و BACKUP_PASSPHRASE)"; exit 1
+          fi
+          if [ ${#PASS} -lt 16 ]; then echo "::error::كلمة سر التشفير قصيرة (16 حرف على الأقل)"; exit 1; fi
+
+      - name: Dump database (pg_dump 17)
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -o pipefail
+          stamp=$(date -u +%Y-%m-%d)
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+          # بيانات التطبيق (public) + جدولة التنبيهات (cron) — بدون ملكية وصلاحيات حتى ينفع الاسترجاع على مشروع جديد
+          docker run --rm -e DB postgres:17 sh -c 'pg_dump "$DB" --format=custom --no-owner --no-privileges --schema=public --schema=cron' > dalil-db-$stamp.dump
+          size=$(stat -c %s dalil-db-$stamp.dump)
+          [ "$size" -gt 10000 ] || { echo "::error::النسخة صغيرة بشكل غير طبيعي ($size بايت)"; exit 1; }
+          tables=$(docker run --rm -v "$PWD":/w postgres:17 pg_restore --list /w/dalil-db-$stamp.dump | grep -c " TABLE DATA ")
+          echo "::notice::نسخة $stamp: $((size/1024)) KB، $tables جدول"
+
+      - name: Encrypt (AES-256)
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            --output dalil-db-$STAMP.dump.gpg dalil-db-$STAMP.dump <<< "$PASS"
+          shred -u dalil-db-$STAMP.dump
+          sha256sum dalil-db-$STAMP.dump.gpg | tee dalil-db-$STAMP.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dalil-db-${{ env.STAMP }}
+          path: |
+            dalil-db-${{ env.STAMP }}.dump.gpg
+            dalil-db-${{ env.STAMP }}.sha256
+          retention-days: 90
+          if-no-files-found: error
