@@ -74,6 +74,15 @@ try {
   b.ws.close(); c.ws.close();
 } catch (e) { ok(false, "realtime " + e.message); }
 
+// خروج عضو يغيّر مفتاح القناة: الباقون يوصلهم «rekey» والمفتاح الجديد من حالة الغرفة
+try {
+  const topic = "realtime:room:" + st3.secret, c = await sock(topic);
+  const lv = await call("leave", auth(A));
+  await new Promise((r) => setTimeout(r, 2000));
+  const st4 = await call("state", auth(B));
+  ok(lv.ok && c.got.some((p) => p.event === "rekey") && st4.secret && st4.secret !== st3.secret && st4.members.length === 2, `leave rotates secret, rekey received=${c.got.length}`);
+  c.ws.close();
+} catch (e) { ok(false, "rekey " + e.message); }
 for (const m of [A, B, C]) await call("leave", auth(m));
 const after = await call("state", auth(A));
 ok(after.status === 403, `left member blocked ${after.status}`);
