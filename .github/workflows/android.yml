@@ -10,6 +10,10 @@ on:
         description: "رقم الإصدار الظاهر للمستخدم"
         type: string
         default: "1.0"
+      release:
+        description: "بناء ملف AAB موقّع لمتجر Google Play (يحتاج السر ANDROID_KEY_PASS)"
+        type: boolean
+        default: false
   push:
     paths:
       - ".github/workflows/android.yml"
@@ -27,6 +31,7 @@ jobs:
     env:
       VERSION_NAME: ${{ inputs.version || '1.0' }}
       VERSION_CODE: ${{ github.run_number }}
+      RELEASE: ${{ inputs.release && 'yes' || 'no' }}
     defaults:
       run:
         shell: bash
@@ -98,6 +103,65 @@ jobs:
           grep -n "uses-permission\|uses-feature" $M
           echo "::notice::Android $VERSION_NAME ($VERSION_CODE) — UserAgent DalilAndroid/$VERSION_NAME"
 
+      - name: Target SDK 36 (شرط Google Play من 31 أغسطس 2026)
+        run: |
+          V=android/variables.gradle
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/; s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/' $V
+          grep -n "SdkVersion" $V
+
+      - name: Upload key (release only)
+        if: env.RELEASE == 'yes'
+        env:
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          [ -n "$KEY_PASS" ] || { echo "::error::أضف السر ANDROID_KEY_PASS في إعدادات GitHub أولًا"; exit 1; }
+          K="$RUNNER_TEMP/key"; mkdir -p "$K"; cd "$K"
+          # مفتاح الرفع محفوظ مشفّرًا في فرع android-key؛ يُنشأ مرة وحدة فقط
+          if git clone -q --depth 1 -b android-key "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}" repo 2>/dev/null; then
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:KEY_PASS -in repo/upload.jks.enc -out upload.jks || { echo "::error::السر ANDROID_KEY_PASS لا يطابق المفتاح المحفوظ"; exit 1; }
+            echo "::notice::upload key restored"
+          else
+            keytool -genkeypair -v -keystore upload.jks -alias dalil -keyalg RSA -keysize 4096 -validity 10000 \
+              -storepass "$KEY_PASS" -keypass "$KEY_PASS" -dname "CN=Dalil, O=Dalil, C=SA" >/dev/null 2>&1
+            mkdir pub && cd pub && git init -q && git checkout -q -b android-key
+            openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:KEY_PASS -in ../upload.jks -out upload.jks.enc
+            keytool -list -v -keystore ../upload.jks -storepass "$KEY_PASS" | grep -E "SHA1|SHA256" > fingerprints.txt
+            echo "مفتاح الرفع لتطبيق دليل (مشفّر بكلمة ANDROID_KEY_PASS). Play App Signing يحمي التطبيق حتى لو ضاع." > README.txt
+            git config user.email ci@dalil && git config user.name ci
+            git add . && git commit -qm "Android upload key (encrypted)"
+            git push -q "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository }}" android-key
+            cd .. && echo "::notice::new upload key created and saved (encrypted) to android-key"
+          fi
+          keytool -list -v -keystore upload.jks -storepass "$KEY_PASS" | grep -E "SHA256" | head -1
+          echo "KS_FILE=$K/upload.jks" >> $GITHUB_ENV
+          cat >> "$GITHUB_WORKSPACE/native/android/app/build.gradle" <<'GR'
+
+          android {
+              signingConfigs {
+                  release {
+                      storeFile file(System.getenv("KS_FILE"))
+                      storePassword System.getenv("KEY_PASS")
+                      keyAlias "dalil"
+                      keyPassword System.getenv("KEY_PASS")
+                  }
+              }
+              buildTypes { release { signingConfig signingConfigs.release } }
+          }
+          GR
+
+      - name: Build AAB (release only)
+        if: env.RELEASE == 'yes'
+        working-directory: native/android
+        env:
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon bundleRelease > "$RUNNER_TEMP/gradle-r.log" 2>&1 || { tail -60 "$RUNNER_TEMP/gradle-r.log"; echo "::error::$(grep -E 'error|FAILURE|What went wrong' -A3 "$RUNNER_TEMP/gradle-r.log" | head -20 | paste -sd '|' -)"; exit 1; }
+          ls -la app/build/outputs/bundle/release/
+          cp app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/dalil.aab"
+
       - name: Build APK
         working-directory: native/android
         run: |
@@ -110,10 +174,13 @@ jobs:
         working-directory: native/android/app/build/outputs/apk/debug
         run: |
           mkdir -p "$RUNNER_TEMP/pub" && cp app-debug.apk "$RUNNER_TEMP/pub/dalil.apk"
+          [ -f "$RUNNER_TEMP/dalil.aab" ] && cp "$RUNNER_TEMP/dalil.aab" "$RUNNER_TEMP/pub/dalil-$VERSION_NAME-$VERSION_CODE.aab"
           cd "$RUNNER_TEMP/pub"
           echo "دليل للأندرويد $VERSION_NAME (بناء $VERSION_CODE) — $(date -u +%F)" > README.txt
           git init -q && git checkout -q -b android-build
           git config user.email ci@dalil && git config user.name ci
+          ls -la
           git add . && git commit -qm "Android APK $VERSION_NAME ($VERSION_CODE)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" android-build
           echo "::notice::APK: https://raw.githubusercontent.com/${{ github.repository }}/android-build/dalil.apk ($(du -h dalil.apk | cut -f1))"
+          for f in *.aab; do [ -f "$f" ] && echo "::notice::AAB: https://raw.githubusercontent.com/${{ github.repository }}/android-build/$f ($(du -h "$f" | cut -f1))"; done; true
