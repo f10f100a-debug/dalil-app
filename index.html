@@ -28,6 +28,8 @@
 // داخل تطبيق الآيفون (Capacitor): نخفي عبارات المتصفح والتثبيت من Safari.
 window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
 if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
+// المستخدم فعّل الأذونات سابقًا: شاشة الترحيب ما تظهر أبدًا (حتى لحظة) — يدخل البوصلة مباشرة
+try{if(localStorage.getItem('dalil_permissions_ready')==='1')document.documentElement.classList.add('perm-ready')}catch(e){}
 // تطبيق الأندرويد (هوية DalilAndroid): البوصلة والموقع من المتصفح الداخلي، بدون أدوات الآيفون الخاصة
 window.DALIL_ANDROID=/DalilAndroid\//.test(navigator.userAgent);
 // تنبيهات الآيفون الأصلية: من الإصدار 1.2 عند توفر إضافة PushNotifications
@@ -740,6 +742,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   .toast.show{opacity:1; transform:translate(-50%,-6px);}
 
+  .perm-ready #onboard{display:none;}
   .onboard{
     position:fixed; inset:0; background:var(--bg); z-index:80; display:flex; flex-direction:column;
     align-items:center; justify-content:center; padding:30px; text-align:center; gap:16px;
@@ -5900,8 +5903,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   if(permissionsWereReady) maybeAskPush(4000);
   if(permissionsWereReady){
-    // افحص الأذونات المحفوظة فعليًا قبل إخفاء شاشة البداية. إذا وصلت بيانات
-    // الموقع والاتجاه تختفي تلقائيًا، وإلا تبقى ضغطة «تفعيل» متاحة للمستخدم.
+    // الأذونات مفعّلة سابقًا: شاشة الترحيب مخفية من أول لحظة. وإذا ما وصل الموقع أو البوصلة
+    // (الإذن انسحب من إعدادات الآيفون) يظهر شريط «تشغيل» صغير في البوصلة بدل الشاشة الكاملة.
+    document.getElementById('onboard').style.display = 'none';
     startGeoWatch();
     startCompass();
     window.setTimeout(()=>{
