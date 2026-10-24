@@ -1326,7 +1326,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           <div class="fy-head"><svg class="fq-ic" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px"><path d="M12 4.5c3.6 0 7 2.4 7 6.6 0 4.6-3.2 8.4-7.3 8.4C7.7 19.5 5 16.3 5 12.4 5 7.9 8.2 4.5 12 4.5z" fill="#B88A5A"/><circle cx="9.5" cy="10" r="1.1" fill="#7A5534"/><circle cx="13.6" cy="8.6" r=".9" fill="#7A5534"/><circle cx="14.5" cy="13.4" r="1.2" fill="#7A5534"/><circle cx="10.2" cy="14.8" r=".8" fill="#7A5534"/></svg><b>مؤشر الفقع</b></div>
           <div class="fy-sub" id="fqSub"></div>
           <div id="fqList"><div class="pl-note">جارٍ التحميل…</div></div>
-          <div class="weather-source-note" style="margin-top:8px">تقدير من كميات المطر (Open-Meteo) منذ 1 أكتوبر، مو ضمان. الفقع يطلع عادة بعد 60–75 يوم من مطر كافي، والأرض ما تنتج سنتين ورا بعض، والزخات المحلية الصغيرة ممكن ما تنحسب. يتحدث يوميًا.</div>
+          <div class="weather-source-note" style="margin-top:8px">تقدير مو ضمان. المطر من 1 أكتوبر: نماذج الطقس (Open-Meteo) مع رادارات الأرصاد للزخات المحلية، ناخذ الأعلى لكل يوم. «جيد» من 25 ملم و«ممتاز» من 60 ملم، والفقع يطلع عادة بعد 60–75 يوم من وصول المطر 25 ملم. والأرض ما تنتج سنتين ورا بعض. يتحدث يوميًا.</div>
         </div>
         <div class="cp-card fy-card" id="faydCard" hidden>
           <div class="fy-head"><span class="cp-ic" data-ico="leaf"></span><b>أكثر الفياض اخضرارًا الآن</b></div>
@@ -5797,10 +5797,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     card.hidden = spView !== 'fayd';
     if(!faydFilter) faydFilter = state.pos ? 'near' : 'all';  // الافتراضي: الأقرب لي
     const fmt = d=>{ try{ return new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long'}).format(new Date(d + 'T12:00:00Z')); }catch(e){ return d; } };
-    setText('faydSub', 'من أقمار NASA · آخر صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بمعتادها');
+    setText('faydSub', (faydData.s2 ? 'Sentinel-2 بدقة 10 م بدون غيم' : 'أقمار NASA') + ' · آخر صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بنفسها قبل الموسم وبمعتادها');
     document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
     const pos = state.pos;
-    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2]} : null; }).filter(Boolean);
+    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], pct:r[3]} : null; }).filter(Boolean);
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
     if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
     if(faydFilter === 'near'){
@@ -5814,7 +5814,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span></button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · ' + r.pct + '٪ مخضرّ' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span></button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------
@@ -5835,8 +5835,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const ST = [['ما نزل مطر كافي','fy-p0'],['مطر جيد','fy-p3'],['مطر ممتاز','fy-p4']];
     const shown = rows.slice(0, faydMore ? 30 : 8);
     list.innerHTML = shown.map((r, k)=>{
-      const when = r.window ? `<span class="fq-when" style="display:block">📅 يُتوقع يطلع: <b>${fqDay(r.window[0])} – ${fqDay(r.window[1])}</b></span>`
-        : r.fc7 >= 5 ? `<span class="fq-when" style="display:block">🌧️ متوقع مطر خلال أسبوع: ${r.fc7} ملم</span>` : '';
+      const conf = r.green ? `<span class="fq-when" style="display:block;color:#2F6F22">✓ اخضرّت ${r.green} فيضة حولها — تأكيد إن المطر كان كافي</span>` : '';
+      const when = (r.window ? `<span class="fq-when" style="display:block">📅 يُتوقع يطلع: <b>${fqDay(r.window[0])} – ${fqDay(r.window[1])}</b></span>` + conf
+        : r.fc7 >= 5 ? `<span class="fq-when" style="display:block">🌧️ متوقع مطر خلال أسبوع: ${r.fc7} ملم</span>` : '');
       return `<button type="button" class="fy-row" data-fq-i="${fqData.rows.indexOf(fqData.rows.find(x=>x.name === r.name))}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.mm} ملم${r.km != null ? ' · ' + Math.round(r.km) + ' كم' : ''}</span><span class="fy-bar fq-bar" style="display:block"><i style="width:${Math.max(4, Math.min(100, r.mm / max * 100))}%"></i></span>${when}</span><span class="fy-pill ${ST[r.st][1]}">${ST[r.st][0]}</span></button>`;
     }).join('') + (rows.length > 8 ? `<button type="button" class="fy-more" data-fq-more>${faydMore ? 'عرض أقل' : 'كل مناطق الفقع (' + rows.length + ')'}</button>` : '');
   }
