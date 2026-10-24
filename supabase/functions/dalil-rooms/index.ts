@@ -8,6 +8,7 @@ const MAX_MEMBERS = 15;
 const ROOM_HOURS = 24;
 const VOICE_KEEP_MS = 60 * 60e3;          // تُعاد الرسائل الصوتية لآخر ساعة
 const MAX_VOICE = 590_000;          // أقل من حد الحاوية (600000)
+const PAUSE_MIN = [15, 30, 60];     // «إيقاف مؤقت» بالدقائق — ساعة كحد أقصى لأن الرسائل تُحذف بعد ساعة
 const VOICE_MIMES = ["audio/mp4", "audio/aac", "audio/webm", "audio/ogg", "audio/mpeg", "audio/x-m4a"];
 const COLORS = ["#E0531B", "#1F7AE0", "#2E9E5B", "#B23AB8", "#D4A017", "#0E9AA7", "#C2185B", "#6D4C41", "#5C6BC0", "#7CB342", "#F57C00", "#455A64", "#AD1457", "#00897B", "#8E24AA"];
 
@@ -24,16 +25,18 @@ async function tooMany(sb: SupabaseClient, ip: string, kind: string, max: number
 }
 
 async function activeMembers(sb: SupabaseClient, roomId: string) {
-  const { data } = await sb.from("room_members").select("member_id,name,color,joined_at,last_seen").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).order("joined_at");
+  const { data } = await sb.from("room_members").select("member_id,name,color,joined_at,last_seen,paused_until").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).order("joined_at");
   return data || [];
 }
 
 // تنبيه بقية أعضاء الغرفة (تطبيق الآيفون) — يصل حتى لو كان التطبيق مغلقًا
+// العضو المتوقف مؤقتًا (صلاة/اجتماع) ما يوصله إلا الاستغاثة
 async function notifyRoom(sb: SupabaseClient, roomId: string, exceptId: string, p: { title: string; body: string; tag: string }, skipPtt = false) {
-  let q = sb.from("room_members").select("push_token").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).neq("member_id", exceptId).not("push_token", "is", null);
+  let q = sb.from("room_members").select("push_token,paused_until").eq("room_id", roomId).eq("kicked", false).eq("left_room", false).neq("member_id", exceptId).not("push_token", "is", null);
   if (skipPtt) q = q.is("ptt_token", null);
   const { data } = await q;
-  const toks = (data || []).map((r) => r.push_token as string);
+  const now = Date.now();
+  const toks = (data || []).filter((r) => p.tag === "room-sos" || !r.paused_until || new Date(r.paused_until).getTime() <= now).map((r) => r.push_token as string);
   if (!toks.length) return;
   const job = sendApnsTo(sb, toks, { ...p, url: "./?screen=compass" }).catch((e) => console.error("room push", e));
   (globalThis as any).EdgeRuntime?.waitUntil?.(job);
@@ -87,11 +90,51 @@ async function cleanupRooms(sb: SupabaseClient) {
   await sb.from("room_attempts").delete().lt("created_at", new Date(Date.now() - 86400e3).toISOString());
 }
 
+const pausedUntil = (m: Record<string, any>) => m.paused_until && new Date(m.paused_until).getTime() > Date.now() ? m.paused_until : null;
+async function broadcast(secret: string, event: string, payload: Record<string, unknown>) {
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  await fetch(Deno.env.get("SUPABASE_URL") + "/realtime/v1/api/broadcast", { method: "POST",
+    headers: { apikey: key, authorization: "Bearer " + key, "content-type": "application/json" },
+    body: JSON.stringify({ messages: [{ topic: "room:" + secret, event, private: false, payload }] }) }).catch(() => {});
+}
+
+// نهاية «الإيقاف المؤقت» (pg_cron كل دقيقة): إشعار «رجعت للغرفة» وكم رسالة فاتته، ويرجع لبقية الأعضاء بدون علامة التوقف
+async function pauseTick(sb: SupabaseClient) {
+  const { data: due } = await sb.from("room_members").select("room_id,member_id,push_token,paused_at,kicked,left_room").lte("paused_until", new Date().toISOString()).limit(200);
+  let n = 0;
+  for (const m of due || []) {
+    await sb.from("room_members").update({ paused_until: null, paused_at: null }).eq("room_id", m.room_id).eq("member_id", m.member_id);
+    if (m.kicked || m.left_room) continue;
+    const { data: room } = await sb.from("rooms").select("name,secret,expires_at").eq("id", m.room_id).maybeSingle();
+    if (!room || new Date(room.expires_at).getTime() < Date.now()) continue;
+    await broadcast(room.secret, "pause", { m: m.member_id, until: null });
+    if (!m.push_token) continue;
+    const since = m.paused_at || new Date(Date.now() - VOICE_KEEP_MS).toISOString();
+    const { data: vs } = await sb.from("room_voice").select("id").eq("room_id", m.room_id).neq("member_id", m.member_id).gte("created_at", since);
+    const { data: mutes } = await sb.from("room_mutes").select("target_id").eq("room_id", m.room_id).eq("muter_id", m.member_id);
+    let ids = (vs || []).map((v) => v.id);
+    if (ids.length && mutes?.length) {
+      const { data: vm } = await sb.from("room_voice").select("id,member_id").in("id", ids);
+      const mt = new Set(mutes.map((x) => x.target_id));
+      ids = (vm || []).filter((v) => !mt.has(v.member_id)).map((v) => v.id);
+    }
+    if (ids.length) {
+      const { data: hr } = await sb.from("room_voice_heard").select("voice_id").eq("member_id", m.member_id).in("voice_id", ids);
+      const h = new Set((hr || []).map((x) => x.voice_id)); ids = ids.filter((x) => !h.has(x));
+    }
+    const c = ids.length;
+    const body = c ? "فاتتك " + (c === 1 ? "رسالة صوتية" : c === 2 ? "رسالتان صوتيتان" : c <= 10 ? c + " رسائل صوتية" : c + " رسالة صوتية") + " · افتح دليل واسمعها" : "ما فاتك شيء · موقعك يرجع يظهر لما تفتح دليل";
+    await sendApnsTo(sb, [m.push_token], { title: "▶️ انتهى الإيقاف المؤقت" + (room.name ? " · " + room.name : ""), body, tag: "room-pause", url: "./?screen=compass" }).catch(() => {});
+    n++;
+  }
+  return n;
+}
+
 function roomView(room: Record<string, any>, member: Record<string, any>, members: any[], voice: any[]) {
   return {
     room_id: room.id, code: room.code, name: room.name, secret: room.secret, rally: room.rally,
     expires_at: room.expires_at, me: { member_id: member.member_id, name: member.name, color: member.color },
-    members: members.map((m) => ({ member_id: m.member_id, name: m.name, color: m.color })),
+    members: members.map((m) => ({ member_id: m.member_id, name: m.name, color: m.color, paused_until: pausedUntil(m) })),
     voice, max_members: MAX_MEMBERS,
   };
 }
@@ -143,12 +186,12 @@ Deno.serve(async (req) => {
       const { data: s } = await sb.storage.from("room-voice").createSignedUrl(path, 3600);
       const voice = { id, member_id: a.member.member_id, mime, duration, created_at: new Date().toISOString(), url: s?.signedUrl || null };
       // اللاسلكي: الأعضاء اللي جوالاتهم تدعمه يسمعون الصوت مباشرة والجوال مقفل (إلا من كتم المرسل)
-      const { data: pt } = await sb.from("room_members").select("member_id,ptt_token").eq("room_id", a.room.id).eq("kicked", false).eq("left_room", false)
+      const { data: pt } = await sb.from("room_members").select("member_id,ptt_token,paused_until").eq("room_id", a.room.id).eq("kicked", false).eq("left_room", false)
         .neq("member_id", a.member.member_id).not("ptt_token", "is", null);
       if (pt?.length && voice.url && /mp4|aac|m4a|mpeg/.test(mime)) {
         const { data: mutes } = await sb.from("room_mutes").select("muter_id").eq("room_id", a.room.id).eq("target_id", a.member.member_id);
         const muted = new Set((mutes || []).map((m) => m.muter_id));
-        const job = sendPttTo(sb, pt.filter((m) => !muted.has(m.member_id)).map((m) => m.ptt_token as string),
+        const job = sendPttTo(sb, pt.filter((m) => !muted.has(m.member_id) && !pausedUntil(m)).map((m) => m.ptt_token as string),
           { activeSpeaker: a.member.name, url: voice.url, id, room: a.room.id }).catch((e) => console.error("ptt", e));
         (globalThis as any).EdgeRuntime?.waitUntil?.(job);
       }
@@ -170,6 +213,12 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+
+    if (action === "pause_tick") {
+      const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
+      if (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value) return json(req, { error: "forbidden" }, 403);
+      return json(req, { ok: true, resumed: await pauseTick(sb) });
+    }
 
     if (action === "create") {
       const pin = String(body.pin || ""), name = cleanText(body.member_name, 24), roomName = cleanText(body.name, 40);
@@ -358,6 +407,19 @@ Deno.serve(async (req) => {
       const { count } = await sb.from("client_errors").select("id", { count: "exact", head: true }).eq("src", src).gte("at", new Date(Date.now() - 86400e3).toISOString());
       if ((count ?? 0) < 200) await sb.from("client_errors").insert({ ip_hash: ip, msg: JSON.stringify(body.e ?? {}).slice(0, 300), src, ver: "voice-diag", page: "voice" });
       return json(req, { ok: true });
+    }
+
+    // إيقاف مؤقت (صلاة، اجتماع): ما يوصله صوت ولا إشعارات (إلا الاستغاثة)، وموقعه يتوقف. minutes = 0 → رجوع
+    if (action === "pause") {
+      const min = Number(body.minutes);
+      if (min !== 0 && !PAUSE_MIN.includes(min)) return json(req, { error: "bad_request" }, 400);
+      const until = min ? new Date(Date.now() + min * 60e3).toISOString() : null;
+      // جهاز اللاسلكي يطلع من القناة وقت الإيقاف (يرجع ويسجّل رمزه من جديد إذا رجع)
+      const upd: Record<string, unknown> = min ? { paused_until: until, paused_at: member.paused_at && pausedUntil(member) ? member.paused_at : new Date().toISOString(), ptt_token: null }
+        : { paused_until: null, paused_at: null };
+      await sb.from("room_members").update(upd).eq("room_id", room.id).eq("member_id", member.member_id);
+      await broadcast(room.secret, "pause", { m: member.member_id, until });
+      return json(req, { ok: true, until });
     }
 
     if (action === "leave") {

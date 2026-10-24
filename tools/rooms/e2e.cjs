@@ -146,6 +146,45 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
     await B.waitForTimeout(22000);
     const st1 = await B.evaluate(() => window.__dalilToneState && window.__dalilToneState());
     ok(st1 !== 'running', 'tone engine sleeps when idle (' + st0 + ' → ' + st1 + ')'); }
+
+  // إيقاف مؤقت (صلاة/اجتماع): A يوقف 15 د → ما يشتغل صوت، B يشوفه «متوقف»، الرسالة تنحفظ ويسمعها لما يرجع
+  for (const p of [A, B]) { await p.evaluate(() => { const s = document.getElementById('rmSosAlert'); if (s) s.classList.remove('show'); window.DalilRoom.open(); }); }
+  await A.waitForTimeout(800);
+  ok(auth && (await call('pause', { ...auth, minutes: 90 })).error === 'bad_request', 'pause > 60 min rejected');
+  await A.click('[data-rm="pause"]'); await A.waitForTimeout(400);
+  await shot(A, '8a-A-pause-menu');
+  await A.click('[data-mm="pause"][data-arg="15"]'); await A.waitForTimeout(1500);
+  ok((await A.textContent('#rmPauseBar').catch(() => '')).includes('متوقف مؤقتًا'), 'A paused bar shown');
+  ok(await A.evaluate(() => window.DalilRoom.bgAuth() === null), 'paused: background location/PTT off (bgAuth null)');
+  let bPz = '';
+  for (let i = 0; i < 30 && !bPz.includes('متوقف مؤقتًا'); i++) { await B.waitForTimeout(250); bPz = await B.textContent('#rmMembers').catch(() => ''); }
+  ok(bPz.includes('متوقف مؤقتًا'), `B sees A paused: ${bPz.replace(/\s+/g, ' ').slice(0, 120)}`);
+  await shot(B, '8b-B-sees-paused');
+  { const pb = await B.locator('#rmPtt').boundingBox();
+    await B.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2); await B.mouse.down(); await B.waitForTimeout(2200); await B.mouse.up(); }
+  let aPz = '';
+  for (let i = 0; i < 60 && !aPz.includes('وصلتك'); i++) { await A.waitForTimeout(250); aPz = await A.textContent('#rmPauseBar').catch(() => ''); }
+  ok(aPz.includes('وصلتك رسالة'), `A paused got message saved (not played): ${aPz.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await shot(A, '8c-A-paused-msg');
+  // إعادة فتح الصفحة وهو موقف: يبقى موقف والرسالة ما تنحسب مسموعة
+  await A.reload(); await A.waitForTimeout(3000);
+  if (await A.isVisible('#onboardBtn')) await A.click('#onboardBtn');
+  await A.evaluate(() => window.DalilRoom.open()); await A.waitForTimeout(2500);
+  aPz = await A.textContent('#rmPauseBar').catch(() => '');
+  ok(aPz.includes('متوقف مؤقتًا') && aPz.includes('وصلتك رسالة'), `pause kept after reload: ${aPz.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await A.click('[data-rm="resume"]'); await A.waitForTimeout(1500);
+  aPz = await A.textContent('#rmPauseBar').catch(() => '');
+  ok(aPz.includes('فاتتك رسالة'), `after resume: missed banner: ${aPz.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await shot(A, '8d-A-missed');
+  ok(await A.evaluate(() => !!window.DalilRoom.bgAuth()), 'resumed: bgAuth back');
+  const bNew = await B.textContent('#rmVoice .rm-v').catch(() => '');
+  ok(bNew.includes('أُرسلت') && !bNew.includes('سمعها'), `B's new message not marked heard while A paused: ${bNew.replace(/\s+/g, ' ').slice(0, 80)}`);
+  await A.click('[data-rm="play-missed"]');
+  let bHeard = '';
+  for (let i = 0; i < 40 && !bHeard.includes('سمعها'); i++) { await B.waitForTimeout(250); bHeard = await B.textContent('#rmVoice .rm-v').catch(() => ''); }
+  ok(bHeard.includes('سمعها أحمد'), `B sees «سمعها أحمد» after A listened: ${bHeard.replace(/\s+/g, ' ').slice(0, 100)}`);
+  for (let i = 0; i < 30 && bPz.includes('متوقف مؤقتًا'); i++) { await B.waitForTimeout(250); bPz = await B.textContent('#rmMembers').catch(() => ''); }
+  ok(!bPz.includes('متوقف مؤقتًا'), 'B sees A back (not paused)');
   // خيارات العضو (كتم/بلاغ) — نعرض القائمة فقط
   await A.click('#rmMembers [data-rm="menu"]');
   await A.waitForTimeout(500);

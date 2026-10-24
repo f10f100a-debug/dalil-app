@@ -34,6 +34,8 @@
     pos:new Map(),       // member_id -> {lat,lng,acc,spd,t}
     voice:[], heard:new Set(), muted:new Set(), heardBy:new Map(),   // voice_id -> Set(member_id) سمعوها
     lagging:new Set(), sos:new Map(), mySos:null,
+    pause:null,          // إيقاف مؤقت (صلاة/اجتماع): {at, until} بالملّي ثانية
+    paused:new Map(),    // member_id -> until (أعضاء متوقفين مؤقتًا)
     navObj:null, open:false, tab:'join'
   };
   function loadSess(){ try{ const s = JSON.parse(lsGet(LS.sess) || 'null'); return s && s.room_id && s.token ? s : null; }catch(e){ return null; } }
@@ -105,7 +107,7 @@
 
   function onLive(){
     renderStatus();
-    RT.send('hello', myPosPayload() || {});
+    RT.send('hello', (!isPaused() && myPosPayload()) || {});
     lastSent = null; tickPos();
   }
 
@@ -117,7 +119,7 @@
       case 'hello':
         if(Number.isFinite(p.lat)) setPos(id, p);
         if(!R.members.has(id)) refreshState();
-        clearTimeout(helloReply); helloReply = setTimeout(()=>{ const mp = myPosPayload(); if(mp) RT.send('pos', mp); }, 300 + Math.random() * 1500);
+        clearTimeout(helloReply); helloReply = setTimeout(()=>{ const mp = !isPaused() && myPosPayload(); if(mp) RT.send('pos', mp); }, 300 + Math.random() * 1500);
         break;
       // الصوت: من تخزيننا فقط ومن نفس المرسل (ما نشغّل روابط غريبة)
       case 'voice': if(p.v && typeof p.v.url === 'string' && p.v.url.startsWith(SB + '/storage/') && String(p.v.member_id || id) === id) addVoice({...p.v, member_id:id}, true); break;
@@ -138,6 +140,7 @@
         break;
       case 'sos': onSos(id, p); break;
       case 'sos_off': R.sos.delete(id); renderSos(); break;
+      case 'pause': setPaused(id, p.until); break;
       case 'join': case 'leave': case 'rekey': refreshState(); break;
     }
   }
@@ -152,12 +155,13 @@
   }
   // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
   // تطبيق الآيفون 1.3: بيانات العضوية لإرسال الموقع من الخلفية
-  function bgAuth(){ return R.sess ? {url:FN + '?a=bgpos', key:KEY, room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token, name:(R.room && R.room.name) || '', me:R.sess.name || ''} : null; }
+  // وقت الإيقاف المؤقت: نرجّع null فيوقف تطبيق الآيفون الموقع في الخلفية ويطلع من قناة اللاسلكي (توفير البطارية وما يشتغل صوت)
+  function bgAuth(){ return R.sess && !isPaused() ? {url:FN + '?a=bgpos', key:KEY, room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token, name:(R.room && R.room.name) || '', me:R.sess.name || ''} : null; }
   const bgSync = ()=>{ try{ window.__dalilBgSync && window.__dalilBgSync(); }catch(e){} };
   function myCar(){ try{ const c = B.getCar && B.getCar(); return c && Number.isFinite(c.lat) ? {lat:+c.lat.toFixed(6), lng:+c.lng.toFixed(6)} : null; }catch(e){ return null; } }
   let lastSent = null, posTimer = null;
   function tickPos(){
-    if(!R.sess) return;
+    if(!R.sess || isPaused()) return;
     const mp = myPosPayload();
     if(!mp) return;
     const now = Date.now();
@@ -185,7 +189,7 @@
   // تنبيه القافلة: عضو ابتعد أكثر من 3 كم عنك (بموقع حديث)
   function checkLag(){
     for(const [id, m] of R.members){
-      if(id === me()) continue;
+      if(id === me() || R.paused.get(id) > Date.now()) continue;
       const p = R.pos.get(id), d = distTo(id);
       if(!p || d == null || Date.now() - p.t > STALE_MS) continue;
       if(d > LAG_M && !R.lagging.has(id)){
@@ -214,6 +218,13 @@
   function applyRoom(j){
     R.room = j; R.rally = j.rally || null;
     R.members = new Map((j.members || []).map(m=>[m.member_id, m]));
+    R.paused = new Map();
+    for(const m of j.members || []) if(m.paused_until && m.member_id !== me()) R.paused.set(m.member_id, new Date(m.paused_until).getTime());
+    const mine = (j.members || []).find(m=>m.member_id === me());
+    if(mine){
+      if(mine.paused_until && !R.pause) setMyPause({at:Date.now(), until:new Date(mine.paused_until).getTime()});
+      else if(!mine.paused_until && R.pause && Date.now() - R.pause.set > 15000) endPause(true);
+    }
     for(const id of [...R.pos.keys()]) if(!R.members.has(id)) R.pos.delete(id);
     (j.voice || []).forEach(v=>addVoice(v, false));
     RT.connect(j.secret);
@@ -254,7 +265,7 @@
     btn.disabled = false; renderLobbyBtn();
     if(!j.ok) return formErr(errText(j.error));
     R.sess = {room_id:j.room_id, member_id:j.me.member_id, token:j.token, code:j.code, pin, name};
-    R.muted = new Set(); R.voice = []; R.heard = new Set(); R.heardBy = new Map(); R.pos.clear(); R.lagging.clear();
+    R.muted = new Set(); R.voice = []; R.heard = new Set(); R.heardBy = new Map(); R.pos.clear(); R.lagging.clear(); R.pause = null; R.paused = new Map();
     (j.voice || []).forEach(v=>R.heard.add(v.id));   // لا نشغّل القديم تلقائيًا
     saveSess(); B.startGeo && B.startGeo(); bgSync();
     setTimeout(roomPush, 1500);
@@ -279,6 +290,7 @@
     if(R.mySos) stopMySos(true);
     RT.stop(); stopLoops();
     R.sess = null; R.room = null; R.members.clear(); R.pos.clear(); R.voice = []; R.heardBy = new Map(); R.sos.clear(); R.rally = null;
+    R.pause = null; R.paused = new Map(); clearTimeout(pauseTimer);
     if(R.navObj) R.navObj = null;
     saveSess(); syncMap(); updateBtn(); renderSos(); bgSync();
     if(msg) B.toast(msg);
@@ -336,7 +348,7 @@
     R.voice.sort((a, b)=>new Date(a.created_at) - new Date(b.created_at));
     if(R.voice.length > 60) R.voice.splice(0, R.voice.length - 60);
     if(v.member_id === me()) R.heard.add(v.id);
-    else if(live && !R.muted.has(v.member_id)){
+    else if(live && !R.muted.has(v.member_id) && !isPaused()){
       // 1.6+: والتطبيق مفتوح، تطبيق الآيفون نفسه يشغّل الرسالة عن طريق لاسلكي Apple (تشغيلها من الصفحة كان ينقطع AbortError).
       // الصفحة تنتظره، وإذا ما بدأ خلال 4 ث تشغّلها هي (مثلًا رسالة من جوال ما يدعم اللاسلكي)
       if(nativeFg() && /mp4|aac|m4a|mpeg/.test(v.mime || '') && /^[0-9a-f-]{36}$/.test(v.id)){
@@ -365,7 +377,7 @@
       if(nPlay === id) nPlay = null;
       const v = R.voice.find(x=>x.id === id);
       diag({s:'native_fail'});
-      if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !queue.includes(v)){ queue.push(v); playNext(); }
+      if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !isPaused() && !queue.includes(v)){ queue.push(v); playNext(); }
     }
     renderVoiceSoon(); updateBtn();
   };
@@ -438,6 +450,7 @@
   };
   async function recStart(){
     if(rec.on || rec.native || !R.sess) return;
+    if(isPaused()) endPause(false);   // تكلّم = رجع للغرفة
     if(nativePtt()){
       unlockAudio(); player.pause(); playing = null;
       rec.on = true; rec.native = true; renderPtt('wait');
@@ -547,8 +560,83 @@
     rec.idle = setTimeout(()=>{ if(!rec.on && rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }, 90000);
   }
 
+  // ---------- إيقاف مؤقت (صلاة، اجتماع) ----------
+  // ما يشتغل صوت ولا يتحدث موقعك، والرسائل تنحفظ لك (ساعة كحد أقصى لأن الرسائل تُحذف بعد ساعة). الاستغاثة توصلك دائمًا.
+  let pauseTimer = null;
+  const isPaused = ()=>!!(R.pause && R.pause.until > Date.now());
+  const hhmm = t=>new Date(t).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'});
+  const msgCount = n=>n === 1 ? 'رسالة' : n === 2 ? 'رسالتين' : n <= 10 ? n + ' رسائل' : n + ' رسالة';
+  function missed(){ return R.voice.filter(v=>v.member_id !== me() && !R.heard.has(v.id) && !R.muted.has(v.member_id) && v.url); }
+  function setMyPause(pz){
+    R.pause = {...pz, set:Date.now()};
+    if(R.sess){ R.sess.pause = {at:pz.at, until:pz.until}; saveSess(); }
+    queue = [];
+    if(playing){ player.pause(); playing = null; }
+    for(const t of nWait.values()) clearTimeout(t); nWait.clear();
+    clearTimeout(pauseTimer);
+    pauseTimer = setTimeout(checkPause, Math.max(1000, Math.min(pz.until - Date.now() + 500, 2 ** 31 - 1)));
+    bgSync(); render(); updateBtn();
+  }
+  function checkPause(){ if(R.pause && !isPaused()) endPause(true); }
+  async function startPause(min){
+    if(!R.sess) return;
+    if(R.mySos) return B.toast('ألغِ الاستغاثة أولًا');
+    const j = await api('pause', authBody({minutes:min}));
+    if(!j.ok || !j.until) return B.toast(errText(j.error));
+    setMyPause({at:R.pause ? R.pause.at : Date.now(), until:new Date(j.until).getTime()});
+    B.toast('⏸️ الغرفة موقفة لك حتى ' + hhmm(R.pause.until) + ' — رسائلهم تنحفظ لك');
+  }
+  // auto: انتهت المدة (الخادم يرجّعك بنفسه ويرسل لك إشعار) — غير ذلك نبلّغ الخادم
+  function endPause(auto){
+    if(!R.pause) return;
+    const from = R.pause.at;
+    R.pause = null; clearTimeout(pauseTimer);
+    if(R.sess){ delete R.sess.pause; R.sess.missFrom = from; saveSess(); if(!auto) api('pause', authBody({minutes:0})); }
+    bgSync(); lastSent = null; tickPos(); render(); updateBtn();
+    const n = missed().length;
+    B.toast(n ? '▶️ رجعت للغرفة · فاتتك ' + msgCount(n) : '▶️ رجعت للغرفة · ما فاتك شيء');
+  }
+  function setPaused(id, until){
+    const t = until ? new Date(until).getTime() : 0;
+    if(t > Date.now()){ R.paused.set(id, t); R.lagging.delete(id); } else R.paused.delete(id);
+    renderMembersSoon();
+  }
+  function playMissed(){
+    const list = missed().sort((a, b)=>new Date(a.created_at) - new Date(b.created_at));
+    if(!list.length) return;
+    unlockAudio(); queue = list.slice(1); playClip(list[0]);
+  }
+  function dismissMissed(){
+    for(const v of missed()) R.heard.add(v.id);   // محليًا فقط: «سمعها» عند المرسل ما تطلع إلا إذا سمعها فعلًا
+    if(R.sess){ delete R.sess.missFrom; saveSess(); }
+    renderVoice(); updateBtn();
+  }
+  function pauseMenu(){
+    showMenu(`<h3 style="margin:0 0 6px">⏸️ إيقاف مؤقت</h3>
+      <div class="rm-note" style="margin:0 0 10px">للصلاة أو الاجتماع: ما يشتغل أي صوت ولا يتحدث موقعك، ورسائلهم تنحفظ لك وتسمعها لما ترجع. الاستغاثة توصلك دائمًا.</div>
+      <div class="cp-sheet-list">
+      ${item('pause', '', '١٥ دقيقة', 'حتى ' + hhmm(Date.now() + 15 * 60e3), '15')}
+      ${item('pause', '', '٣٠ دقيقة', 'حتى ' + hhmm(Date.now() + 30 * 60e3), '30')}
+      ${item('pause', '', 'ساعة', 'حتى ' + hhmm(Date.now() + 60 * 60e3) + ' · الحد الأقصى لأن الرسائل تنحذف بعد ساعة', '60')}
+    </div><button type="button" class="cp-btn cp-btn-white" data-mm="x">إلغاء</button>`);
+  }
+  function renderPauseBar(){
+    const el = $('rmPauseBar'); if(!el) return;
+    if(isPaused()){
+      const n = missed().length;
+      el.innerHTML = `<div class="rm-pz on"><div class="grow"><b>⏸️ متوقف مؤقتًا حتى ${esc(hhmm(R.pause.until))}</b><small>${n ? 'وصلتك ' + msgCount(n) + ' · تنحفظ لك' : 'ما يشتغل صوت ولا يتحدث موقعك'}</small></div>
+        <button type="button" class="rm-chip" data-rm="resume">رجوع الآن</button></div>`;
+      return;
+    }
+    const n = missed().length;
+    if(!n && R.sess && R.sess.missFrom){ delete R.sess.missFrom; saveSess(); }
+    el.innerHTML = n && !playing ? `<div class="rm-pz"><div class="grow"><b>فاتتك ${msgCount(n)}</b><small>تشتغل ورا بعض بالترتيب</small></div>
+      <button type="button" class="rm-chip gold" data-rm="play-missed">▶️ اسمعها</button><button type="button" class="rm-chip" data-rm="missed-ok">تم</button></div>` : '';
+  }
+
   // ---------- الاستغاثة داخل الغرفة ----------
   function sendSos(){
+    if(isPaused()) endPause(false);
     const mp = myPosPayload();
     if(!mp) return B.toast('انتظر حتى يتحدد موقعك');
     api('sos', authBody()).catch(()=>{});
@@ -748,6 +836,14 @@
   .rm-sos.on{background:#C0392B; color:#fff}
   @keyframes rmFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
   .rm-menu .cp-sheet-item{min-height:52px}
+  .rm-pzbtn{margin-inline-start:auto}
+  .rm-pz{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; margin:0 0 10px; border-radius:16px; border:1px solid #EAD6B5; background:#FBF3E6}
+  .rm-pz.on{border-color:var(--line); background:var(--panel-2)}
+  :is(html[data-theme="dark"],html[data-theme="red"]) .rm-pz{background:#2A2319; border-color:#4A3C28}
+  .rm-pz .grow{flex:1; min-width:150px}
+  .rm-pz b{display:block; font-size:14px}
+  .rm-pz small{display:block; font-size:12px; color:var(--text-dim)}
+  .rm-chip.gold{background:var(--sand); color:#1C1A17; border-color:transparent}
   #rmSosAlert{position:fixed; inset:auto 12px calc(84px + env(safe-area-inset-bottom)); z-index:1200; display:none}
   #rmSosAlert.show{display:block}
   .rm-sos-card{background:#8E1E17; color:#fff; border-radius:20px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.35); max-width:456px; margin:0 auto}
@@ -871,7 +967,9 @@
         <span class="rm-live" id="rmLive"><i></i><span></span></span>
         <span id="rmCount">${nm} ${nm === 1 ? 'عضو' : nm === 2 ? 'عضوان' : nm <= 10 ? 'أعضاء' : 'عضوًا'}</span>
         ${left != null ? `<span>تنتهي بعد ${left >= 1 ? Math.floor(left) + ' س' : Math.ceil(left * 60) + ' د'}</span>` : ''}
+        ${isPaused() ? '' : '<button type="button" class="rm-chip rm-pzbtn" data-rm="pause">⏸️ إيقاف مؤقت</button>'}
       </div>
+      <div id="rmPauseBar"></div>
       ${R.mySos ? `<div class="rm-note rm-sosnote"><b>🆘 استغاثتك مرسلة</b> — يتجدد موقعك للأعضاء كل 20 ثانية. اضغط «إلغاء» بالأسفل لإيقافها.</div>` : ''}
       <button type="button" class="rm-radar" data-rm="map" aria-label="عرض الأعضاء على الخريطة" id="rmRadar"></button>
       <div class="rm-title" id="rmMemTitle">الأعضاء</div>
@@ -981,7 +1079,9 @@
     el.innerHTML = list.map(m=>{
       const mine = m.member_id === me(), p = R.pos.get(m.member_id), stale = p && Date.now() - p.t > STALE_MS;
       let sub;
-      if(mine) sub = a ? 'أنت · موقعك يظهر للأعضاء' : 'أنت · بانتظار موقعك';
+      const pz = !mine && R.paused.get(m.member_id);
+      if(mine) sub = isPaused() ? 'أنت · متوقف مؤقتًا — موقعك ما يتحدث' : a ? 'أنت · موقعك يظهر للأعضاء' : 'أنت · بانتظار موقعك';
+      else if(pz && pz > Date.now()) sub = '⏸️ متوقف مؤقتًا حتى ' + hhmm(pz) + (p ? ' · آخر موقع ' + ago(p.t) : '');
       else if(!p) sub = 'بانتظار موقعه';
       else{
         const d = a ? B.haversine(a.lat, a.lng, p.lat, p.lng) : null;
@@ -1002,6 +1102,7 @@
   let voiceTimer = null;
   function renderVoiceSoon(){ if(!voiceTimer) voiceTimer = setTimeout(()=>{ voiceTimer = null; renderVoice(); }, 120); }
   function renderVoice(){
+    renderPauseBar();
     const el = $('rmVoice'); if(!el) return;
     const all = R.voice.slice(-6).reverse(), list = R.voiceAll ? all : all.slice(0, 3);
     if(!all.length){ el.innerHTML = '<div class="rm-note" style="margin:0">لا توجد رسائل بعد. اضغط مطوّلًا على «اضغط وتكلّم» بالأسفل.</div>'; return; }
@@ -1044,6 +1145,10 @@
     else if(act === 'share') shareRoom();
     else if(act === 'leave') leave();
     else if(act === 'voice-all'){ R.voiceAll = !R.voiceAll; renderVoice(); }
+    else if(act === 'pause') pauseMenu();
+    else if(act === 'resume') endPause(false);
+    else if(act === 'play-missed') playMissed();
+    else if(act === 'missed-ok') dismissMissed();
     else if(act === 'map'){ close(); B.showMap(); setTimeout(()=>syncMap(true), 400); }
     else if(act === 'nav') navTo(id);
     else if(act === 'navcar') navToCar(id);
@@ -1085,8 +1190,9 @@
       ${R.rally ? item('rally-clear', '', 'إزالة نقطة التجمع', '') : ''}
     </div><button type="button" class="cp-btn cp-btn-white" data-mm="x">إلغاء</button>`);
   }
-  async function menuAction(mm, id){
+  async function menuAction(mm, id, arg){
     if(mm === 'nav') return navTo(id);
+    if(mm === 'pause') return startPause(Number(arg));
     if(mm === 'mute' || mm === 'unmute'){
       if(mm === 'mute') R.muted.add(id); else R.muted.delete(id);
       saveSess(); render();
@@ -1149,7 +1255,7 @@
     const badge = b.querySelector('.rm-badge'), dot = b.querySelector('.rm-new');
     if(badge){ badge.hidden = !R.sess; badge.textContent = R.sess ? R.members.size + ' في الغرفة' : ''; }
     b.classList.toggle('live', !!R.sess);
-    const sub = b.querySelector('.rm-txt small'); if(sub) sub.textContent = R.sess ? 'متصل — اضغط لفتح الغرفة' : 'كلّم جماعتك بضغطة · مواقعهم حولك';
+    const sub = b.querySelector('.rm-txt small'); if(sub) sub.textContent = R.sess ? (isPaused() ? '⏸️ متوقف مؤقتًا حتى ' + hhmm(R.pause.until) : 'متصل — اضغط لفتح الغرفة') : 'كلّم جماعتك بضغطة · مواقعهم حولك';
     if(dot) dot.hidden = !R.sess || R.open || !R.voice.some(v=>!R.heard.has(v.id) && !R.muted.has(v.member_id));
   }
 
@@ -1162,6 +1268,7 @@
   function stopLoops(){ clearInterval(posTimer); clearInterval(stateTimer); posTimer = stateTimer = null; }
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState !== 'visible' || !R.sess) return;
+    checkPause();   // المؤقتات ما تشتغل والتطبيق بالخلفية
     if(!RT.ws || RT.ws.readyState > 1){ RT.retry = 0; RT.open(); }
     refreshState();
   });
@@ -1173,6 +1280,10 @@
     if(!s) return;
     R.sess = {room_id:s.room_id, member_id:s.member_id, token:s.token, code:s.code, pin:s.pin, name:s.name};
     R.muted = new Set(s.muted || []);
+    if(s.pause && s.pause.until > Date.now()){ R.sess.pause = s.pause; R.pause = {...s.pause, set:0}; pauseTimer = setTimeout(checkPause, Math.min(s.pause.until - Date.now() + 500, 2 ** 31 - 1)); }
+    // الرسائل اللي وصلت وقت الإيقاف ما تنحسب مسموعة (تطلع في «فاتتك»)
+    const keepFrom = s.pause ? s.pause.at : s.missFrom || Infinity;
+    if(s.missFrom && !s.pause) R.sess.missFrom = s.missFrom;
     setTimeout(roomPush, 4000);
     setTimeout(bgSync, 1500);
     api('state', authBody()).then(j=>{
@@ -1180,8 +1291,9 @@
         if(['kicked', 'not_member', 'expired'].includes(j.error)) return endRoom(j.error === 'expired' ? 'انتهت غرفة الرحلة (24 ساعة)' : errText(j.error));
         return;   // خطأ شبكة: نبقى ونحاول لاحقًا
       }
-      (j.voice || []).forEach(v=>R.heard.add(v.id));
+      (j.voice || []).forEach(v=>{ if(new Date(v.created_at).getTime() < keepFrom || v.member_id === s.member_id || (Array.isArray(v.heard) && v.heard.includes(s.member_id))) R.heard.add(v.id); });
       applyRoom(j);
+      checkPause();
     });
     startLoops();
   })();
