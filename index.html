@@ -727,6 +727,17 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .pl-empty .cp-ic{width:36px; height:36px; color:var(--cp-gold-ink); margin-bottom:6px;}
   .pl-empty b{display:block; font-size:16px; margin-bottom:4px;}
   .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+  .fy-card{margin-bottom:12px} .fy-head{display:flex;align-items:center;gap:8px;margin-bottom:2px} .fy-head b{font-size:17px} .fy-head .cp-ic{color:#3E9B4F}
+  .fy-sub{font-size:12.5px;color:var(--text-faint);margin-bottom:10px}
+  .fy-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -2px 6px;padding:0 2px 2px;scrollbar-width:none} .fy-chips::-webkit-scrollbar{display:none}
+  .fy-chips button{flex:none;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+  .fy-chips button.on{background:#3E9B4F;color:#fff;border-color:#3E9B4F}
+  .fy-row{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+  .fy-n{font-weight:800;color:var(--text-faint);font-size:13px;text-align:center} .fy-name{font-weight:700;font-size:15px} .fy-meta{font-size:12px;color:var(--text-faint)}
+  .fy-bar{height:6px;border-radius:4px;background:var(--line);margin-top:5px;overflow:hidden} .fy-bar i{display:block;height:100%;background:linear-gradient(90deg,#8BC34A,#2E7D32);border-radius:4px}
+  .fy-pill{font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .fy-p4{background:#D3EBCD;color:#1E6B2E} .fy-p3{background:#E2F1D6;color:#2F6F22} .fy-p2{background:#EEF3DC;color:#5B7420} .fy-p1{background:#F3EEDF;color:#7A6640} .fy-p0{background:var(--line);color:var(--text-faint)}
+  .fy-more{display:block;width:100%;text-align:center;font:inherit;font-weight:700;color:var(--sand);font-size:13.5px;padding:10px 0 2px;border:0;border-top:1px solid var(--line);background:none;cursor:pointer}
   .plseg{grid-template-columns:1fr 1fr; margin:2px 0 10px;}
   #plSeg[hidden], #filterChips[hidden]{display:none;}
   .plseg .seg-b b{font-weight:600; opacity:.7; margin-inline-start:4px;}
@@ -1305,6 +1316,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة اللي تهبّ منها الرياح، والسهم يمشي مع الرياح (رياح شرقية: السهم للغرب).</div>
       </div>
       <div id="springPane" hidden>
+        <div class="cp-card fy-card" id="faydCard" hidden>
+          <div class="fy-head"><span class="cp-ic" data-ico="leaf"></span><b>أكثر الفياض اخضرارًا الآن</b></div>
+          <div class="fy-sub" id="faydSub"></div>
+          <div class="fy-chips" id="faydChips" role="radiogroup" aria-label="المنطقة">
+            <button type="button" data-fy="all" class="on">الكل</button><button type="button" data-fy="riyadh">الرياض</button><button type="button" data-fy="east">الصمان والشرقية</button><button type="button" data-fy="north">الشمال والجوف</button><button type="button" data-fy="hail">حائل والقصيم</button><button type="button" data-fy="near">الأقرب لي</button>
+          </div>
+          <div id="faydList"></div>
+        </div>
         <div class="cp-card sp-card">
           <div class="sp-head"><span class="cp-ic" data-ico="leaf"></span><b id="springTitle">حالة الربيع حولك</b><button class="cp-icon-btn" type="button" id="springRefresh" aria-label="تحديث"><span class="cp-ic" data-ico="refresh"></span></button></div>
           <label class="wd-loc sp-loc"><span class="cp-ic" data-ico="pin"></span><select id="springLoc" aria-label="مكان الربيع"></select></label>
@@ -5749,6 +5768,54 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     for(let i = 0; i < today; i++){ const ago = today - i; if(ago <= 30) sum30 += p[i]; if(ago >= 14) sum14to45 += p[i]; if(p[i] >= 2) lastDay = i; }
     return {sum30:Math.round(sum30), early:Math.round(sum14to45), daysSince:lastDay < 0 ? null : today - lastDay};
   }
+  // ---------- حالة الفياض: ترتيب أكثر الفياض اخضرارًا (يحسبها خادم GitHub أسبوعيًا من أقمار MODIS) ----------
+  const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
+  const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم']};
+  let faydData = null, faydSites = null, faydLoading = null, faydFilter = 'all', faydMore = false;
+  function loadFayd(){
+    if(!faydLoading) faydLoading = Promise.all([
+      fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
+      fetch('data/fayd-sites.json?v=1').then(r=>r.ok ? r.json() : null)
+    ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
+    return faydLoading;
+  }
+  function renderFayd(){
+    const card = document.getElementById('faydCard');
+    if(!faydData || !faydSites || !Array.isArray(faydData.rows)){ card.hidden = true; return; }
+    card.hidden = false;
+    const fmt = d=>{ try{ return new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long'}).format(new Date(d + 'T12:00:00Z')); }catch(e){ return d; } };
+    setText('faydSub', 'من أقمار NASA · آخر صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بمعتادها');
+    document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
+    const pos = state.pos;
+    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2]} : null; }).filter(Boolean);
+    if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
+    if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
+    if(faydFilter === 'near'){
+      if(!pos){ document.getElementById('faydList').innerHTML = '<div class="pl-note">فعّل الموقع عشان نرتب الفياض القريبة منك.</div>'; return; }
+      rows = rows.filter(r=>r.km <= 150).sort((a, b)=>(b.st > 0) - (a.st > 0) || b.g - a.g);
+    }
+    const green = rows.filter(r=>r.st > 0);
+    const list = document.getElementById('faydList');
+    if(!green.length){
+      list.innerHTML = `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل أسبوع.</span></div>`;
+      return;
+    }
+    const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span></button>`).join('')
+      + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
+  }
+  document.getElementById('faydChips').addEventListener('click', e=>{
+    const b = e.target.closest('[data-fy]'); if(!b) return;
+    faydFilter = b.dataset.fy; faydMore = false; renderFayd();
+  });
+  document.getElementById('faydList').addEventListener('click', e=>{
+    if(e.target.closest('[data-fy-more]')){ faydMore = !faydMore; renderFayd(); return; }
+    const b = e.target.closest('[data-fy-i]'); if(!b) return;
+    const s = faydSites[+b.dataset.fyI]; if(!s) return;
+    // نعرض تفاصيلها في بطاقة «حالة الربيع» (الاخضرار والأمطار) تحتها
+    springCustom = {key:'q', name:s[0], lat:s[1], lng:s[2]}; fillSpringLoc(); document.getElementById('springLoc').value = 'q'; showSpring(false);
+    document.querySelector('#springPane .sp-card').scrollIntoView({behavior:'smooth', block:'start'});
+  });
   async function showSpring(force){
     const body = document.getElementById('springBody'), q = springPos();
     document.getElementById('springTitle').textContent = q && q.name ? 'حالة الربيع في ' + q.name.replace(/^منطقة /, 'منطقة ') : 'حالة الربيع حولك';
@@ -5818,7 +5885,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('evPane').hidden = which !== 'ev';
     document.getElementById('springPane').hidden = which !== 'spring';
     if(which === 'wind') showWind();
-    if(which === 'spring'){ fillSpringLoc(); showSpring(false); }
+    if(which === 'spring'){ fillSpringLoc(); showSpring(false); loadFayd().then(renderFayd); }
     if(which === 'ev'){
       const pane = document.getElementById('evPane');
       if(!window.DalilEvents) pane.innerHTML = '<div class="pl-note" style="text-align:center">جارٍ تحميل الأحداث…</div>';
