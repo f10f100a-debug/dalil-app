@@ -13,10 +13,11 @@ BBOX = [34.5, 16, 56, 32.5]
 SITES = json.load(open("data/fayd-sites.json"))
 LAT = [s[1] for s in SITES]; LNG = [s[2] for s in SITES]
 _tok = {"t": None, "at": 0}
+UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 
 def token():
     if not _tok["t"] or time.time() - _tok["at"] > 1800:
-        with urllib.request.urlopen("https://planetarycomputer.microsoft.com/api/sas/v1/token/modis-13Q1-061", timeout=60) as r:
+        with urllib.request.urlopen(urllib.request.Request("https://planetarycomputer.microsoft.com/api/sas/v1/token/modis-13Q1-061", headers=UA), timeout=60) as r:
             _tok["t"] = json.load(r)["token"]; _tok["at"] = time.time()
     return _tok["t"]
 
@@ -31,7 +32,7 @@ def _search(dt):
     items, body = [], {"collections": COLS, "bbox": BBOX, "datetime": dt, "limit": 100}
     url = STAC
     while url:
-        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json"})
+        req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json", **UA})
         with urllib.request.urlopen(req, timeout=120) as r: j = json.load(r)
         items += j["features"]
         nxt = [l for l in j.get("links", []) if l.get("rel") == "next"]
