@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v177';
+const SHELL_CACHE='dalil-shell-v178';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=16',
   './room.js?v=22','./privacy.html','./support.html','./mapimport.js','./vendor/sql-wasm.js','./vendor/sql-wasm.wasm','./vendor/geotiff.js','./data/region-grid.json?v=1'];
@@ -24,7 +24,7 @@ self.addEventListener('fetch',event=>{
   // ملفات الخرائط تُطلب بأجزاء (Range) وتحفظها map2.html بنفسها.
   if(url.pathname.endsWith('.pmtiles')) return;
   // حالة الفياض تتحدث أسبوعيًا: دايم من الشبكة
-  if(url.pathname.endsWith('/data/fayd.json')) return;
+  if(url.pathname.endsWith('/data/fayd.json') || url.pathname.endsWith('/data/fq.json')) return;
 
   if(request.mode==='navigate'){
     // فتح فوري: إذا الصفحة محفوظة نعرضها مباشرة ونحدّثها في الخلفية (الشبكة الضعيفة ما تأخر فتح التطبيق).
