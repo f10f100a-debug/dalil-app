@@ -436,7 +436,7 @@
       rec.t0 = Date.now(); renderPtt('rec'); vibe(30);
       clearInterval(rec.timer);
       rec.timer = setInterval(()=>{ const sec = (Date.now() - rec.t0) / 1000; const el = $('rmPttTime'); if(el) el.textContent = Math.floor(sec) + 'ث'; if(sec >= MAX_REC_S) recStop(); }, 250);
-      if(!rec.on){ pttMsg(false); }   // رفع إصبعه قبل ما يبدأ
+      if(!rec.on){ pttMsg(false); B.toast('اضغط مطوّلًا وانتظر النغمة، بعدها تكلّم'); }   // رفع إصبعه قبل ما يبدأ
     }else if(ev === 'end'){
       clearInterval(rec.timer); if(rec.native) renderPtt('send');
     }else if(ev === 'vtext'){
@@ -476,7 +476,7 @@
     }
     rec.d.gum = Date.now() - g0;
     const tk = rec.stream.getAudioTracks()[0]; rec.d.tr = tk ? tk.readyState + (tk.muted ? '/muted' : '') : 'none';
-    if(!rec.on){ diag({...rec.d, s:'released_early'}); releaseMicLater(); renderPtt(); return; }   // رفع الإصبع قبل جاهزية الميكروفون
+    if(!rec.on){ diag({...rec.d, s:'released_early'}); releaseMicLater(); renderPtt(); return B.toast('اضغط مطوّلًا وانتظر النغمة، بعدها تكلّم'); }   // رفع الإصبع قبل جاهزية الميكروفون (قبل كانت الرسالة تضيع بصمت)
     clearTimeout(rec.idle);
     rec.chunks = [];
     try{ rec.mr = mime ? new MediaRecorder(rec.stream, {mimeType:mime, audioBitsPerSecond:24000}) : new MediaRecorder(rec.stream); }
@@ -560,6 +560,28 @@
     }
     clearTimeout(rec.idle);
     rec.idle = setTimeout(()=>{ if(!rec.on && rec.stream){ rec.stream.getTracks().forEach(t=>t.stop()); rec.stream = null; } }, 90000);
+  }
+
+  // ---------- هل توصله الاستغاثة والجوال مقفل؟ ----------
+  // تنبيهات مقفلة أو متصفح أو نسخة قديمة = الاستغاثة ما توصله إلا والتطبيق قدامه، فنعلمه بوضوح
+  let notif = 'ok';
+  const PNp = ()=>{ const C = window.Capacitor; return (C.Plugins && C.Plugins.PushNotifications) || C.registerPlugin('PushNotifications'); };
+  async function notifState(){
+    if(!window.DALIL_NATIVE) return 'web';
+    if(!window.DALIL_NATIVE_PUSH || !window.Capacitor) return 'old';
+    try{ const p = await PNp().checkPermissions(); return p.receive === 'granted' ? 'ok' : p.receive === 'denied' ? 'denied' : 'prompt'; }catch(e){ return 'ok'; }
+  }
+  function refreshNotif(){ if(R.sess) notifState().then(st=>{ if(st !== notif){ notif = st; renderNotif(); } }); }
+  function renderNotif(){
+    const el = $('rmNotif'); if(!el) return;
+    if(notif === 'ok' || !R.sess || R.sess.notifHide === notif){ el.innerHTML = ''; return; }
+    const T = {
+      denied:['⚠️ تنبيهات دليل مقفلة', 'الاستغاثة ورسائل الغرفة ما توصلك والجوال مقفل. فعّلها من: الإعدادات ← دليل ← الإشعارات', ''],
+      prompt:['⚠️ فعّل التنبيهات', 'عشان توصلك الاستغاثة ورسائل الغرفة والجوال مقفل', '<button type="button" class="rm-chip gold" data-rm="notif-on">فعّلها</button>'],
+      old:['⚠️ حدّث تطبيق دليل', 'نسختك ما توصلها الاستغاثة والجوال مقفل', `<a class="rm-chip gold" href="${APP_LINK}" target="_blank" rel="noopener">تحديث</a>`],
+      web:['أنت على المتصفح', 'الاستغاثة والرسائل توصلك بس والصفحة مفتوحة. تطبيق دليل يوصلها لك والجوال مقفل', `<a class="rm-chip gold" href="${APP_LINK}" target="_blank" rel="noopener">التطبيق</a>`]
+    }[notif];
+    el.innerHTML = `<div class="rm-pz warn"><div class="grow"><b>${T[0]}</b><small>${T[1]}</small></div>${T[2]}<button type="button" class="rm-chip" data-rm="notif-x" aria-label="إخفاء">✕</button></div>`;
   }
 
   // ---------- إيقاف مؤقت (صلاة، اجتماع) ----------
@@ -860,7 +882,9 @@
   .rm-pz .grow{flex:1; min-width:150px}
   .rm-pz b{display:block; font-size:14px}
   .rm-pz small{display:block; font-size:12px; color:var(--text-dim)}
-  .rm-chip.gold{background:var(--sand); color:#1C1A17; border-color:transparent}
+  .rm-chip.gold{background:var(--sand); color:#1C1A17; border-color:transparent; text-decoration:none}
+  .rm-pz.warn{background:var(--cp-red-bg); border-color:#EFCFC9}
+  .rm-pz.warn b{color:var(--cp-red)}
   #rmSosAlert{position:fixed; inset:auto 12px calc(84px + env(safe-area-inset-bottom)); z-index:1200; display:none}
   #rmSosAlert.show{display:block}
   .rm-sos-card{background:#8E1E17; color:#fff; border-radius:20px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.35); max-width:456px; margin:0 auto}
@@ -986,6 +1010,7 @@
         ${left != null ? `<span>تنتهي بعد ${left >= 1 ? Math.floor(left) + ' س' : Math.ceil(left * 60) + ' د'}</span>` : ''}
         ${isPaused() ? '' : '<button type="button" class="rm-chip rm-pzbtn" data-rm="pause">⏸️ إيقاف مؤقت</button>'}
       </div>
+      <div id="rmNotif"></div>
       <div id="rmPauseBar"></div>
       ${R.mySos ? `<div class="rm-note rm-sosnote"><b>🆘 استغاثتك مرسلة</b> — يتجدد موقعك للأعضاء كل 20 ثانية. اضغط «إلغاء» بالأسفل لإيقافها.</div>` : ''}
       <button type="button" class="rm-radar" data-rm="map" aria-label="عرض الأعضاء على الخريطة" id="rmRadar"></button>
@@ -999,8 +1024,8 @@
       <div class="rm-title">الرسائل الصوتية</div>
       <div id="rmVoice"></div>
       <div id="rmRally"></div>
-      ${window.DALIL_NATIVE ? '' : '<div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية.</div>'}`;
-    renderRadar(); renderRally(); renderMembers(); renderVoice(); renderStatus(); renderPtt();
+      ${window.DALIL_NATIVE ? '' : '<div class="rm-note">أبقِ دليل مفتوحًا أثناء السير ليستمر ظهور موقعك ووصول الرسائل الصوتية والاستغاثة.</div>'}`;
+    renderRadar(); renderRally(); renderMembers(); renderVoice(); renderStatus(); renderPtt(); renderNotif(); refreshNotif();
     $('rmSos').classList.toggle('on', !!R.mySos);
     $('rmSos').textContent = R.mySos ? 'إلغاء' : 'استغاثة';
   }
@@ -1163,6 +1188,8 @@
     else if(act === 'leave') leave();
     else if(act === 'voice-all'){ R.voiceAll = !R.voiceAll; renderVoice(); }
     else if(act === 'pause') pauseMenu();
+    else if(act === 'notif-x'){ if(R.sess){ R.sess.notifHide = notif; saveSess(); } renderNotif(); }
+    else if(act === 'notif-on'){ (async()=>{ try{ const p = await PNp().requestPermissions(); if(p.receive === 'granted'){ try{ localStorage.removeItem('dalil_apns_token'); }catch(e){} await roomPush(); B.toast('✅ تفعّلت التنبيهات'); } }catch(e){} refreshNotif(); })(); }
     else if(act === 'resume') endPause(false, 'button');
     else if(act === 'play-missed') playMissed();
     else if(act === 'missed-ok') dismissMissed();
@@ -1286,6 +1313,7 @@
   document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState !== 'visible' || !R.sess) return;
     checkPause();   // المؤقتات ما تشتغل والتطبيق بالخلفية
+    refreshNotif();   // ممكن فعّل التنبيهات من الإعدادات ورجع
     if(!RT.ws || RT.ws.readyState > 1){ RT.retry = 0; RT.open(); }
     refreshState();
   });
@@ -1295,7 +1323,7 @@
   (function resume(){
     const s = loadSess();
     if(!s) return;
-    R.sess = {room_id:s.room_id, member_id:s.member_id, token:s.token, code:s.code, pin:s.pin, name:s.name};
+    R.sess = {room_id:s.room_id, member_id:s.member_id, token:s.token, code:s.code, pin:s.pin, name:s.name, notifHide:s.notifHide};
     R.muted = new Set(s.muted || []);
     if(s.pause && s.pause.until > Date.now()){ R.sess.pause = s.pause; R.pause = {...s.pause, set:0}; pauseTimer = setTimeout(checkPause, Math.min(s.pause.until - Date.now() + 500, 2 ** 31 - 1)); }
     // الرسائل اللي وصلت وقت الإيقاف ما تنحسب مسموعة (تطلع في «فاتتك»)

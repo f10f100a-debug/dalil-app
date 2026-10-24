@@ -77,6 +77,8 @@ async function cleanupRooms(sb: SupabaseClient) {
     await sb.from("room_voice").delete().in("id", clips.map((c) => c.id));
   }
   const { data: expired } = await sb.from("rooms").select("id").lt("expires_at", new Date().toISOString()).limit(200);
+  // انتهت الغرفة: نطلّع جوالات الآيفون من قناة اللاسلكي (يختفي شريط «غرفة الرحلة» من الجزيرة حتى لو التطبيق مقفل)
+  if (expired?.length) await pttLeave(sb, expired.map((r) => r.id));
   for (const r of expired || []) {
     const { data: rest } = await sb.from("room_voice").select("path").eq("room_id", r.id);
     if (rest?.length) await sb.storage.from("room-voice").remove(rest.map((c) => c.path));
@@ -88,6 +90,18 @@ async function cleanupRooms(sb: SupabaseClient) {
     await sb.from("room_reports").update({ voice_path: null }).in("id", oldRep.map((r) => r.id));
   }
   await sb.from("room_attempts").delete().lt("created_at", new Date(Date.now() - 86400e3).toISOString());
+}
+
+async function pttLeave(sb: SupabaseClient, roomIds: string[], memberId?: string) {
+  let q = sb.from("room_members").select("room_id,member_id,ptt_token").in("room_id", roomIds).not("ptt_token", "is", null);
+  if (memberId) q = q.eq("member_id", memberId);
+  const { data } = await q;
+  if (!data?.length) return 0;
+  await sendPttTo(sb, data.map((m) => m.ptt_token as string), { leave: true }).catch((e) => console.error("ptt leave", e));
+  let u = sb.from("room_members").update({ ptt_token: null }).in("room_id", roomIds);
+  if (memberId) u = u.eq("member_id", memberId);
+  await u;
+  return data.length;
 }
 
 const pausedUntil = (m: Record<string, any>) => m.paused_until && new Date(m.paused_until).getTime() > Date.now() ? m.paused_until : null;
@@ -214,10 +228,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>;
 
-    if (action === "pause_tick") {
+    // كل دقيقة (pg_cron) إذا فيه إيقاف انتهى أو غرفة انتهت: إشعار انتهاء الإيقاف + تنظيف الغرف المنتهية
+    if (action === "tick" || action === "pause_tick") {
       const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
       if (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value) return json(req, { error: "forbidden" }, 403);
-      return json(req, { ok: true, resumed: await pauseTick(sb) });
+      const resumed = await pauseTick(sb);
+      await cleanupRooms(sb);
+      return json(req, { ok: true, resumed });
     }
 
     if (action === "create") {
@@ -305,6 +322,7 @@ Deno.serve(async (req) => {
       const need = Math.max(1, Math.min(3, others.length));
       if (others.length >= 2 && n >= need) {
         await sb.from("room_members").update({ kicked: true }).eq("room_id", room.id).eq("member_id", target);
+        await pttLeave(sb, [room.id], target);   // المطرود يطلع من اللاسلكي حتى لو تطبيقه مقفل
         const secret = await rotateRoomSecret(sb, room.id, room.secret);
         return json(req, { ok: true, kicked: true, votes: n, need, secret });
       }

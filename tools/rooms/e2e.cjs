@@ -60,6 +60,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok(/بعيد عن القافلة/.test(aMem), 'convoy lag shown');
   ok(/سيارته/.test(aMem), `A sees B's car: ${aMem.replace(/\s+/g, ' ').slice(0, 160)}`);
   ok((await A.textContent('#rmLive')).includes('متصل'), 'A realtime connected');
+  ok((await A.textContent('#rmNotif').catch(() => '')).includes('المتصفح'), 'browser user warned SOS needs page open');
   await shot(A, '2-A-members'); await shot(B, '2-B-members');
 
   // تنبيهات الغرفة: حفظ رمز وهمي ثم استغاثة (السيرفر يقبلها حتى لو رفضت Apple الرمز)
