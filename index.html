@@ -3728,8 +3728,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const total = sourcePlaces.length;
     setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
     if(q || state.pos) ensureBundledCatalog();
-    // مفتاح «أماكني | حولي»: كل قسم بصفحته (يفتح على أماكني إذا عندك أماكن، وإلا حولي)
-    if(!placesTab) placesTab = total ? 'mine' : 'near';
+    // مفتاح «أماكني | حولي»: كل قسم بصفحته (يفتح على «حولي» = الأقرب لك)
+    if(!placesTab) placesTab = 'near';
     const near = !q && state.pos ? nearbyCatalog(state.pos.lat, state.pos.lng) : [];
     const seg = document.getElementById('plSeg');
     seg.hidden = !!q;
@@ -5771,7 +5771,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- حالة الفياض: ترتيب أكثر الفياض اخضرارًا (يحسبها خادم GitHub أسبوعيًا من أقمار MODIS) ----------
   const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
   const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم']};
-  let faydData = null, faydSites = null, faydLoading = null, faydFilter = 'all', faydMore = false;
+  let faydData = null, faydSites = null, faydLoading = null, faydFilter = '', faydMore = false;
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
@@ -5783,6 +5783,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const card = document.getElementById('faydCard');
     if(!faydData || !faydSites || !Array.isArray(faydData.rows)){ card.hidden = true; return; }
     card.hidden = false;
+    if(!faydFilter) faydFilter = state.pos ? 'near' : 'all';  // الافتراضي: الأقرب لي
     const fmt = d=>{ try{ return new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long'}).format(new Date(d + 'T12:00:00Z')); }catch(e){ return d; } };
     setText('faydSub', 'من أقمار NASA · آخر صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بمعتادها');
     document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
