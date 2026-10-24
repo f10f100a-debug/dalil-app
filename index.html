@@ -552,6 +552,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .adv-out small{display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
   /* «اسأل دليل» */
   .ask-btn .cp-pill{gap:4px; padding:0 10px;}
+  /* البوصلة: «اسأل» أيقونة فقط حتى تكفي المساحة لشارات الطقس والمطر وGPS */
+  #screen-compass .ask-btn .cp-pill{padding:0 8px;}
+  #screen-compass .ask-btn .cp-pill > span:not(.cp-ic){display:none;}
+  .cp-head .cp-title{flex:0 0 auto;}
+  .cp-head .cp-badges{min-width:0; flex:0 1 auto; justify-content:flex-end;}
+  .cp-head .cp-badge{min-width:0;}
+  @media (max-width:400px){
+    .cp-head .cp-badges{gap:3px;}
+    .cp-head .cp-pill{padding:0 8px; gap:4px; font-size:12.5px;}
+    .cp-head .cp-pill .cp-ic{width:16px; height:16px;}
+  }
+  /* شارة المطر تتقلّص (تنقطع بـ …) بدل ما تدفع GPS برا الشاشة */
+  .cp-head #cpRainBadge{flex:0 1 auto; overflow:hidden;}
+  .cp-head #cpRainBadge .cp-pill{max-width:100%; overflow:hidden;}
+  .cp-head #cpRainText{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cp-head .cp-badge:not(#cpRainBadge){flex:0 0 auto;}
+  @media (max-width:380px){ .cp-head .cp-title{font-size:20px;} }
+  @media (max-width:350px){ .cp-head .cp-title{font-size:18px;} .cp-head .cp-pill{padding:0 6px; font-size:12px;} }
   .ask-sheet{max-height:86dvh; display:flex; flex-direction:column;}
   .ask-head{display:flex; align-items:center; justify-content:space-between; gap:8px;}
   .ask-head h3{display:flex; align-items:center; gap:8px; margin:0;}
