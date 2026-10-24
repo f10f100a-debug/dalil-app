@@ -171,7 +171,7 @@
 
     </div>
     <div data-perm="push">
-    <h2>تنبيهات المطر التلقائية <span class="muted" style="font-weight:400">· السيرفر يفحص الرادار كل 10 دقائق ويرسل لمشتركي المنطقة عند مطر غزير مؤكد بالبرق (مرة كل 3 ساعات للمنطقة)</span></h2>
+    <h2>تنبيهات المطر التلقائية <span class="muted" style="font-weight:400">· السيرفر يفحص الرادار كل 10 دقائق ويرسل لمشتركي المنطقة عند مطر غزير مؤكد بالبرق (تنبيهين باليوم كحد أقصى للمنطقة، 6 ساعات بينهم، بدون تكرار نفس العاصفة أو العواصف البعيدة)</span></h2>
     <div class="card">
       <div class="row" style="align-items:center">
         <div style="font-weight:700">الحالة: <span id="aaState">–</span></div>
@@ -713,9 +713,26 @@
     const L = d.last;
     $('aaLast').textContent = !L ? 'لم يتم أي فحص بعد.' :
       'آخر فحص: ' + when(L.at) + ' · ' + (L.off ? 'موقوفة — لم يُفحص الرادار' : !L.ok ? 'تعذّر الفحص (' + (L.error === 'stale' ? 'الرادار متأخر' : L.error === 'no_frames' ? 'لا توجد صور رادار' : 'خطأ') + ')' :
-      L.sent ? 'أُرسل ' + L.sent + ' تنبيه' : (L.heavyRaw ? 'لا يوجد مطر غزير مؤكد (' + L.heavyRaw + ' نقطة غزيرة: ' + (L.clutter || 0) + ' تشويش، ' + (L.noLightning || 0) + ' بدون برق)' : 'لا يوجد مطر غزير'));
-    const list = d.alerts || [];
-    $('aaList').innerHTML = list.length ? list.map(a=>`<div class="log-row" style="display:block"><div><time>${esc(when(a.at))}</time> · <b>${esc(a.region)}</b> · وصل لـ ${(a.sent_ios || 0) + (a.sent_web || 0)} جهاز <span class="muted">(آيفون ${a.sent_ios || 0} · متصفح ${a.sent_web || 0})</span></div><div><b>${esc(a.title)}</b></div><div class="muted">${esc(a.body)}</div></div>`).join('') : '<span class="muted">لم يُرسل أي تنبيه تلقائي بعد (آخر 30 يومًا).</span>';
+      (L.sent ? 'أُرسل ' + L.sent + ' تنبيه' : '') + (L.skipped && L.skipped.length ? (L.sent ? ' · ' : '') + 'تجاهل: ' + L.skipped.map(x=>{ const [r, w] = x.split(':'); return r + ' (' + ({daily_cap:'وصلت حدها اليومي', cooldown:'أقل من 6 ساعات', same_storm:'نفس العاصفة', far:'بعيدة عن المدن'}[w] || w) + ')'; }).join('، ') : '') || (L.heavyRaw ? 'لا يوجد مطر غزير مؤكد (' + L.heavyRaw + ' نقطة غزيرة: ' + (L.clutter || 0) + ' تشويش، ' + (L.noLightning || 0) + ' بدون برق)' : 'لا يوجد مطر غزير'));
+    aaList = d.alerts || [];
+    renderAA();
+  }
+  // ملخص لكل يوم بسطر واحد + آخر 5 تنبيهات، والباقي بزر «عرض الكل»
+  let aaList = [], aaAll = false;
+  function renderAA(){
+    const list = aaList;
+    if(!list.length){ $('aaList').innerHTML = '<span class="muted">لم يُرسل أي تنبيه تلقائي في آخر 7 أيام.</span>'; return; }
+    const dayKey = t=>new Date(Date.parse(t) + 3 * 3600e3).toISOString().slice(0, 10);
+    const days = {};
+    list.forEach(a=>{ const k = dayKey(a.at), o = days[k] = days[k] || {n:0, dev:0, regs:new Set()}; o.n++; o.dev += (a.sent_ios || 0) + (a.sent_web || 0); o.regs.add(a.region); });
+    const today = dayKey(new Date().toISOString()), yest = dayKey(new Date(Date.now() - 864e5).toISOString());
+    const dayName = k=>k === today ? 'اليوم' : k === yest ? 'أمس' : new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {weekday:'long', day:'numeric', month:'short'}).format(new Date(k + 'T12:00:00Z'));
+    const sum = Object.entries(days).map(([k, o])=>`<div class="log-row" style="display:block"><b>${esc(dayName(k))}:</b> ${o.n} تنبيه · ${o.regs.size} مناطق · وصل لـ ${o.dev.toLocaleString('ar-SA-u-nu-latn')} جهاز <div class="muted" style="font-size:12.5px">${esc([...o.regs].join('، '))}</div></div>`).join('');
+    const shown = aaAll ? list : list.slice(0, 5);
+    $('aaList').innerHTML = `<div style="font-weight:700;margin-bottom:4px">ملخص الأيام</div>${sum}<div style="font-weight:700;margin:12px 0 4px">${aaAll ? 'كل التنبيهات' : 'آخر التنبيهات'}</div>` +
+      shown.map(a=>`<div class="log-row" style="display:block"><div><time>${esc(when(a.at))}</time> · <b>${esc(a.region)}</b> · وصل لـ ${(a.sent_ios || 0) + (a.sent_web || 0)} جهاز <span class="muted">(آيفون ${a.sent_ios || 0} · متصفح ${a.sent_web || 0})</span></div><div><b>${esc(a.title)}</b></div><div class="muted">${esc(a.body)}</div></div>`).join('') +
+      (list.length > 5 ? `<button class="white" id="aaMore" style="width:100%;margin-top:8px">${aaAll ? 'عرض آخر 5 فقط' : 'عرض الكل (' + list.length + ')'}</button>` : '');
+    const m = $('aaMore'); if(m) m.onclick = ()=>{ aaAll = !aaAll; renderAA(); };
   }
   $('aaToggle').addEventListener('click', async ()=>{
     if(aaOn && !confirm('إيقاف تنبيهات المطر التلقائية لكل المشتركين؟')) return;

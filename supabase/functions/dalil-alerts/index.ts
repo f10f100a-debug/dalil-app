@@ -1,5 +1,7 @@
 // تنبيهات الأمطار التلقائية حسب المنطقة: كل 10 دقائق (pg_cron) يقرأ الرادار والبرق للسعودية كاملة،
-// وإذا لقى أمطارًا غزيرة مؤكدة بالبرق داخل منطقة يرسل إشعارًا لمشتركي تنبيهات المنطقة (مرة كل 3 ساعات لكل منطقة).
+// وإذا لقى أمطارًا غزيرة مؤكدة بالبرق داخل منطقة يرسل إشعارًا لمشتركي تنبيهات المنطقة.
+// ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين التنبيهين، نفس العاصفة (أقل من 60 كم خلال 12 ساعة) ما تتكرر،
+// والعاصفة البعيدة (أكثر من 200 كم عن أي مدينة أو محافظة في المنطقة) ما يُرسل لها.
 // لا يستخدم موقع أي مستخدم — فقط المنطقة التي اختارها في الإعدادات.
 import UPNG from "npm:upng-js@2.1.0";
 import webpush from "npm:web-push@3.6.7";
@@ -10,11 +12,27 @@ import { GRID } from "./region-grid.ts";
 
 const LAT0 = 16, LAT1 = 32.5, LNG0 = 34, LNG1 = 56, STEP = 0.05;          // شبكة التحليل ~5 كم
 const ROWS = Math.round((LAT1 - LAT0) / STEP), COLS = Math.round((LNG1 - LNG0) / STEP);
-const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 3;
+const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 6, DAY_MAX = 2, SAME_KM = 60, SAME_H = 12, FAR_KM = 200;
 const CITY: Record<string, [string, number, number]> = {
   "جازان": ["جازان", 16.89, 42.55], "حائل": ["حائل", 27.52, 41.69], "الحدود الشمالية": ["عرعر", 30.98, 41.04], "الجوف": ["سكاكا", 29.97, 40.21],
   "عسير": ["أبها", 18.22, 42.5], "مكة": ["مكة", 21.42, 39.83], "الشرقية": ["الدمام", 26.43, 50.1], "نجران": ["نجران", 17.49, 44.13],
   "الباحة": ["الباحة", 20.01, 41.47], "تبوك": ["تبوك", 28.38, 36.57], "المدينة": ["المدينة", 24.47, 39.61], "القصيم": ["بريدة", 26.33, 43.97], "الرياض": ["الرياض", 24.71, 46.68],
+};
+// مدن ومحافظات كل منطقة (تقريبية) — للتأكد أن العاصفة قريبة من ناس
+const TOWNS: Record<string, [number, number][]> = {
+  "جازان": [[16.89, 42.55], [17.15, 42.62], [16.6, 42.95], [17.3, 43.05]],
+  "حائل": [[27.52, 41.69], [27.89, 42.4], [27.0, 41.0], [28.02, 40.92], [26.85, 40.3], [27.6, 43.1]],
+  "الحدود الشمالية": [[30.98, 41.04], [29.63, 43.49], [31.67, 38.66], [30.33, 42.25], [28.76, 43.83]],
+  "الجوف": [[29.97, 40.21], [29.81, 39.87], [31.33, 37.34], [30.5, 38.2], [29.15, 40.6]],
+  "عسير": [[18.22, 42.5], [18.3, 42.73], [19.1, 42.1], [19.12, 43.0], [17.9, 43.4], [20.0, 42.6], [18.0, 41.9]],
+  "مكة": [[21.42, 39.83], [21.54, 39.17], [21.27, 40.42], [22.8, 39.05], [19.9, 41.0], [21.0, 41.5], [23.9, 38.9], [22.4, 42.7]],
+  "الشرقية": [[26.43, 50.1], [25.38, 49.59], [28.43, 45.96], [27.0, 49.66], [28.4, 48.5], [27.47, 48.49], [24.5, 50.0], [23.0, 51.5], [26.0, 48.0]],
+  "نجران": [[17.49, 44.13], [17.47, 47.11], [17.95, 44.15], [17.6, 44.42], [18.1, 45.6], [17.0, 48.5]],
+  "الباحة": [[20.01, 41.47], [19.85, 41.55], [20.3, 41.33], [19.75, 41.1]],
+  "تبوك": [[28.38, 36.57], [27.63, 38.55], [26.6, 37.5], [28.07, 35.17], [27.35, 35.7], [26.24, 36.47], [29.1, 36.1]],
+  "المدينة": [[24.47, 39.61], [24.09, 38.06], [26.62, 37.93], [25.05, 40.0], [23.85, 39.4], [26.1, 38.9], [22.7, 39.5]],
+  "القصيم": [[26.33, 43.97], [26.08, 43.99], [26.2, 43.7], [25.85, 43.5], [26.58, 44.25], [26.5, 45.35], [26.0, 42.8]],
+  "الرياض": [[24.71, 46.68], [24.15, 47.3], [26.3, 44.8], [25.65, 45.6], [22.4, 46.6], [20.5, 45.6], [24.1, 45.3], [25.9, 45.3], [23.8, 44.9], [26.1, 47.8]],
 };
 const PAL: number[][] = [[0,0x82,0x7b,0x69],[5,0x92,0x88,0x71],[10,0xce,0xc0,0x87],[15,0x88,0xdd,0xee],[20,0x00,0xa3,0xe0],[25,0x00,0x77,0xaa],[30,0x00,0x55,0x88],[35,0xff,0xee,0x00],[40,0xff,0xaa,0x00],[45,0xff,0x44,0x00],[50,0xc1,0x00,0x00],[55,0xff,0xaa,0xff],[60,0xff,0x77,0xff],[65,0xff,0xff,0xff]];
 function dbz(r: number, g: number, b: number, a: number) {
@@ -113,7 +131,7 @@ Deno.serve(async (req) => {
   const sb = db();
   // آخر فحص — يظهر في لوحة الإدارة
   const done = async (o: Record<string, unknown>, status = 200) => {
-    if (!dry) await sb.from("private_config").upsert({ key: "auto_alerts_last", value: JSON.stringify({ at: new Date().toISOString(), ...o, regions: undefined, sent: ((o.regions as { skipped?: string }[] | undefined) || []).filter((r) => !r.skipped).length }) }).then(() => {}, () => {});
+    if (!dry) await sb.from("private_config").upsert({ key: "auto_alerts_last", value: JSON.stringify({ at: new Date().toISOString(), ...o, regions: undefined, sent: ((o.regions as { skipped?: string }[] | undefined) || []).filter((r) => !r.skipped).length, skipped: ((o.regions as { region: string; skipped?: string }[] | undefined) || []).filter((r) => r.skipped).map((r) => r.region + ":" + r.skipped) }) }).then(() => {}, () => {});
     return Response.json(o, { status });
   };
   try {
@@ -163,9 +181,18 @@ Deno.serve(async (req) => {
     };
     const motion = motionAt(ROWS >> 1, COLS >> 1, Math.max(ROWS, COLS));   // للسجل فقط
 
-    const since = new Date(Date.now() - COOLDOWN_H * 3600e3).toISOString();
-    const { data: recent } = await sb.from("auto_alerts").select("region").gte("at", since);
-    const cooled = new Set((recent || []).map((r) => r.region));
+    // سجل آخر 24 ساعة للمنطقة: الحد اليومي، الفاصل بين التنبيهين، ونفس العاصفة
+    const { data: recent } = await sb.from("auto_alerts").select("region,at,lat,lng").gte("at", new Date(Date.now() - 24 * 3600e3).toISOString());
+    const dayStart = new Date(Math.floor((Date.now() + 3 * 3600e3) / 864e5) * 864e5 - 3 * 3600e3).getTime();   // منتصف ليل الرياض
+    const why = (region: string, la: number, lo: number) => {
+      const rows = (recent || []).filter((r) => r.region === region);
+      if (rows.filter((r) => Date.parse(r.at) >= dayStart).length >= DAY_MAX) return "daily_cap";
+      if (rows.some((r) => Date.now() - Date.parse(r.at) < COOLDOWN_H * 3600e3)) return "cooldown";
+      if (rows.some((r) => Date.now() - Date.parse(r.at) < SAME_H * 3600e3 && r.lat != null && km(r.lat, r.lng, la, lo) < SAME_KM)) return "same_storm";
+      const towns = TOWNS[region];
+      if (towns && Math.min(...towns.map(([a, b]) => km(a, b, la, lo))) > FAR_KM) return "far";
+      return "";
+    };
     const out: unknown[] = [];
     const cands = [...byRegion.entries()].filter(([, c]) => c.length >= MIN_CELLS).sort((a, b) => b[1].length - a[1].length);
     for (const [region, cells] of cands.slice(0, 4)) {
@@ -180,13 +207,14 @@ Deno.serve(async (req) => {
         body: "الآن " + where + (mv ? "، تتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
         url: "./?screen=track", tag: "auto-rain-" + region,
       };
-      if (cooled.has(region)) { out.push({ region, cells: cells.length, max, skipped: "cooldown", ...p }); continue; }
+      const skip = why(region, cLat, cLng);
+      if (skip) { out.push({ region, cells: cells.length, max, skipped: skip, ...p }); continue; }
       if (dry) { out.push({ region, cells: cells.length, max, dry: true, ...p }); continue; }
       const sent = await sendRegion(sb, cfg, region, p);
-      await sb.from("auto_alerts").insert({ region, title: p.title, body: p.body, cells: cells.length, max_dbz: max, sent_web: sent.web, sent_ios: sent.ios });
+      await sb.from("auto_alerts").insert({ region, title: p.title, body: p.body, cells: cells.length, max_dbz: max, sent_web: sent.web, sent_ios: sent.ios, lat: Math.round(cLat * 100) / 100, lng: Math.round(cLng * 100) / 100 });
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
-    if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 30 * 86400e3).toISOString());
+    if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());
     return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
   } catch (e) {
     console.error("dalil-alerts", e);
