@@ -150,6 +150,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   // إيقاف مؤقت (صلاة/اجتماع): A يوقف 15 د → ما يشتغل صوت، B يشوفه «متوقف»، الرسالة تنحفظ ويسمعها لما يرجع
   for (const p of [A, B]) { await p.evaluate(() => { const s = document.getElementById('rmSosAlert'); if (s) s.classList.remove('show'); window.DalilRoom.open(); }); }
   await A.waitForTimeout(800);
+  await A.click('#rmSos'); await A.waitForTimeout(800);   // نلغي استغاثة A (الإيقاف ممنوع وأنت مستغيث)
   ok(auth && (await call('pause', { ...auth, minutes: 90 })).error === 'bad_request', 'pause > 60 min rejected');
   await A.click('[data-rm="pause"]'); await A.waitForTimeout(400);
   await shot(A, '8a-A-pause-menu');
