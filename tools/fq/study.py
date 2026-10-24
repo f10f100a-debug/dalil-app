@@ -12,6 +12,19 @@ AREAS = {
 }
 GRID = [(round(la, 2), round(lo, 2)) for la in [25.0 + i for i in range(8)] for lo in [36.0 + j for j in range(13)]]
 
+def power(p):
+    # NASA POWER (MERRA-2 مصحح بأمطار الأقمار): طلب واحد لكل نقطة يغطي كل السنين
+    q = {"parameters": "PRECTOTCORR", "community": "AG", "longitude": p[1], "latitude": p[0],
+         "start": "20161001", "end": "20251210", "format": "JSON"}
+    url = "https://power.larc.nasa.gov/api/temporal/daily/point?" + urllib.parse.urlencode(q)
+    for t in range(5):
+        try:
+            with urllib.request.urlopen(url, timeout=180) as r:
+                return json.load(r)["properties"]["parameter"]["PRECTOTCORR"]
+        except Exception as e:
+            print("power retry", e, file=sys.stderr); time.sleep(15 * (t + 1))
+    raise SystemExit("power failed")
+
 def fetch(points, start, end, api="archive"):
     out = []
     for i in range(0, len(points), 40):
@@ -47,10 +60,17 @@ def summarize(rows):
 pts = list(AREAS.values()) + GRID
 names = {v: k for k, v in AREAS.items()}
 result = {"areas": AREAS, "seasons": {}}
+series = {}
+for i, p in enumerate(pts):
+    series[p] = power(p); print("power", i + 1, len(pts), flush=True); time.sleep(1)
 for y in range(2016, 2026):
-    print("season", y, flush=True)
-    s = summarize(fetch(pts, f"{y}-10-16", f"{y}-12-06"))
-    for x in s: x["name"] = names.get((x["lat"], x["lng"]))
+    s = []
+    for p in pts:
+        d = series[p]
+        days = sorted(k for k in d if f"{y}1016" <= k <= f"{y}1206")
+        v = [max(0.0, d[k]) for k in days if d[k] is not None and d[k] > -900]
+        s.append({"lat": p[0], "lng": p[1], "name": names.get(p), "total": round(sum(v), 1), "eff": sum(1 for x in v if x >= 10),
+                  "early": round(sum(max(0.0, d[k]) for k in days if k[4:] <= "1115" and d[k] > -900), 1)})
     result["seasons"][str(y)] = s
 # الموسم الحالي: من 16 أكتوبر لين أمس (أرشيف + آخر أيام من التوقعات) + توقع 16 يوم
 cur = fetch(pts, None, None, api="forecast")
