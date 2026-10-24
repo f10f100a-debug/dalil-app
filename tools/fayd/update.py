@@ -28,7 +28,7 @@ def search(dt):
     raise RuntimeError("search failed " + dt)
 
 def _search(dt):
-    items, body = [], {"collections": COLS, "bbox": BBOX, "datetime": dt, "limit": 500}
+    items, body = [], {"collections": COLS, "bbox": BBOX, "datetime": dt, "limit": 100}
     url = STAC
     while url:
         req = urllib.request.Request(url, data=json.dumps(body).encode(), headers={"content-type": "application/json"})
@@ -40,9 +40,9 @@ def _search(dt):
 
 def sample(item):
     """قيمة كل فيضة داخل هذي البلاطة: الربيع الأعلى (المئين 75) في مربع 5×5 بكسل (~1.2 كم)"""
-    href = item["assets"]["250m_16_days_NDVI"]["href"] + "?" + token()
-    for k in range(3):
+    for k in range(4):
         try:
+            href = item["assets"]["250m_16_days_NDVI"]["href"] + "?" + token()
             with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="3"):
                 with rasterio.open(href) as src:
                     xs, ys = transform("EPSG:4326", src.crs, LNG, LAT)
