@@ -156,7 +156,8 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await shot(A, '8a-A-pause-menu');
   await A.click('[data-mm="pause"][data-arg="15"]'); await A.waitForTimeout(1500);
   ok((await A.textContent('#rmPauseBar').catch(() => '')).includes('متوقف مؤقتًا'), 'A paused bar shown');
-  ok(await A.evaluate(() => window.DalilRoom.bgAuth() === null), 'paused: background location/PTT off (bgAuth null)');
+  { const r = await A.evaluate(() => [window.DalilRoom.bgAuth() === null, (window.__dalilPauseLog || []).join(' ')]);
+    ok(r[0], 'paused: background location/PTT off (bgAuth null) log=' + r[1]); }
   let bPz = '';
   for (let i = 0; i < 30 && !bPz.includes('متوقف مؤقتًا'); i++) { await B.waitForTimeout(250); bPz = await B.textContent('#rmMembers').catch(() => ''); }
   ok(bPz.includes('متوقف مؤقتًا'), `B sees A paused: ${bPz.replace(/\s+/g, ' ').slice(0, 120)}`);
@@ -177,7 +178,8 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   aPz = await A.textContent('#rmPauseBar').catch(() => '');
   ok(aPz.includes('فاتتك رسالة'), `after resume: missed banner: ${aPz.replace(/\s+/g, ' ').slice(0, 80)}`);
   await shot(A, '8d-A-missed');
-  ok(await A.evaluate(() => !!window.DalilRoom.bgAuth()), 'resumed: bgAuth back');
+  { const r = await A.evaluate(() => [!!window.DalilRoom.bgAuth(), (window.__dalilPauseLog || []).join(' ')]);
+    ok(r[0], 'resumed: bgAuth back log=' + r[1]); }
   const bNew = await B.textContent('#rmVoice .rm-v').catch(() => '');
   ok(bNew.includes('أُرسلت') && !bNew.includes('سمعها'), `B's new message not marked heard while A paused: ${bNew.replace(/\s+/g, ' ').slice(0, 80)}`);
   await A.click('[data-rm="play-missed"]');

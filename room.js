@@ -221,9 +221,9 @@
     R.paused = new Map();
     for(const m of j.members || []) if(m.paused_until && m.member_id !== me()) R.paused.set(m.member_id, new Date(m.paused_until).getTime());
     const mine = (j.members || []).find(m=>m.member_id === me());
-    if(mine){
-      if(mine.paused_until && !R.pause) setMyPause({at:Date.now(), until:new Date(mine.paused_until).getTime()});
-      else if(!mine.paused_until && R.pause && Date.now() - R.pause.set > 15000) endPause(true);
+    if(mine && Date.now() - pauseLocal > 15000){
+      if(mine.paused_until && !R.pause) setMyPause({at:Date.now(), until:new Date(mine.paused_until).getTime()}, 'server');
+      else if(!mine.paused_until && R.pause && Date.now() - R.pause.set > 15000) endPause(true, 'server');
     }
     for(const id of [...R.pos.keys()]) if(!R.members.has(id)) R.pos.delete(id);
     (j.voice || []).forEach(v=>addVoice(v, false));
@@ -450,7 +450,7 @@
   };
   async function recStart(){
     if(rec.on || rec.native || !R.sess) return;
-    if(isPaused()) endPause(false);   // تكلّم = رجع للغرفة
+    if(isPaused()) endPause(false, 'talk');   // تكلّم = رجع للغرفة
     if(nativePtt()){
       unlockAudio(); player.pause(); playing = null;
       rec.on = true; rec.native = true; renderPtt('wait');
@@ -562,12 +562,15 @@
 
   // ---------- إيقاف مؤقت (صلاة، اجتماع) ----------
   // ما يشتغل صوت ولا يتحدث موقعك، والرسائل تنحفظ لك (ساعة كحد أقصى لأن الرسائل تُحذف بعد ساعة). الاستغاثة توصلك دائمًا.
-  let pauseTimer = null;
+  let pauseTimer = null, pauseLocal = 0;   // pauseLocal: آخر تغيير من المستخدم — ما نطبّق حالة الخادم القديمة فوقه 15 ث
+  const pzLog = []; window.__dalilPauseLog = pzLog;   // للفحص الآلي
+  const pzNote = r=>{ pzLog.push(r + '@' + (Date.now() % 1e6)); if(pzLog.length > 30) pzLog.shift(); };
   const isPaused = ()=>!!(R.pause && R.pause.until > Date.now());
   const hhmm = t=>new Date(t).toLocaleTimeString('ar-SA', {hour:'numeric', minute:'2-digit'});
   const msgCount = n=>n === 1 ? 'رسالة' : n === 2 ? 'رسالتين' : n <= 10 ? n + ' رسائل' : n + ' رسالة';
   function missed(){ return R.voice.filter(v=>v.member_id !== me() && !R.heard.has(v.id) && !R.muted.has(v.member_id) && v.url); }
-  function setMyPause(pz){
+  function setMyPause(pz, why){
+    pzNote('set:' + (why || '') + ':' + Math.round((pz.until - Date.now()) / 1000));
     R.pause = {...pz, set:Date.now()};
     if(R.sess){ R.sess.pause = {at:pz.at, until:pz.until}; saveSess(); }
     queue = [];
@@ -577,18 +580,21 @@
     pauseTimer = setTimeout(checkPause, Math.max(1000, Math.min(pz.until - Date.now() + 500, 2 ** 31 - 1)));
     bgSync(); render(); updateBtn();
   }
-  function checkPause(){ if(R.pause && !isPaused()) endPause(true); }
+  function checkPause(){ if(R.pause && !isPaused()) endPause(true, 'expired'); }
   async function startPause(min){
     if(!R.sess) return;
     if(R.mySos) return B.toast('ألغِ الاستغاثة أولًا');
     const j = await api('pause', authBody({minutes:min}));
     if(!j.ok || !j.until) return B.toast(errText(j.error));
-    setMyPause({at:R.pause ? R.pause.at : Date.now(), until:new Date(j.until).getTime()});
+    pauseLocal = Date.now();
+    setMyPause({at:R.pause ? R.pause.at : Date.now(), until:new Date(j.until).getTime()}, 'user');
     B.toast('⏸️ الغرفة موقفة لك حتى ' + hhmm(R.pause.until) + ' — رسائلهم تنحفظ لك');
   }
   // auto: انتهت المدة (الخادم يرجّعك بنفسه ويرسل لك إشعار) — غير ذلك نبلّغ الخادم
-  function endPause(auto){
+  function endPause(auto, why){
     if(!R.pause) return;
+    pzNote('end:' + (why || (auto ? 'auto' : 'user')));
+    if(!auto) pauseLocal = Date.now();
     const from = R.pause.at;
     R.pause = null; clearTimeout(pauseTimer);
     if(R.sess){ delete R.sess.pause; R.sess.missFrom = from; saveSess(); if(!auto) api('pause', authBody({minutes:0})); }
@@ -636,7 +642,7 @@
 
   // ---------- الاستغاثة داخل الغرفة ----------
   function sendSos(){
-    if(isPaused()) endPause(false);
+    if(isPaused()) endPause(false, 'sos');
     const mp = myPosPayload();
     if(!mp) return B.toast('انتظر حتى يتحدد موقعك');
     api('sos', authBody()).catch(()=>{});
@@ -1146,7 +1152,7 @@
     else if(act === 'leave') leave();
     else if(act === 'voice-all'){ R.voiceAll = !R.voiceAll; renderVoice(); }
     else if(act === 'pause') pauseMenu();
-    else if(act === 'resume') endPause(false);
+    else if(act === 'resume') endPause(false, 'button');
     else if(act === 'play-missed') playMissed();
     else if(act === 'missed-ok') dismissMissed();
     else if(act === 'map'){ close(); B.showMap(); setTimeout(()=>syncMap(true), 400); }
