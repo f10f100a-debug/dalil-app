@@ -199,7 +199,11 @@
   function dropDraft(){ if(!st.draft) return; if(st.draft.url) URL.revokeObjectURL(st.draft.url); if(st.draft.vurl) URL.revokeObjectURL(st.draft.vurl); }
   function selectedKind(){ const c = document.querySelector('#evKinds .chip.active'); return c ? c.dataset.evKind : ''; }
   function updateSendBtn(){ $('evSend').disabled = st.sending || !st.draft || !selectedKind() || !$('evTerms').checked; }
-  function setStatus(t, err){ const el = $('evStatus'); el.textContent = t; el.classList.toggle('err', !!err); }
+  // pct (0–1) يرسم شريط تقدم تحت النص
+  function setStatus(t, err, pct){
+    const el = $('evStatus'); el.textContent = t; el.classList.toggle('err', !!err);
+    if(typeof pct === 'number'){ const b = document.createElement('span'); b.className = 'ev-prog'; b.innerHTML = '<i style="width:' + Math.round(Math.max(0.03, Math.min(1, pct)) * 100) + '%"></i>'; el.appendChild(b); }
+  }
 
   function loadImage(file){
     return new Promise((resolve, reject)=>{
@@ -280,7 +284,7 @@
     if(g) B.nearestRegion(g.lat, g.lng).then(r=>{ if(r) $('evRegion').value = r; });
   }
   // ---------- الفيديو: حتى 10 ثوانٍ، يُعاد ضغطه في الجوال (~640 بكسل، ~1 ميقابت/ث) قبل الرفع ----------
-  const VMAX = 10, VMAX_BYTES = 3 * 1024 * 1024;
+  const VMAX = 10, VMAX_BYTES = 3 * 1024 * 1024, VKEEP_BYTES = 1.3 * 1024 * 1024;
   function recMime(){
     if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
     return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
@@ -307,7 +311,7 @@
   const seek = (v, t)=>new Promise(res=>{ const done = ()=>{ v.removeEventListener('seeked', done); res(); }; v.addEventListener('seeked', done); v.currentTime = t; setTimeout(done, 3000); });
   async function recompress(v, dur, onProgress){
     const mime = recMime(); if(!mime) return null;
-    const s = Math.min(1, 640 / Math.max(v.videoWidth, v.videoHeight));
+    const s = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
     const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * s / 2) * 2; c.height = Math.round(v.videoHeight * s / 2) * 2;
     const x = c.getContext('2d'), stream = c.captureStream(24);
     // الصوت (صوت السيل مهم) — إذا رفض المتصفح تشغيل الصوت نكمل بدونه
@@ -321,7 +325,7 @@
     await seek(v, 0);
     try{ if(ac) await ac.resume(); await v.play(); }
     catch(e){ v.muted = true; await v.play(); }
-    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:950000, audioBitsPerSecond:64000});
+    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:650000, audioBitsPerSecond:48000});
     const parts = [];
     rec.ondataavailable = e=>{ if(e.data && e.data.size) parts.push(e.data); };
     const stopped = new Promise(res=>rec.onstop = res);
@@ -356,8 +360,8 @@
       const full = await toJpeg(v, 1280, 0.72), thumb = await toJpeg(v, 420, 0.7);
       if(!full.blob || !thumb.blob) throw new Error('encode');
       let vid = null;
-      if(/mp4/.test(file.type) && file.size <= VMAX_BYTES && dur <= VMAX + 0.5) vid = file;   // صغير أصلًا
-      else vid = await recompress(v, dur, p=>setStatus('جارٍ ضغط الفيديو… ' + Math.round(p * 100) + '%'));
+      if(/mp4/.test(file.type) && file.size <= VKEEP_BYTES && dur <= VMAX + 0.5) vid = file;   // صغير أصلًا
+      else vid = await recompress(v, dur, p=>setStatus('جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الشاشة مفتوحة', false, p));
       if(!vid) throw Object.assign(new Error('nosupport'), {msg:'جهازك لا يدعم ضغط الفيديو. جرّب مقطعًا أقصر (أقل من 3 ميقا) أو أرسل صورة.'});
       if(vid.size > VMAX_BYTES) throw Object.assign(new Error('big'), {msg:'الفيديو كبير بعد الضغط. جرّب مقطعًا أقصر.'});
       dropDraft();
@@ -398,6 +402,22 @@
     }
     updateSendBtn();
   }
+  // رفع بـ XHR عشان نعرف النسبة (fetch ما يعطي تقدم الرفع)
+  function upload(fd){
+    return new Promise((resolve, reject)=>{
+      const x = new XMLHttpRequest(), t0 = Date.now();
+      x.open('POST', FN + 'dalil-public?a=submit');
+      x.timeout = 180000;
+      x.upload.onprogress = e=>{
+        if(!e.lengthComputable) return;
+        const p = e.loaded / e.total, secs = (Date.now() - t0) / 1000, left = p > 0.05 ? Math.round(secs / p - secs) : null;
+        setStatus(p >= 0.995 ? 'تم الرفع، جارٍ الحفظ…' : 'جارٍ الرفع ' + Math.round(p * 100) + '٪' + (left != null && left > 2 ? ' · باقي تقريبًا ' + (left > 90 ? Math.round(left / 60) + ' د' : left + ' ث') : '') + ' · ' + (e.total / 1048576).toFixed(1) + ' ميقا', false, p);
+      };
+      x.onload = ()=>{ let j = {}; try{ j = JSON.parse(x.responseText); }catch(e){} resolve({ok:x.status >= 200 && x.status < 300, status:x.status, json:j}); };
+      x.onerror = x.ontimeout = ()=>reject(Object.assign(new Error('net'), {offline:navigator.onLine === false}));
+      x.send(fd);
+    });
+  }
   async function send(){
     if(st.sending || !st.draft || !selectedKind() || !$('evTerms').checked) return;
     lsSet(LS.terms, '1');
@@ -416,10 +436,17 @@
     fd.append('w', String(st.draft.w)); fd.append('h', String(st.draft.h));
     const loc = st.photoGps || pos;
     if(loc && $('evAttachLoc').checked && !$('evLocRow').hidden){ fd.append('lat', String(loc.lat)); fd.append('lng', String(loc.lng)); }
-    st.sending = true; updateSendBtn(); setStatus('جارٍ الرفع…');
+    st.sending = true; updateSendBtn(); setStatus('جارٍ الرفع…', false, 0);
     try{
-      const r = await fetch(FN + 'dalil-public?a=submit', {method:'POST', body:fd});
-      const j = await r.json().catch(()=>({}));
+      let r = null;
+      for(let attempt = 0; attempt < 4 && !r; attempt++){
+        if(attempt){
+          for(let w = 5 * attempt; w > 0; w--){ setStatus('الشبكة ضعيفة — نعيد المحاولة بعد ' + w + ' ث…'); await new Promise(z=>setTimeout(z, 1000)); }
+        }
+        r = await upload(fd).catch(e=>{ if(e && e.offline && attempt === 3) throw e; return null; });
+      }
+      if(!r) throw new Error('net');
+      const j = r.json;
       if(!r.ok){
         const msg = {rate_limited:'وصلت للحد اليومي للمشاركات. حاول غدًا.', too_large:'الملف كبير جدًا.', bad_image:'صيغة الصورة غير مدعومة.', bad_video:'صيغة الفيديو غير مدعومة.', busy:'الخدمة مشغولة الآن، حاول بعد قليل.'}[j.error] || 'تعذّر الإرسال، حاول مرة أخرى.';
         setStatus(msg, true);

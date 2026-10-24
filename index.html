@@ -947,6 +947,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ev-check input{width:20px; height:20px; accent-color:var(--cp-gold);}
   .ev-status{min-height:20px; margin:8px 2px; font-size:13px; color:var(--cp-dim);}
   .ev-status.err{color:var(--cp-red);}
+  .ev-prog{display:block; height:6px; margin-top:6px; border-radius:4px; background:var(--line); overflow:hidden;} .ev-prog i{display:block; height:100%; background:var(--sand); border-radius:4px; transition:width .25s;}
   .push-box{display:grid; gap:10px; line-height:1.7;}
   .push-row{display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600;}
   .push-row select{flex:1;}
@@ -5711,7 +5712,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=15';
+      sc.src = 'events.js?v=16';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
