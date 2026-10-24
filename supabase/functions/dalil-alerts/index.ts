@@ -96,6 +96,32 @@ async function lightningGrid() {
   return g;
 }
 
+// تجميع مطر الرادار اليومي على شبكة 0.2° (لمؤشر الفقع والفياض): كل صورة رادار تُحوَّل لمطر بمعادلة مارشال-بالمر
+// Z = 200·R^1.6 وتُضاف لصف اليوم (توقيت الرياض). hits = عدد الصور اللي فيها صدى ≥20 dBZ لكشف التشويش الثابت لاحقًا.
+const RS = 4, RR = Math.ceil(ROWS / RS), RC = Math.ceil(COLS / RS);
+const u16From = (b64: string) => { const n = RR * RC, out = new Uint16Array(n); if (!b64) return out; const bin = atob(b64); for (let k = 0; k < n && 2 * k + 1 < bin.length; k++) out[k] = bin.charCodeAt(2 * k) | (bin.charCodeAt(2 * k + 1) << 8); return out; };
+const u16To = (a: Uint16Array) => { let s = ""; for (let k = 0; k < a.length; k++) s += String.fromCharCode(a[k] & 255, a[k] >> 8); return btoa(s); };
+async function accumulateRadar(sb: SupabaseClient, g: Int8Array, frameTime: number) {
+  const day = new Date(frameTime * 1000 + 3 * 3600e3).toISOString().slice(0, 10);
+  const { data: row } = await sb.from("radar_daily").select("acc,hits,frames,last_frame").eq("day", day).maybeSingle();
+  if (row && row.last_frame >= frameTime) return { day, skipped: true };
+  const mins = row?.last_frame ? Math.min(10, Math.max(1, (frameTime - row.last_frame) / 60)) : 10;
+  const acc = u16From(row?.acc || ""), hits = u16From(row?.hits || "");
+  const sum = new Float32Array(RR * RC), hit = new Uint8Array(RR * RC);
+  for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) {
+    const d = g[i * COLS + j]; if (d < 15) continue;
+    const k = Math.floor(i / RS) * RC + Math.floor(j / RS);
+    sum[k] += Math.pow(Math.pow(10, Math.min(d, 55) / 10) / 200, 0.625);
+    if (d >= 20) hit[k] = 1;
+  }
+  for (let k = 0; k < sum.length; k++) {
+    if (sum[k] > 0) acc[k] = Math.min(65535, acc[k] + Math.round(sum[k] / (RS * RS) * mins / 60 * 10));
+    if (hit[k]) hits[k] = Math.min(65535, hits[k] + 1);
+  }
+  await sb.from("radar_daily").upsert({ day, acc: u16To(acc), hits: u16To(hits), frames: (row?.frames || 0) + 1, last_frame: frameTime, updated_at: new Date().toISOString() });
+  return { day, frames: (row?.frames || 0) + 1 };
+}
+
 async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, region: string, p: { title: string; body: string; url: string; tag: string }) {
   let web = 0, ios = 0;
   try {
@@ -140,7 +166,7 @@ Deno.serve(async (req) => {
     const cfg = await config(sb);
     // يُقرأ مباشرة (بدون الذاكرة المؤقتة) حتى يسري زر الإيقاف في لوحة الإدارة فورًا
     const { data: sw } = await sb.from("app_config").select("value").eq("key", "auto_alerts").maybeSingle();
-    if (sw?.value === "off" && !dry) return done({ ok: true, off: true });
+    const off = sw?.value === "off" && !dry;   // الإيقاف يوقف الإرسال بس؛ تجميع مطر الرادار يكمل
 
     const j = await (await fetch("https://api.rainviewer.com/public/weather-maps.json")).json();
     const past = j.radar?.past || []; if (past.length < 4) return done({ ok: false, error: "no_frames" });
@@ -148,6 +174,9 @@ Deno.serve(async (req) => {
     const ageMin = Math.round(Date.now() / 60e3 - now.time / 60);
     if (ageMin > 40) return done({ ok: false, error: "stale", ageMin });
     const [N, P, O, L] = await Promise.all([radarGrid(j.host, now.path), radarGrid(j.host, prev.path), radarGrid(j.host, old.path), lightningGrid()]);
+    let radarAcc: unknown = null;
+    if (!dry && N.tiles >= 10) radarAcc = await accumulateRadar(sb, N.g, now.time).catch((e) => ({ error: String(e?.message || e).slice(0, 80) }));
+    if (off) return done({ ok: true, off: true, radarAcc });
     const near = (g: Uint8Array | Int8Array, i: number, jj: number, r: number, test: (v: number) => boolean) => {
       for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) { const y = i + a, x = jj + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && test(g[y * COLS + x])) return true; }
       return false;
@@ -215,7 +244,7 @@ Deno.serve(async (req) => {
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());
-    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
+    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, radarAcc, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
   } catch (e) {
     console.error("dalil-alerts", e);
     return done({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, 500);
