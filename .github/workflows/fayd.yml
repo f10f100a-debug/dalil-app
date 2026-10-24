@@ -1,10 +1,10 @@
-# حالة الفياض: تحديث أسبوعي من صور MODIS (Planetary Computer) → data/fayd.json
+# حالة الفياض: تحديث مرتين بالأسبوع من Sentinel-2 (10 م) وMODIS (Planetary Computer) → data/fayd.json
 name: Fayd
 on:
-  schedule: [{ cron: "17 3 * * 5" }]
+  schedule: [{ cron: "17 3 * * 2,5" }]
   workflow_dispatch:
     inputs:
-      mode: { description: "baseline أو فاضي للتحديث", type: string, default: "" }
+      mode: { description: "baseline أو s2base أو فاضي للتحديث", type: string, default: "" }
 jobs:
   fayd:
     runs-on: ubuntu-latest

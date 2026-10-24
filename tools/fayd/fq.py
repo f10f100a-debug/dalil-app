@@ -1,6 +1,9 @@
 # مؤشر الفقع: مطر الموسم (1 أكتوبر – 15 يناير) لمناطق الفقع المعروفة + وقت الظهور المتوقع (تاريخ المطر الكافي + 60–75 يوم)
-# المصادر: Open-Meteo (أرشيف ERA5 للماضي + آخر 7 أيام وتوقع 7 أيام من نموذج التوقعات). يُشغَّل يوميًا → data/fq.json
-import json, time, datetime as dt, urllib.request, urllib.parse
+# المصادر: Open-Meteo (أرشيف ERA5 + نموذج التوقعات لآخر 7 أيام) ومطر رادار الأرصاد المجمّع (radar_daily) — لكل يوم نأخذ الأعلى،
+# لأن النماذج تفوّت الزخات الرعدية المحلية والرادار يلقطها. تأكيد إضافي: اخضرار الفياض القريبة. يُشغَّل يوميًا → data/fq.json
+import json, time, math, datetime as dt, urllib.request, urllib.parse, os, sys
+sys.path.insert(0, os.path.dirname(__file__))
+import radar
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 AREAS = [  # الاسم، المنطقة، خط العرض، خط الطول
   ["رفحاء", "الحدود الشمالية", 29.63, 43.49], ["لينة", "الحدود الشمالية", 28.76, 43.83], ["العويقيلة", "الحدود الشمالية", 30.33, 42.25],
@@ -12,7 +15,7 @@ AREAS = [  # الاسم، المنطقة، خط العرض، خط الطول
   ["الأسياح", "القصيم", 26.58, 44.25], ["الزلفي", "الرياض", 26.30, 44.80], ["الأرطاوية", "الرياض", 26.50, 45.35],
   ["تبوك", "تبوك", 28.38, 36.57], ["تيماء", "تبوك", 27.63, 38.55],
 ]
-GOOD, GREAT = 15, 40          # ملم: مطر يكفي / ممتاز للفقع
+GOOD, GREAT = 25, 60          # ملم: مطر يكفي / ممتاز للفقع (مُعايرة على مواسم 2018 و2019 و2022 و2025)
 today = dt.date.today()
 season = today.year if today.month >= 8 else today.year - 1
 start, end = dt.date(season, 10, 1), dt.date(season + 1, 1, 15)
@@ -42,6 +45,27 @@ for k, loc in enumerate(j if isinstance(j, list) else [j]):
         if day > today: fc[k] += p or 0
         elif start <= day <= end and d not in rain[k]: rain[k][d] = p or 0
 
+# مطر الرادار: لكل يوم ناخذ الأعلى بين النموذج والرادار
+R = radar.load(start.isoformat())
+radar_days = [0] * len(AREAS)
+for k, (name, region, la, lo) in enumerate(AREAS):
+    for day, rec in R.items():
+        if not (start.isoformat() <= day <= end.isoformat()): continue
+        v = radar.mm_at(rec, la, lo)
+        if v is None: continue
+        radar_days[k] += 1
+        if v > rain[k].get(day, 0): rain[k][day] = min(v, 120)
+
+# تأكيد من الخضرة: فياض خلال 60 كم صارت «مثل المعتاد» أو أخضر
+fy_near = [0] * len(AREAS)
+try:
+    fy = json.load(open("data/fayd.json")); sites = json.load(open("data/fayd-sites.json"))
+    green = [sites[r[0]] for r in fy.get("rows", []) if r[2] >= 2]
+    def km(a, b, c, d): return 6371 * 2 * math.asin(math.sqrt(math.sin(math.radians(c - a) / 2) ** 2 + math.cos(math.radians(a)) * math.cos(math.radians(c)) * math.sin(math.radians(d - b) / 2) ** 2))
+    for k, a in enumerate(AREAS): fy_near[k] = sum(1 for s in green if km(a[2], a[3], s[1], s[2]) <= 60)
+except Exception as e:
+    print("fayd confirm skipped", e)
+
 rows = []
 for k, (name, region, la, lo) in enumerate(AREAS):
     days = sorted(rain[k]); tot = 0.0; reached = None; best = (0.0, None)
@@ -56,7 +80,7 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         r = dt.date.fromisoformat(reached)
         w = [(r + dt.timedelta(days=60)).isoformat(), (r + dt.timedelta(days=75)).isoformat()]
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
-                 "reached": reached, "window": w, "fc7": round(fc[k])})
-json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "rows": rows},
+                 "reached": reached, "window": w, "fc7": round(fc[k]), "radar": radar_days[k], "green": fy_near[k]})
+json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "radar_days": len(R), "rows": rows},
           open("data/fq.json", "w"), ensure_ascii=False, separators=(",", ":"))
 print("::notice::" + " · ".join(f"{r['name']} {r['mm']}" for r in sorted(rows, key=lambda r: -r["mm"])[:8]))

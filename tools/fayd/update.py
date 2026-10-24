@@ -1,8 +1,11 @@
 # حالة الفياض: يقرأ صور MODIS (MOD13Q1 + MYD13Q1، 250 م، كل 8 أيام) من Microsoft Planetary Computer
 # ويحسب لكل فيضة: خضرتها الآن مقارنة بحالتها في الصيف (الجفاف) وبذروة ربيعها المعتادة.
 #   python3 update.py baseline   ← مرة وحدة (أو سنويًا): المعتاد لكل فيضة → data/fayd-base.json
-#   python3 update.py            ← كل أسبوع: آخر صورة → data/fayd.json
-import json, sys, time, statistics as st, urllib.request, urllib.parse
+#   python3 update.py s2base     ← مرة كل موسم (قبل الأمطار): خضرة الصيف لكل فيضة بدقة 10 م من Sentinel-2 → data/fayd-s2base.json
+#   python3 update.py            ← مرتين بالأسبوع: آخر صور Sentinel-2 (10 م، بدون غيم) + MODIS للمقارنة بالمعتاد → data/fayd.json
+import json, sys, os, time, datetime as dtm, statistics as st, urllib.request, urllib.parse
+sys.path.insert(0, os.path.dirname(__file__))
+import s2, radar
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, rasterio
 from rasterio.warp import transform
@@ -116,8 +119,24 @@ if len(sys.argv) > 1 and sys.argv[1] == "baseline":
     print("baseline done", sum(b is not None for b in base))
     sys.exit()
 
-# ---- التحديث الأسبوعي: آخر تاريخ تغطي صوره المنطقة كلها ----
+if len(sys.argv) > 1 and sys.argv[1] == "s2base":
+    # خضرة الجفاف (قبل مطر الموسم): متوسط 3 قراءات صافية بين 25 أغسطس و5 أكتوبر
+    y = dtm.date.today().year if dtm.date.today().month >= 8 else dtm.date.today().year - 1
+    res = s2.sample(SITES, f"{y}-08-25", f"{y}-10-05", max_cloud=30, keep=3)
+    out = [None] * len(SITES)
+    for i, v in res.items():
+        out[i] = [round(st.median(x[1] for x in v), 3), round(st.median(x[3] for x in v), 3), len(v)]
+    json.dump({"made": time.strftime("%Y-%m-%d"), "season": y, "base": out}, open("data/fayd-s2base.json", "w"), separators=(",", ":"))
+    print(f"::notice::s2 base {sum(o is not None for o in out)}/{len(SITES)} t={round(time.time() - T0)}s", flush=True)
+    sys.exit()
+
+# ---- التحديث: Sentinel-2 (آخر 12 يوم) + MODIS (آخر صورتين) ----
 base = json.load(open("data/fayd-base.json"))["base"]
+try: s2base = json.load(open("data/fayd-s2base.json"))["base"]
+except Exception: s2base = [None] * len(SITES)
+today = dtm.date.today()
+cur = s2.sample(SITES, (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=1)
+print(f"::notice::s2 current {len(cur)}/{len(SITES)} t={round(time.time() - T0)}s", flush=True)
 now = time.time()
 items = search(time.strftime("%Y-%m-%dT00:00:00Z", time.gmtime(now - 40 * 86400)) + "/" + time.strftime("%Y-%m-%dT23:59:59Z", time.gmtime(now)))
 groups = by_date(items)
@@ -125,16 +144,26 @@ need = max(len(v) for v in groups.values())
 dates = [d for d, v in groups.items() if len(v) >= need - 1][-2:]  # آخر صورتين (Terra وAqua) لتقليل أثر الغيم
 res = run_dates({d: groups[d] for d in dates})
 rows = []
+s2dates = []
 for i, s in enumerate(SITES):
     b = base[i]; v = [r[i] for r in res.values() if i in r]
-    if not b or not v: continue
+    if not b: continue
     dry, med, top = b
     if dry > 0.25: continue                          # خضراء حتى في الصيف = مزارع أو شجر كثيف
-    cur = max(v); g = cur - dry
     span = max(0.03, med - dry)
-    idx = g / span
-    st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
-    rows.append([i, round(g * 1000), st_])
+    sb, c = s2base[i] if i < len(s2base) else None, cur.get(i)
+    if sb and c and sb[0] < 0.3:
+        # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
+        (d8, p75, mean, gfrac, valid), = c
+        g = p75 - sb[0]; gain_frac = gfrac - sb[1]
+        started = g >= 0.04 or gain_frac >= 0.10
+        idx = g / span
+        st_ = 0 if not started else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
+        rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gfrac) * 100), 1]); s2dates.append(d8)
+    elif v:
+        g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
+        st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
+        rows.append([i, round(max(0, g) * 1000), st_, None, 0])
 # الخضرة بدون مطر = سقي (مزارع جديدة) مو ربيع: نتأكد من مطر آخر 75 يوم لكل فيضة تبان خضراء
 def rain75(idx):
     out = {}
@@ -155,10 +184,16 @@ def rain75(idx):
     return out
 green = [r[0] for r in rows if r[2] > 0]
 rain = rain75(green) if green else {}
+# + مطر الرادار (يلقط الزخات المحلية اللي النماذج تفوتها)
+R = radar.load((today - dtm.timedelta(days=75)).isoformat())
+for i in green:
+    rr = sum(x for x in (radar.mm_at(rec, SITES[i][1], SITES[i][2]) for rec in R.values()) if x)
+    rain[i] = max(rain.get(i, 0), rr)
 for r in rows:
     if r[2] > 0 and rain.get(r[0], 0) < 8: r[2] = 0; r[1] = min(r[1], 15)
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
 rows.sort(key=lambda r: -r[1])
-json.dump({"asof": dates[-1] if dates else "", "dates": dates, "n": len(SITES), "rows": rows},
+asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
+json.dump({"asof": asof, "dates": dates, "s2": len(s2dates), "n": len(SITES), "rows": rows},
           open("data/fayd.json", "w"), separators=(",", ":"))
 print("asof", dates, "rows", len(rows), "green", sum(r[2] > 0 for r in rows))
