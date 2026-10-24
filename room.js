@@ -25,6 +25,8 @@
     bad_audio:'تعذّر إرسال التسجيل', banned:'تم إيقاف استخدامك لغرف الرحلة بسبب مخالفة الشروط', too_large:'التسجيل طويل جدًا', server:'تعذّر الاتصال بالخادم، حاول مرة أخرى', net:'لا يوجد اتصال بالإنترنت'
   };
   const errText = e=>ERR[e] || ERR.server;
+  // الاهتزاز يحتاج لمسة سابقة على الصفحة (وإلا يطلع تحذير في الكونسول)
+  const vibe = pat=>{ try{ if(navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(pat); }catch(e){} };
 
   // ---------- الحالة ----------
   const R = {
@@ -195,7 +197,7 @@
       if(d > LAG_M && !R.lagging.has(id)){
         R.lagging.add(id);
         B.toast('⚠️ ' + m.name + ' ابتعد عن القافلة — ' + B.fmtDist(d));
-        if(navigator.vibrate) navigator.vibrate([120, 80, 120]);
+        vibe([120, 80, 120]);
       }else if(d < LAG_RESET_M) R.lagging.delete(id);
     }
   }
@@ -431,7 +433,7 @@
     if(ev === 'rec'){
       clearTimeout(rec.nWait);
       if(!rec.native) return;
-      rec.t0 = Date.now(); renderPtt('rec'); if(navigator.vibrate) navigator.vibrate(30);
+      rec.t0 = Date.now(); renderPtt('rec'); vibe(30);
       clearInterval(rec.timer);
       rec.timer = setInterval(()=>{ const sec = (Date.now() - rec.t0) / 1000; const el = $('rmPttTime'); if(el) el.textContent = Math.floor(sec) + 'ث'; if(sec >= MAX_REC_S) recStop(); }, 250);
       if(!rec.on){ pttMsg(false); }   // رفع إصبعه قبل ما يبدأ
@@ -485,7 +487,7 @@
     try{ rec.mr.start(); }catch(e){ rec.on = false; rec.mr = null; releaseMicNow(); renderPtt(); diag({...rec.d, s:'start_fail', err:String(e && e.name || e).slice(0, 40)}); return B.toast('تعذّر بدء التسجيل — حاول مرة ثانية'); }
     tone('start');   // النغمة مع بداية التسجيل مو قبلها: ما يضيع أول الكلام
     rec.t0 = Date.now();
-    if(navigator.vibrate) navigator.vibrate(30);
+    vibe(30);
     renderPtt('rec');
     rec.timer = setInterval(()=>{
       const s = (Date.now() - rec.t0) / 1000;
@@ -653,7 +655,7 @@
       if(!R.mySos || Date.now() - R.mySos.t > 15 * 60e3) return stopMySos();
       const p = myPosPayload(); if(p) RT.send('sos', p);
     }, 20000);
-    if(navigator.vibrate) navigator.vibrate(200);
+    vibe(200);
     B.toast('🆘 أُرسلت استغاثتك وموقعك لكل أعضاء الغرفة');
     render();
   }
@@ -668,7 +670,7 @@
     R.sos.set(id, {lat:+p.lat, lng:+p.lng, t:Date.now()});
     setPos(id, p);
     if(first){
-      if(navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]);
+      vibe([400, 150, 400, 150, 400]);
       beep();
     }
     renderSos();
