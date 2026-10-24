@@ -2257,6 +2257,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy,
       courseRaw: Number.isFinite(p.coords.heading) ? p.coords.heading : null
     };
+    speedSamples.push({t:Date.now(), lat:p.coords.latitude, lng:p.coords.longitude, spd:p.coords.speed, acc:p.coords.accuracy});
+    while(speedSamples.length && Date.now() - speedSamples[0].t > SPEED_WINDOW_MS) speedSamples.shift();
     // اتجاه الحركة من GPS: فوق 5 كم/س يُقدَّم على المستشعر المغناطيسي لأنه
     // يتشوش قرب هيكل السيارة المعدني. وتحت ذلك يبقى بديلًا فقط عند غياب المستشعر.
     const gpsCourse = p.coords.heading, gpsSpeed = p.coords.speed;
@@ -2445,8 +2447,27 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(m >= 1000) return iso((m/1000).toFixed(m >= 10000 ? 1 : 2)) + ' كم';
     return iso(Math.round(m)) + ' م';
   }
+  // متوسط السرعة لآخر دقيقتين (بدل اللحظية) حتى ما يتقلب وقت الوصول مع كل تهدئة أو وقفة قصيرة
+  const SPEED_WINDOW_MS = 120e3, speedSamples = [];
+  function avgSpeedKmh(){
+    const now = Date.now(), s = speedSamples.filter(x=>now - x.t <= SPEED_WINDOW_MS);
+    if(!s.length || now - s[s.length - 1].t > 30e3) return 0;          // ما فيه قراءات حديثة = واقف
+    const span = (s[s.length - 1].t - s[0].t) / 1000;
+    if(span < 15) return null;                                           // قراءات قليلة، ما نحكم
+    const v = s.map(x=>x.spd).filter(x=>Number.isFinite(x) && x >= 0);
+    if(v.length >= s.length * 0.6) return v.reduce((a, b)=>a + b, 0) / v.length * 3.6;
+    const good = s.filter(x=>!(x.acc > 50));                             // بدون سرعة من الجهاز: من المسافة المقطوعة
+    if(good.length < 2) return null;
+    let d = 0; for(let i = 1; i < good.length; i++) d += haversine(good[i-1].lat, good[i-1].lng, good[i].lat, good[i].lng);
+    const sp = (good[good.length - 1].t - good[0].t) / 1000;
+    return sp >= 15 ? d / sp * 3.6 : null;
+  }
   function fmtEta(dist){
-    const speedKmh = state.pos && state.pos.speed > 0.5 ? state.pos.speed*3.6 : 4; // سرعة مشي افتراضية
+    const avg = avgSpeedKmh();
+    let speedKmh;
+    if(avg !== null && avg >= 2) speedKmh = avg;
+    else if(dist > 10000) return 'يتحسب لما تتحرك';                      // واقف والهدف بعيد: سرعة المشي ما تنفع
+    else speedKmh = 4;                                                   // قريب: سرعة مشي
     const min = (dist/1000)/speedKmh*60;
     if(min < 1) return 'أقل من دقيقة';
     if(min < 60) return iso(Math.round(min)) + ' دقيقة';
