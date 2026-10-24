@@ -1,0 +1,19 @@
+# تجربة مؤشر الخضرة للفياض — يدوي، والنتيجة في فرع fq-ndvi
+name: FQ NDVI
+on: workflow_dispatch
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/fq }
+      - run: python3 tools/fq/ndvi.py
+      - name: Publish
+        run: |
+          mkdir pub && cp fq_ndvi.json pub/ && cd pub && git init -q && git checkout -q -b fq-ndvi
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "fq ndvi" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" fq-ndvi
+          echo "::notice::fq ndvi published"
