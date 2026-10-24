@@ -6,7 +6,7 @@ its = by_date(search("2024-03-01T00:00:00Z/2024-03-20T00:00:00Z"))
 d, items = next(iter(its.items()))
 it = items[0]
 print("item", it["id"], it["bbox"])
-href = it["assets"]["250m_16_days_NDVI"]["href"] + "?" + token()
+raw = it["assets"]["250m_16_days_NDVI"]["href"]; href = raw + "?" + token(raw)
 try:
     with rasterio.open(href) as s:
         print("crs", s.crs, s.shape, s.transform)

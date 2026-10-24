@@ -15,11 +15,15 @@ LAT = [s[1] for s in SITES]; LNG = [s[2] for s in SITES]
 _tok = {"t": None, "at": 0}
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 
-def token():
-    if not _tok["t"] or time.time() - _tok["at"] > 1800:
-        with urllib.request.urlopen(urllib.request.Request("https://planetarycomputer.microsoft.com/api/sas/v1/token/modis-13Q1-061", headers=UA), timeout=60) as r:
-            _tok["t"] = json.load(r)["token"]; _tok["at"] = time.time()
-    return _tok["t"]
+_toks = {}
+def token(href):
+    """رمز وصول لحساب التخزين والحاوية حسب الرابط (يتجدد كل نص ساعة)"""
+    acct = href.split("//")[1].split(".")[0]; cont = href.split("/")[3]
+    k = acct + "/" + cont; t = _toks.get(k)
+    if not t or time.time() - t[1] > 1800:
+        with urllib.request.urlopen(urllib.request.Request(f"https://planetarycomputer.microsoft.com/api/sas/v1/token/{acct}/{cont}", headers=UA), timeout=60) as r:
+            t = _toks[k] = (json.load(r)["token"], time.time())
+    return t[0]
 
 def search(dt):
     for k in range(4):
@@ -43,7 +47,8 @@ def sample(item):
     """قيمة كل فيضة داخل هذي البلاطة: الربيع الأعلى (المئين 75) في مربع 5×5 بكسل (~1.2 كم)"""
     for k in range(4):
         try:
-            href = item["assets"]["250m_16_days_NDVI"]["href"] + "?" + token()
+            raw = item["assets"]["250m_16_days_NDVI"]["href"]
+            href = raw + "?" + token(raw)
             with rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="3"):
                 with rasterio.open(href) as src:
                     xs, ys = transform("EPSG:4326", src.crs, LNG, LAT)
