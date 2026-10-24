@@ -1,0 +1,20 @@
+# مؤشر الفقع: تحديث يومي لمطر الموسم في مناطق الفقع → data/fq.json
+name: FQ index
+on:
+  schedule: [{ cron: "41 2 * * *" }]
+  workflow_dispatch:
+jobs:
+  fq:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/fayd/fq.py
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add data/fq.json
+          git diff --cached --quiet && exit 0
+          git commit -qm "مؤشر الفقع: تحديث يومي"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
