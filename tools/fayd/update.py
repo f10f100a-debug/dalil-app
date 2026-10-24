@@ -21,6 +21,13 @@ def token():
     return _tok["t"]
 
 def search(dt):
+    for k in range(4):
+        try: return _search(dt)
+        except Exception as e:
+            print("search retry", dt, str(e)[:120], flush=True); time.sleep(10 * (k + 1))
+    raise RuntimeError("search failed " + dt)
+
+def _search(dt):
     items, body = [], {"collections": COLS, "bbox": BBOX, "datetime": dt, "limit": 500}
     url = STAC
     while url:
@@ -73,10 +80,19 @@ def run_dates(groups):
             print(d, it["id"][:30], len(vals), flush=True)
     return res
 
+import traceback, atexit
+T0 = time.time()
+def _fail(t, v, tb):
+    print("::error::" + (repr(v) + " | " + " / ".join(traceback.format_tb(tb)[-2:])).replace("\n", " ")[:900], flush=True)
+sys.excepthook = _fail
+atexit.register(lambda: print(f"::notice::time {round(time.time() - T0)}s", flush=True))
+
 if len(sys.argv) > 1 and sys.argv[1] == "baseline":
     peaks = {i: [] for i in range(len(SITES))}; dry = {i: [] for i in range(len(SITES))}
     for y in range(2016, 2026):
-        res = run_dates(by_date(search(f"{y}-02-01T00:00:00Z/{y}-04-01T00:00:00Z")))
+        g = by_date(search(f"{y}-02-01T00:00:00Z/{y}-04-01T00:00:00Z"))
+        res = run_dates(g)
+        print(f"::notice::{y} dates {len(g)} tiles {sum(len(v) for v in g.values())} sites {len(set().union(*[set(r) for r in res.values()]) if res else 0)} t={round(time.time() - T0)}s", flush=True)
         for i in peaks:
             v = [r[i] for r in res.values() if i in r]
             if v: peaks[i].append(max(v))
