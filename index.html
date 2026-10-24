@@ -1345,7 +1345,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         </div>
         <button type="button" class="cp-btn cp-btn-gold" id="springMap" style="width:100%;margin-top:10px">اعرض الربيع على الخريطة</button>
         <a class="cp-btn cp-btn-white" id="springCopernicus" target="_blank" rel="noopener" href="#" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none">تفاصيل أدق (10 م) في Copernicus <span class="cp-ic" data-ico="external"></span></a>
-        <div class="weather-source-note">الاخضرار من صور أقمار NASA (مؤشر NDVI، مركّب كل 8 أيام بدقة 250 م) ضمن نحو 5 كم حولك. الأمطار من Open-Meteo. يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع من مطر جيد. يحتاج اتصالًا بالإنترنت.</div>
+        <div class="weather-source-note">الفياض القريبة من صور القمر الأوروبي Sentinel-2 بدقة 10 م بدون غيم. والاخضرار حول النقطة من أقمار NASA (250 م، تقريبي) بعد استبعاد اللي كان أخضر قبل الموسم كالمزارع. الأمطار من Open-Meteo مع رادارات الأرصاد. يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع من مطر جيد. يحتاج اتصالًا بالإنترنت.</div>
       </div>
       <div id="evPane" hidden></div>
     </section>
@@ -5751,34 +5751,52 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     try{ const v = JSON.parse(localStorage.getItem('dalil_sun_pos') || 'null'); if(v && isFinite(v.lat)) return {lat:v.lat, lng:v.lng, live:false}; }catch(e){}
     return null;
   }
-  // نسبة البكسلات الخضراء في مربع ~5 كم حول النقطة من بلاطة التكبير 8
+  // الاخضرار الجديد في مربع ~5 كم: بكسلات خضراء الآن وما كانت خضراء قبل الموسم (5 سبتمبر) — المزارع والشجر الدائم ما تنحسب
+  async function greenTile(layer, date, Z, X, Y){
+    const r = await fetch('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' + layer + '/default/' + date + '/GoogleMapsCompatible_Level9/' + Z + '/' + Y + '/' + X + '.png');
+    if(r.status === 404 || r.status === 400) return null;
+    if(!r.ok) throw new Error('net');
+    const bm = await createImageBitmap(await r.blob()), cv = document.createElement('canvas'); cv.width = cv.height = 256;
+    const ctx = cv.getContext('2d', {willReadFrequently:true}); ctx.drawImage(bm, 0, 0, 256, 256);
+    return ctx;
+  }
   async function greenAround(lat, lng){
     const Z = 8, n = 2 ** Z, fx = (lng + 180) / 360 * n, s = Math.sin(lat * Math.PI / 180), fy = (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n;
     const X = Math.floor(fx), Y = Math.floor(fy), px = Math.floor((fx - X) * 256), py = Math.floor((fy - Y) * 256);
+    const now = new Date(), season = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1, refDate = season + '-09-05';
     for(const layer of NDVI_LAYERS){
-      let r; try{ r = await fetch('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/' + layer + '/default/default/GoogleMapsCompatible_Level9/' + Z + '/' + Y + '/' + X + '.png'); }catch(e){ throw new Error('net'); }
-      if(r.status === 404 || r.status === 400) continue;
-      if(!r.ok) throw new Error('net');
-      const bm = await createImageBitmap(await r.blob()), cv = document.createElement('canvas'); cv.width = cv.height = 256;
-      const ctx = cv.getContext('2d', {willReadFrequently:true}); ctx.drawImage(bm, 0, 0, 256, 256);
-      const R = 6, x0 = Math.max(0, px - R), y0 = Math.max(0, py - R), d = ctx.getImageData(x0, y0, Math.min(256, px + R + 1) - x0, Math.min(256, py + R + 1) - y0).data;
-      let green = 0, valid = 0, strong = 0;
+      let cur; try{ cur = await greenTile(layer, 'default', Z, X, Y); }catch(e){ throw new Error('net'); }
+      if(!cur) continue;
+      const ref = await greenTile(layer, refDate, Z, X, Y).catch(()=>null);
+      const R = 6, x0 = Math.max(0, px - R), y0 = Math.max(0, py - R), w = Math.min(256, px + R + 1) - x0, h = Math.min(256, py + R + 1) - y0;
+      const d = cur.getImageData(x0, y0, w, h).data, d0 = ref ? ref.getImageData(x0, y0, w, h).data : null;
+      let green = 0, valid = 0, strong = 0, perennial = 0;
       for(let k = 0; k < d.length; k += 4){
         if(d[k + 3] < 128) continue; valid++;
         const g = d[k + 1] - Math.max(d[k], d[k + 2]);
+        const g0 = d0 && d0[k + 3] >= 128 ? d0[k + 1] - Math.max(d0[k], d0[k + 2]) : -999;
+        if(g0 > 6){ perennial++; if(g > g0 + 25){ green++; strong++; } continue; }   // أخضر من قبل الموسم (مزرعة/شجر): بس الزيادة الكبيرة تنحسب
         if(g > 6) green++; if(g > 30) strong++;
       }
-      return valid ? {pct:Math.round(green / valid * 100), strong:Math.round(strong / valid * 100)} : null;
+      return valid ? {pct:Math.round(green / valid * 100), strong:Math.round(strong / valid * 100), farm:Math.round(perennial / valid * 100), ref:!!d0} : null;
     }
     return null;
   }
+  async function radarDaily(lat, lng){
+    try{
+      const r = await fetch(DALIL_SB + '/rest/v1/rpc/radar_point', {method:'POST', headers:{'Content-Type':'application/json', apikey:'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw', authorization:'Bearer sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw'}, body:JSON.stringify({p_lat:lat, p_lng:lng, p_days:45})});
+      if(!r.ok) return {};
+      const out = {}; (await r.json()).forEach(x=>{ out[x.day] = Number(x.mm) || 0; }); return out;
+    }catch(e){ return {}; }
+  }
   async function rainLast30(lat, lng){
-    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(3) + '&longitude=' + lng.toFixed(3) + '&daily=precipitation_sum&past_days=45&forecast_days=1&timezone=auto');
+    const [r, rad] = await Promise.all([fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat.toFixed(3) + '&longitude=' + lng.toFixed(3) + '&daily=precipitation_sum&past_days=45&forecast_days=1&timezone=auto'), radarDaily(lat, lng)]);
     if(!r.ok) throw new Error('net');
-    const j = await r.json(), t = j.daily.time, p = j.daily.precipitation_sum.map(v=>Number(v) || 0), today = t.length - 1;
+    // لكل يوم ناخذ الأعلى بين النموذج والرادار (الرادار يلقط الزخات المحلية)
+    const j = await r.json(), t = j.daily.time, p = j.daily.precipitation_sum.map((v, i)=>Math.max(Number(v) || 0, rad[t[i]] || 0)), today = t.length - 1;
     let sum30 = 0, sum14to45 = 0, lastDay = -1;
     for(let i = 0; i < today; i++){ const ago = today - i; if(ago <= 30) sum30 += p[i]; if(ago >= 14) sum14to45 += p[i]; if(p[i] >= 2) lastDay = i; }
-    return {sum30:Math.round(sum30), early:Math.round(sum14to45), daysSince:lastDay < 0 ? null : today - lastDay};
+    return {sum30:Math.round(sum30), early:Math.round(sum14to45), daysSince:lastDay < 0 ? null : today - lastDay, radar:Object.keys(rad).length > 0};
   }
   // ---------- حالة الفياض: ترتيب أكثر الفياض اخضرارًا (يحسبها خادم GitHub أسبوعيًا من أقمار MODIS) ----------
   const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
@@ -5877,30 +5895,49 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(!force && springCache && Date.now() - springCache.at < 3 * 3600e3 && Math.abs(springCache.lat - q.lat) < 0.05 && Math.abs(springCache.lng - q.lng) < 0.05){ renderSpring(springCache); return; }
     if(navigator.onLine === false){ body.innerHTML = '<div class="pl-note">حالة الربيع تحتاج اتصالًا بالإنترنت.</div>'; return; }
     body.innerHTML = '<div class="pl-note">جارٍ قراءة صور الأقمار الصناعية والأمطار…</div>';
-    const [g, rain] = await Promise.all([greenAround(q.lat, q.lng).catch(()=>undefined), rainLast30(q.lat, q.lng).catch(()=>undefined)]);
-    springCache = {at:Date.now(), lat:q.lat, lng:q.lng, live:q.live, name:q.name, g, rain};
+    const [g, rain] = await Promise.all([greenAround(q.lat, q.lng).catch(()=>undefined), rainLast30(q.lat, q.lng).catch(()=>undefined), loadFayd()]);
+    let near = [];
+    if(faydData && faydSites && Array.isArray(faydData.rows)){
+      near = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {name:s[0], km:haversine(q.lat, q.lng, s[1], s[2]) / 1000, st:r[2], pct:r[3], s2:r[4]} : null; })
+        .filter(x=>x && x.km <= 25).sort((a, b)=>b.st - a.st || a.km - b.km).slice(0, 3);
+    }
+    springCache = {at:Date.now(), lat:q.lat, lng:q.lng, live:q.live, name:q.name, g, rain, near, asof:faydData && faydData.asof};
     renderSpring(springCache);
   }
   function renderSpring(c){
     const body = document.getElementById('springBody'), fmt = n=>Number(n).toLocaleString('ar-SA-u-nu-latn');
-    const g = c.g, rain = c.rain;
+    const g = c.g, rain = c.rain, near = c.near || [], best = near.find(x=>x.st > 0);
     let level, note, color;
-    if(g === undefined){ level = 'تعذّر القراءة'; note = 'لم تصل صور الأقمار الصناعية؛ حاول لاحقًا.'; color = '#F1ECE2'; }
+    if(best){
+      level = best.st === 1 ? 'بداية اخضرار' : best.st === 2 ? 'ربيع متوسط' : 'ربيع جيد';
+      note = 'في ' + best.name + ' على بعد ' + (best.km < 10 ? best.km.toFixed(1) : Math.round(best.km)) + ' كم — من صور القمر الأوروبي بدقة 10 م.';
+      color = best.st === 1 ? '#EEF1DC' : best.st === 2 ? '#E4F0D6' : '#D7EBC7';
+    }
+    else if(near.some(x=>x.s2 && x.km <= 10)){
+      // الصور الأدق (10 م) تقول الفياض القريبة ما اخضرّت → نعتمدها بدل صور ناسا التقريبية
+      level = 'ما بدأ الربيع'; note = 'الفياض القريبة منك ما اخضرّت حسب صور القمر الأوروبي (10 م).'; color = '#F1ECE2';
+    }
+    else if(g === undefined){ level = 'تعذّر القراءة'; note = 'لم تصل صور الأقمار الصناعية؛ حاول لاحقًا.'; color = '#F1ECE2'; }
     else if(g === null){ level = 'لا تتوفر صورة'; note = 'لا توجد قراءة لهذا المكان في آخر صورة (غيوم أو بحر).'; color = '#F1ECE2'; }
-    else if(g.pct < 8){ level = 'جرداء'; note = 'لا يظهر نبات يُذكر حولك.'; color = '#F1ECE2'; }
+    else if(g.pct < 8){ level = 'جرداء'; note = 'ما فيه نبات جديد يُذكر حولك' + (g.farm >= 10 ? ' (الأخضر اللي حولك مزارع أو شجر دائم، ما ينحسب ربيع).' : '.'); color = '#F1ECE2'; }
     else if(g.pct < 30 && g.strong < 8){ level = 'بداية اخضرار'; note = 'نبات خفيف متفرق، غالبًا في الشعبان والمنخفضات.'; color = '#EEF1DC'; }
     else if(g.strong < 25){ level = 'ربيع متوسط'; note = 'اخضرار واضح في أجزاء من المنطقة.'; color = '#E4F0D6'; }
     else { level = 'ربيع جيد'; note = 'المنطقة حولك خضراء.'; color = '#D7EBC7'; }
     let tip = '';
-    if(rain && g){
+    if(best) tip = 'الربيع بادي في الفياض القريبة. اضغط «اعرض الربيع على الخريطة» تشوف وين يتركّز.';
+    else if(near.some(x=>x.s2 && x.km <= 10)){
+      if(rain && rain.sum30 >= 10) tip = 'نزل مطر حديث (' + Number(rain.sum30).toLocaleString('ar-SA-u-nu-latn') + ' مم خلال 30 يومًا)؛ يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع، وهذي الشاشة تتحدث مرتين بالأسبوع.';
+    }
+    else if(rain && g){
       if(g.pct < 8 && rain.early >= 20) tip = 'نزلت أمطار جيدة قبل أسبوعين أو أكثر (' + fmt(rain.early) + ' مم)؛ توقّع اخضرارًا قريبًا، فالصور تتأخر حتى 8 أيام.';
       else if(g.pct < 8 && rain.sum30 >= 10) tip = 'نزل مطر حديث (' + fmt(rain.sum30) + ' مم خلال 30 يومًا)؛ يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع.';
       else if(g.pct < 8) tip = 'لا أمطار تُذكر حديثًا؛ لا يُتوقع ربيع قريب هنا. جرّب طبقة الربيع على الخريطة لترى مناطق أخرى.';
       else if(rain.sum30 >= 10) tip = 'الربيع ظاهر والأمطار مستمرة؛ وقت مناسب للكشتة.';
       else tip = 'الربيع ظاهر حولك. افتح الخريطة لترى أين يتركّز.';
     }
-    body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>نسبة الاخضرار ضمن نحو 5 كم: ${fmt(g.pct)}٪</small>` : ''}</div></div>`
-      + (rain ? `<div class="sp-row"><span>أمطار آخر 30 يومًا</span><b>${fmt(rain.sum30)} مم</b></div><div class="sp-row"><span>آخر مطر يُذكر</span><b>${rain.daysSince === null ? 'لا يوجد خلال 45 يومًا' : rain.daysSince === 0 ? 'اليوم' : rain.daysSince === 1 ? 'أمس' : rain.daysSince === 2 ? 'قبل يومين' : 'قبل ' + fmt(rain.daysSince) + (rain.daysSince <= 10 ? ' أيام' : ' يومًا')}</b></div>` : '<div class="sp-row"><span>الأمطار</span><b>تعذّر التحميل</b></div>')
+    body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>${g.ref ? 'الاخضرار الجديد' : 'نسبة الاخضرار'} ضمن نحو 5 كم: ${fmt(g.pct)}٪ <span style="opacity:.7">(تقريبي، 250 م)</span></small>` : ''}</div></div>`
+      + (near.length ? `<div class="sp-row" style="display:block"><span style="display:block;margin-bottom:4px">أقرب الفياض (قمر أوروبي 10 م${c.asof ? ' · ' + new Date(c.asof + 'T12:00:00Z').toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short'}) : ''})</span>${near.map(x=>`<b style="display:block;font-weight:600">${escapeHtml(x.name)} <small style="font-weight:400">· ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم · ${['ما اخضرّت','بداية اخضرار','مثل المعتاد','أخضر من المعتاد','أخضر من المعتاد بكثير'][x.st]}${x.st > 0 && x.pct ? ' · +' + x.pct + '٪ مساحة خضراء' : ''}</small></b>`).join('')}</div>` : '')
+      + (rain ? `<div class="sp-row"><span>أمطار آخر 30 يومًا${rain.radar ? ' <small style="opacity:.7">(نموذج + رادار)</small>' : ''}</span><b>${fmt(rain.sum30)} مم</b></div><div class="sp-row"><span>آخر مطر يُذكر</span><b>${rain.daysSince === null ? 'لا يوجد خلال 45 يومًا' : rain.daysSince === 0 ? 'اليوم' : rain.daysSince === 1 ? 'أمس' : rain.daysSince === 2 ? 'قبل يومين' : 'قبل ' + fmt(rain.daysSince) + (rain.daysSince <= 10 ? ' أيام' : ' يومًا')}</b></div>` : '<div class="sp-row"><span>الأمطار</span><b>تعذّر التحميل</b></div>')
       + (tip ? `<div class="sp-tip">${tip}</div>` : '')
  + `<div class="pl-note" style="margin-top:8px">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
   }
