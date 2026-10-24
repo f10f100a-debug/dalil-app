@@ -23,7 +23,7 @@ def submit(title, url, kind, caption):
         headers={"content-type": "multipart/form-data; boundary=" + bd, "origin": "https://f10f100a-debug.github.io", **UA}), timeout=60)
     return json.loads(r.read())
 out = []
-for q, kind, cap in [("flash flood wadi Saudi Arabia", "flood", "سيل الوادي اليوم"), ("cheeseburger", "rain", "")]:
+for q, kind, cap in [("flooded desert road water", "flood", "الطريق مقطوع بالسيل"), ("sandstorm Riyadh", "rain", "عجاج")]:
     t = commons(q); res = submit(t[0], t[1], kind, cap) if t else "no image"
     out.append(f"{q} | {t[0] if t else ''} | {res}"); time.sleep(2)
 print("::notice::" + " || ".join(out))
