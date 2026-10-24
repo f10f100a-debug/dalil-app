@@ -4,7 +4,7 @@ on: workflow_dispatch
 jobs:
   study:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 40
     permissions:
       contents: write
     steps:
