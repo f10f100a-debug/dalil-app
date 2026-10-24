@@ -159,7 +159,7 @@ for i, s in enumerate(SITES):
         started = g >= 0.04 or gain_frac >= 0.10
         idx = g / span
         st_ = 0 if not started else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
-        rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gfrac) * 100), 1]); s2dates.append(d8)
+        rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
     elif v:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
         st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
