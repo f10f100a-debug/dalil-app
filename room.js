@@ -586,11 +586,19 @@
   async function startPause(min){
     if(!R.sess) return;
     if(R.mySos) return B.toast('ألغِ الاستغاثة أولًا');
-    const j = await api('pause', authBody({minutes:min}));
-    if(!j.ok || !j.until) return B.toast(errText(j.error));
+    // يتطبّق فورًا (ما ننتظر الخادم)، ونرجّعه إذا رفض الخادم
+    const prev = R.pause ? {at:R.pause.at, until:R.pause.until} : null;
     pauseLocal = Date.now();
-    setMyPause({at:R.pause ? R.pause.at : Date.now(), until:new Date(j.until).getTime()}, 'user');
+    setMyPause({at:prev ? prev.at : Date.now(), until:Date.now() + min * 60e3}, 'user');
     B.toast('⏸️ الغرفة موقفة لك حتى ' + hhmm(R.pause.until) + ' — رسائلهم تنحفظ لك');
+    const j = await api('pause', authBody({minutes:min}));
+    pauseLocal = Date.now();
+    if(!j.ok || !j.until){
+      if(prev) setMyPause(prev, 'rollback');
+      else if(R.pause){ R.pause = null; clearTimeout(pauseTimer); if(R.sess){ delete R.sess.pause; saveSess(); } bgSync(); render(); updateBtn(); }
+      return B.toast('ما قدرنا نوقف الغرفة — ' + errText(j.error));
+    }
+    if(R.pause) setMyPause({at:R.pause.at, until:new Date(j.until).getTime()}, 'server-ok');
   }
   // auto: انتهت المدة (الخادم يرجّعك بنفسه ويرسل لك إشعار) — غير ذلك نبلّغ الخادم
   function endPause(auto, why){
@@ -599,7 +607,8 @@
     if(!auto) pauseLocal = Date.now();
     const from = R.pause.at;
     R.pause = null; clearTimeout(pauseTimer);
-    if(R.sess){ delete R.sess.pause; R.sess.missFrom = from; saveSess(); if(!auto) api('pause', authBody({minutes:0})); }
+    // انتهت المدة والتطبيق قدامه: نبلّغ الخادم على طول (ما يرسل له إشعار «انتهى الإيقاف» وهو شايف الشاشة)
+    if(R.sess){ delete R.sess.pause; R.sess.missFrom = from; saveSess(); if(!auto || (why === 'expired' && document.visibilityState === 'visible')) api('pause', authBody({minutes:0})); }
     bgSync(); lastSent = null; tickPos(); render(); updateBtn();
     const n = missed().length;
     B.toast(n ? '▶️ رجعت للغرفة · فاتتك ' + msgCount(n) : '▶️ رجعت للغرفة · ما فاتك شيء');

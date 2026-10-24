@@ -154,7 +154,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   ok(auth && (await call('pause', { ...auth, minutes: 90 })).error === 'bad_request', 'pause > 60 min rejected');
   await A.click('[data-rm="pause"]'); await A.waitForTimeout(400);
   await shot(A, '8a-A-pause-menu');
-  await A.click('[data-mm="pause"][data-arg="15"]'); await A.waitForTimeout(1500);
+  await A.click('[data-mm="pause"][data-arg="15"]'); await A.waitForTimeout(300);   // يتطبّق فورًا بدون انتظار الخادم
   ok((await A.textContent('#rmPauseBar').catch(() => '')).includes('متوقف مؤقتًا'), 'A paused bar shown');
   { const r = await A.evaluate(() => [window.DalilRoom.bgAuth() === null, (window.__dalilPauseLog || []).join(' ')]);
     ok(r[0], 'paused: background location/PTT off (bgAuth null) log=' + r[1]); }
@@ -203,7 +203,7 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   // مغادرة
   for (const p of [A, B]) {
     await p.evaluate(() => window.DalilRoom.open()); await p.waitForTimeout(800);
-    await p.click('[data-rm="leave"]').catch(() => {});
+    await p.click('#rmLeave').catch(() => {});
     await p.waitForTimeout(1000);
   }
   await shot(A, '9-A-left');
