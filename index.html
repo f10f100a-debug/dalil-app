@@ -568,6 +568,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   :is(html[data-theme="dark"], html[data-theme="red"]) .adv-head b{color:#F1D4A2} :is(html[data-theme="dark"], html[data-theme="red"]) .adv-head small{color:#C2A77F}
   :is(html[data-theme="dark"], html[data-theme="red"]) .adv-card .wd-loc select, :is(html[data-theme="dark"], html[data-theme="red"]) .adv-card .adv-days button:not([aria-checked="true"]){background:rgba(0,0,0,.25); border-color:#4A3A24}
   :is(html[data-theme="dark"], html[data-theme="red"]) .adv-out{background:rgba(0,0,0,.25)}
+  /* تدرّج خفيف فوق الشريط السفلي: يبيّن إن فيه محتوى تحت، ويختفي في آخر الصفحة */
+  #moreFade{position:fixed; left:50%; transform:translateX(-50%); width:100%; max-width:480px; height:64px; pointer-events:none; z-index:40;
+    background:linear-gradient(to bottom, rgba(242,239,233,0), var(--cp-bg) 92%); opacity:0; transition:opacity .25s;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) #moreFade{background:linear-gradient(to bottom, rgba(21,18,14,0), var(--cp-bg) 92%);}
+  html[data-theme="red"] #moreFade{background:linear-gradient(to bottom, rgba(0,0,0,0), #000 92%);}
+  #moreFade.show{opacity:1;}
   /* «اسأل دليل» */
   .ask-btn .cp-pill{gap:4px; padding:0 10px;}
   /* البوصلة: «اسأل» أيقونة فقط حتى تكفي المساحة لشارات الطقس والمطر وGPS */
@@ -1648,6 +1654,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   <div class="toast" id="toast"></div>
 
+  <div id="moreFade" aria-hidden="true"></div>
+
   <!-- «اسأل دليل»: مساعد استخدام التطبيق -->
   <div class="overlay" id="askOverlay">
     <div class="sheet cp-sheet ask-sheet" role="dialog" aria-modal="true" aria-labelledby="askTitle">
@@ -1895,6 +1903,22 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(tab.dataset.screen === 'settings') updateDiagnostics();
     });
   });
+
+  // ---------- تدرّج «فيه المزيد تحت» ----------
+  (function(){
+    const fade = document.getElementById('moreFade'), main = document.querySelector('main'), tb = document.querySelector('.tabbar');
+    if(!fade || !main || !tb) return;
+    let raf = 0;
+    const upd = ()=>{ raf = 0;
+      fade.style.bottom = tb.offsetHeight + 'px';
+      fade.classList.toggle('show', main.scrollTop + main.clientHeight < main.scrollHeight - 170); };
+    const later = ()=>{ if(!raf) raf = requestAnimationFrame(upd); };
+    main.addEventListener('scroll', later, {passive:true});
+    addEventListener('resize', later);
+    document.querySelectorAll('.tab[data-screen]').forEach(t=>t.addEventListener('click', ()=>setTimeout(later, 60)));
+    setInterval(()=>{ if(!document.hidden) later(); }, 1500);   // المحتوى يتغير (طقس، أماكن…)
+    later();
+  })();
 
   // ---------- onboarding & permissions ----------
   const onboardBtn = document.getElementById('onboardBtn');
