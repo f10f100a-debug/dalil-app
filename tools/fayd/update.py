@@ -135,6 +135,29 @@ for i, s in enumerate(SITES):
     idx = g / span
     st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
     rows.append([i, round(g * 1000), st_])
+# الخضرة بدون مطر = سقي (مزارع جديدة) مو ربيع: نتأكد من مطر آخر 75 يوم لكل فيضة تبان خضراء
+def rain75(idx):
+    out = {}
+    for k in range(0, len(idx), 80):
+        part = idx[k:k + 80]
+        q = urllib.parse.urlencode({"latitude": ",".join(str(SITES[i][1]) for i in part), "longitude": ",".join(str(SITES[i][2]) for i in part),
+                                    "daily": "precipitation_sum", "past_days": 75, "forecast_days": 1, "timezone": "Asia/Riyadh"})
+        for t in range(4):
+            try:
+                with urllib.request.urlopen(urllib.request.Request("https://api.open-meteo.com/v1/forecast?" + q, headers=UA), timeout=120) as r:
+                    j = json.load(r)
+                break
+            except Exception as e:
+                print("rain retry", str(e)[:80], flush=True); time.sleep(20 * (t + 1)); j = None
+        if j is None: continue
+        for i, loc in zip(part, j if isinstance(j, list) else [j]):
+            out[i] = sum(v or 0 for v in loc["daily"]["precipitation_sum"])
+    return out
+green = [r[0] for r in rows if r[2] > 0]
+rain = rain75(green) if green else {}
+for r in rows:
+    if r[2] > 0 and rain.get(r[0], 0) < 8: r[2] = 0; r[1] = min(r[1], 15)
+print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
 rows.sort(key=lambda r: -r[1])
 json.dump({"asof": dates[-1] if dates else "", "dates": dates, "n": len(SITES), "rows": rows},
           open("data/fayd.json", "w"), separators=(",", ":"))
