@@ -550,6 +550,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .adv-out{margin-top:12px; padding:12px; border-radius:14px; background:var(--panel-2); font-size:14.5px; line-height:1.75; color:var(--text);}
   .adv-out[hidden]{display:none;}
   .adv-out small{display:block; margin-top:8px; font-size:11.5px; color:var(--text-dim); line-height:1.5;}
+  /* هوية ألوان: تبويبات الأجواء (لون لكل قسم) + مستشار الطلعة بالذهبي */
+  .seg-b[data-wxpane="wx"]{--tab:#D9822B} .seg-b[data-wxpane="wind"]{--tab:#17979D} .seg-b[data-wxpane="spring"]{--tab:#3E9B4F} .seg-b[data-wxpane="ev"]{--tab:#D2553F}
+  .seg-b .cp-ic{color:var(--tab); opacity:.9}
+  .seg-b.active .cp-ic{color:var(--tab); opacity:1}
+  .seg-b.active{font-weight:700}
+  .seg-b.active::after{content:""; position:absolute; bottom:5px; left:32%; right:32%; height:3px; border-radius:3px; background:var(--tab)}
+  .adv-card{background:linear-gradient(160deg,#FBEFD9 0%,#FFF9EF 55%,#FFFDF9 100%); border:1px solid #E5C995; box-shadow:0 3px 14px rgba(150,105,40,.10)}
+  .adv-head .adv-ic{flex:0 0 auto; width:42px; height:42px; border-radius:13px; background:linear-gradient(145deg,#D6A35C,#B9843C); color:#fff; display:grid; place-items:center; box-shadow:0 2px 6px rgba(150,105,40,.3)}
+  .adv-head .adv-ic svg{width:24px; height:24px}
+  .adv-head b{color:#5E3A0C} .adv-head small{color:#8A6A3E}
+  .adv-card .wd-loc select, .adv-card .adv-days button:not([aria-checked="true"]){background:rgba(255,255,255,.75); border-color:#EAD9BB}
+  .adv-card .wd-loc .cp-ic{color:var(--cp-gold-ink)}
+  .adv-out{background:rgba(255,255,255,.8)}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .seg-b[data-wxpane="wx"]{--tab:#F2A350} :is(html[data-theme="dark"], html[data-theme="red"]) .seg-b[data-wxpane="wind"]{--tab:#45C7CC} :is(html[data-theme="dark"], html[data-theme="red"]) .seg-b[data-wxpane="spring"]{--tab:#72CC80} :is(html[data-theme="dark"], html[data-theme="red"]) .seg-b[data-wxpane="ev"]{--tab:#F28068}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .adv-card{background:linear-gradient(160deg,#33281A 0%,#251E16 55%,#1F1B16 100%); border-color:#5C4526; box-shadow:none}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .adv-head b{color:#F1D4A2} :is(html[data-theme="dark"], html[data-theme="red"]) .adv-head small{color:#C2A77F}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .adv-card .wd-loc select, :is(html[data-theme="dark"], html[data-theme="red"]) .adv-card .adv-days button:not([aria-checked="true"]){background:rgba(0,0,0,.25); border-color:#4A3A24}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .adv-out{background:rgba(0,0,0,.25)}
   /* «اسأل دليل» */
   .ask-btn .cp-pill{gap:4px; padding:0 10px;}
   /* البوصلة: «اسأل» أيقونة فقط حتى تكفي المساحة لشارات الطقس والمطر وGPS */
@@ -1215,7 +1233,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <span class="cp-ic wx-ext" data-ico="map"></span>
       </button>
       <div class="cp-card adv-card" id="advCard" hidden>
-        <div class="adv-head"><span class="adv-ic" aria-hidden="true">🧭</span><span><b>مستشار الطلعة</b><small>وش رأيك أطلع البر؟ اختر المكان واليوم</small></span></div>
+        <div class="adv-head"><span class="adv-ic" aria-hidden="true" data-ico="compass"></span><span><b>مستشار الطلعة</b><small>وش رأيك أطلع البر؟ اختر المكان واليوم</small></span></div>
         <label class="wd-loc"><span class="cp-ic" data-ico="pin"></span><select id="advLoc" aria-label="مكان الطلعة"></select></label>
         <div class="adv-days" id="advDays" role="radiogroup" aria-label="يوم الطلعة"></div>
         <button type="button" class="adv-ask" id="advAsk">اسأل المستشار</button>
