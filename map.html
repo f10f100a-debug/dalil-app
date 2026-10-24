@@ -44,6 +44,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 .mk-dot{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;border:2px solid #C9964F;font-size:17px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .mk.car .mk-dot{background:#C9964F;border-color:#5C3A0E;color:#1C1A17}.mk.car .mk-dot svg{width:20px;height:20px}
 .mk.rm .mk-dot{color:#fff;font-weight:800;font-size:15px;border-color:#fff;border-width:2.5px}.mk.rm.stale{opacity:.5}.mk.rm.sos .mk-dot{animation:rmSos 1s ease-in-out infinite}@keyframes rmSos{50%{box-shadow:0 0 0 9px rgba(192,57,43,.35)}}.mk.rally .mk-dot{background:#FBF3E6;border-color:#C9964F;font-size:18px}
+.mk.cl{z-index:1}.cl-dot{display:grid;place-items:center;border-radius:50%;background:#C9964F;color:#1C1A17;font-weight:800;font-size:14px;border:3px solid #FFFFFFe6;box-shadow:0 2px 8px rgba(0,0,0,.3),0 0 0 5px rgba(201,150,79,.28)}
 .mk-name{margin-top:3px;padding:1px 7px;border-radius:8px;background:#FFFFFFe8;color:#1C1A17;font-size:11px;font-weight:600;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}
 .nav-card{background:#FFFFFFf5;border-color:#E4DED3;color:#1C1A17}.nav-arrow{background:#FBF3E6;color:#7A4E14}.nav-coords{color:#6B645A}.nav-info{color:#6B645A}
 
@@ -174,6 +175,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
   <label class="lp-row">شدة التظليل<input type="range" id="lpHsOp" min="20" max="100" step="5"></label>
   <label class="lp-row">خطوط الكنتور (الارتفاعات)<input type="checkbox" id="lpContour"></label>
   <label class="lp-row">الأودية<input type="checkbox" id="lpWadi"></label>
+  <label class="lp-row">أماكني المحفوظة<input type="checkbox" id="lpMine"></label>
   <label class="lp-row">مواقع دليل<input type="checkbox" id="lpDalil"></label>
   <label class="lp-row"><span>الربيع — الغطاء النباتي <small class="lp-tag">إنترنت</small></span><input type="checkbox" id="lpNdvi"></label>
   <div class="lp-sub">الأخضر = نبات حالي · دقة 250 م · تتحدث كل 8 أيام · أوضح مع التصغير</div>
@@ -313,7 +315,7 @@ gpsBtn.onclick=()=>{
 northBtn.onclick=()=>{setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
-function selectMapPoint(sx,sy){let hit=null,best=26;for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
+function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
 function render(){
@@ -372,7 +374,7 @@ $('#rainSheet').addEventListener('click',async e=>{const b=e.target.closest('[da
     status.textContent=j.ok?'شكرًا! بلاغك ظاهر الآن للجميع على الرادار 🌧️':j.error==='wait'?'أرسلت بلاغًا قبل قليل — تقدر ترسل بعد 10 دقائق':'تعذّر الإرسال — تأكد من الاتصال';if(j.ok)loadRainReports(true)}
   catch(err){status.textContent='تعذّر الإرسال — تأكد من الاتصال'}});
 // ---------- طبقات الخريطة وإعداداتها (تُحفظ في dalil_map_layers) ----------
-const LP_DEF={base:'barr',hs:true,hsOp:90,contour:true,wadi:true,dalil:true,ndvi:false,water:false,rain:false,clouds:false,radar:false,lightning:false};
+const LP_DEF={base:'barr',hs:true,hsOp:90,contour:true,wadi:true,dalil:true,mine:true,ndvi:false,water:false,rain:false,clouds:false,radar:false,lightning:false};
 let LP=(()=>{try{return Object.assign({},LP_DEF,JSON.parse(localStorage.getItem('dalil_map_layers')||'{}'))}catch(e){return{...LP_DEF}}})();
 if(!['barr','topo','sat','osm'].includes(LP.base))LP.base='barr';
 if(LP.base==='osm')mapMode='online';
@@ -406,7 +408,7 @@ function applyPrefs(){
   localMode.classList.toggle('active',LP.base==='barr'||LP.base==='topo');onlineMode.classList.toggle('active',LP.base==='sat');
   setText(attribution,(LP.base==='sat'?'Powered by Esri · Esri, Maxar, Earthstar Geographics · Sentinel-2 cloudless 2016 © EOX · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.water?' · المياه: EC JRC/Google Global Surface Water · NASA LANCE MODIS Flood':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':'')+(LP.radar?' · الرادار: المركز الوطني للأرصاد عبر RainViewer':'')+(LP.lightning?' · البرق: © EUMETSAT':''));
   for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
-  $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpNdvi').checked=LP.ndvi;$('#lpWater').checked=LP.water;
+  $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpMine').checked=LP.mine;$('#lpNdvi').checked=LP.ndvi;$('#lpWater').checked=LP.water;
   if(glReady){vis('ndvi',LP.ndvi);vis('water-hist',LP.water);vis('water-now',LP.water);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain));radarVis();vis('lightning',LP.lightning);if(LP.radar&&!RADAR_FRAMES.length)loadRadarFrames();if(LP.radar&&RADAR_FRAMES.length){Object.keys(radarFix).forEach(k=>{if(!k.endsWith(':t'))delete radarFix[k]});radarWatch()}if(LP.lightning)refreshLightning()}
   $('#lpClouds').checked=LP.clouds;
   $('#lpRain').checked=LP.rain;$('#lpRadar').checked=LP.radar;$('#lpLightning').checked=LP.lightning;const anim=LP.rain||LP.clouds||LP.radar;$('#rainBar').classList.toggle('show',!!anim);radarLegendSync();stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);showFrame(playSet().frames.length-1)}
@@ -431,7 +433,7 @@ const layersPanel=$('#layersPanel');
 $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()};
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
-for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpNdvi','ndvi'],['#lpWater','water'],['#lpRain','rain'],['#lpClouds','clouds'],['#lpRadar','radar'],['#lpLightning','lightning']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
+for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpMine','mine'],['#lpNdvi','ndvi'],['#lpWater','water'],['#lpRain','rain'],['#lpClouds','clouds'],['#lpRadar','radar'],['#lpLightning','lightning']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
   if(key==='clouds'&&LP.clouds){status.textContent=navigator.onLine?'السحب الآن من القمر الأوروبي — اضغط ▶ لترى حركتها واتجاهها لآخر 3 ساعات. الأزرق الداكن سحب رعدية غالبًا':'طبقة السحب تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='rain'&&LP.rain){status.textContent=navigator.onLine?'المطر من أقمار NASA لآخر الساعات — اضغط ▶ لترى اتجاه السحب الممطرة. صغّر الخريطة لترى المملكة':'طبقة المطر تحتاج اتصالًا بالإنترنت';if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='radar'&&LP.radar){status.textContent=navigator.onLine?'رادار الأمطار: الأزرق خفيف والأصفر والأحمر غزير — اضغط ▶ لترى اتجاه المطر لآخر ساعتين':'الرادار يحتاج اتصالًا بالإنترنت';if(z>10){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=9;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
@@ -471,12 +473,20 @@ function fitRoom(){const pts=roomMarks.concat(gps?[gps]:[]);if(!pts.length)retur
 function loadSavedMarks(){let out=[];try{let car=JSON.parse(localStorage.getItem('dalil_car'));if(car&&validLatLng(Number(car.lat),Number(car.lng)))out.push({lat:Number(car.lat),lng:Number(car.lng),name:'السيارة',car:true})}catch(e){}try{let places=JSON.parse(localStorage.getItem('dalil_places'));if(Array.isArray(places))places.forEach(p=>{if(p&&validLatLng(Number(p.lat),Number(p.lng)))out.push({lat:Number(p.lat),lng:Number(p.lng),name:String(p.name||'مكان'),icon:String(p.icon||'📍')})})}catch(e){}savedMarks=out}
 function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const CAR_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 15.5v-4l2-5A2 2 0 0 1 8.9 5h6.2A2 2 0 0 1 17 6.5l2 5v4"/><path d="M3.5 15.5h17v3h-17z"/></svg>';
-function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12;
-  for(const m of savedMarks.concat(roomMarks)){let p=world(m.lat,m.lng),x=p[0]+innerWidth/2-cx,y=p[1]+innerHeight/2-cy;m.sx=null;
-    if(Math.abs(x-innerWidth/2)>hw+60||Math.abs(y-innerHeight/2)>hh+60)continue;m.sx=x;m.sy=y;
-    if(m.room){html+=`<div class="mk rm${m.stale?' stale':''}${m.sos?' sos':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot" style="background:${m.color}">${escapeHtml(m.name.trim().charAt(0)||'؟')}</span><span class="mk-name">${m.sos?'🆘 ':''}${escapeHtml(m.name)}</span></div>`;continue}
-    html+=`<div class="mk${m.car?' car':''}${m.rally?' rally':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot">${m.car?CAR_SVG:escapeHtml(m.icon)}</span>${showNames||m.rally||m.rcar?`<span class="mk-name">${escapeHtml(m.name)}</span>`:''}</div>`}
+// الأماكن المحفوظة تتجمّع في دوائر بالعدد لما تتقارب على الشاشة (خفيفة ولو آلاف الأماكن)
+const CLUSTER_PX=54;let clusters=[];
+function markHtml(m,x,y,showNames){if(m.room)return`<div class="mk rm${m.stale?' stale':''}${m.sos?' sos':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot" style="background:${m.color}">${escapeHtml(m.name.trim().charAt(0)||'؟')}</span><span class="mk-name">${m.sos?'🆘 ':''}${escapeHtml(m.name)}</span></div>`;
+  return`<div class="mk${m.car?' car':''}${m.rally?' rally':''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="mk-dot">${m.car?CAR_SVG:escapeHtml(m.icon)}</span>${showNames||m.rally||m.rcar?`<span class="mk-name">${escapeHtml(m.name)}</span>`:''}</div>`}
+function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12,cells=new Map(),noCl=z>=(mapMode==='online'?maxZ:maxLocalZ),ox=innerWidth/2-cx,oy=innerHeight/2-cy;clusters=[];
+  for(const m of savedMarks.concat(roomMarks)){m.sx=null;if(!m.car&&!m.room&&!m.rally&&!LP.mine)continue;let p=world(m.lat,m.lng),x=p[0]+ox,y=p[1]+oy;
+    if(Math.abs(x-innerWidth/2)>hw+60||Math.abs(y-innerHeight/2)>hh+60)continue;
+    if(m.car||m.room||m.rally||m.rcar||noCl){m.sx=x;m.sy=y;html+=markHtml(m,x,y,showNames);continue}
+    const k=Math.floor(p[0]/CLUSTER_PX)+':'+Math.floor(p[1]/CLUSTER_PX);let c=cells.get(k);if(!c){c={n:0,x:0,y:0,lat:0,lng:0,m};cells.set(k,c)}c.n++;c.x+=x;c.y+=y;c.lat+=m.lat;c.lng+=m.lng}
+  for(const c of cells.values()){if(c.n===1){const m=c.m;m.sx=c.x;m.sy=c.y;html+=markHtml(m,c.x,c.y,showNames);continue}
+    const x=c.x/c.n,y=c.y/c.n,sz=Math.round(34+Math.min(12,Math.log2(c.n)*2.4));clusters.push({sx:x,sy:y,lat:c.lat/c.n,lng:c.lng/c.n,n:c.n});
+    html+=`<div class="mk cl" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"><span class="cl-dot" style="width:${sz}px;height:${sz}px">${c.n>999?Math.floor(c.n/1000)+'k':c.n}</span></div>`}
   marksEl.innerHTML=html}
+function openCluster(c){let limit=mapMode==='online'?maxZ:maxLocalZ,n=Math.min(limit,Math.floor(z)+2);if(n<=z)n=limit;z=n;if(view!=='free')setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}
 function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
 function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
 function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
