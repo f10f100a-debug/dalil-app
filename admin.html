@@ -153,7 +153,15 @@
     </div>
     <div data-perm="moderate">
     <h2>بانتظار المراجعة <span class="badge" id="pendCount">0</span></h2>
+    <div class="card" id="aiModCard">
+      <div class="row" style="align-items:center">
+        <div style="font-weight:700">🤖 المراجعة بالذكاء الاصطناعي: <span id="aiModState">–</span></div>
+        <button class="white" id="aiModToggle" style="flex:0 0 auto" hidden></button>
+      </div>
+      <div class="muted" style="font-size:12.5px;margin-top:6px">ينشر الصور الواضحة تلقائيًا، ويرفض المخالفة وغير المتعلقة، والمشكوك فيها تبقى هنا لك. تقدر تنشر أي صورة رفضها لو أخطأ.</div>
+    </div>
     <div id="pending"></div>
+    <details id="aiRejBox" hidden style="margin-top:10px"><summary style="cursor:pointer;font-weight:700">رفضها الذكاء الاصطناعي (آخر 24 ساعة) <span class="badge" id="aiRejCount">0</span></summary><div id="aiRej"></div></details>
 
     </div>
     <div data-perm="push">
@@ -253,7 +261,7 @@
   try{ sessionStorage.removeItem('dalil_admin'); }catch(e){}
   const PERM_AR = {moderate:'مراجعة الصور وحذفها', publish:'نشر صور مباشرة', push:'إرسال التنبيهات', ads:'الإعلانات', usage:'إحصائيات الاستخدام'};
   const ACT_AR = {approve:'نشر صورة مشترك', reject:'رفض صورة', delete_event:'حذف صورة منشورة', restore:'إعادة نشر', publish:'نشر مباشر', push:'إرسال تنبيه',
-    ad_create:'إضافة إعلان', ad_update:'تعديل إعلان', ad_delete:'حذف إعلان', admin_create:'إضافة مشرف', admin_update:'تعديل مشرف', admin_delete:'حذف مشرف', change_password:'تغيير كلمة السر', auto_alerts_toggle:'تنبيهات المطر التلقائية'};
+    ad_create:'إضافة إعلان', ad_update:'تعديل إعلان', ad_delete:'حذف إعلان', admin_create:'إضافة مشرف', admin_update:'تعديل مشرف', admin_delete:'حذف مشرف', change_password:'تغيير كلمة السر', auto_alerts_toggle:'تنبيهات المطر التلقائية', ai_mod_toggle:'المراجعة بالذكاء الاصطناعي'};
   const can = p=>!!me && (me.role === 'owner' || me.perms.includes(p));
   function applyPerms(){
     document.querySelectorAll('[data-perm]').forEach(el=>{ el.hidden = el.dataset.perm === 'owner' ? !(me && me.role === 'owner') : !can(el.dataset.perm); });
@@ -280,6 +288,7 @@
       <div>
         <div class="t">${esc(KIND[e.kind] || e.kind)}${e.region ? ' — ' + esc(e.region) : ''}${e.status === 'hidden' ? '<span class="badge warn">مخفية بالبلاغات</span>' : ''}${e.reports ? `<span class="badge warn">${e.reports} بلاغ</span>` : ''}</div>
         ${e.caption ? `<div>${esc(e.caption)}</div>` : ''}
+        ${e.ai_verdict ? `<div class="m" style="margin:4px 0">🤖 ${{approve:'نشرها الذكاء الاصطناعي', reject:'رفضها الذكاء الاصطناعي', review:'محتار — يحتاج نظرتك'}[e.ai_verdict] || ''}${e.ai_reason ? ': ' + esc(e.ai_reason) : ''}${e.ai_kind && e.ai_kind !== e.kind ? ' · يقترح النوع «' + esc(KIND[e.ai_kind] || e.ai_kind) + '»' : ''}</div>` : ''}
         ${e.video_url ? `<video src="${esc(safeUrl(e.video_url))}" poster="${esc(safeUrl(e.photo_url))}" controls playsinline preload="metadata" style="width:100%;max-height:320px;background:#000;border-radius:10px;margin:6px 0"></video><div class="m">🎬 فيديو ${e.video_dur ? Math.round(e.video_dur) + ' ث' : ''} — شاهده كاملًا قبل النشر</div>` : ''}
         <div class="m">${esc(when(e.created_at))}${e.nickname ? ' · ' + esc(e.nickname) : ''} · ${loc}</div>
         ${pending ? `
@@ -289,12 +298,27 @@
       </div>
     </div>`;
   }
+  let aiModOn = true;
+  $('aiModToggle').addEventListener('click', async ()=>{
+    if(aiModOn && !confirm('إيقاف المراجعة بالذكاء الاصطناعي؟ كل الصور بترجع لك تراجعها يدويًا.')) return;
+    $('aiModToggle').disabled = true;
+    try{ await api('ai_mod_toggle', {on: !aiModOn}); await load(); }catch(e){ showErr(e); }
+    finally{ $('aiModToggle').disabled = false; }
+  });
   async function load(){
     const d = await api('list');
     $('login').hidden = true; $('app').hidden = false;
     $('pendCount').textContent = d.pending.length;
     $('liveCount').textContent = d.live.length;
     $('pending').innerHTML = d.pending.length ? d.pending.map(e=>evCard(e, true)).join('') : '<div class="card muted">لا توجد صور بانتظار المراجعة.</div>';
+    const rej = d.ai_rejected || [];
+    $('aiRejBox').hidden = !rej.length; $('aiRejCount').textContent = rej.length;
+    $('aiRej').innerHTML = rej.map(e=>evCard(e, true)).join('');
+    aiModOn = d.ai_mod !== false;
+    $('aiModState').innerHTML = aiModOn ? '<span class="badge on">شغّالة</span>' : '<span class="badge off">موقوفة</span>';
+    $('aiModToggle').hidden = !(me && me.role === 'owner');
+    $('aiModToggle').textContent = aiModOn ? 'إيقاف' : 'تشغيل';
+    $('aiModToggle').className = aiModOn ? 'danger' : 'gold';
     $('live').innerHTML = d.live.length ? d.live.map(e=>evCard(e, false)).join('') : '<div class="card muted">لا توجد صور منشورة الآن.</div>';
     const sub = d.subscribers || {total:0, byRegion:{}};
     $('stats').innerHTML = `<span>المشتركون في التنبيهات: <b>${sub.total}</b></span>` + Object.entries(sub.byRegion).map(([k, v])=>`<span>${esc(k)}: ${v}</span>`).join('');

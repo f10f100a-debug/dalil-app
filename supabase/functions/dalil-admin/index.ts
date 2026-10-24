@@ -253,6 +253,15 @@ Deno.serve(async (req) => {
       let lastRun = null; try { lastRun = last?.value ? JSON.parse(last.value) : null; } catch { /* */ }
       return json(req, { on: sw?.value !== "off", alerts: list || [], last: lastRun });
     }
+    // مراجعة الأحداث بالذكاء الاصطناعي (dalil-mod): تشغيل/إيقاف — للمالك فقط
+    if (action === "ai_mod_toggle") {
+      if (!isOwner) return forbidden();
+      const on = !!body.on;
+      const { error } = await sb.from("app_config").upsert({ key: "ai_mod", value: on ? "on" : "off" });
+      if (error) throw error;
+      await log("ai_mod_toggle", on ? "تشغيل" : "إيقاف");
+      return json(req, { ok: true, on });
+    }
     if (action === "auto_alerts_toggle") {
       if (!isOwner) return forbidden();
       const on = !!body.on;
@@ -265,8 +274,12 @@ Deno.serve(async (req) => {
     if (action === "list") {
       const job = cleanup(sb).catch((e) => console.error("cleanup", e));
       (globalThis as any).EdgeRuntime?.waitUntil?.(job);
-      const cols = "id,created_at,expires_at,status,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,video_path,video_dur,reports";
-      const { data: pending } = await sb.from("events").select(cols).eq("status", "pending").order("created_at", { ascending: true }).limit(100);
+      const cols = "id,created_at,expires_at,status,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,video_path,video_dur,reports,ai_verdict,ai_reason,ai_kind";
+      const { data: pendingRows } = await sb.from("events").select(cols).eq("status", "pending").order("created_at", { ascending: true }).limit(100);
+      // اللي رفضها الذكاء الاصطناعي (آخر 24 ساعة) — تقدر تنشرها لو أخطأ
+      const { data: aiRej } = await sb.from("events").select(cols).eq("status", "rejected").eq("ai_verdict", "reject").gte("created_at", new Date(Date.now() - 86400e3).toISOString()).order("created_at", { ascending: false }).limit(50);
+      const { data: aiSw } = await sb.from("app_config").select("value").eq("key", "ai_mod").maybeSingle();
+      const pending = [...(pendingRows || []), ...(aiRej || [])];
       const { data: live } = await sb.from("events").select(cols).in("status", ["approved", "hidden"]).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(100);
       const pend = pending || [];
       let signed: Record<string,string> = {};
@@ -281,7 +294,9 @@ Deno.serve(async (req) => {
       const byRegion: Record<string, number> = {};
       (subRows || []).forEach((r) => { const k = r.region || "الكل"; byRegion[k] = (byRegion[k] || 0) + 1; });
       return json(req, {
-        pending: pend.map((e) => ({ ...e, photo_url: signed[e.photo_path], thumb_url: signed[e.thumb_path], video_url: e.video_path ? signed[e.video_path] : null })),
+        pending: pend.filter((e) => e.status === "pending").map((e) => ({ ...e, photo_url: signed[e.photo_path], thumb_url: signed[e.thumb_path], video_url: e.video_path ? signed[e.video_path] : null })),
+        ai_rejected: pend.filter((e) => e.status === "rejected").map((e) => ({ ...e, photo_url: signed[e.photo_path], thumb_url: signed[e.thumb_path], video_url: e.video_path ? signed[e.video_path] : null })),
+        ai_mod: aiSw?.value !== "off",
         live: (live || []).map((e) => ({ ...e, photo_url: pub(e.photo_path), thumb_url: pub(e.thumb_path), video_url: e.video_path ? pub(e.video_path) : null })),
         subscribers: { total: subRows?.length || 0, byRegion },
         regions: REGIONS,
@@ -325,7 +340,8 @@ Deno.serve(async (req) => {
 
     if (action === "approve" && validId) {
       const { data: ev } = await sb.from("events").select("*").eq("id", id).maybeSingle();
-      if (!ev || ev.status !== "pending") return json(req, { error: "not_pending" }, 409);
+      // تُقبل المعلّقة، أو اللي رفضها الذكاء الاصطناعي (إذا المشرف شاف إنه أخطأ)
+      if (!ev || !(ev.status === "pending" || (ev.status === "rejected" && ev.ai_verdict === "reject"))) return json(req, { error: "not_pending" }, 409);
       const files = [ev.photo_path, ev.thumb_path, ...(ev.video_path ? [ev.video_path] : [])];
       for (const p of files) {
         const dl = await sb.storage.from("pending").download(p);
@@ -338,6 +354,7 @@ Deno.serve(async (req) => {
       const { error } = await sb.from("events").update({
         status: "approved", approved_at: now.toISOString(),
         expires_at: new Date(now.getTime() + LIVE_DAYS * 86400e3).toISOString(),
+        ...(ev.ai_kind && KINDS.includes(ev.ai_kind) ? { kind: ev.ai_kind } : {}),
       }).eq("id", id);
       if (error) throw error;
       let push = null;
