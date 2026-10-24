@@ -13,10 +13,15 @@ async function ctxFor(browser, o = {}) {
 async function open(c, o = {}) {
   const p = await c.newPage();
   p.on('dialog', d => d.accept().catch(() => {}));
-  await p.addInitScript(([theme, car]) => {
+  await p.addInitScript(([theme, car, places]) => {
+    if (places) { const a = [], icons = ['⛺','💧','⭐','🌄','📍','⚠️'], cats = ['camp','water','fav','view','other','danger'], names = ['مخيم الربع','بئر الردة','روضة الخضاب','مطل الغروب','نفود الجبة','شعيب خطر'];
+      for (let i = 0; i < 60; i++) { const k = i % 6; a.push({ id: 'g' + i, name: names[k] + (i >= 6 ? ' ' + Math.ceil(i / 6) : ''), icon: icons[k], cat: cats[k], lat: 27.52 + Math.sin(i * 1.7) * 0.5 * (i % 7 + 1) / 7, lng: 41.69 + Math.cos(i * 1.3) * 0.6 * (i % 5 + 1) / 5, createdAt: Date.now() - i * 86400e3 }); }
+      localStorage.setItem('dalil_places', JSON.stringify(a)); }
     localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_theme', theme); localStorage.setItem('dalil_room_terms_v1', '1');
     if (car) localStorage.setItem('dalil_car', JSON.stringify({ lat: 27.5232, lng: 41.7001, time: Date.now() - 3600e3 }));
-  }, [o.dark ? 'dark' : 'light', !!o.car]);
+  }, [o.dark ? 'dark' : 'light', !!o.car, !!o.places]);
+  await p.route('**/data/fayd.json*', r => r.fulfill({ path: 'tools/promo/sample-fayd.json', contentType: 'application/json' }));
+  await p.route('**/data/fq.json*', r => r.fulfill({ path: 'tools/promo/sample-fq.json', contentType: 'application/json' }));
   await p.goto('http://localhost:8765/index.html' + (o.q || ''));
   await p.waitForTimeout(1800);
   if (await p.isVisible('#skipPermissionsBtn').catch(() => false)) await p.click('#skipPermissionsBtn');
@@ -45,7 +50,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   { const c = await ctxFor(browser); const p = await c.newPage(); await p.addInitScript(() => localStorage.setItem('dalil_theme', 'light'));
     await p.goto('http://localhost:8765/index.html'); await p.waitForTimeout(2000); await shot(p, '01-onboarding'); await c.close(); }
 
-  const c = await ctxFor(browser); const p = await open(c, { car: true });
+  const c = await ctxFor(browser); const p = await open(c, { car: true, places: true });
 
   // 2) البوصلة
   await shot(p, '02-compass');
@@ -55,6 +60,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 3) الأماكن
   await tab(p, 'places'); await p.waitForTimeout(2500);
   await shot(p, '04-places');
+  await shot(p, '04b-places-mine', async () => { await p.click('#plSeg [data-pltab="mine"]'); await p.waitForTimeout(1200); });
+  await p.click('#plSeg [data-pltab="near"]').catch(() => {});
   await shot(p, '05-places-search', async () => { await p.fill('#placeSearch', 'بنزين'); await p.waitForTimeout(3000); });
   // توجّه لأول نتيجة
   await p.locator('#screen-places >> text=توجّه').first().click({ timeout: 4000 }).catch(e => log('nav fail', e.message.split('\n')[0]));
@@ -70,6 +77,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await tab(p, 'track'); await p.waitForTimeout(5000); await later(p);
   await mapGo(p, 27.52, 41.69, 12); await p.waitForTimeout(5000);
   await shot(p, '08-map');
+  await shot(p, '08b-map-clusters', async () => { await mapGo(p, 27.52, 41.69, 9); await p.waitForTimeout(4000); });
+  await mapGo(p, 27.52, 41.69, 12); await p.waitForTimeout(2000);
   await shot(p, '09-map-layers', async () => { await frame(p).locator('#layersBtn').click(); await p.waitForTimeout(1200); });
   await frame(p).locator('#lpClose').click().catch(() => {});
   await shot(p, '10-map-sat', async () => { await frame(p).locator('#onlineMode').click(); await p.waitForTimeout(7000); });
@@ -98,6 +107,13 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   });
   await p.evaluate(() => scrollTo(0, 0));
   for (const [k, n] of [['wind', '17-wind'], ['spring', '18-spring'], ['ev', '19-events']]) {
+    if (k === 'spring') {
+      await shot(p, '18-spring', async () => { await p.click('[data-wxpane="spring"]'); await p.waitForTimeout(5000); await p.click('#faydChips [data-fy="all"]').catch(() => {}); await p.waitForTimeout(800); });
+      await shot(p, '18b-spring-fq', async () => { await p.click('#spSeg [data-sp="fq"]'); await p.waitForTimeout(2500); });
+      await shot(p, '18c-spring-around', async () => { await p.click('#spSeg [data-sp="fayd"]'); await p.waitForTimeout(1500); await p.evaluate(() => document.querySelector('#springPane .sp-card').scrollIntoView({ block: 'start' })); await p.waitForTimeout(6000); });
+      await p.evaluate(() => scrollTo(0, 0));
+      continue;
+    }
     await shot(p, n, async () => { await p.click(`[data-wxpane="${k}"]`); await p.waitForTimeout(4000); });
     if (k === 'wind') {
       await shot(p, '17b-wind-chart', () => p.evaluate(() => { const e = document.getElementById('windChart'); if (e) e.scrollIntoView({ block: 'center' }); }));
@@ -108,6 +124,17 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await p.click('[data-wxpane="wx"]').catch(() => {});
   await shot(p, '15b-weather-hours', () => p.evaluate(() => { const e = document.getElementById('wxHours'); if (e) e.scrollIntoView({ block: 'center' }); }));
   await p.evaluate(() => scrollTo(0, 0));
+
+  // اسأل دليل (رد حقيقي)
+  await shot(p, '37-ask', async () => {
+    await p.locator('.ask-btn:visible').first().click();
+    await p.waitForTimeout(1200);
+    await p.fill('#askInput', 'كيف أحفظ مكان سيارتي؟');
+    await p.press('#askInput', 'Enter');
+    await p.waitForTimeout(12000);
+  });
+  await p.keyboard.press('Escape').catch(() => {});
+  await p.evaluate(() => { const o = document.getElementById('askOverlay'); if (o) o.classList.remove('show'); }).catch(() => {});
 
   // 6) الإعدادات
   await tab(p, 'settings'); await p.waitForTimeout(1500);
