@@ -727,6 +727,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .pl-empty .cp-ic{width:36px; height:36px; color:var(--cp-gold-ink); margin-bottom:6px;}
   .pl-empty b{display:block; font-size:16px; margin-bottom:4px;}
   .pl-empty span{font-size:13.5px; color:var(--text-dim); line-height:1.7;}
+  .plseg{grid-template-columns:1fr 1fr; margin:2px 0 10px;}
+  #plSeg[hidden], #filterChips[hidden]{display:none;}
+  .plseg .seg-b b{font-weight:600; opacity:.7; margin-inline-start:4px;}
   .pl-section{font-size:13.5px; font-weight:700; color:var(--text-dim); margin:16px 2px 8px;}
   .pl-section small{font-weight:500; color:var(--text-faint);}
   .pl-ic.cat{background:#FBF3E6; color:var(--cp-gold-ink);}
@@ -1157,6 +1160,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="pl-toolbar">
         <label class="pl-search"><span class="cp-ic" data-ico="search"></span><input class="search-box" id="placeSearch" type="search" placeholder="ابحث في أماكنك والمواقع البرية" autocomplete="off"></label>
         <button class="cp-btn cp-btn-gold pl-add" type="button" id="addPlaceBtn"><span class="cp-ic" data-ico="plus"></span>مكان جديد</button>
+      </div>
+      <div class="seg plseg" id="plSeg" role="tablist" aria-label="أماكني أو حولي">
+        <button type="button" class="seg-b" role="tab" data-pltab="mine">أماكني <b id="plSegMine"></b></button>
+        <button type="button" class="seg-b" role="tab" data-pltab="near">حولي <b id="plSegNear"></b></button>
       </div>
       <div class="chips" id="filterChips" role="tablist" aria-label="تصفية حسب التصنيف">
         <button type="button" class="chip active" data-cat="all">الكل</button>
@@ -3637,7 +3644,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       alt: state.pos ? state.pos.alt : null,
       createdAt: Date.now()
     };
-    state.places.unshift(place);
+    state.places.unshift(place); placesTab = 'mine';
     if(!save()){ state.places.shift(); return; }
     document.getElementById('saveOverlay').classList.remove('show');
     renderPlaces();
@@ -3702,39 +3709,54 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const total = sourcePlaces.length;
     setText('placesCount', total ? (items.length === total ? total + (total === 1 ? ' مكان محفوظ' : ' أماكن محفوظة') : items.length + ' من ' + total) + (state.pos ? ' · الأقرب أولًا' : '') : '');
     if(q || state.pos) ensureBundledCatalog();
+    // مفتاح «أماكني | حولي»: كل قسم بصفحته (يفتح على أماكني إذا عندك أماكن، وإلا حولي)
+    if(!placesTab) placesTab = total ? 'mine' : 'near';
+    const near = !q && state.pos ? nearbyCatalog(state.pos.lat, state.pos.lng) : [];
+    const seg = document.getElementById('plSeg');
+    seg.hidden = !!q;
+    seg.querySelectorAll('[data-pltab]').forEach(b=>{ const on = b.dataset.pltab === placesTab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
+    setText('plSegMine', total ? total.toLocaleString('ar-SA-u-nu-latn') : '');
+    setText('plSegNear', near.length ? String(near.length) : '');
+    document.getElementById('filterChips').hidden = !q && placesTab === 'near';
+    if(!q && placesTab === 'near'){
+      setText('placesCount', near.length ? 'أقرب ' + near.length + ' من المواقع البرية خلال ' + NEARBY_KM + ' كم' : '');
+      list.innerHTML = (!state.pos
+        ? `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>نحتاج موقعك</b><span>فعّل الموقع عشان نعرض لك المواقع البرية حولك.</span></div>`
+        : near.length ? near.map(placeCard).join('')
+        : `<div class="pl-note">${bundledLoading || !bundledCatalog ? 'جارٍ تحميل المواقع البرية…' : 'ما فيه مواقع برية مسجّلة خلال ' + NEARBY_KM + ' كم منك.'}</div>`) + adHtml('places');
+      return;
+    }
     const found = q && state.activeCat === 'all' ? searchCatalog(q) : null;
-    const near = !q && state.activeCat === 'all' && state.pos ? nearbyCatalog(state.pos.lat, state.pos.lng) : [];
-    const nearHtml = near.length ? `<div class="pl-section">بالقرب منك <small>· أقرب ${near.length} من المواقع البرية خلال ${NEARBY_KM} كم</small></div>` + near.map(placeCard).join('') : '';
     const catalogHtml = found && found.items && found.items.length
       ? `<div class="pl-section">من المواقع البرية <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
       : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل المواقع البرية…' : 'تعذّر تحميل المواقع البرية — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
-    if(items.length === 0 && (catalogHtml || nearHtml)){
+    if(items.length === 0 && catalogHtml){
       setText('placesCount', '');
-      list.innerHTML = catalogHtml || nearHtml;
+      list.innerHTML = catalogHtml;
       return;
     }
     if(items.length === 0){
       list.innerHTML = total
         ? `<div class="pl-empty"><span class="cp-ic">${ico('search')}</span><b>لا توجد نتائج</b><span>جرّب كلمة أخرى أو تصنيفًا آخر.</span></div>`
-        : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`;
+        : `<div class="pl-empty"><span class="cp-ic">${ico('pin')}</span><b>لا توجد أماكن محفوظة بعد</b><span>احفظ موقعك الحالي بزر «مكان جديد»،<br>أو الصق موقعًا وصلك في رسالة من صفحة البوصلة.</span></div>`
+          + (q ? '' : `<button type="button" class="pl-more" data-pltab="near">شوف المواقع البرية حولك</button>`);
       return;
     }
-    // كثرة الأماكن المحفوظة لا تغطي «بالقرب منك»: نعرض أقرب 3 مع زر لعرض الكل
-    const fold = !q && state.activeCat === 'all' && nearHtml && items.length > PLACES_FOLD && !placesShowAll;
-    const shown = fold ? items.slice(0, PLACES_FOLD) : items.slice(0, placesLimit);
     // آلاف الأماكن: نرسم دفعة 100 ونكمل بزر (البحث يدور في الكل)
-    const pageBtn = !fold && items.length > shown.length
+    const shown = items.slice(0, placesLimit);
+    const pageBtn = items.length > shown.length
       ? `<button type="button" class="pl-more" data-pl-page>عرض المزيد (${(items.length - shown.length).toLocaleString('ar-SA-u-nu-latn')} باقي)</button>` : '';
-    const moreBtn = !q && state.activeCat === 'all' && nearHtml && items.length > PLACES_FOLD
-      ? `<button type="button" class="pl-more" data-pl-more>${fold ? 'عرض كل أماكنك (' + items.length.toLocaleString('ar-SA-u-nu-latn') + ')' : 'عرض أقرب ' + PLACES_FOLD + ' فقط'}</button>` : '';
-    list.innerHTML = shown.map(placeCard).join('') + pageBtn + moreBtn + catalogHtml + nearHtml + adHtml('places');
+    list.innerHTML = shown.map(placeCard).join('') + pageBtn + catalogHtml + adHtml('places');
   }
-  const PLACES_FOLD = 3;
-  let placesShowAll = false, placesLimit = 100;
+  let placesLimit = 100, placesTab = '';
   document.getElementById('placesList').addEventListener('click', e=>{
     if(e.target.closest('[data-pl-page]')){ placesLimit += 100; renderPlaces(); return; }
-    if(!e.target.closest('[data-pl-more]')) return;
-    placesShowAll = !placesShowAll; placesLimit = 100; renderPlaces();
+    const t = e.target.closest('[data-pltab]'); if(t){ placesTab = t.dataset.pltab; placesLimit = 100; renderPlaces(); }
+  });
+  document.getElementById('plSeg').addEventListener('click', e=>{
+    const t = e.target.closest('[data-pltab]'); if(!t || t.dataset.pltab === placesTab) return;
+    placesTab = t.dataset.pltab; placesLimit = 100; renderPlaces();
+    const m = document.querySelector('main'); if(m) m.scrollTop = 0;
   });
   function placeCard(p){
     const isCar = p.id === '__car__';
@@ -4731,7 +4753,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       lat: state.pasteParsed.lat, lng: state.pasteParsed.lng,
       alt: null, createdAt: Date.now()
     };
-    state.places.unshift(place);
+    state.places.unshift(place); placesTab = 'mine';
     if(!save()){ state.places.shift(); return; }
     document.getElementById('pasteOverlay').classList.remove('show');
     renderPlaces();
