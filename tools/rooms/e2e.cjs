@@ -141,6 +141,11 @@ const shot = (p, n) => p.screenshot({ path: `${OUT}/${n}.png` });
   await shot(B, '7-B-sos');
   await shot(A, '7-A-sos');
 
+  // محرك النغمات ما يبقى شغال: يتوقف بعد 20 ث بدون نغمات (لو بقى يصرف البطارية في الخلفية)
+  { const st0 = await B.evaluate(() => window.__dalilToneState && window.__dalilToneState());
+    await B.waitForTimeout(22000);
+    const st1 = await B.evaluate(() => window.__dalilToneState && window.__dalilToneState());
+    ok(st1 !== 'running', 'tone engine sleeps when idle (' + st0 + ' → ' + st1 + ')'); }
   // خيارات العضو (كتم/بلاغ) — نعرض القائمة فقط
   await A.click('#rmMembers [data-rm="menu"]');
   await A.waitForTimeout(500);

@@ -580,8 +580,13 @@
     renderSos();
   }
   // نغمات اللاسلكي: قبل الكلام، بعد الإرسال، وقبل تشغيل رسالة واردة
-  let actx = null;
-  function audioCtx(){ try{ if(!actx){ const C = window.AudioContext || window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state === 'suspended') actx.resume(); }catch(e){} return actx; }
+  // محرك النغمات يتوقف بعد 20 ثانية بدون نغمات، وفورًا إذا طلعت من التطبيق: لو بقى شغال يعتبره الآيفون «صوت يشتغل»
+  // فيخلي التطبيق صاحي في الخلفية ويصرف البطارية (اللاسلكي في الخلفية يشتغل من نظام أبل نفسه، ما يحتاجه)
+  let actx = null, actxIdle = null;
+  function sleepCtx(ms){ clearTimeout(actxIdle); actxIdle = setTimeout(()=>{ try{ if(actx && actx.state === 'running') actx.suspend(); }catch(e){} }, ms); }
+  function audioCtx(){ try{ if(!actx){ const C = window.AudioContext || window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state === 'suspended') actx.resume(); }catch(e){} if(actx) sleepCtx(20000); return actx; }
+  window.__dalilToneState = ()=>actx ? actx.state : 'none';   // للفحص الآلي
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState !== 'visible'){ clearTimeout(actxIdle); try{ if(actx && actx.state === 'running') actx.suspend(); }catch(e){} } });
   function tone(kind){
     const ctx = audioCtx(); if(!ctx) return 0;
     const seq = kind === 'start' ? [[1200, .07], [1600, .09]] : kind === 'end' ? [[1600, .06], [1000, .1]] : [[900, .06], [1300, .06], [1800, .09]];
