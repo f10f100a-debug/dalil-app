@@ -11,4 +11,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { sparse-checkout: tools/wxtrial }
-      - run: pip install pillow -q && python3 tools/wxtrial/probe.py ${{ inputs.box }}
+      - run: pip install pillow -q && python3 tools/wxtrial/probe.py ${{ inputs.box }} > out.txt 2>&1; cat out.txt; echo "::notice::$(tr "\n" "|" < out.txt | cut -c1-3900)"
