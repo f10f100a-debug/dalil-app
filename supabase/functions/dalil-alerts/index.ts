@@ -123,6 +123,74 @@ async function accumulateRadar(sb: SupabaseClient, g: Int8Array, frameTime: numb
   return { day, frames: (row?.frames || 0) + 1 };
 }
 
+// ---------- التجربة الصامتة: «أقرب مطر غزير وبرد» ----------
+// (1) الرادار: خلايا متصلة ≥45 dBZ (مطر غزير ~25 ملم/س فأكثر)، ونعدّ خانات ≥55 (خلية قوية جدًا = احتمال برد)
+const T_HEAVY = 45, T_HAIL = 55;
+async function logTrial(sb: SupabaseClient, g: Int8Array, o: Int8Array, pv: Int8Array, L: Uint8Array | null, frameTime: number,
+  motionAt: (i: number, j: number) => { kmh: number; dir: string } | null) {
+  const frame = new Date(frameTime * 1000).toISOString();
+  const { count } = await sb.from("wx_trial_cells").select("id", { count: "exact", head: true }).eq("frame", frame);
+  if ((count ?? 0) > 0) return { skipped: "same_frame" };
+  const seen = new Uint8Array(ROWS * COLS), rows: Record<string, unknown>[] = [];
+  const ok = (k: number) => g[k] >= T_HEAVY && !(o[k] >= 0 && pv[k] >= 0 && o[k] >= g[k] - 10);   // نفس فلتر التشويش الثابت
+  for (let k0 = 0; k0 < g.length; k0++) {
+    if (seen[k0] || !ok(k0)) continue;
+    const st = [k0]; seen[k0] = 1; let n = 0, n55 = 0, si = 0, sj = 0, mx = 0, lt = false;
+    while (st.length) {
+      const k = st.pop()!, i = k / COLS | 0, j = k % COLS;
+      n++; si += i; sj += j; mx = Math.max(mx, g[k]); if (g[k] >= T_HAIL) n55++;
+      if (L && !lt) for (let a = -2; a <= 2 && !lt; a++) for (let b = -2; b <= 2; b++) { const y = i + a, x = j + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && L[y * COLS + x]) { lt = true; break; } }
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+        const y = i + a, x = j + b; if (y < 0 || x < 0 || y >= ROWS || x >= COLS) continue;
+        const kk = y * COLS + x; if (!seen[kk] && ok(kk)) { seen[kk] = 1; st.push(kk); }
+      }
+    }
+    if (n < 2) continue;   // نقطة وحدة = غالبًا تشويش
+    const ci = si / n, cj = sj / n, lat = LAT0 + (ci + .5) * STEP, lng = LNG0 + (cj + .5) * STEP, mv = motionAt(Math.round(ci), Math.round(cj));
+    rows.push({ frame, lat: Math.round(lat * 1000) / 1000, lng: Math.round(lng * 1000) / 1000, region: regionOf(lat, lng) || null, max_dbz: mx, n, n55, lightning: L ? lt : null, mv_kmh: mv?.kmh ?? null, mv_dir: mv?.dir ?? null });
+  }
+  rows.sort((a, b) => (b.n as number) - (a.n as number));
+  const keep = rows.slice(0, 150);
+  if (keep.length) { const { error } = await sb.from("wx_trial_cells").insert(keep); if (error) throw error; }
+  if (Math.random() < 0.02) await sb.from("wx_trial_cells").delete().lt("frame", new Date(Date.now() - 45 * 86400e3).toISOString());
+  return { cells: keep.length, hail: keep.filter((r) => (r.n55 as number) > 0).length };
+}
+// (2) التوقعات (مرتين باليوم): شبكة 1° على أرض المملكة، 3 نماذج، الـ 48 ساعة الجاية
+//   heavy: ≥10 ملم خلال 3 ساعات باتفاق نموذجين فأكثر · storm: طاقة عواصف (CAPE) ≥1500 مع مطر بنموذج واحد على الأقل
+const FC_MODELS = ["ecmwf_ifs025", "gfs_seamless", "icon_seamless"];
+async function forecastTrial(sb: SupabaseClient, dry: boolean) {
+  const pts: [number, number, string][] = [];
+  for (let la = 16.5; la <= 32; la += 1) for (let lo = 34.5; lo <= 55.5; lo += 1) { const r = regionOf(la, lo); if (r) pts.push([la, lo, r]); }
+  const rows: Record<string, unknown>[] = [];
+  for (let s0 = 0; s0 < pts.length; s0 += 100) {
+    const part = pts.slice(s0, s0 + 100);
+    const qs = new URLSearchParams({ latitude: part.map((p) => p[0]).join(","), longitude: part.map((p) => p[1]).join(","), hourly: "precipitation,cape", models: FC_MODELS.join(","), forecast_days: "3", timezone: "GMT" });
+    const r = await fetch("https://api.open-meteo.com/v1/forecast?" + qs); if (!r.ok) throw new Error("open-meteo " + r.status);
+    const arr = await r.json(); const list = Array.isArray(arr) ? arr : [arr];
+    list.forEach((j: { hourly: Record<string, (number | null)[]> & { time: string[] } }, idx: number) => {
+      const [la, lo, reg] = part[idx], H = j.hourly, T = H.time, t0 = Date.now();
+      let bestH: Record<string, unknown> | null = null, bestS: Record<string, unknown> | null = null;
+      for (let i = 0; i + 3 <= T.length; i++) {
+        const ts = Date.parse(T[i] + "Z"); if (ts < t0 - 3600e3 || ts > t0 + 48 * 3600e3) continue;
+        let agree = 0, mmMax = 0, wet = 0, cape = 0;
+        for (const m of FC_MODELS) {
+          const P = H["precipitation_" + m] || [], C = H["cape_" + m] || [];
+          const mm = (P[i] || 0) + (P[i + 1] || 0) + (P[i + 2] || 0);
+          if (mm >= 10) agree++; if (mm >= 1) wet++; mmMax = Math.max(mmMax, mm);
+          cape = Math.max(cape, C[i] || 0, C[i + 1] || 0, C[i + 2] || 0);
+        }
+        const w = { win_from: new Date(ts).toISOString(), win_to: new Date(ts + 3 * 3600e3).toISOString() };
+        if (agree >= 2 && (!bestH || agree > (bestH.agree as number) || mmMax > (bestH.mm as number))) bestH = { kind: "heavy", agree, mm: Math.round(mmMax * 10) / 10, cape: Math.round(cape), ...w };
+        if (cape >= 1500 && wet >= 1 && (!bestS || cape > (bestS.cape as number))) bestS = { kind: "storm", agree: wet, mm: Math.round(mmMax * 10) / 10, cape: Math.round(cape), ...w };
+      }
+      for (const b of [bestH, bestS]) if (b) rows.push({ lat: la, lng: lo, region: reg, ...b });
+    });
+  }
+  if (!dry && rows.length) { const { error } = await sb.from("wx_trial_fc").insert(rows); if (error) throw error; }
+  if (!dry && Math.random() < 0.1) await sb.from("wx_trial_fc").delete().lt("made_at", new Date(Date.now() - 45 * 86400e3).toISOString());
+  return { ok: true, points: pts.length, heavy: rows.filter((r) => r.kind === "heavy").length, storm: rows.filter((r) => r.kind === "storm").length, ...(dry ? { sample: rows.slice(0, 5) } : {}) };
+}
+
 async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, region: string, p: { title: string; body: string; url: string; tag: string }) {
   let web = 0, ios = 0;
   try {
@@ -166,6 +234,7 @@ Deno.serve(async (req) => {
     const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
     if (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value) return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
     const cfg = await config(sb);
+    if (url.searchParams.get("a") === "fc") return Response.json(await forecastTrial(sb, dry));
     // يُقرأ مباشرة (بدون الذاكرة المؤقتة) حتى يسري زر الإيقاف في لوحة الإدارة فورًا
     const { data: sw } = await sb.from("app_config").select("value").eq("key", "auto_alerts").maybeSingle();
     const off = sw?.value === "off" && !dry;   // الإيقاف يوقف الإرسال بس؛ تجميع مطر الرادار يكمل
@@ -178,7 +247,6 @@ Deno.serve(async (req) => {
     const [N, P, O, L] = await Promise.all([radarGrid(j.host, now.path), radarGrid(j.host, prev.path), radarGrid(j.host, old.path), lightningGrid()]);
     let radarAcc: unknown = null;
     if (!dry && N.tiles >= 10) radarAcc = await accumulateRadar(sb, N.g, now.time).catch((e) => ({ error: String(e?.message || e).slice(0, 80) }));
-    if (off) return done({ ok: true, off: true, radarAcc });
     const near = (g: Uint8Array | Int8Array, i: number, jj: number, r: number, test: (v: number) => boolean) => {
       for (let a = -r; a <= r; a++) for (let b = -r; b <= r; b++) { const y = i + a, x = jj + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && test(g[y * COLS + x])) return true; }
       return false;
@@ -211,6 +279,10 @@ Deno.serve(async (req) => {
       return kmh >= 8 && kmh <= 120 ? { kmh: Math.round(kmh), dir: dirWord(Math.atan2(bx * Math.cos(25 * Math.PI / 180), by) * 180 / Math.PI) } : null;
     };
     const motion = motionAt(ROWS >> 1, COLS >> 1, Math.max(ROWS, COLS));   // للسجل فقط
+    // تجربة صامتة «أقرب مطر غزير وبرد»: نسجّل كل خلية ≥45 dBZ (بعد إزالة التشويش) بدون ما نعرضها — للتحقق بعد أسبوعين
+    let trial: unknown = null;
+    if (!dry && N.tiles >= 10) trial = await logTrial(sb, N.g, O.g, P.g, L, now.time, motionAt).catch((e) => ({ error: String(e?.message || e).slice(0, 80) }));
+    if (off) return done({ ok: true, off: true, radarAcc, trial });
 
     // سجل آخر 24 ساعة للمنطقة: الحد اليومي، الفاصل بين التنبيهين، ونفس العاصفة
     const { data: recent } = await sb.from("auto_alerts").select("region,at,lat,lng").gte("at", new Date(Date.now() - 24 * 3600e3).toISOString());
@@ -248,7 +320,7 @@ Deno.serve(async (req) => {
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());
-    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, radarAcc, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
+    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, radarAcc, trial, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
   } catch (e) {
     console.error("dalil-alerts", e);
     return done({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, 500);
