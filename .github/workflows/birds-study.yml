@@ -1,0 +1,18 @@
+# دراسة هجرة الطيور (GBIF + ERA5) — يدوي، والنتيجة في فرع birds-study
+name: Birds study
+on: workflow_dispatch
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/birds }
+      - run: python3 tools/birds/study.py
+      - name: Publish
+        run: |
+          mkdir pub && cp birds_study.json pub/ && cd pub && git init -q && git checkout -q -b birds-study
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "birds study" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" birds-study
