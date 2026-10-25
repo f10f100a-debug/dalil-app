@@ -1,6 +1,7 @@
 // تنبيهات الأمطار التلقائية حسب المنطقة: كل 10 دقائق (pg_cron) يقرأ الرادار والبرق للسعودية كاملة،
 // وإذا لقى أمطارًا غزيرة مؤكدة بالبرق داخل منطقة يرسل إشعارًا لمشتركي تنبيهات المنطقة.
-// ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين التنبيهين، نفس العاصفة (أقل من 60 كم خلال 12 ساعة) ما تتكرر،
+// ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين تنبيهين لنفس المكان (أقل من 100 كم) — عاصفة جديدة بعيدة تنبّه،
+// نفس العاصفة (أقل من 60 كم خلال 12 ساعة) ما تتكرر،
 // والعاصفة البعيدة (أكثر من 200 كم عن أي مدينة أو محافظة في المنطقة) ما يُرسل لها.
 // لا يستخدم موقع أي مستخدم — فقط المنطقة التي اختارها في الإعدادات. مشتركو «كل المناطق» لا تصلهم هذه التنبيهات (صور الأحداث فقط).
 import UPNG from "npm:upng-js@2.1.0";
@@ -12,7 +13,7 @@ import { GRID } from "./region-grid.ts";
 
 const LAT0 = 16, LAT1 = 32.5, LNG0 = 34, LNG1 = 56, STEP = 0.05;          // شبكة التحليل ~5 كم
 const ROWS = Math.round((LAT1 - LAT0) / STEP), COLS = Math.round((LNG1 - LNG0) / STEP);
-const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 6, DAY_MAX = 2, SAME_KM = 60, SAME_H = 12, FAR_KM = 200;
+const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 6, COOL_KM = 100, DAY_MAX = 2, SAME_KM = 60, SAME_H = 12, FAR_KM = 200;
 const CITY: Record<string, [string, number, number]> = {
   "جازان": ["جازان", 16.89, 42.55], "حائل": ["حائل", 27.52, 41.69], "الحدود الشمالية": ["عرعر", 30.98, 41.04], "الجوف": ["سكاكا", 29.97, 40.21],
   "عسير": ["أبها", 18.22, 42.5], "مكة": ["مكة", 21.42, 39.83], "الشرقية": ["الدمام", 26.43, 50.1], "نجران": ["نجران", 17.49, 44.13],
@@ -217,7 +218,8 @@ Deno.serve(async (req) => {
     const why = (region: string, la: number, lo: number) => {
       const rows = (recent || []).filter((r) => r.region === region);
       if (rows.filter((r) => Date.parse(r.at) >= dayStart).length >= DAY_MAX) return "daily_cap";
-      if (rows.some((r) => Date.now() - Date.parse(r.at) < COOLDOWN_H * 3600e3)) return "cooldown";
+      // الفاصل لنفس المكان بس: منطقة مثل حائل كبيرة، وعاصفة ثانية تبعد أكثر من 100 كم لازم تنبّه
+      if (rows.some((r) => Date.now() - Date.parse(r.at) < COOLDOWN_H * 3600e3 && (r.lat == null || km(r.lat, r.lng, la, lo) < COOL_KM))) return "cooldown";
       if (rows.some((r) => Date.now() - Date.parse(r.at) < SAME_H * 3600e3 && r.lat != null && km(r.lat, r.lng, la, lo) < SAME_KM)) return "same_storm";
       const towns = TOWNS[region];
       if (towns && Math.min(...towns.map(([a, b]) => km(a, b, la, lo))) > FAR_KM) return "far";
@@ -225,7 +227,8 @@ Deno.serve(async (req) => {
     };
     const out: unknown[] = [];
     const cands = [...byRegion.entries()].filter(([, c]) => c.length >= MIN_CELLS).sort((a, b) => b[1].length - a[1].length);
-    for (const [region, cells] of cands.slice(0, 4)) {
+    // كل المناطق اللي فيها مطر غزير (قبل كانت أكبر 4 بس، فالمناطق الممنوعة بالحد اليومي تاخذ مكان منطقة تستاهل التنبيه)
+    for (const [region, cells] of cands) {
       const max = Math.max(...cells.map((c) => c.d));
       const cLat = LAT0 + (cells.reduce((s, c) => s + c.i, 0) / cells.length + .5) * STEP, cLng = LNG0 + (cells.reduce((s, c) => s + c.j, 0) / cells.length + .5) * STEP;
       const [city, la, lo] = CITY[region] || [region, cLat, cLng];
