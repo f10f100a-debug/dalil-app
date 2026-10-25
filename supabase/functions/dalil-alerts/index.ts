@@ -125,21 +125,26 @@ async function accumulateRadar(sb: SupabaseClient, g: Int8Array, frameTime: numb
 
 // ---------- التجربة الصامتة: «أقرب مطر غزير وبرد» ----------
 // (1) الرادار: خلايا متصلة ≥45 dBZ (مطر غزير ~25 ملم/س فأكثر)، ونعدّ خانات ≥55 (خلية قوية جدًا = احتمال برد)
-const T_HEAVY = 45, T_HAIL = 55;
+//     + خانات 35–40 إذا معها برق: RainViewer يقلّل الشدة في بعض المناطق (القصيم 26 أكتوبر: 35 عندنا مقابل ~50 في رادار ثاني)
+const T_HEAVY = 45, T_HAIL = 55, T_LT = 35;
 async function logTrial(sb: SupabaseClient, g: Int8Array, o: Int8Array, pv: Int8Array, L: Uint8Array | null, frameTime: number,
   motionAt: (i: number, j: number) => { kmh: number; dir: string } | null) {
   const frame = new Date(frameTime * 1000).toISOString();
   const { count } = await sb.from("wx_trial_cells").select("id", { count: "exact", head: true }).eq("frame", frame);
   if ((count ?? 0) > 0) return { skipped: "same_frame" };
   const seen = new Uint8Array(ROWS * COLS), rows: Record<string, unknown>[] = [];
-  const ok = (k: number) => g[k] >= T_HEAVY && !(o[k] >= 0 && pv[k] >= 0 && o[k] >= g[k] - 10);   // نفس فلتر التشويش الثابت
+  // قناع البرق موسّع ~10 كم (خانتين)
+  const LN = new Uint8Array(ROWS * COLS);
+  if (L) for (let i = 0; i < ROWS; i++) for (let j = 0; j < COLS; j++) if (L[i * COLS + j])
+    for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const y = i + a, x = j + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS) LN[y * COLS + x] = 1; }
+  const ok = (k: number) => (g[k] >= T_HEAVY || (g[k] >= T_LT && LN[k] === 1)) && !(o[k] >= 0 && pv[k] >= 0 && o[k] >= g[k] - 10);   // نفس فلتر التشويش الثابت
   for (let k0 = 0; k0 < g.length; k0++) {
     if (seen[k0] || !ok(k0)) continue;
     const st = [k0]; seen[k0] = 1; let n = 0, n55 = 0, si = 0, sj = 0, mx = 0, lt = false;
     while (st.length) {
       const k = st.pop()!, i = k / COLS | 0, j = k % COLS;
       n++; si += i; sj += j; mx = Math.max(mx, g[k]); if (g[k] >= T_HAIL) n55++;
-      if (L && !lt) for (let a = -2; a <= 2 && !lt; a++) for (let b = -2; b <= 2; b++) { const y = i + a, x = j + b; if (y >= 0 && x >= 0 && y < ROWS && x < COLS && L[y * COLS + x]) { lt = true; break; } }
+      if (LN[k]) lt = true;
       for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
         const y = i + a, x = j + b; if (y < 0 || x < 0 || y >= ROWS || x >= COLS) continue;
         const kk = y * COLS + x; if (!seen[kk] && ok(kk)) { seen[kk] = 1; st.push(kk); }
