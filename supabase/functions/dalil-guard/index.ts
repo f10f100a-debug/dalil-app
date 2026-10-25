@@ -127,6 +127,47 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     out.push({ id: "faydalert", name: "تنبيه الفياض", level: fail ? "warn" : "ok",
       detail: (w ?? 0) + " مشترك" + (last ? " · آخر إرسال " + String(last.at).slice(0, 10) + ": " + last.sent + " وصل" + (last.fail ? "، " + last.fail + " فشل" : "") : "") });
   } catch { out.push({ id: "faydalert", name: "تنبيه الفياض", level: "ok", detail: "—" }); }
+
+  // ٨) الإيقاف المؤقت في غرفة الرحلة: عضو انتهى إيقافه من أكثر من 5 د وما رجع = جدول الغرف (كل دقيقة) واقف
+  try {
+    const { count: due } = await sb.from("room_members").select("member_id", { count: "exact", head: true }).lt("paused_until", new Date(Date.now() - 5 * 60e3).toISOString());
+    const { count: now } = await sb.from("room_members").select("member_id", { count: "exact", head: true }).gt("paused_until", new Date().toISOString());
+    out.push({ id: "pause", name: "الإيقاف المؤقت بالغرف", level: (due ?? 0) > 0 ? "fail" : "ok",
+      detail: (due ?? 0) > 0 ? due + " عضو انتهى إيقافه وما رجع للغرفة (جدول الغرف واقف؟)" : "يرجّع الأعضاء في وقتهم" + ((now ?? 0) > 0 ? " · " + now + " موقوف الحين" : "") });
+  } catch { out.push({ id: "pause", name: "الإيقاف المؤقت بالغرف", level: "warn", detail: "تعذّر القراءة" }); }
+
+  // ٩) هجرة الطيور: الملف المنشور سليم وفيه البطاقات الثمان
+  try {
+    const br = await fetch(PAGES + "data/birds.json?t=" + Date.now()).then((r) => r.json());
+    const n = Array.isArray(br.birds) ? br.birds.filter((b: { id?: string; all?: { n?: number } }) => b.id && b.all && (b.all.n ?? 0) > 0).length : 0;
+    out.push({ id: "birds", name: "هجرة الطيور", level: n >= 8 ? "ok" : "fail", detail: n >= 8 ? n + " بطاقات سليمة" : "ملف الطيور ناقص (" + n + " من 8)" });
+  } catch { out.push({ id: "birds", name: "هجرة الطيور", level: "fail", detail: "تعذّر قراءة ملف الطيور المنشور" }); }
+
+  // ١٠) كل الجداول التلقائية (pg_cron): واقفة، أو فشلت مرتين بآخر 24 س — يشمل أي جدول نضيفه مستقبلًا
+  try {
+    const { data: jobs, error } = await sb.rpc("guard_cron_status");
+    if (error) throw error;
+    const AR: Record<string, string> = { "dalil-auto-alerts": "تنبيهات المطر", "dalil-room-tick": "الغرف", "dalil-fayd-alerts": "تنبيه الفياض", "dalil-guard": "الحارس" };
+    const every = (s: string) => {   // المدة المتوقعة بين تشغيلين (دقائق) من صيغة cron
+      const [m, h] = s.trim().split(/\s+/);
+      if (/^\*\/\d+$/.test(m)) return +m.slice(2);
+      if (m === "*") return 1;
+      if (h === "*") return 60;
+      if (/^\*\/\d+$/.test(h)) return +h.slice(2) * 60;
+      return 24 * 60 / Math.max(1, h.split(",").length);
+    };
+    const bad: string[] = []; let warn = false;
+    for (const j of (jobs || []) as { jobname: string; schedule: string; active: boolean; runs24: number; fails24: number; last_run: string | null; last_err: string | null }[]) {
+      const nm = AR[j.jobname] || j.jobname.replace(/^dalil-/, "");
+      const gapMin = ago(j.last_run) * 60, exp = every(j.schedule);
+      if (!j.active) { bad.push(nm + " موقوف"); warn = true; continue; }
+      if (gapMin > Math.max(15, exp * 3)) { bad.push(nm + " ما اشتغل من " + hrs(gapMin / 60)); continue; }
+      if (j.fails24 >= 2) bad.push(nm + " فشل " + j.fails24 + " مرات" + (j.last_err ? " (" + j.last_err.slice(0, 50) + ")" : ""));
+    }
+    const n = (jobs || []).length;
+    out.push({ id: "cron", name: "الجداول التلقائية", level: !n ? "fail" : bad.length && !(warn && bad.length === 1) ? "fail" : bad.length ? "warn" : "ok",
+      detail: !n ? "ما فيه أي جدول تلقائي!" : bad.length ? bad.join(" · ") : n + " جداول شغّالة بدون أخطاء" });
+  } catch (e) { out.push({ id: "cron", name: "الجداول التلقائية", level: "warn", detail: "تعذّر القراءة: " + String((e as Error)?.message || e).slice(0, 60) }); }
   return out;
 }
 
