@@ -1,6 +1,9 @@
 # دراسة هجرة الطيور (GBIF + ERA5) — يدوي، والنتيجة في فرع birds-study
 name: Birds study
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      script: { description: "study.py or study2.py", default: "study.py" }
 jobs:
   study:
     runs-on: ubuntu-latest
@@ -10,9 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { sparse-checkout: tools/birds }
-      - run: python3 tools/birds/study.py
+      - name: Previous results
+        run: git fetch -q origin birds-study && git show origin/birds-study:birds_study.json > birds_study.json || true
+      - run: python3 tools/birds/${{ inputs.script || 'study.py' }}
       - name: Publish
         run: |
-          mkdir pub && cp birds_study.json pub/ && cd pub && git init -q && git checkout -q -b birds-study
+          mkdir pub && cp birds_*.json pub/ && cd pub && git init -q && git checkout -q -b birds-study
           git config user.email ci@dalil && git config user.name ci
           git add . && git commit -qm "birds study" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" birds-study
