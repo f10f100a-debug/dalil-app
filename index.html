@@ -739,6 +739,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .fy-pill{font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:999px;white-space:nowrap}
   .fy-p4{background:#D3EBCD;color:#1E6B2E} .fy-p3{background:#E2F1D6;color:#2F6F22} .fy-p2{background:#EEF3DC;color:#5B7420} .fy-p1{background:#F3EEDF;color:#7A6640} .fy-p0{background:var(--line);color:var(--text-faint)}
   .fy-more{display:block;width:100%;text-align:center;font:inherit;font-weight:700;color:var(--sand);font-size:13.5px;padding:10px 0 2px;border:0;border-top:1px solid var(--line);background:none;cursor:pointer}
+  .fy-bell{flex:0 0 auto; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:16px; border:1px solid var(--line); background:var(--panel); filter:grayscale(1); opacity:.55; margin-inline-start:4px}
+  .fy-bell.on{filter:none; opacity:1; background:#EAF6E6; border-color:#BFDDB5}
+  .fy-alert{display:flex; align-items:center; gap:8px; margin:2px 0 10px; padding:9px 12px; border-radius:14px; background:var(--panel-2); border:1px solid var(--line); font-size:13px}
+  .fy-alert .grow{flex:1; min-width:0}
+  .fy-alert button{border:0; background:none; color:var(--sand-dim); font:inherit; font-weight:700; cursor:pointer; padding:4px}
   .plseg{grid-template-columns:1fr 1fr; margin:2px 0 10px;}
   #plSeg[hidden], #filterChips[hidden]{display:none;}
   .plseg .seg-b b{font-weight:600; opacity:.7; margin-inline-start:4px;}
@@ -1331,6 +1336,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <div class="cp-card fy-card" id="faydCard" hidden>
           <div class="fy-head"><span class="cp-ic" data-ico="leaf"></span><b>أكثر الفياض اخضرارًا الآن</b></div>
           <div class="fy-sub" id="faydSub"></div>
+          <div id="faydAlert"></div>
           <div class="fy-chips" id="faydChips" role="radiogroup" aria-label="المنطقة">
             <button type="button" data-fy="all" class="on">الكل</button><button type="button" data-fy="riyadh">الرياض</button><button type="button" data-fy="east">الصمان والشرقية</button><button type="button" data-fy="north">الشمال والجوف</button><button type="button" data-fy="hail">حائل والقصيم</button><button type="button" data-fy="near">الأقرب لي</button>
           </div>
@@ -1422,6 +1428,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="banner push-box" id="pushBox">
         <div id="pushStatus">جارٍ التحقق…</div>
         <label class="push-row"><span>منطقتي</span><select class="text-input" id="pushRegion" aria-label="منطقة التنبيهات"></select></label>
+        <label class="push-row" id="faydAlertRow" hidden><span>🌱 اخضرار الفياض</span><select class="text-input" id="faydAlertKm" aria-label="تنبيه اخضرار الفياض"><option value="0">إيقاف</option><option value="50">خلال 50 كم</option><option value="100">خلال 100 كم</option><option value="250">خلال 250 كم</option><option value="500">خلال 500 كم</option></select></label>
+        <div class="permission-note" id="faydAlertNote" hidden style="margin:2px 0 8px"></div>
         <button type="button" class="cp-btn cp-btn-gold" id="pushToggle" hidden>تفعيل التنبيهات</button>
       </div>
 
@@ -5723,7 +5731,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=16';
+      sc.src = 'events.js?v=17';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -5809,6 +5817,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
+  // 🔔 متابعة فيضة / تنبيه النطاق (events.js يحفظها مع اشتراك التنبيهات)
+  const fyEv = ()=>window.DalilEvents && window.DalilEvents.fayd;
+  const bell = r=>{ const on = fyEv() && fyEv().follows(r.i); return `<span class="fy-bell${on ? ' on' : ''}" role="button" data-fy-bell="${r.i}" aria-label="${on ? 'إلغاء تنبيه ' : 'نبّهني إذا اخضرّت '}${escapeHtml(r.name)}">🔔</span>`; };
+  function renderFaydAlert(){
+    const el = document.getElementById('faydAlert'); if(!el) return;
+    const f = fyEv();
+    if(!f){ el.innerHTML = ''; loadEvents().then(()=>{ if(fyEv()) renderFayd(); }).catch(()=>{}); return; }
+    el.innerHTML = f.on && f.km ? `<div class="fy-alert"><span>🔔</span><span class="grow">ننبهك إذا اخضرّت فيضة خلال <b>${f.km} كم</b> منك</span><button type="button" data-fy-alert="set">تغيير</button></div>`
+      : `<div class="fy-alert"><span>🔔</span><span class="grow">نبّهني إذا اخضرّت فياض حولي</span><button type="button" data-fy-alert="on">تفعيل</button></div>`;
+  }
+  document.getElementById('faydAlert').addEventListener('click', async e=>{
+    const b = e.target.closest('[data-fy-alert]'); const f = fyEv(); if(!b || !f) return;
+    if(b.dataset.fyAlert === 'set' || !f.on){ if(!f.on) toast('فعّل التنبيهات أول، وبعدها اختر نطاق الفياض'); f.openSettings(); return; }
+    await f.setKm(100); renderFayd();
+  });
   function renderFayd(){
     const card = document.getElementById('faydCard');
     if(!faydData || !faydSites || !Array.isArray(faydData.rows)){ card.hidden = true; return; }
@@ -5827,12 +5850,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     const green = rows.filter(r=>r.st > 0);
     const list = document.getElementById('faydList');
+    renderFaydAlert();
     if(!green.length){
-      list.innerHTML = `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل أسبوع.</span></div>`;
+      const near = pos ? rows.filter(r=>r.km != null).sort((a, b)=>a.km - b.km).slice(0, 5) : [];
+      list.innerHTML = (near.length ? `<div class="fy-sub" style="margin:4px 0 6px">أقرب الفياض لك — اضغط 🔔 وننبهك إذا اخضرّت</div>` + near.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)} كم</span></span><span class="fy-pill fy-p0">ما بدأ</span>${bell(r)}</button>`).join('') : '')
+        + `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل أسبوع.</span></div>`;
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span></button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------
@@ -5881,8 +5907,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const b = e.target.closest('[data-fy]'); if(!b) return;
     faydFilter = b.dataset.fy; faydMore = false; renderFayd();
   });
-  document.getElementById('faydList').addEventListener('click', e=>{
+  document.getElementById('faydList').addEventListener('click', async e=>{
     if(e.target.closest('[data-fy-more]')){ faydMore = !faydMore; renderFayd(); return; }
+    const bl = e.target.closest('[data-fy-bell]');
+    if(bl){
+      e.stopPropagation();
+      const f = fyEv(); if(!f) return;
+      if(!f.on){ toast('فعّل التنبيهات أول عشان نقدر ننبهك'); f.openSettings(); return; }
+      const s = faydSites[+bl.dataset.fyBell], on = await f.toggle(+bl.dataset.fyBell);
+      toast(on ? '🔔 بننبهك إذا اخضرّت ' + (s ? s[0] : 'الفيضة') : 'أُلغي التنبيه'); renderFayd(); return;
+    }
     const b = e.target.closest('[data-fy-i]'); if(!b) return;
     const s = faydSites[+b.dataset.fyI]; if(!s) return;
     // نعرض تفاصيلها في بطاقة «حالة الربيع» (الاخضرار والأمطار) تحتها
@@ -6501,6 +6535,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(requestedScreen === 'weather'){
     document.querySelector('.tab[data-screen="weather"]').click();
     if(launchParams.get('tab') === 'events') showWxPane('ev', launchParams.get('event') || null);
+    if(launchParams.get('tab') === 'fayd'){ spView = 'fayd'; showWxPane('spring'); }
   }
   // فحص خفيف لوجود صور جديدة لإظهار نقطة التنبيه على تبويب «الأجواء».
   window.setTimeout(()=>{ if(navigator.onLine !== false) loadEvents().then(m=>m.checkNew()).catch(()=>{}); }, 6000);

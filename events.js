@@ -512,7 +512,7 @@
   async function nativeUnsubscribe(){
     const token = lsGet(LS_TOKEN);
     if(token) fetch(FN + 'dalil-public?a=unsubscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})}).catch(()=>{});
-    try{ localStorage.removeItem(LS_TOKEN); }catch(e){}
+    try{ localStorage.removeItem(LS_TOKEN); localStorage.removeItem('dalil_fayd_synced'); }catch(e){}
     try{ await PN().unregister(); }catch(e){}
   }
   if(NATIVE){
@@ -553,8 +553,8 @@
     finally{ following = false; renderPushSettings(); }
   }
   async function refreshPushState(){
-    if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); return; }
-    if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); }
+    if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); syncFayd(); return; }
+    if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); syncFayd(); }
   function pushBanner(){
     if(pushOn || (window.DALIL_NATIVE && !NATIVE)) return '';
     return `<div class="ev-push"><span class="cp-ic">${ico('bell')}</span><span><b>نبّهني عند السيول والأمطار</b><small>تصلك صور منطقتك فور نشرها</small></span><button type="button" class="cp-btn cp-btn-white" data-ev-act="push-settings">تفعيل</button></div>`;
@@ -588,8 +588,46 @@
     btn.textContent = pushOn ? 'إيقاف التنبيهات' : 'تفعيل التنبيهات';
     btn.className = 'cp-btn ' + (pushOn ? 'cp-btn-white' : 'cp-btn-gold');
     if(NATIVE && bgSub && !pushOn){ status.textContent = 'جاري تسجيل جوالك للتنبيهات…'; btn.textContent = '⏳ جاري التفعيل…'; }
+    renderFaydSettings();
     const p = $('evPane'); if(p && !p.hidden) render();
   }
+  // ---------- تنبيه اخضرار الفياض ----------
+  // النطاق (0 = إيقاف) والفياض المتابَعة على الجهاز، وتُرسل مع اشتراك التنبيهات وموقعك مقرّبًا لـ0.25° (~25 كم) فقط
+  const LS_FY = 'dalil_fayd_km', LS_FYF = 'dalil_fayd_follow', LS_FYS = 'dalil_fayd_synced';
+  const fyKm = ()=>+(lsGet(LS_FY) || 0);
+  const fyFollow = ()=>{ try{ const a = JSON.parse(lsGet(LS_FYF) || '[]'); return Array.isArray(a) ? a : []; }catch(e){ return []; } };
+  async function fySub(){
+    if(NATIVE){ const t = lsGet(LS_TOKEN); return t ? {kind:'ios', sub:t} : null; }
+    const s = await currentSub(); return s ? {kind:'web', sub:s.endpoint} : null;
+  }
+  async function syncFayd(force){
+    if(!pushOn || (!fyKm() && !fyFollow().length && !lsGet(LS_FYS))) return false;
+    const id = await fySub(); if(!id) return false;
+    const p = B.getPos && B.getPos(), r4 = v=>Math.round(v * 4) / 4;
+    const loc = p && Number.isFinite(p.lat) ? {lat:r4(p.lat), lng:r4(p.lng)} : {};
+    const body = {...id, km:fyKm(), follow:fyFollow(), ...loc};
+    const sig = JSON.stringify([id.sub.slice(-32), body.km, body.follow, loc.lat, loc.lng]);
+    if(!force && lsGet(LS_FYS) === sig) return true;
+    try{
+      const r = await fetch(FN + 'dalil-fayd?a=watch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      if(!r.ok) return false;
+      lsSet(LS_FYS, sig); return true;
+    }catch(e){ return false; }
+  }
+  function renderFaydSettings(){
+    const row = $('faydAlertRow'), note = $('faydAlertNote'); if(!row) return;
+    row.hidden = note.hidden = !pushOn;
+    $('faydAlertKm').value = String(fyKm());
+    note.textContent = fyKm() && !(B.getPos && B.getPos()) ? '⚠️ فعّل الموقع عشان نعرف الفياض اللي حولك.' :
+      'يوصلك إشعار إذا اخضرّت فيضة في نطاقك — أقصى شي إشعارين بالأسبوع، وما يتكرر نفس الفيضة. نستخدم موقعك مقرّبًا لحدود 25 كم فقط.';
+  }
+  async function setFaydKm(km){
+    lsSet(LS_FY, String(km)); renderFaydSettings();
+    const ok = await syncFayd(true);
+    B.toast(!ok ? 'تعذّر حفظ تنبيه الفياض — تأكد من الاتصال' : km ? '🌱 بنبّهك إذا اخضرّت فيضة خلال ' + km + ' كم' : 'أُوقف تنبيه الفياض');
+    return ok;
+  }
+
   async function postSub(sub, region){
     const j = sub.toJSON();
     const r = await fetch(FN + 'dalil-public?a=subscribe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:j.endpoint, keys:j.keys, region})});
@@ -616,6 +654,7 @@
           fetch(FN + 'dalil-public?a=unsubscribe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({endpoint:sub.endpoint})}).catch(()=>{});
           await sub.unsubscribe();
         }
+        try{ localStorage.removeItem('dalil_fayd_synced'); }catch(e){}
         B.toast('أُوقفت التنبيهات');
       }else{
         const perm = await Notification.requestPermission();
@@ -677,6 +716,7 @@
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && $('evViewer').classList.contains('show')) closeViewer(); });
   $('pushToggle').addEventListener('click', togglePush);
   $('pushRegion').addEventListener('change', regionChanged);
+  if($('faydAlertKm')) $('faydAlertKm').addEventListener('change', e=>setFaydKm(+e.target.value));
 
   let timer = 0;
   window.DalilEvents = {
@@ -692,6 +732,19 @@
       timer = setInterval(()=>{ if(paneVisible() && document.visibilityState === 'visible') fetchEvents(true).then(render); }, 120000);
     },
     hide(){ clearInterval(timer); },
+    // تنبيه الفياض (بطاقة «أكثر الفياض اخضرارًا»)
+    fayd: {
+      get on(){ return pushOn; }, get km(){ return fyKm(); }, follows(i){ return fyFollow().includes(i); },
+      setKm: setFaydKm,
+      async toggle(i){
+        const f = fyFollow(), on = !f.includes(i);
+        lsSet(LS_FYF, JSON.stringify(on ? [...f, i].slice(-50) : f.filter(x=>x !== i)));
+        const ok = await syncFayd(true);
+        if(!ok) B.toast('تعذّر الحفظ — تأكد من الاتصال');
+        return on;
+      },
+      openSettings(){ B.openSettings('pushBox'); }
+    },
     checkNew(){ return fetchEvents(false); },
     settings(){ refreshPushState(); },
     // يُستدعى بعد منح إذن الإشعارات من شاشة البداية.
@@ -713,9 +766,9 @@
       return true;
     }
   };
-  refreshPushState().then(followRegion);
+  refreshPushState().then(followRegion).then(()=>syncFayd());
   // التلقائي يتبع موقعك: عند الرجوع للتطبيق، وكل 10 دقائق، وبعد وصول أول موقع
   setTimeout(followRegion, 20000);
-  setInterval(()=>{ if(document.visibilityState === 'visible') followRegion(); }, 10 * 60e3);
+  setInterval(()=>{ if(document.visibilityState === 'visible'){ followRegion(); syncFayd(); } }, 10 * 60e3);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') followRegion(); });
 })();
