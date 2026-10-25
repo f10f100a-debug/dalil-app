@@ -83,6 +83,19 @@
     </div>
     <div class="stats" id="stats"></div>
 
+    <h2>🛡️ حالة دليل <span class="muted" style="font-weight:400">· فحص تلقائي كل ساعة</span></h2>
+    <div class="card" id="gdCard">
+      <div class="muted" id="gdLast" style="font-size:12.5px">—</div>
+      <div id="gdList" style="margin-top:6px"></div>
+      <div id="gdHist" style="margin-top:10px"></div>
+      <div class="row" style="margin-top:10px"><button class="white" id="gdNow">افحص الآن</button></div>
+      <div id="gdOwner" hidden style="margin-top:12px;border-top:1px solid var(--line);padding-top:10px">
+        <div id="gdDev" style="font-size:13.5px"></div>
+        <div class="row" style="margin-top:8px"><button class="gold" id="gdPair">استقبل تنبيهات الحارس على جوالي</button><button class="white" id="gdUnpair" hidden>إلغاء الربط</button></div>
+        <div id="gdPairBox" hidden style="margin-top:8px;font-size:13.5px;line-height:1.8"></div>
+      </div>
+    </div>
+
     <div class="card" id="pwCard" hidden style="margin-top:10px">
       <b>تغيير كلمة السر</b>
       <label for="pwNew">كلمة السر الجديدة (10 أحرف على الأقل)</label>
@@ -725,6 +738,59 @@
   });
 
 
+  // ---------- 🛡️ حارس دليل ----------
+  const GD = 'https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-guard?a=';
+  async function gdApi(a){
+    const r = await fetch(GD + a, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user, pass})});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error === 'forbidden' ? 'للمالك فقط' : 'تعذّر الاتصال بالحارس');
+    return j;
+  }
+  const GD_IC = {ok:'✅', warn:'⚠️', fail:'❌'};
+  const GD_NAME = {rain:'الرادار والمطر', push:'الإشعارات', fayd:'الفياض', fq:'الفقع', ai:'فلترة الصور', rooms:'غرفة الرحلة', faydalert:'تنبيه الفياض'};
+  function gdRender(d){
+    const L = d.last;
+    if(!L){ $('gdLast').textContent = 'ما صار أي فحص بعد.'; $('gdList').innerHTML = ''; }
+    else{
+      $('gdLast').textContent = 'آخر فحص: ' + when(L.at);
+      $('gdList').innerHTML = L.checks.map(c=>`<div class="log-row" style="display:block"><b>${GD_IC[c.level] || ''} ${esc(c.name)}</b><div class="muted" style="font-size:12.5px">${esc(c.detail)}</div></div>`).join('');
+    }
+    // سجل 7 أيام: أسوأ حالة لكل خدمة في كل يوم
+    if(d.log && d.log.length){
+      const rank = {ok:0, warn:1, fail:2}, dayKey = t=>new Date(Date.parse(t) + 3 * 3600e3).toISOString().slice(0, 10);
+      const days = [...new Set(d.log.map(r=>dayKey(r.at)))].sort().slice(-7);
+      const worst = {};
+      d.log.forEach(r=>{ const k = dayKey(r.at); r.l.forEach(([id, lv])=>{ const key = id + '|' + k; if(!(key in worst) || rank[lv] > rank[worst[key]]) worst[key] = lv; }); });
+      const dn = k=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {weekday:'short'}).format(new Date(k + 'T12:00:00Z'));
+      $('gdHist').innerHTML = `<div style="font-weight:700;margin-bottom:4px">آخر ${days.length} أيام</div><table style="width:100%;font-size:12.5px;border-collapse:collapse"><tr><td></td>${days.map(k=>`<td style="text-align:center;color:var(--dim)">${esc(dn(k))}</td>`).join('')}</tr>` +
+        Object.keys(GD_NAME).map(id=>`<tr><td style="padding:2px 0">${esc(GD_NAME[id])}</td>${days.map(k=>`<td style="text-align:center">${GD_IC[worst[id + '|' + k]] || '·'}</td>`).join('')}</tr>`).join('') + '</table>';
+    } else $('gdHist').innerHTML = '';
+    $('gdOwner').hidden = !d.owner;
+    if(d.owner){
+      $('gdDev').innerHTML = d.devices ? `📱 مربوط بـ <b>${d.devices}</b> ${d.devices === 1 ? 'جوال' : 'أجهزة'} — يوصلك إشعار بس إذا تعطّلت خدمة، و«رجعت تشتغل» إذا انحلت.` : 'ما فيه جوال مربوط. اربط جوالك عشان يوصلك إشعار إذا تعطّلت خدمة.';
+      $('gdUnpair').hidden = !d.devices;
+    }
+  }
+  async function loadGuard(){ gdRender(await gdApi('status')); }
+  $('gdNow').addEventListener('click', async ()=>{
+    $('gdNow').disabled = true; $('gdNow').textContent = 'يفحص…';
+    try{ const n = await gdApi('check_now'), d = await gdApi('status'); d.last = n.last; gdRender(d); }catch(e){ showErr(e); }
+    finally{ $('gdNow').disabled = false; $('gdNow').textContent = 'افحص الآن'; }
+  });
+  $('gdPair').addEventListener('click', async ()=>{
+    try{
+      const j = await gdApi('pair_code');
+      $('gdPairBox').hidden = false;
+      $('gdPairBox').innerHTML = `<b>افتح الرابط من جوالك اللي فيه تطبيق دليل والتنبيهات مفعّلة</b> (صالح 10 دقائق):<br>
+        <a class="btn" href="${esc(j.link)}" style="display:inline-block;margin:6px 0;padding:8px 14px;border-radius:12px;background:var(--gold, #C8873A);color:#fff;text-decoration:none">📱 افتح في تطبيق دليل</a><br>
+        <span class="muted">لو تستخدم دليل من المتصفح: <a href="${esc(j.web)}" target="_blank" rel="noopener">هذا الرابط</a> · الرمز: <b dir="ltr">${esc(j.code)}</b></span>`;
+    }catch(e){ showErr(e); }
+  });
+  $('gdUnpair').addEventListener('click', async ()=>{
+    if(!confirm('إلغاء ربط كل الأجوال من حارس دليل؟')) return;
+    try{ await gdApi('unpair'); await loadGuard(); }catch(e){ showErr(e); }
+  });
+
   // ---------- تنبيهات المطر التلقائية ----------
   let aaOn = true;
   async function loadAutoAlerts(){
@@ -776,6 +842,7 @@
     if(can('ads')) jobs.push(loadAds());
     if(can('push')) jobs.push(loadAutoAlerts());
     if(me.role === 'owner') jobs.push(loadAdmins());
+    jobs.push(loadGuard().catch(()=>{ $('gdLast').textContent = 'تعذّر تحميل حالة الحارس'; }));
     await Promise.all(jobs);
   }
   $('refresh').addEventListener('click', ()=>loadAll().catch(showErr));

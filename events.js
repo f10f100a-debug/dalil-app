@@ -743,6 +743,17 @@
       timer = setInterval(()=>{ if(paneVisible() && document.visibilityState === 'visible') fetchEvents(true).then(render); }, 120000);
     },
     hide(){ clearInterval(timer); },
+    // «حارس دليل»: ربط جوال المالك برمز من لوحة الإدارة (رابط dalil://guard?code=…)
+    async guardPair(code){
+      if(!pushOn){ B.toast('فعّل التنبيهات أول من الإعدادات، بعدها افتح رابط الربط مرة ثانية'); B.openSettings('pushBox'); return false; }
+      const id = await fySub(); if(!id){ B.toast('ما لقينا اشتراك التنبيهات في هذا الجوال'); return false; }
+      try{
+        const r = await fetch(FN + 'dalil-guard?a=pair', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({code, ...id})});
+        const j = await r.json().catch(()=>({}));
+        B.toast(r.ok ? '🛡️ تم ربط جوالك بحارس دليل ✓' : j.error === 'bad_code' ? 'رمز الربط انتهى — سوّ رمز جديد من لوحة الإدارة' : 'تعذّر الربط — حاول مرة ثانية');
+        return r.ok;
+      }catch(e){ B.toast('تعذّر الربط — تأكد من الاتصال'); return false; }
+    },
     // تنبيه الفياض (بطاقة «أكثر الفياض اخضرارًا»)
     fayd: {
       get on(){ return pushOn; }, get km(){ return fyKm(); }, follows(i){ return fyFollow().includes(i); },

@@ -5020,6 +5020,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     try{
       const url = new URL(String(u).replace(/^dalil:\/\//, 'https://x/'));
       // dalilbarr.com/r/رقم/رمز (الرابط القصير) أو ?room=…&pin=… أو dalil://room?code=…
+      const g = String(u).match(/[?&]code=([A-Z0-9]{8})/);
+      if(/^dalil:\/\/guard/.test(String(u)) && g){ loadEvents().then(m=>m.guardPair(g[1])).catch(()=>{}); return true; }
       const short = String(u).match(/\/r\/(\d{6})(?:\/(\d{4,8}))?/);
       const code = (short ? short[1] : (url.searchParams.get('code') || url.searchParams.get('room') || '')).replace(/\D/g, '').slice(0, 6);
       const pin = (short ? (short[2] || '') : (url.searchParams.get('pin') || url.searchParams.get('p') || '')).replace(/\D/g, '').slice(0, 8);
@@ -5731,7 +5733,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=18';
+      sc.src = 'events.js?v=19';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -6532,6 +6534,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(launchParams.has('navLat') && launchParams.has('navLng') && validLatLng(launchNavLat, launchNavLng)){
     state.navTarget = {id:'__map_point__', name:launchParams.get('navLabel')||'نقطة محددة على الخريطة', icon:'📍', cat:'map', lat:launchNavLat, lng:launchNavLng, alt:null};
   }
+  // ربط «حارس دليل» من المتصفح (?guard=رمز)
+  if(/^[A-Z0-9]{8}$/.test(launchParams.get('guard') || '')) setTimeout(()=>loadEvents().then(m=>m.guardPair(launchParams.get('guard'))).catch(()=>{}), 3000);
   if(requestedScreen === 'weather'){
     document.querySelector('.tab[data-screen="weather"]').click();
     if(launchParams.get('tab') === 'events') showWxPane('ev', launchParams.get('event') || null);
