@@ -480,6 +480,47 @@ async function zipEntries(buf){
   }
   return out;
 }
+// قراءة ZIP من الملف مباشرة قطعة قطعة (بدون تحميله كامل في الذاكرة) — للملفات الكبيرة مثل تصدير OsmAnd ‎.osf
+// تدعم ZIP64. الناتج: Map(الاسم ← {size: الحجم بعد فك الضغط, csize, method, get()}) و get يرجع Blob (المخزّن بلا ضغط = شريحة من الملف بلا نسخ).
+async function zipEntriesFile(file){
+  const rd = async(a, n)=>new DataView(await file.slice(a, a + n).arrayBuffer());
+  const u64 = (dv, o)=>dv.getUint32(o, true) + dv.getUint32(o + 4, true) * 4294967296;
+  const tailLen = Math.min(file.size, 65557 + 20), tailAt = file.size - tailLen, tail = await rd(tailAt, tailLen);
+  let e = -1;
+  for(let i = tailLen - 22; i >= 0; i--) if(tail.getUint32(i, true) === 0x06054b50){ e = i; break; }
+  const out = new Map();
+  if(e < 0) return out;
+  let count = tail.getUint16(e + 10, true), cdSize = tail.getUint32(e + 12, true), cdOff = tail.getUint32(e + 16, true);
+  if((count === 0xFFFF || cdOff === 0xFFFFFFFF || cdSize === 0xFFFFFFFF) && e >= 20 && tail.getUint32(e - 20, true) === 0x07064b50){
+    const z = await rd(u64(tail, e - 12), 56);
+    if(z.getUint32(0, true) === 0x06064b50){ count = u64(z, 32); cdSize = u64(z, 40); cdOff = u64(z, 48); }
+  }
+  if(cdOff + cdSize > file.size || cdSize > 64 * 1048576) return out;
+  const cd = await rd(cdOff, cdSize), td = new TextDecoder();
+  let off = 0;
+  for(let n = 0; n < count && off + 46 <= cdSize; n++){
+    if(cd.getUint32(off, true) !== 0x02014b50) break;
+    const method = cd.getUint16(off + 10, true), nameLen = cd.getUint16(off + 28, true), extraLen = cd.getUint16(off + 30, true), commentLen = cd.getUint16(off + 32, true);
+    let csize = cd.getUint32(off + 20, true), size = cd.getUint32(off + 24, true), local = cd.getUint32(off + 42, true);
+    const name = td.decode(new Uint8Array(cd.buffer, off + 46, nameLen));
+    // حقل ZIP64 الإضافي (0x0001): القيم الكبيرة بالترتيب: الحجم، الحجم المضغوط، موقع الملف
+    for(let x = off + 46 + nameLen, end = x + extraLen; x + 4 <= end;){
+      const id = cd.getUint16(x, true), len = cd.getUint16(x + 2, true);
+      if(id === 1){ let p = x + 4; if(size === 0xFFFFFFFF){ size = u64(cd, p); p += 8; } if(csize === 0xFFFFFFFF){ csize = u64(cd, p); p += 8; } if(local === 0xFFFFFFFF){ local = u64(cd, p); } }
+      x += 4 + len;
+    }
+    off += 46 + nameLen + extraLen + commentLen;
+    out.set(name.replace(/\\/g, '/').toLowerCase(), {size, csize, method, get: async()=>{
+      const lh = await rd(local, 30);
+      if(lh.getUint32(0, true) !== 0x04034b50) return null;
+      const start = local + 30 + lh.getUint16(26, true) + lh.getUint16(28, true), part = file.slice(start, start + csize);
+      if(method === 0) return part;
+      if(method === 8 && typeof DecompressionStream !== 'undefined') return new Response(part.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();
+      return null;
+    }});
+  }
+  return out;
+}
 
-window.DalilMapImport = {fromSqlitedb, fromMbtiles, fromGeoTiff, fromWorldFile, fromOzi, parseOziMap, fromGroundOverlays, zipEntries, writePmtiles, _utm:{utmFwd, utmInv}};
+window.DalilMapImport = {fromSqlitedb, fromMbtiles, fromGeoTiff, fromWorldFile, fromOzi, parseOziMap, fromGroundOverlays, zipEntries, zipEntriesFile, writePmtiles, _utm:{utmFwd, utmInv}};
 })();
