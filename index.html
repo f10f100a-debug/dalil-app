@@ -446,6 +446,30 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .rc-days b{display:block; font-size:12.5px; color:var(--cp-ink)} .rc-days .d{display:block; width:10px; height:10px; border-radius:50%; margin:4px auto; background:#DCE7F2}
   .rc-days .d.l1{background:#A9C6E4} .rc-days .d.l2{background:#4F92D9} .rc-days .d.l3{background:#1F64B5}
   .rc-note{font-size:11.5px; color:var(--cp-dim); margin-top:10px}
+  /* «طقس مكان ثاني»: نافذة لحالها بلون مختلف — صفحة الأجواء تبقى دايمًا على موقعك */
+  .wxo-btn{display:flex; align-items:center; justify-content:center; gap:8px; width:100%; margin:-4px 0 12px; padding:11px 14px; border-radius:16px; border:1px dashed var(--cp-line); background:transparent; color:var(--cp-ink); font:inherit; font-size:14.5px; font-weight:700; cursor:pointer}
+  .wxo-sheet{padding-top:14px}
+  .wxo-head{display:flex; align-items:center; gap:10px; margin:0 0 12px}
+  .wxo-head h3{margin:0; font-size:18px; flex:1}
+  .wxo-x{width:38px; height:38px; border-radius:12px; border:1px solid var(--cp-line); background:var(--cp-soft); color:var(--cp-ink); font-size:18px; cursor:pointer}
+  .wxo-search{width:100%; margin-bottom:8px}
+  .wxo-list{display:flex; flex-direction:column; gap:2px; max-height:52vh; overflow-y:auto}
+  .wxo-sec{font-size:12px; color:var(--cp-dim); margin:10px 2px 4px; font-weight:700}
+  .wxo-item{display:flex; align-items:center; gap:10px; width:100%; padding:10px 8px; border:0; border-bottom:1px solid var(--cp-line); background:none; text-align:right; font:inherit; color:var(--cp-ink); cursor:pointer}
+  .wxo-item b{display:block; font-size:15px} .wxo-item small{display:block; font-size:12px; color:var(--cp-dim); margin-top:2px}
+  .wxo-item .wxo-ic{width:30px; text-align:center; font-size:18px}
+  .wxo-place{background:linear-gradient(135deg,#5B3FA0,#7A57C9); color:#fff; border-radius:18px; padding:12px 14px; margin:0 0 12px}
+  .wxo-place b{display:block; font-size:18px} .wxo-place small{display:block; font-size:12.5px; opacity:.9; margin-top:3px}
+  .wxo-place button{margin-top:8px; border:1px solid rgba(255,255,255,.5); background:rgba(255,255,255,.15); color:#fff; border-radius:10px; padding:5px 10px; font:inherit; font-size:12.5px; cursor:pointer}
+  .wxo-body .rain-card{border:1px solid var(--cp-line)}
+  .wxo-week{display:grid; grid-template-columns:auto 1fr auto; gap:6px 10px; align-items:center; font-size:13.5px; margin:4px 0 12px; padding:12px; border:1px solid var(--cp-line); border-radius:16px}
+  .wxo-week h4{grid-column:1/-1; margin:0 0 4px; font-size:15px}
+  .wxo-week .t{font-weight:800; white-space:nowrap} .wxo-week .w{color:var(--cp-dim); white-space:nowrap; display:flex; align-items:center; gap:4px}
+  .wxo-week .wd-arrow{width:14px; height:14px}
+  .wxo-adv{border:1px solid var(--cp-line); border-radius:16px; padding:12px; margin-bottom:12px}
+  .wxo-adv .adv-days{margin:8px 0}
+  .wxo-note{font-size:12px; color:var(--cp-dim); text-align:center; margin:4px 0 10px}
+  .wxo-empty{padding:18px 6px; text-align:center; color:var(--cp-dim); font-size:13.5px}
   .storm-card{margin:0 0 12px; padding:12px 14px; border-radius:16px; border:1px solid var(--cp-line); background:var(--cp-card); display:flex; gap:10px; align-items:center;}
   .storm-card .sx{font-size:26px;} .storm-card b{display:block; font-size:15px; color:var(--cp-ink);} .storm-card small{display:block; font-size:12.5px; color:var(--cp-dim); margin-top:2px;}
   .storm-card.app{border-color:#2F6FD6; background:rgba(47,111,214,.08);} .storm-card.near{border-color:#C0392B; background:rgba(192,57,43,.08);}
@@ -1277,6 +1301,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div id="wxPane">
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
+      <button type="button" class="wxo-btn" id="wxoBtn">🔎 طقس مكان ثاني</button>
       <button type="button" class="wx-radar-cta" id="openRadarBtn">
         <span class="cp-ic" data-ico="rain"></span>
         <span><b>رادار الأمطار والبرق — مباشر</b><small>من رادارات الأرصاد · يتحدث كل 10 دقائق</small></span>
@@ -1646,6 +1671,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="cp-sheet-list">
         <button type="button" class="cp-sheet-item" id="placeSheetMap"><span class="cp-ic" data-ico="map"></span><span><b>عرض على الخريطة</b><small>والتوجّه عليها</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetWadi" hidden><span class="cp-ic" data-ico="nav"></span><span><b>توجّه إلى أقرب نقطة من الوادي</b><small id="placeSheetWadiSub"></small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetWx"><span class="cp-ic" data-ico="partly"></span><span><b>طقس هذا المكان</b><small>متى المطر والأيام السبعة والرياح</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetSave" hidden><span class="cp-ic" data-ico="pin"></span><span><b>حفظ في أماكني</b></span></button>
@@ -1653,6 +1679,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       </div>
       <button type="button" class="cp-btn cp-btn-danger" id="placeSheetDelete"><span class="cp-ic" data-ico="trash"></span><span id="placeSheetDeleteLabel">حذف المكان</span></button>
       <button type="button" class="cp-btn cp-btn-white" id="placeSheetClose">إغلاق</button>
+    </div>
+  </div>
+
+  <!-- «طقس مكان ثاني»: نافذة مستقلة — ما تغيّر صفحة الأجواء ولا التنبيهات -->
+  <div class="overlay" id="wxoOverlay">
+    <div class="sheet cp-sheet wxo-sheet" role="dialog" aria-modal="true" aria-labelledby="wxoTitle">
+      <div class="sheet-handle"></div>
+      <div class="wxo-head"><h3 id="wxoTitle">🔎 طقس مكان ثاني</h3><button type="button" class="wxo-x" id="wxoClose" aria-label="إغلاق">✕</button></div>
+      <div id="wxoPick">
+        <input class="text-input wxo-search" id="wxoQ" type="search" placeholder="ابحث باسم المكان: رفحاء، روضة نورة…" autocomplete="off" aria-label="ابحث عن مكان">
+        <div class="wxo-list" id="wxoList"></div>
+      </div>
+      <div class="wxo-body" id="wxoBody" hidden></div>
+      <div class="wxo-note">صفحة الأجواء وتنبيهات المطر تبقى على موقعك أنت</div>
     </div>
   </div>
 
@@ -3188,13 +3228,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(cur) wins.push(cur);
     return wins;
   }
-  function renderRainOutlook(){
-    const card = document.getElementById('rainCard'), badge = document.getElementById('cpRainBadge');
-    const j = RAIN_OUT.data; if(!card || !j){ return; }
+  // نفس عرض «متى المطر؟» لأي بيانات (موقعي أو مكان ثاني) — where: «مكانك» أو «هذا المكان»
+  function rainOutlookHtml(j, where){
     const hrs = rainHours(j), wins = rainWindows(hrs);
     const main = wins.find(w=>w.lv >= 2) || wins[0];
     let sum;
-    if(!main) sum = '☀️ لا يُتوقع مطر على مكانك خلال <b>7 أيام</b> — النماذج الثلاثة متفقة.';
+    if(!main) sum = '☀️ لا يُتوقع مطر على ' + where + ' خلال <b>7 أيام</b> — النماذج الثلاثة متفقة.';
     else{
       const end = new Date(main.end.getTime() + 3600e3), same = main.start.toDateString() === end.toDateString();
       sum = 'احتمال مطر <span class="rc-lv l' + main.lv + '">' + LV_WORD[main.lv] + '</span> <b>' + dayWord(main.start) + ' من ' + hm(main.start) + ' لين ' + (same ? '' : dayWord(end) + ' ') + hm(end) + '</b>'
@@ -3211,8 +3250,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     // الأيام السبعة
     const days = {}; for(const h of hrs){ const k = h.t.toDateString(); const d = days[k] || (days[k] = {t:h.t, lv:0, mm:0, prob:0}); d.lv = Math.max(d.lv, h.lv); d.mm += h.mm; d.prob = Math.max(d.prob, h.prob); }
     const dayHtml = Object.values(days).slice(0, 7).map(d=>'<div><b>' + (dayWord(d.t) === 'اليوم' || dayWord(d.t) === 'بكرة' ? dayWord(d.t) : d.t.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', {weekday:'short'})) + '</b><span class="d ' + (d.lv ? 'l' + d.lv : '') + '"></span>' + (d.lv ? iso(d.prob) + '%' : '—') + '</div>').join('');
-    card.innerHTML = '<h3>🌧️ متى المطر؟</h3><div class="rc-sum">' + sum + '</div><div class="rc-bars">' + bars + '</div><div class="rc-ticks">' + ticks + '</div><div class="rc-days">' + dayHtml + '</div>'
-      + '<div class="rc-note">الـ 48 ساعة الجاية · كل ما غمق اللون زاد الاحتمال · الخط الأصفر = رعد. مرجّح = اتفقت 3 نماذج (الأوروبي والأمريكي والألماني)، محتمل = اثنين، ضعيف = واحد. القريب (أول ساعتين) من الرادار فوق.</div>';
+    return {wins, html:'<h3>🌧️ متى المطر؟</h3><div class="rc-sum">' + sum + '</div><div class="rc-bars">' + bars + '</div><div class="rc-ticks">' + ticks + '</div><div class="rc-days">' + dayHtml + '</div>'};
+  }
+  function renderRainOutlook(){
+    const card = document.getElementById('rainCard'), badge = document.getElementById('cpRainBadge');
+    const j = RAIN_OUT.data; if(!card || !j){ return; }
+    const {wins, html} = rainOutlookHtml(j, 'مكانك');
+    card.innerHTML = html + '<div class="rc-note">الـ 48 ساعة الجاية · كل ما غمق اللون زاد الاحتمال · الخط الأصفر = رعد. مرجّح = اتفقت 3 نماذج (الأوروبي والأمريكي والألماني)، محتمل = اثنين، ضعيف = واحد. القريب (أول ساعتين) من الرادار فوق.</div>';
     card.hidden = false;
     // أيقونة البوصلة: مطر محتمل أو مرجّح خلال 48 ساعة
     const soon = wins.find(w=>w.lv >= 2 && w.start.getTime() - Date.now() < 48 * 3600e3);
@@ -6374,6 +6418,115 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       else out.textContent = 'تعذّر الحين — حاول بعد شوي.';
     }catch(e){ out.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وحاول مرة ثانية.'; }
     advBusy = false; btn.disabled = false;
+  });
+  // ---------- «طقس مكان ثاني»: نافذة مستقلة بلون مختلف ----------
+  // ما تغيّر صفحة الأجواء ولا موقع التنبيهات ولا تحفظ «مكان حالي» — تقفلها وترجع لطقسك. نحفظ آخر 5 أماكن بس للرجوع السريع.
+  const WXO_RECENT = 'dalil_wx_recent';
+  let wxoPt = null, wxoDay = 0, wxoSeq = 0;
+  const wxoOverlay = document.getElementById('wxoOverlay');
+  function wxoRecent(){ const a = readStoredJson(WXO_RECENT, []); return Array.isArray(a) ? a.filter(p=>p && validLatLng(Number(p.lat), Number(p.lng))).slice(0, 5) : []; }
+  function wxoDistTxt(p){ return state.pos ? fmtDist(haversine(state.pos.lat, state.pos.lng, p.lat, p.lng)) + ' منك' : ''; }
+  function wxoItem(p, ic, sub){
+    return '<button type="button" class="wxo-item" data-lat="' + p.lat + '" data-lng="' + p.lng + '" data-name="' + escapeHtml(p.name) + '"><span class="wxo-ic">' + ic + '</span><span><b>' + escapeHtml(p.name) + '</b><small>' + escapeHtml([sub, wxoDistTxt(p)].filter(Boolean).join(' · ')) + '</small></span></button>';
+  }
+  function wxoRenderList(){
+    const q = document.getElementById('wxoQ').value.trim(), list = document.getElementById('wxoList');
+    let html = '';
+    if(q.length >= 2){
+      const nq = normAr(q);
+      const mine = state.places.filter(p=>validLatLng(Number(p.lat), Number(p.lng)) && normAr(p.name).includes(nq)).slice(0, 8);
+      if(mine.length) html += '<div class="wxo-sec">أماكني</div>' + mine.map(p=>wxoItem({name:p.name, lat:Number(p.lat), lng:Number(p.lng)}, '📍', '')).join('');
+      const r = searchCatalog(q), items = (r && r.items) || [];
+      if(items.length) html += '<div class="wxo-sec">مواقع دليل</div>' + items.slice(0, 25).map(p=>wxoItem(p, '🗺️', [p.kind, p.region].filter(Boolean).join(' · '))).join('');
+      if(!html) html = '<div class="wxo-empty">ما لقيت «' + escapeHtml(q) + '» — جرّب اسم ثاني أو اسم أقرب مدينة</div>';
+    }else{
+      const rec = wxoRecent(), car = getCar();
+      if(rec.length) html += '<div class="wxo-sec">آخر الأماكن</div>' + rec.map(p=>wxoItem(p, '🕘', '')).join('');
+      if(car) html += '<div class="wxo-sec">السيارة</div>' + wxoItem({name:'السيارة', lat:car.lat, lng:car.lng}, '🚙', '');
+      const mine = state.places.filter(p=>validLatLng(Number(p.lat), Number(p.lng))).slice(0, 20);
+      if(mine.length) html += '<div class="wxo-sec">أماكني</div>' + mine.map(p=>wxoItem({name:p.name, lat:Number(p.lat), lng:Number(p.lng)}, '📍', '')).join('');
+      if(!html) html = '<div class="wxo-empty">اكتب اسم المكان فوق — فيه أكثر من 45 ألف موقع في المملكة</div>';
+    }
+    list.innerHTML = html;
+  }
+  function openWxo(pt){
+    wxoPt = null; wxoDay = 0;
+    document.getElementById('wxoQ').value = '';
+    document.getElementById('wxoPick').hidden = false;
+    document.getElementById('wxoBody').hidden = true;
+    setText('wxoTitle', '🔎 طقس مكان ثاني');
+    wxoRenderList();
+    wxoOverlay.classList.add('show');
+    // مواقع دليل (45 ألف) تنحمّل أول ما تنفتح النافذة
+    ensureBundledCatalog().then(()=>{ if(!wxoPt && document.getElementById('wxoQ').value.trim().length >= 2) wxoRenderList(); }).catch(()=>{});
+    if(pt) wxoShow(pt);
+  }
+  function wxoBack(){
+    wxoPt = null; wxoSeq++;
+    document.getElementById('wxoPick').hidden = false;
+    document.getElementById('wxoBody').hidden = true;
+    setText('wxoTitle', '🔎 طقس مكان ثاني');
+    wxoRenderList();
+  }
+  async function wxoShow(pt){
+    wxoPt = pt; const seq = ++wxoSeq;
+    try{ const rec = [pt, ...wxoRecent().filter(p=>haversine(p.lat, p.lng, pt.lat, pt.lng) > 2000)].slice(0, 5); localStorage.setItem(WXO_RECENT, JSON.stringify(rec.map(p=>({name:p.name, lat:+p.lat.toFixed(4), lng:+p.lng.toFixed(4)})))); }catch(e){}
+    document.getElementById('wxoPick').hidden = true;
+    const body = document.getElementById('wxoBody'); body.hidden = false;
+    setText('wxoTitle', '🌦️ طقس مكان ثاني');
+    const head = '<div class="wxo-place"><b>📍 ' + escapeHtml(pt.name) + '</b><small>' + escapeHtml([wxoDistTxt(pt), 'مو موقعك الحالي'].filter(Boolean).join(' · ')) + '</small><button type="button" id="wxoChange">تغيير المكان</button></div>';
+    if(navigator.onLine === false){ body.innerHTML = head + '<div class="wxo-empty">تحتاج إنترنت عشان نجيب توقعات هذا المكان</div>'; return; }
+    body.innerHTML = head + '<div class="wxo-empty">⏳ نجيب التوقعات…</div>';
+    try{
+      const ll = {latitude:pt.lat.toFixed(3), longitude:pt.lng.toFixed(3), timezone:'auto', forecast_days:'7'};
+      const [rr, dr] = await Promise.all([
+        fetch('https://api.open-meteo.com/v1/forecast?' + new URLSearchParams({...ll, hourly:'precipitation,precipitation_probability,cape,weather_code', models:RAIN_MODELS.join(',')})),
+        fetch('https://api.open-meteo.com/v1/forecast?' + new URLSearchParams({...ll, daily:'temperature_2m_max,temperature_2m_min,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant'}))]);
+      if(!rr.ok || !dr.ok) throw 0;
+      const [rj, dj] = [await rr.json(), await dr.json()];
+      if(seq !== wxoSeq) return;
+      const rain = rainOutlookHtml(rj, 'هذا المكان').html;
+      const D = dj.daily || {}, T = D.time || [];
+      const week = T.slice(0, 7).map((t, i)=>{
+        const d = new Date(t + 'T12:00:00'), w = Math.round(D.wind_speed_10m_max[i] || 0), g = Math.round(D.wind_gusts_10m_max[i] || 0), dir = D.wind_direction_10m_dominant[i];
+        return '<span>' + escapeHtml(dayWord(d)) + '</span><span class="t">' + iso(Math.round(D.temperature_2m_max[i])) + '° / ' + iso(Math.round(D.temperature_2m_min[i])) + '°</span><span class="w">' + (dir != null ? windArrow(dir) + windShort(dir) + ' ' : '') + iso(w) + (g > w + 10 ? '–' + iso(g) : '') + ' كم/س</span>';
+      }).join('');
+      const adv = await advProbe().catch(()=>false);
+      body.innerHTML = head + '<div class="cp-card rain-card">' + rain + '</div>'
+        + '<div class="wxo-week"><h4>🌡️ الحرارة والرياح · 7 أيام</h4>' + week + '</div>'
+        + (adv ? '<div class="wxo-adv"><b>🧭 مستشار الطلعة لهذا المكان</b><div class="adv-days" id="wxoDays">' + [0,1,2,3,4,5,6].map(i=>'<button type="button" role="radio" aria-checked="' + (i === wxoDay) + '" data-wxoday="' + i + '">' + advDayLabel(i) + '</button>').join('') + '</div><button type="button" class="adv-ask" id="wxoAsk">اسأل المستشار</button><div class="adv-out" id="wxoAdvOut" aria-live="polite" hidden></div></div>' : '');
+    }catch(e){
+      if(seq === wxoSeq) body.innerHTML = head + '<div class="wxo-empty">تعذّر جلب التوقعات الحين — حاول بعد شوي</div>';
+    }
+  }
+  document.getElementById('wxoBtn').addEventListener('click', ()=>openWxo());
+  document.getElementById('wxoClose').addEventListener('click', ()=>dismissBottomSheet(wxoOverlay));
+  document.getElementById('wxoQ').addEventListener('input', ()=>{ clearTimeout(wxoOverlay._t); wxoOverlay._t = setTimeout(wxoRenderList, 180); });
+  document.getElementById('wxoList').addEventListener('click', e=>{
+    const b = e.target.closest('.wxo-item'); if(!b) return;
+    wxoShow({name:b.dataset.name, lat:Number(b.dataset.lat), lng:Number(b.dataset.lng)});
+  });
+  document.getElementById('wxoBody').addEventListener('click', async e=>{
+    if(e.target.closest('#wxoChange')){ wxoBack(); return; }
+    const d = e.target.closest('[data-wxoday]');
+    if(d){ wxoDay = Number(d.dataset.wxoday); document.querySelectorAll('#wxoDays [data-wxoday]').forEach(x=>x.setAttribute('aria-checked', String(x === d))); return; }
+    if(!e.target.closest('#wxoAsk') || !wxoPt || advBusy) return;
+    const out = document.getElementById('wxoAdvOut'), btn = document.getElementById('wxoAsk'), pt = wxoPt;
+    out.hidden = false; advBusy = true; btn.disabled = true; out.textContent = '🧭 المستشار يقرأ التوقعات…';
+    try{
+      const j = await (await dalilPost('advise', {lat:pt.lat, lng:pt.lng, day:wxoDay, name:pt.name, storm:''})).json();
+      if(j.ok && j.text) out.innerHTML = escapeHtml(j.text).replace(/\n+/g, '<br>') + '<small>تلخيص آلي لتوقعات Open-Meteo لـ' + escapeHtml(pt.name) + ' — التوقعات قد تتغير، والإنذارات الرسمية من المركز الوطني للأرصاد.</small>';
+      else if(j.error === 'limit') out.textContent = 'وصلت حد الأسئلة اليوم (٨) — جرّب بكرة.';
+      else if(j.error === 'off') out.textContent = 'المستشار متوقف مؤقتًا.';
+      else out.textContent = 'تعذّر الحين — حاول بعد شوي.';
+    }catch(err){ out.textContent = 'تعذّر الاتصال — تأكد من الإنترنت وحاول مرة ثانية.'; }
+    advBusy = false; btn.disabled = false;
+  });
+  document.getElementById('placeSheetWx').addEventListener('click', ()=>{
+    const p = sheetPlaceId ? findPlace(sheetPlaceId) : null;
+    if(!p || !validLatLng(Number(p.lat), Number(p.lng))) return;
+    closePlaceSheet();
+    openWxo({name:p.name, lat:Number(p.lat), lng:Number(p.lng)});
   });
   // ---------- «اسأل دليل»: مساعد استخدام التطبيق (يجاوب من دليل المستخدم) ----------
   const ASK_PROBE_KEY = 'dalil_ask_on';
