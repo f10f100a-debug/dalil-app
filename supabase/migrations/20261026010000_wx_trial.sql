@@ -25,3 +25,14 @@ alter table public.wx_trial_cells enable row level security;
 alter table public.wx_trial_fc enable row level security;
 -- توقعات التجربة: مرتين باليوم (7:40ص و7:40م بتوقيت الرياض)
 select cron.schedule('dalil-wx-trial-fc', '40 4,16 * * *', $$select net.http_post(url:='https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-alerts?a=fc', headers:=jsonb_build_object('x-cron-key',(select value from public.private_config where key='cron_key'),'content-type','application/json'), body:='{}'::jsonb, timeout_milliseconds:=120000)$$);
+-- تأكيد المشرف من لوحة الإدارة: 1 = شافه على الطبيعة، -1 = ما صار
+alter table public.wx_trial_cells add column if not exists verified smallint, add column if not exists verified_by text, add column if not exists verified_at timestamptz;
+create or replace function public.wx_trial_today(since timestamptz)
+returns table(region text, n bigint, hail bigint, lt bigint, yes bigint, no bigint)
+language sql security definer set search_path = public as $$
+  select coalesce(region, 'خارج المناطق'), count(*), count(*) filter (where n55 > 0), count(*) filter (where lightning),
+    count(*) filter (where verified = 1), count(*) filter (where verified = -1)
+  from wx_trial_cells where frame >= since group by 1 order by 2 desc;
+$$;
+revoke all on function public.wx_trial_today(timestamptz) from public, anon, authenticated;
+grant execute on function public.wx_trial_today(timestamptz) to service_role;

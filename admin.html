@@ -16,6 +16,7 @@
   main{max-width:720px; margin:0 auto;}
   h1{font-size:22px; margin:6px 0 14px;}
   h2{font-size:16px; margin:22px 2px 10px; color:var(--dim);}
+  [data-wt][aria-pressed="true"]{background:var(--gold)!important;color:#fff!important;border-color:var(--gold)!important}
   .card{background:var(--card); border:1px solid var(--line); border-radius:20px; padding:14px; margin-bottom:10px;}
   input, select, textarea{width:100%; min-height:46px; border:1px solid var(--line); border-radius:14px; padding:10px 12px; font:inherit; background:#FBF9F5; color:var(--ink);}
   textarea{min-height:80px; resize:vertical;}
@@ -94,6 +95,16 @@
         <div class="row" style="margin-top:8px"><button class="gold" id="gdPair">استقبل تنبيهات الحارس على جوالي</button><button class="white" id="gdUnpair" hidden>إلغاء الربط</button></div>
         <div id="gdPairBox" hidden style="margin-top:8px;font-size:13.5px;line-height:1.8"></div>
       </div>
+    </div>
+
+    <h2>🧪 تجربة المطر الغزير والبرد <span class="muted" style="font-weight:400">· صامتة — ما يشوفها المستخدمين</span></h2>
+    <div class="card" id="wtCard">
+      <div class="muted" id="wtHead" style="font-size:12.5px">—</div>
+      <svg id="wtMap" viewBox="0 0 440 330" direction="ltr" style="direction:ltr;width:100%;height:auto;margin-top:8px;background:#F7F3EC;border:1px solid var(--line);border-radius:14px" role="img" aria-label="خريطة الخلايا"></svg>
+      <div class="muted" style="font-size:12px;margin-top:4px">🟠 مطر غزير · 🟣 قوية جدًا (احتمال برد) · الحلقة السوداء = معها برق · 🔷 توقع مطر غزير · ◇ توقع عواصف</div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="white" data-wt="now" aria-pressed="true">الحين</button><button class="white" data-wt="today">اليوم</button><button class="white" data-wt="fc">التوقعات</button><button class="white" id="wtReload">تحديث</button></div>
+      <div id="wtList" style="margin-top:8px"></div>
+      <div class="muted" id="wtFoot" style="font-size:12px;margin-top:8px"></div>
     </div>
 
     <div class="card" id="pwCard" hidden style="margin-top:10px">
@@ -740,8 +751,8 @@
 
   // ---------- 🛡️ حارس دليل ----------
   const GD = 'https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-guard?a=';
-  async function gdApi(a){
-    const r = await fetch(GD + a, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user, pass})});
+  async function gdApi(a, extra){
+    const r = await fetch(GD + a, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user, pass, ...(extra || {})})});
     const j = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(j.error === 'forbidden' ? 'للمالك فقط' : 'تعذّر الاتصال بالحارس');
     return j;
@@ -789,6 +800,48 @@
   $('gdUnpair').addEventListener('click', async ()=>{
     if(!confirm('إلغاء ربط كل الأجوال من حارس دليل؟')) return;
     try{ await gdApi('unpair'); await loadGuard(); }catch(e){ showErr(e); }
+  });
+
+  // ---------- 🧪 تجربة المطر الغزير والبرد (صامتة) ----------
+  let wtData = null, wtTab = 'now';
+  const WT_CITIES = [['الرياض',24.71,46.68],['جدة',21.54,39.17],['المدينة',24.47,39.61],['حائل',27.52,41.69],['تبوك',28.38,36.57],['سكاكا',29.97,40.21],['عرعر',30.98,41.04],['بريدة',26.33,43.97],['الدمام',26.43,50.1],['أبها',18.22,42.5],['جازان',16.89,42.55],['نجران',17.49,44.13],['حفر الباطن',28.43,45.96]];
+  const wtX = lng=>(lng - 34) / 22 * 440, wtY = lat=>(32.5 - lat) / 16.5 * 330;
+  const wtTime = t=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {weekday:'short', hour:'numeric', minute:'2-digit', timeZone:'Asia/Riyadh'}).format(new Date(t));
+  const wtLabel = c=>c.n55 > 0 ? '🟣 قوية جدًا — احتمال برد' : '🟠 مطر غزير';
+  function wtRender(){
+    const d = wtData; if(!d) return;
+    document.querySelectorAll('[data-wt]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.wt === wtTab)));
+    $('wtHead').textContent = (d.frame ? 'آخر صورة رادار: ' + wtTime(d.frame) : 'ما فيه تسجيل بعد') + ' · المسجّل كله: ' + d.total + ' خلية';
+    let svg = WT_CITIES.map(([n, la, lo])=>`<circle cx="${wtX(lo)}" cy="${wtY(la)}" r="2.2" fill="#9A9184"/><text x="${wtX(lo) - 4}" y="${wtY(la) + 3}" font-size="9" fill="#8A8174" text-anchor="end">${n}</text>`).join('');
+    let list = '';
+    if(wtTab === 'fc'){
+      svg += d.fc.map(f=>f.kind === 'heavy' ? `<rect x="${wtX(f.lng) - 5}" y="${wtY(f.lat) - 5}" width="10" height="10" fill="#2F7AD6" opacity=".75"/>` : `<rect x="${wtX(f.lng) - 4}" y="${wtY(f.lat) - 4}" width="8" height="8" fill="none" stroke="#2F7AD6" stroke-width="1.5" transform="rotate(45 ${wtX(f.lng)} ${wtY(f.lat)})"/>`).join('');
+      list = d.fc.length ? d.fc.slice(0, 40).map(f=>`<div class="log-row" style="display:block"><b>${f.kind === 'heavy' ? '🔷 مطر غزير متوقع' : '◇ عواصف قوية محتملة'}</b> · ${esc(f.region || '')} <span class="muted">(${f.lat}, ${f.lng})</span><div class="muted" style="font-size:12.5px">${esc(wtTime(f.win_from))} – ${esc(wtTime(f.win_to))} · ${f.kind === 'heavy' ? f.agree + ' نماذج متفقة · حتى ' + f.mm + ' ملم/3س' : 'طاقة العواصف ' + f.cape + ' · مطر بـ ' + f.agree + ' نموذج'}</div></div>`).join('') : '<div class="muted">آخر توقع ما فيه مطر غزير ولا عواصف قوية.</div>';
+      $('wtFoot').textContent = d.fcAt ? 'آخر توقع: ' + wtTime(d.fcAt) + ' — يتحدث 7:40 الصبح و7:40 المساء' : '';
+    }else{
+      svg += d.cells.map(c=>`<circle cx="${wtX(c.lng)}" cy="${wtY(c.lat)}" r="${Math.min(12, 3 + Math.sqrt(c.n))}" fill="${c.n55 > 0 ? '#8B3FD1' : '#E8731A'}" opacity=".8" ${c.lightning ? 'stroke="#111" stroke-width="1.6"' : ''}/>`).join('');
+      if(wtTab === 'now'){
+        list = d.cells.length ? d.cells.map(c=>`<div class="log-row" style="display:block" data-wtid="${c.id}"><b>${wtLabel(c)}</b> · ${esc(c.region || 'خارج المناطق')} <span class="muted">(${c.lat}, ${c.lng})</span>
+          <div class="muted" style="font-size:12.5px">أقوى ${c.max_dbz} dBZ · حجمها ~${c.n * 25} كم² ${c.lightning ? '· ⚡ معها برق' : c.lightning === false ? '· بدون برق' : ''}${c.mv_kmh ? ' · تتجه ' + esc(c.mv_dir) + ' ' + c.mv_kmh + ' كم/س' : ''}</div>
+          <div class="row" style="gap:6px;margin-top:4px"><button class="white" data-wtv="1" style="flex:0 0 auto;${c.verified === 1 ? 'background:var(--green-bg);color:var(--green)' : ''}">✓ شفته على الطبيعة</button><button class="white" data-wtv="-1" style="flex:0 0 auto;${c.verified === -1 ? 'background:var(--red-bg);color:var(--red)' : ''}">✗ ما صار</button></div></div>`).join('')
+          : '<div class="muted">ما فيه مطر غزير في آخر صورة رادار ☀️</div>';
+      }else{
+        const rows = Object.entries(d.today).sort((a, b)=>b[1].n - a[1].n);
+        list = rows.length ? '<table style="width:100%;font-size:13px;border-collapse:collapse"><tr class="muted"><td>المنطقة</td><td>رصدات</td><td>احتمال برد</td><td>معها برق</td></tr>' + rows.map(([r, o])=>`<tr><td style="padding:3px 0">${esc(r)}</td><td>${o.n}</td><td>${o.hail}</td><td>${o.lt}</td></tr>`).join('') + '</table><div class="muted" style="font-size:12px;margin-top:4px">«رصدات» = عدد مرات ظهور خلية غزيرة بصور الرادار اليوم (كل 10 دقائق) — نفس العاصفة تنعد أكثر من مرة.</div>' : '<div class="muted">ما انرصد مطر غزير اليوم.</div>';
+      }
+      $('wtFoot').textContent = 'تأكيداتك: ✓ ' + d.marks.yes + ' · ✗ ' + d.marks.no + ' — تدخل في حساب الدقة بعد أسبوعين (9 نوفمبر).';
+    }
+    $('wtMap').innerHTML = svg;
+    $('wtList').innerHTML = list;
+  }
+  async function loadTrial(){ wtData = await gdApi('trial'); wtRender(); }
+  document.querySelectorAll('[data-wt]').forEach(b=>b.addEventListener('click', ()=>{ wtTab = b.dataset.wt; wtRender(); }));
+  $('wtReload').addEventListener('click', ()=>loadTrial().catch(showErr));
+  $('wtList').addEventListener('click', async e=>{
+    const b = e.target.closest('[data-wtv]'), row = e.target.closest('[data-wtid]'); if(!b || !row) return;
+    const id = Number(row.dataset.wtid), c = wtData.cells.find(x=>x.id === id); if(!c) return;
+    const v = c.verified === Number(b.dataset.wtv) ? 0 : Number(b.dataset.wtv);
+    try{ await gdApi('trial_mark', {id, v}); await loadTrial(); }catch(err){ showErr(err); }
   });
 
   // ---------- تنبيهات المطر التلقائية ----------
@@ -843,6 +896,7 @@
     if(can('push')) jobs.push(loadAutoAlerts());
     if(me.role === 'owner') jobs.push(loadAdmins());
     jobs.push(loadGuard().catch(()=>{ $('gdLast').textContent = 'تعذّر تحميل حالة الحارس'; }));
+    jobs.push(loadTrial().catch(()=>{ $('wtHead').textContent = 'تعذّر تحميل التجربة'; }));
     await Promise.all(jobs);
   }
   $('refresh').addEventListener('click', ()=>loadAll().catch(showErr));

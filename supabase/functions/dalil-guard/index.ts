@@ -147,7 +147,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
   try {
     const { data: jobs, error } = await sb.rpc("guard_cron_status");
     if (error) throw error;
-    const AR: Record<string, string> = { "dalil-auto-alerts": "تنبيهات المطر", "dalil-room-tick": "الغرف", "dalil-fayd-alerts": "تنبيه الفياض", "dalil-guard": "الحارس" };
+    const AR: Record<string, string> = { "dalil-auto-alerts": "تنبيهات المطر", "dalil-room-tick": "الغرف", "dalil-fayd-alerts": "تنبيه الفياض", "dalil-guard": "الحارس", "dalil-wx-trial-fc": "تجربة التوقعات" };
     const every = (s: string) => {   // المدة المتوقعة بين تشغيلين (دقائق) من صيغة cron
       const [m, h] = s.trim().split(/\s+/);
       if (/^\*\/\d+$/.test(m)) return +m.slice(2);
@@ -161,7 +161,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
       const nm = AR[j.jobname] || j.jobname.replace(/^dalil-/, "");
       const gapMin = ago(j.last_run) * 60, exp = every(j.schedule);
       if (!j.active) { bad.push(nm + " موقوف"); warn = true; continue; }
-      if (gapMin > Math.max(15, exp * 3)) { bad.push(nm + " ما اشتغل من " + hrs(gapMin / 60)); continue; }
+      if (j.last_run && gapMin > Math.max(15, exp * 3)) { bad.push(nm + " ما اشتغل من " + hrs(gapMin / 60)); continue; }
       if (j.fails24 >= 2) bad.push(nm + " فشل " + j.fails24 + " مرات" + (j.last_err ? " (" + j.last_err.slice(0, 50) + ")" : ""));
     }
     const n = (jobs || []).length;
@@ -254,6 +254,30 @@ Deno.serve(async (req) => {
     if (action === "check_now") {
       const checks = await runChecks(sb);
       return json(req, { ok: true, last: { at: new Date().toISOString(), checks } });
+    }
+    // 🧪 تجربة «أقرب مطر غزير وبرد» (صامتة — للمشرفين بس)
+    if (action === "trial") {
+      const { data: lastRow } = await sb.from("wx_trial_cells").select("frame").order("frame", { ascending: false }).limit(1).maybeSingle();
+      const dayStart = new Date(Math.floor((Date.now() + 3 * H) / 864e5) * 864e5 - 3 * H).toISOString();
+      const [{ data: cells }, { data: today }, { data: fcLast }, { count: total }, { count: yes }, { count: no }] = await Promise.all([
+        lastRow ? sb.from("wx_trial_cells").select("id,frame,lat,lng,region,max_dbz,n,n55,lightning,mv_kmh,mv_dir,verified").eq("frame", lastRow.frame).order("n", { ascending: false }).limit(40) : Promise.resolve({ data: [] }),
+        sb.rpc("wx_trial_today", { since: dayStart }),
+        sb.from("wx_trial_fc").select("made_at").order("made_at", { ascending: false }).limit(1).maybeSingle(),
+        sb.from("wx_trial_cells").select("id", { count: "exact", head: true }),
+        sb.from("wx_trial_cells").select("id", { count: "exact", head: true }).eq("verified", 1),
+        sb.from("wx_trial_cells").select("id", { count: "exact", head: true }).eq("verified", -1),
+      ]);
+      const fc = fcLast ? (await sb.from("wx_trial_fc").select("lat,lng,region,kind,agree,win_from,win_to,mm,cape").gte("made_at", new Date(Date.parse(fcLast.made_at) - 60e3).toISOString()).order("win_from").limit(300)).data : [];
+      const byReg: Record<string, { n: number; hail: number; lt: number }> = {};
+      for (const r of (today || []) as { region: string; n: number; hail: number; lt: number }[]) byReg[r.region] = { n: Number(r.n), hail: Number(r.hail), lt: Number(r.lt) };
+      return json(req, { ok: true, frame: lastRow?.frame || null, cells: cells || [], today: byReg, fcAt: fcLast?.made_at || null, fc: fc || [], total: total ?? 0,
+        marks: { yes: yes ?? 0, no: no ?? 0 } });
+    }
+    if (action === "trial_mark") {
+      const id = Number(body.id), v = Number(body.v);
+      if (!Number.isInteger(id) || ![1, -1, 0].includes(v)) return json(req, { error: "bad_request" }, 400);
+      await sb.from("wx_trial_cells").update(v ? { verified: v, verified_by: me.username, verified_at: new Date().toISOString() } : { verified: null, verified_by: null, verified_at: null }).eq("id", id);
+      return json(req, { ok: true });
     }
     if (me.role !== "owner") return json(req, { error: "forbidden" }, 403);
     if (action === "pair_code") {
