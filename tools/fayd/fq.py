@@ -1,4 +1,4 @@
-# مؤشر الفقع: مطر الموسم (1 أكتوبر – 15 يناير) لمناطق الفقع المعروفة + وقت الظهور المتوقع (تاريخ المطر الكافي + 60–75 يوم)
+# مؤشر الفقع: مطر الموسم من دخول الوسم (16 أكتوبر – 15 يناير) لمناطق الفقع المعروفة + وقت الظهور المتوقع (تاريخ المطر الكافي + 60–75 يوم)
 # المصادر: Open-Meteo (أرشيف ERA5 + نموذج التوقعات لآخر 7 أيام) ومطر رادار الأرصاد المجمّع (radar_daily) — لكل يوم نأخذ الأعلى،
 # لأن النماذج تفوّت الزخات الرعدية المحلية والرادار يلقطها. تأكيد إضافي: اخضرار الفياض القريبة. يُشغَّل يوميًا → data/fq.json
 import json, time, math, datetime as dt, urllib.request, urllib.parse, os, sys
@@ -18,7 +18,8 @@ AREAS = [  # الاسم، المنطقة، خط العرض، خط الطول
 GOOD, GREAT = 25, 60          # ملم: مطر يكفي / ممتاز للفقع (مُعايرة على مواسم 2018 و2019 و2022 و2025)
 today = dt.date.today()
 season = today.year if today.month >= 8 else today.year - 1
-start, end = dt.date(season, 10, 1), dt.date(season + 1, 1, 15)
+# العد من دخول الوسم (16 أكتوبر) — دراسة 25 أكتوبر 2026: مطر قبله نادر في مناطق الفقع، ويُعرض منفصلًا «قبل الوسم» ولا ينحسب
+fetch0, start, end = dt.date(season, 10, 1), dt.date(season, 10, 16), dt.date(season + 1, 1, 15)
 
 def get(url, tries=4):
     for i in range(tries):
@@ -30,10 +31,10 @@ def get(url, tries=4):
 
 lat = ",".join(str(a[2]) for a in AREAS); lng = ",".join(str(a[3]) for a in AREAS)
 rain = [dict() for _ in AREAS]   # تاريخ → ملم
-if today > start:
+if today > fetch0:
     a_end = min(end, today - dt.timedelta(days=6))
-    if a_end >= start:
-        j = get("https://archive-api.open-meteo.com/v1/archive?" + urllib.parse.urlencode({"latitude": lat, "longitude": lng, "start_date": start, "end_date": a_end, "daily": "precipitation_sum", "timezone": "Asia/Riyadh"}))
+    if a_end >= fetch0:
+        j = get("https://archive-api.open-meteo.com/v1/archive?" + urllib.parse.urlencode({"latitude": lat, "longitude": lng, "start_date": fetch0, "end_date": a_end, "daily": "precipitation_sum", "timezone": "Asia/Riyadh"}))
         for k, loc in enumerate(j if isinstance(j, list) else [j]):
             for d, p in zip(loc["daily"]["time"], loc["daily"]["precipitation_sum"]): rain[k][d] = p or 0
 # آخر 7 أيام (الأرشيف يتأخر) + توقع 7 أيام
@@ -43,14 +44,14 @@ for k, loc in enumerate(j if isinstance(j, list) else [j]):
     for d, p in zip(loc["daily"]["time"], loc["daily"]["precipitation_sum"]):
         day = dt.date.fromisoformat(d)
         if day > today: fc[k] += p or 0
-        elif start <= day <= end and d not in rain[k]: rain[k][d] = p or 0
+        elif fetch0 <= day <= end and d not in rain[k]: rain[k][d] = p or 0
 
 # مطر الرادار: لكل يوم ناخذ الأعلى بين النموذج والرادار
-R = radar.load(start.isoformat())
+R = radar.load(fetch0.isoformat())
 radar_days = [0] * len(AREAS)
 for k, (name, region, la, lo) in enumerate(AREAS):
     for day, rec in R.items():
-        if not (start.isoformat() <= day <= end.isoformat()): continue
+        if not (fetch0.isoformat() <= day <= end.isoformat()): continue
         v = radar.mm_at(rec, la, lo)
         if v is None: continue
         radar_days[k] += 1
@@ -68,7 +69,8 @@ except Exception as e:
 
 rows = []
 for k, (name, region, la, lo) in enumerate(AREAS):
-    days = sorted(rain[k]); tot = 0.0; reached = None; best = (0.0, None)
+    pre = sum(v for d, v in rain[k].items() if d < start.isoformat())   # قبل الوسم: يُعرض ولا ينحسب
+    days = sorted(d for d in rain[k] if d >= start.isoformat()); tot = 0.0; reached = None; best = (0.0, None)
     for i, d in enumerate(days):
         tot += rain[k][d]
         if reached is None and tot >= GOOD: reached = d
@@ -80,7 +82,7 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         r = dt.date.fromisoformat(reached)
         w = [(r + dt.timedelta(days=60)).isoformat(), (r + dt.timedelta(days=75)).isoformat()]
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
-                 "reached": reached, "window": w, "fc7": round(fc[k]), "radar": radar_days[k], "green": fy_near[k]})
+                 "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "green": fy_near[k]})
 json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "radar_days": len(R), "rows": rows},
           open("data/fq.json", "w"), ensure_ascii=False, separators=(",", ":"))
 print("::notice::" + " · ".join(f"{r['name']} {r['mm']}" for r in sorted(rows, key=lambda r: -r["mm"])[:8]))
