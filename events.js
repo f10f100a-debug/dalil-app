@@ -536,6 +536,14 @@
     if(regionPref() !== AUTO) return;
     try{ const r = await B.myRegion(); if(r) lsSet(LS_AUTO_REG, r); }catch(e){}
   }
+  // قبل تسجيل الاشتراك: ننتظر الموقع لين 8 ثواني (قبل كان ينحفظ على «كل المناطق» إذا ما تحدد الموقع بعد)
+  async function ensureRegion(){
+    if(regionPref() !== AUTO || autoRegion()) return;
+    for(let i = 0; i < 4 && !autoRegion(); i++){ await syncAuto(); if(!autoRegion()) await new Promise(r=>setTimeout(r, 2000)); }
+  }
+  function noRegionHint(){
+    if(regionPref() === AUTO && !autoRegion()) setTimeout(()=>B.toast('ما قدرنا نحدد منطقتك — اختر منطقتك من الإعدادات ← التنبيهات عشان توصلك تنبيهات المطر'), 2500);
+  }
   // التلقائي يتبعك: إذا تغيّرت منطقتك (سفر/رحلة) نحدّث اشتراك التنبيهات بصمت
   let following = false;
   async function followRegion(){
@@ -565,7 +573,7 @@
     if(NATIVE){ const t=$('pushTitle'); if(t) t.hidden=false; box.hidden=false; }
     const sel = $('pushRegion');
     if(sel && !sel.options.length){
-      sel.innerHTML = '<option value="auto">منطقتي الحالية (تلقائي)</option><option value="">كل المناطق</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
+      sel.innerHTML = '<option value="auto">منطقتي الحالية (تلقائي)</option><option value="">كل المناطق (صور الأحداث فقط)</option>' + REGIONS.map(r=>`<option>${esc(r)}</option>`).join('');
     }
     if(sel){
       sel.value = regionPref();
@@ -584,7 +592,10 @@
       status.textContent = 'التنبيهات مرفوضة. فعّلها من إعدادات الجوال ← دليل ← الإشعارات.';
       btn.hidden = true; return;
     }
-    status.textContent = pushOn ? 'التنبيهات مفعّلة ✓ — تصلك أحداث ' + (effRegion() ? 'منطقة ' + effRegion() : 'كل المناطق') + (regionPref() === AUTO ? '، وتتغير تلقائيًا إذا سافرت لمنطقة ثانية' : '') + '.' : 'تصلك صور السيول والأمطار والإعلانات المهمة فور نشرها. لا نحفظ اسمك ولا رقمك.';
+    status.textContent = pushOn ? (effRegion()
+        ? 'التنبيهات مفعّلة ✓ — تصلك تنبيهات المطر وصور الأحداث لمنطقة ' + effRegion() + (regionPref() === AUTO ? '، وتتغير تلقائيًا إذا سافرت لمنطقة ثانية' : '') + '.'
+        : regionPref() === AUTO ? 'التنبيهات مفعّلة ✓ — بانتظار تحديد موقعك. فعّل الموقع أو اختر منطقتك عشان توصلك تنبيهات المطر.'
+        : 'التنبيهات مفعّلة ✓ — تصلك صور الأحداث من كل المملكة. تنبيهات المطر التلقائية تحتاج تختار منطقة.') : 'تصلك صور السيول والأمطار والإعلانات المهمة فور نشرها. لا نحفظ اسمك ولا رقمك.';
     btn.textContent = pushOn ? 'إيقاف التنبيهات' : 'تفعيل التنبيهات';
     btn.className = 'cp-btn ' + (pushOn ? 'cp-btn-white' : 'cp-btn-gold');
     if(NATIVE && bgSub && !pushOn){ status.textContent = 'جاري تسجيل جوالك للتنبيهات…'; btn.textContent = '⏳ جاري التفعيل…'; }
@@ -642,7 +653,7 @@
         else{
           lsSet('dalil_apns_asked', '1'); btn.textContent = '⏳ جاري التفعيل…';
           if(!(await nativePermission())) throw Object.assign(new Error('denied'), {denied:true});
-          await syncAuto();
+          await ensureRegion(); noRegionHint();
           // بعد «سماح» نرجع على طول، والتسجيل يكمل في الخلفية
           nativeSubscribeBg(effRegion(), ok=>B.toast(ok ? 'تم تفعيل التنبيهات ✓' : 'التنبيهات بانتظار الشبكة — حاول لاحقًا'));
           $('pushStatus').textContent = 'جاري تسجيل جوالك للتنبيهات…';
@@ -659,7 +670,7 @@
       }else{
         const perm = await Notification.requestPermission();
         if(perm !== 'granted'){ B.toast('لم يُسمح بالتنبيهات'); return; }
-        await syncAuto();
+        await ensureRegion(); noRegionHint();
         const reg = await navigator.serviceWorker.ready;
         const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
         await postSub(sub, effRegion());
@@ -749,7 +760,7 @@
     settings(){ refreshPushState(); },
     // يُستدعى بعد منح إذن الإشعارات من شاشة البداية.
     async subscribeNow(){
-      await syncAuto();
+      await ensureRegion(); noRegionHint();
       if(NATIVE){ lsSet('dalil_apns_asked', '1'); await nativeSubscribe(effRegion()); await refreshPushState(); return; }
       const reg = await navigator.serviceWorker.ready;
       const sub = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64uToU8(VAPID)});
@@ -761,7 +772,7 @@
       if(!NATIVE){ await this.subscribeNow(); return true; }
       lsSet('dalil_apns_asked', '1');
       if(!(await nativePermission())) return false;
-      await syncAuto();
+      await ensureRegion(); noRegionHint();
       nativeSubscribeBg(effRegion(), onDone);
       return true;
     }

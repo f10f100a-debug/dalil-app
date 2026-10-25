@@ -2,7 +2,7 @@
 // وإذا لقى أمطارًا غزيرة مؤكدة بالبرق داخل منطقة يرسل إشعارًا لمشتركي تنبيهات المنطقة.
 // ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين التنبيهين، نفس العاصفة (أقل من 60 كم خلال 12 ساعة) ما تتكرر،
 // والعاصفة البعيدة (أكثر من 200 كم عن أي مدينة أو محافظة في المنطقة) ما يُرسل لها.
-// لا يستخدم موقع أي مستخدم — فقط المنطقة التي اختارها في الإعدادات.
+// لا يستخدم موقع أي مستخدم — فقط المنطقة التي اختارها في الإعدادات. مشتركو «كل المناطق» لا تصلهم هذه التنبيهات (صور الأحداث فقط).
 import UPNG from "npm:upng-js@2.1.0";
 import webpush from "npm:web-push@3.6.7";
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
@@ -126,7 +126,8 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
   let web = 0, ios = 0;
   try {
     webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
-    const { data } = await sb.from("push_subs").select("endpoint,p256dh,auth").filter("region", "in", `("${region}","")`).order("created_at", { ascending: true }).limit(5000);
+    // لمشتركي المنطقة نفسها فقط — «كل المناطق» ما توصلهم تنبيهات المطر التلقائية (كانت توصلهم من كل المملكة ~16 باليوم)
+    const { data } = await sb.from("push_subs").select("endpoint,p256dh,auth").eq("region", region).order("created_at", { ascending: true }).limit(5000);
     const gone: string[] = [];
     await Promise.allSettled((data || []).map(async (s) => {
       try { await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(p), { TTL: 2 * 3600, urgency: "high" }); web++; }
@@ -137,7 +138,7 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
   try {
     const jwt = await apnsToken(sb);
     if (jwt) {
-      const { data } = await sb.from("push_native").select("token").in("region", [region, ""]).order("updated_at", { ascending: false }).limit(20000);
+      const { data } = await sb.from("push_native").select("token").eq("region", region).order("updated_at", { ascending: false }).limit(20000);
       const body = JSON.stringify({ aps: { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": p.tag }, url: p.url });
       const gone: string[] = [];
       await Promise.allSettled((data || []).map(async (r) => {
