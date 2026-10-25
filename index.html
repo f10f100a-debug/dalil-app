@@ -733,10 +733,29 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .fy-chips{display:flex;gap:6px;overflow-x:auto;margin:0 -2px 6px;padding:0 2px 2px;scrollbar-width:none} .fy-chips::-webkit-scrollbar{display:none}
   .fy-chips button{flex:none;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
   .fy-chips button.on{background:#3E9B4F;color:#fff;border-color:#3E9B4F}
-  .fy-row{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
+  .fy-row{display:grid;grid-template-columns:22px 1fr auto auto;gap:8px;align-items:center;width:100%;padding:10px 0;border:0;border-top:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:start;cursor:pointer}
   .fy-n{font-weight:800;color:var(--text-faint);font-size:13px;text-align:center} .fy-name{font-weight:700;font-size:15px} .fy-meta{font-size:12px;color:var(--text-faint)}
   .fy-bar{height:6px;border-radius:4px;background:var(--line);margin-top:5px;overflow:hidden} .fy-bar i{display:block;height:100%;background:linear-gradient(90deg,#8BC34A,#2E7D32);border-radius:4px}
   .fy-pill{font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:999px;white-space:nowrap}
+  .br-lg{display:flex;flex-wrap:wrap;gap:12px;font-size:11.5px;color:var(--text-faint);margin:0 2px 6px}
+  .br-lg span::before{content:"";display:inline-block;width:10px;height:8px;border-radius:2px;margin-inline-end:4px;background:var(--c)}
+  .br-row{border-top:1px solid var(--line);padding:11px 0}
+  .br-top{display:flex;align-items:center;gap:10px}
+  .br-ic{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
+  .br-ic svg{width:30px;height:30px}
+  .br-nm{flex:1;min-width:0}
+  .br-nm b{font-size:15px}
+  .br-nm small{display:block;font-size:11.5px;color:var(--text-faint);font-style:italic;direction:ltr;text-align:right}
+  .br-tag{display:inline-block;font-size:10.5px;font-weight:700;border-radius:6px;padding:1px 6px;margin-inline-start:5px;vertical-align:2px}
+  .br-tag.prot{color:#1F5E9E;background:#E2EDF8} .br-tag.weak{color:#8A5A1F;background:#FBEFD9}
+  .br-bar{position:relative;display:grid;grid-template-columns:repeat(12,1fr);gap:2px;margin:9px 0 2px;height:8px}
+  .br-bar i{border-radius:3px;background:var(--line)} .br-bar i.a{background:#C8873A} .br-bar i.s{background:#7FB06F} .br-bar i.w{background:#6A9FD4} .br-bar i.r{background:#B9A27E}
+  .br-now{position:absolute;top:-4px;width:2px;height:16px;background:#C0392B;border-radius:2px}
+  .br-mo{display:grid;grid-template-columns:repeat(12,1fr);font-size:9px;color:var(--text-faint);text-align:center}
+  .br-ln{font-size:12.5px;color:var(--text-dim);margin-top:5px;line-height:1.65}
+  .br-types{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .br-types span{font-size:11.5px;border:1px solid var(--line);border-radius:100px;padding:2px 8px;color:var(--text-dim)}
+  .fy-p5{background:#E2EDF8;color:#1F5E9E} .fy-p6{background:#E9F5F4;color:#0E7C76} .fy-p7{background:#F1EBDF;color:#7A6640}
   .fy-p4{background:#D3EBCD;color:#1E6B2E} .fy-p3{background:#E2F1D6;color:#2F6F22} .fy-p2{background:#EEF3DC;color:#5B7420} .fy-p1{background:#F3EEDF;color:#7A6640} .fy-p0{background:var(--line);color:var(--text-faint)}
   .fy-more{display:block;width:100%;text-align:center;font:inherit;font-weight:700;color:var(--sand);font-size:13.5px;padding:10px 0 2px;border:0;border-top:1px solid var(--line);background:none;cursor:pointer}
   .fy-bell{flex:0 0 auto; width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font-size:16px; border:1px solid var(--line); background:var(--panel); filter:grayscale(1); opacity:.55; margin-inline-start:4px}
@@ -1323,9 +1342,17 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <div class="weather-source-note">توقعات Open-Meteo. الأيام 1–3 دقيقة، والأيام 4–7 اتجاه عام قد يتغيّر. الاتجاه = الجهة اللي تهبّ منها الرياح، والسهم يمشي مع الرياح (رياح شرقية: السهم للغرب).</div>
       </div>
       <div id="springPane" hidden>
-        <div class="seg plseg" id="spSeg" role="tablist" aria-label="الفياض أو الفقع">
+        <div class="seg plseg" id="spSeg" role="tablist" aria-label="الفياض أو الفقع أو الطيور">
           <button type="button" class="seg-b active" role="tab" data-sp="fayd">الفياض</button>
-          <button type="button" class="seg-b" role="tab" data-sp="fq"><svg class="fq-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5c3.6 0 7 2.4 7 6.6 0 4.6-3.2 8.4-7.3 8.4C7.7 19.5 5 16.3 5 12.4 5 7.9 8.2 4.5 12 4.5z" fill="#B88A5A"/><circle cx="9.5" cy="10" r="1.1" fill="#7A5534"/><circle cx="13.6" cy="8.6" r=".9" fill="#7A5534"/><circle cx="14.5" cy="13.4" r="1.2" fill="#7A5534"/><circle cx="10.2" cy="14.8" r=".8" fill="#7A5534"/></svg>الفقع</button>
+          <button type="button" class="seg-b" role="tab" data-sp="fq"><svg class="fq-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5c3.6 0 7 2.4 7 6.6 0 4.6-3.2 8.4-7.3 8.4C7.7 19.5 5 16.3 5 12.4 5 7.9 8.2 4.5 12 4.5z" fill="#B88A5A"/><circle cx="9.5" cy="10" r="1.1" fill="#7A5534"/><circle cx="13.6" cy="8.6" r=".9" fill="#7A5534"/><circle cx="14.5" cy="13.4" r="1.2" fill="#7A5534"/><circle cx="10.2" cy="14.8" r=".8" fill="#7A5534"/></svg>الفقع</button><button type="button" class="seg-b" role="tab" data-sp="birds">🕊️ الطيور</button>
+        </div>
+        <div class="cp-card fy-card" id="brCard" hidden>
+          <div class="fy-head"><span style="font-size:20px">🕊️</span><b>هجرة الطيور</b></div>
+          <div class="fy-sub" id="brSub"></div>
+          <div class="fy-chips" id="brChips" role="radiogroup" aria-label="تصفية"><button type="button" data-br="all" class="on">الكل</button><button type="button" data-br="now">عابرة الحين</button><button type="button" data-br="winter">زوار الشتاء</button></div>
+          <div class="br-lg"><span style="--c:#C8873A">عبور الخريف</span><span style="--c:#7FB06F">رجعة الربيع</span><span style="--c:#6A9FD4">يشتّي عندنا</span></div>
+          <div id="brList"><div class="pl-note">جارٍ التحميل…</div></div>
+          <div class="weather-source-note" style="margin-top:8px">من أكثر من 150 ألف مشاهدة علمية مسجّلة في المملكة والخليج والأردن (GBIF.org). المواعيد متوسط سنوات وتختلف أسبوع إلى أسبوعين حسب السنة والطقس. لأهل الشمال نستخدم مشاهدات الشمال إذا كانت كافية.</div>
         </div>
         <div class="cp-card fy-card" id="fqCard" hidden>
           <div class="fy-head"><svg class="fq-ic" viewBox="0 0 24 24" aria-hidden="true" style="width:22px;height:22px"><path d="M12 4.5c3.6 0 7 2.4 7 6.6 0 4.6-3.2 8.4-7.3 8.4C7.7 19.5 5 16.3 5 12.4 5 7.9 8.2 4.5 12 4.5z" fill="#B88A5A"/><circle cx="9.5" cy="10" r="1.1" fill="#7A5534"/><circle cx="13.6" cy="8.6" r=".9" fill="#7A5534"/><circle cx="14.5" cy="13.4" r="1.2" fill="#7A5534"/><circle cx="10.2" cy="14.8" r=".8" fill="#7A5534"/></svg><b>مؤشر الفقع</b></div>
@@ -5888,10 +5915,88 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return `<button type="button" class="fy-row" data-fq-i="${fqData.rows.indexOf(fqData.rows.find(x=>x.name === r.name))}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.mm} ملم${r.km != null ? ' · ' + Math.round(r.km) + ' كم' : ''}</span><span class="fy-bar fq-bar" style="display:block"><i style="width:${Math.max(4, Math.min(100, r.mm / max * 100))}%"></i></span>${when}</span><span class="fy-pill ${ST[r.st][1]}">${ST[r.st][0]}</span></button>`;
     }).join('') + (rows.length > 8 ? `<button type="button" class="fy-more" data-fq-more>${faydMore ? 'عرض أقل' : 'كل مناطق الفقع (' + rows.length + ')'}</button>` : '');
   }
+  // ---------- هجرة الطيور (تقويم من أرشيف GBIF — data/birds.json يبنيه tools/birds/build.py) ----------
+  let brData = null, brLoading = null, brFilter = 'all';
+  function loadBirds(){
+    if(!brLoading) brLoading = fetch('data/birds.json?v=1').then(r=>r.ok ? r.json() : null).then(j=>{ brData = j; }).catch(()=>{ brLoading = null; });
+    return brLoading;
+  }
+  const BR_MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+  const BR_DAYS = [31,28,31,30,31,30,31,31,30,31,30,31];
+  const brDate = i=>{ let m = 0; while(i >= BR_DAYS[m]){ i -= BR_DAYS[m]; m++; } return (i + 1) + ' ' + BR_MON[m]; };
+  const brMonth = i=>{ let m = 0; while(i >= BR_DAYS[m]){ i -= BR_DAYS[m]; m++; } return BR_MON[m]; };
+  const brIn = (t, w)=>w && (w[0] <= w[1] ? t >= w[0] && t <= w[1] : t >= w[0] || t <= w[1]);
+  const brNear = (t, p, d)=>Math.min(Math.abs(t - p), 365 - Math.abs(t - p)) <= d;
+  // رسومات بسيطة لكل طير (بستايل دليل)
+  function brIcon(id){
+    const c = {'السمان':['#F4EADF','#8A6A44'], 'الدخل':['#F1F3E3','#6F7A4A'], 'الصفار':['#FFF3C9','#D9A400'], 'القميري':['#EEF0F5','#8B7E92'],
+      'الجرجس':['#EFE8DD','#8C7559'], 'البط':['#E2EDF8','#3D6E9E'], 'الوز':['#E9EEF2','#7D8A94'], 'القطا':['#F3ECDD','#B08A4E']}[id] || ['#EEE','#888'];
+    const shape = {
+      'البط':'<path d="M6 20c0-4 4-6 9-6h5c2 0 3-1 3-3 0-2 1.5-3.5 3.5-3.5S30 9 30 11c0 .8-.4 1.5-1 2l2.5 1-3 .8c-.5 2.5-2 4.2-4 5.2L22 21c-2 2-5 3-8 3-4 0-8-1.5-8-4z"/><circle cx="27" cy="10.6" r=".9" fill="#fff"/>',
+      'الوز':'<path d="M5 22c0-4 3.5-6.5 9-6.5h5c1.5 0 2.5-1 2.5-2.5V8.5C21.5 6 23 4.5 25 4.5S28.5 6 28.5 8c0 .6-.2 1.2-.5 1.6l3 1-3.2.6-.3 4.8c-.4 3.5-2.4 6-5.5 7.5-2 1-4.5 1.5-7 1.5-5 0-10-1.3-10-3.5z"/><circle cx="25.5" cy="7.6" r=".8" fill="#fff"/>',
+      'السمان':'<path d="M7 19c0-5.5 4.5-9 10-9 2 0 3.5.5 4.8 1.3.8-1.8 2.6-3 4.6-3 1.9 0 3.6 1.4 3.6 3.3 0 .6-.2 1.1-.5 1.5l2 1-2.6.4c-.3 5.6-4.7 9.5-11 9.5C11.5 24 7 22.6 7 19z"/><path d="M11 24.5l-1 3M15 24.8l.4 3" stroke="currentColor" stroke-width="1.3" fill="none"/><circle cx="26.5" cy="11.8" r=".8" fill="#fff"/>',
+      'القميري':'<path d="M4 17.5l6-1c1.6-3.3 5-5.5 9-5.5h2.2c.6-2 2.4-3.5 4.6-3.5 2.5 0 4.2 1.8 4.2 4 0 .5-.1 1-.3 1.4l2.3 1.1-2.8.4c-1 4-4.6 7.1-9.2 7.1h-4c-3 0-5.6-1.3-7-3.4L4 17.5z"/><circle cx="26.2" cy="11.2" r=".8" fill="#fff"/>',
+      'القطا':'<path d="M3 19.5l7.5-1.5c1.7-3.6 5.4-6 9.5-6h1.5c.7-1.9 2.5-3.2 4.5-3.2 2.4 0 4 1.7 4 3.8 0 .5-.1.9-.3 1.3l2.3 1-2.8.5c-.8 4.5-4.6 7.6-9.4 7.6h-3.3c-3.3 0-6.2-1.3-7.8-3.3L3 19.5z"/><circle cx="26.3" cy="12.4" r=".8" fill="#fff"/>'
+    }[id] || '<path d="M5 18l6-1.2c1.6-3.1 4.8-5.3 8.6-5.3h1.6c.7-2 2.5-3.4 4.6-3.4 2.4 0 4.2 1.8 4.2 4 0 .5-.1.9-.3 1.3l2.4 1.1-2.9.4c-.8 4.2-4.4 7.3-8.9 7.3h-3.6c-3 0-5.7-1.3-7.2-3.3L5 18z"/><circle cx="26.3" cy="11.5" r=".8" fill="#fff"/><path d="M15.5 23.5l-.6 3M19 23.6l.4 3" stroke="currentColor" stroke-width="1.2" fill="none"/>';
+    return `<span class="br-ic" style="background:${c[0]};color:${c[1]}"><svg viewBox="0 0 34 30" fill="currentColor" aria-hidden="true">${shape}</svg></span>`;
+  }
+  function birdView(b, t, north){
+    const useN = north && b.north && b.north.n >= 300 && b.north.years >= 10;
+    const S = b.kind === 'resident' ? b.all : useN ? b.north : b.all;
+    const weak = b.kind !== 'resident' && (S.n < 300 || (north && !useN));
+    const v = {b, S, useN, weak};
+    if(b.kind === 'resident'){ v.st = ['مقيم طول السنة', 'fy-p7', 5]; v.ln = 'يكثر من أكتوبر إلى فبراير · ' + b.note; return v; }
+    const A = S.aut, P = S.spr, W = S.win;
+    if(b.kind === 'pass'){
+      if(brIn(t, A)) v.st = brNear(t, A[2], 10) ? ['الذروة', 'fy-p3', 1] : (t < A[2] ? ['بداية العبور', 'fy-p6', 2] : ['آخر العبور', 'fy-p1', 3]);
+      else if(brIn(t, P)) v.st = brNear(t, P[2], 10) ? ['ذروة الرجعة', 'fy-p3', 1] : (t < P[2] ? ['بداية الرجعة', 'fy-p6', 2] : ['آخر الرجعة', 'fy-p1', 3]);
+      else v.st = [t > A[1] || t < P[0] ? 'انتهى عبوره' : 'خارج موسمه', 'fy-p0', 9];
+      v.ln = 'يعبر ' + brDate(A[0]) + ' – ' + brDate(A[1]) + ' · الذروة ' + brDate(A[2]) + '<br>يرجع بالربيع ' + brDate(P[0]) + ' – ' + brDate(P[1]);
+    }else{
+      if(brIn(t, W)) v.st = ['يشتّي عندنا', 'fy-p5', 2];
+      else if(A && brIn(t, A)) v.st = ['بدأ يوصل', 'fy-p5', 2];
+      else if(P && brIn(t, P)) v.st = ['يرجع للشمال', 'fy-p1', 3];
+      else v.st = ['خارج موسمه', 'fy-p0', 9];
+      v.ln = 'يوصل من ' + brMonth(A[0]) + ' · يكثر ' + brMonth(W[0]) + ' – ' + brMonth(W[1]) + ' · الذروة ' + brDate((W && W[2]) || A[2]) + ' · يرجع ' + brMonth(P[1]) + (b.note ? '<br>' + b.note : '');
+    }
+    return v;
+  }
+  function renderBirds(){
+    const list = document.getElementById('brList');
+    if(!brData || !Array.isArray(brData.birds)){ list.innerHTML = '<div class="pl-note">تعذّر تحميل بيانات الطيور — حاول لاحقًا.</div>'; return; }
+    const now = new Date(), t = Math.min(364, Math.floor((now - new Date(now.getFullYear(), 0, 1)) / 864e5));
+    const north = !!(state.pos && state.pos.lat >= 27);
+    setText('brSub', (t >= 212 || t < 31 ? 'موسم الهجرة الخريفية' : t < 152 ? 'موسم رجعة الربيع' : 'الصيف · أغلب الطيور خارج موسمها') + ' · اليوم ' + brDate(t) + (north ? ' · مواعيد الشمال' : ''));
+    document.querySelectorAll('#brChips [data-br]').forEach(b=>b.classList.toggle('on', b.dataset.br === brFilter));
+    let rows = brData.birds.map(b=>birdView(b, t, north));
+    if(brFilter === 'now') rows = rows.filter(v=>v.st[2] <= 3 && v.b.kind !== 'resident');
+    if(brFilter === 'winter') rows = rows.filter(v=>v.b.kind === 'winter');
+    rows.sort((a, b)=>a.st[2] - b.st[2]);
+    const cls = (b, m, sh)=>{
+      if(sh < 5) return '';
+      if(b.kind === 'resident') return 'r';
+      if(b.kind === 'winter') return (m >= 10 || m <= 1) ? 'w' : (m >= 7 ? 'a' : 's');
+      return m >= 7 ? 'a' : 's';
+    };
+    const nowPct = (t / 365) * 100;
+    list.innerHTML = rows.length ? rows.map(v=>{
+      const b = v.b;
+      return `<div class="br-row"><div class="br-top">${brIcon(b.id)}<div class="br-nm"><b>${escapeHtml(b.id)}</b>${b.protected ? '<span class="br-tag prot">🛡️ نوع محمي</span>' : ''}${v.weak ? '<span class="br-tag weak">⚠️ تقريبي</span>' : ''}<small>${escapeHtml(b.sci)}</small></div><span class="fy-pill ${v.st[1]}">${v.st[0]}</span></div>
+        <div class="br-bar">${v.S.months.map((sh, m)=>`<i class="${cls(b, m, sh)}"${b.kind === 'resident' && sh >= 5 ? ` style="opacity:${Math.min(1, .35 + sh / 14)}"` : ''}></i>`).join('')}<span class="br-now" style="right:${nowPct}%"></span></div>
+        <div class="br-mo">${BR_MON.map(x=>`<span>${x[0]}</span>`).join('')}</div>
+        <div class="br-ln">${v.ln}${v.weak ? '<br><small style="color:var(--text-faint)">مشاهداته قليلة' + (north && !v.useN ? ' في الشمال، والمواعيد من المملكة والخليج' : '') + '، فالمواعيد تقريبية.</small>' : ''}</div>
+        ${b.types ? `<div class="br-types">${b.types.map(x=>`<span>${escapeHtml(x.name)}${x.n < 50 ? ' · نادر' : ''}</span>`).join('')}</div>${north ? '<div class="br-ln" style="color:var(--text-faint)">⚠️ مشاهدات القطا في الشمال قليلة.</div>' : ''}` : ''}
+      </div>`;
+    }).join('') : '<div class="pl-note">ما فيه طيور بهالتصنيف الحين.</div>';
+  }
+  document.getElementById('brChips').addEventListener('click', e=>{ const b = e.target.closest('[data-br]'); if(!b) return; brFilter = b.dataset.br; renderBirds(); });
+
   function showSpView(){
     document.querySelectorAll('#spSeg [data-sp]').forEach(b=>{ const on = b.dataset.sp === spView; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     document.getElementById('fqCard').hidden = spView !== 'fq';
+    document.getElementById('brCard').hidden = spView !== 'birds';
     if(spView === 'fq'){ document.getElementById('faydCard').hidden = true; loadFq().then(renderFq); }
+    else if(spView === 'birds'){ document.getElementById('faydCard').hidden = true; loadBirds().then(renderBirds); }
     else loadFayd().then(renderFayd);
   }
   document.getElementById('spSeg').addEventListener('click', e=>{
