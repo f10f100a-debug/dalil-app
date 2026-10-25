@@ -1,0 +1,18 @@
+# دراسة تاريخ بداية حساب مطر الفقع (1 / 16 / 27 أكتوبر) — يدوي، والنتيجة في فرع fq-start
+name: FQ start study
+on: workflow_dispatch
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/fq }
+      - run: python3 tools/fq/start_study.py
+      - name: Publish
+        run: |
+          mkdir pub && cp fq_start.json pub/ && cd pub && git init -q && git checkout -q -b fq-start
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "fq start study" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" fq-start
