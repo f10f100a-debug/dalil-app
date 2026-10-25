@@ -1,0 +1,14 @@
+# فحص يدوي: وش يشوف رادار RainViewer في مربع (لمقارنة التجربة الصامتة برادار ثاني)
+name: WX probe
+on:
+  workflow_dispatch:
+    inputs:
+      box: { description: "lat0 lat1 lng0 lng1", default: "26 28 41 44.5" }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/wxtrial }
+      - run: pip install pillow -q && python3 tools/wxtrial/probe.py ${{ inputs.box }}
