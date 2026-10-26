@@ -266,7 +266,7 @@ function onHeadingChanged(){
 }
 // اتجاه الجوال من التطبيق نفسه (البوصلة اللي في الصفحة الرئيسية): في آيفون الخريطة المضمّنة ما تقدر تطلب إذن المستشعر
 // بدون ضغطة، فتاخذ الاتجاه من التطبيق — إلا إذا وصلها مستشعرها هي (أدق وأسرع).
-let ownHeadingAt=0;
+let ownHeadingAt=0,ownGpsAt=0;
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_HEADING'||!Number.isFinite(e.data.c))return;if(Date.now()-ownHeadingAt<1500)return;deviceHeading=smoothHeading(deviceHeading,(e.data.c+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()});
 function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
 function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){ownHeadingAt=Date.now();deviceHeading=smoothHeading(deviceHeading,(h+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
@@ -573,7 +573,7 @@ $('#plus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z+1)};$('#minus').o
 // ---------- GPS ----------
 function statusForPosition(){const acc=Number.isFinite(gps.acc)?' — دقة GPS '+iso('±'+Math.round(gps.acc))+' م':'';return navigationActive?'التوجيه على الخريطة نشط'+acc:iso(fmtCoords(gps.lat,gps.lng))+acc}
 function acceptPosition(p,center=true){
-  const c=p.coords;gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
+  const c=p.coords;ownGpsAt=Date.now();gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
   if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){
     gpsCourse=c.heading;gpsCourseAt=Date.now();
     if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
@@ -627,7 +627,16 @@ stopNav.onclick=()=>{navigationActive=false;navCard.classList.remove('mini');try
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;
   loadSavedMarks();
   let pos=e.data.position,mode=e.data.mode||'view';
-  if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng)&&geoWatch===null)gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:null};
+  // موقع التطبيق يُعتمد إذا الخريطة ما عندها GPS خاص حديث (في آيفون GPS الإطار المضمّن أحيانًا ما يشتغل)
+  if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng)&&(geoWatch===null||Date.now()-ownGpsAt>8000)){
+    gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:Number.isFinite(pos.speed)?pos.speed:null};
+    // اتجاه الحركة من GPS التطبيق (وضع «اتجاه الحركة» و«تلقائي» أثناء القيادة)
+    if(Number.isFinite(pos.course)&&pos.course>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){gpsCourse=pos.course;gpsCourseAt=Date.now()}
+    if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving())enterHeading();
+    onHeadingChanged();
+  }
+  // في آيفون الموقع يوصل الخريطة من التطبيق (مو من GPS الخريطة نفسها) — نطبّق «ركّز على موقعي» هنا بعد
+  if(gps&&autoFollowPending){autoFollowPending=false;applyAutoFollow()}
   trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];
   let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');
   if(view==='follow'||view==='heading'){if(gps)centerOnGps()}
@@ -1085,7 +1094,7 @@ render();
 // «تتبعني تلقائيًا»: أول ما يوصل موقعك (إذا ما فيه وجهة محددة) تتبعك الخريطة بالوضع المختار
 // استثناءات: مكان محدد (وجهة)، شاشة الربيع، فتح من تنبيه مطر، أو طبقة الرادار ظاهرة (يبي يشوف العاصفة مو مكانه)
 let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert'&&!LP.radar;
-function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
+function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();z=Math.max(z,detailZ());enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
