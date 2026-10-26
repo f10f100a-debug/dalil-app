@@ -1303,7 +1303,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261026-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261026-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5242,7 +5242,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(window.visualViewport) visualViewport.addEventListener('resize', ()=>setTimeout(fitTrackMap, 80));
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') fitTrackSoon(); });
   // أي طريقة تفتح الخريطة (تبويب، رابط إشعار ?screen=track، زر من شاشة ثانية) تغيّر كلاس الشاشة
-  try{ new MutationObserver(()=>{ if(document.getElementById('screen-track').classList.contains('active')) fitTrackSoon(); }).observe(document.getElementById('screen-track'), {attributes:true, attributeFilter:['class']}); }catch(e){}
+  try{ new MutationObserver(()=>{ const sc = document.getElementById('screen-track'); const on = sc.classList.contains('active'); if(on && !sc.__wasOn){ const f = document.getElementById('trackMapFrame'); try{ if(f && f.contentWindow && f.getAttribute('src')) f.contentWindow.postMessage({type:'DALIL_MAP_SHOWN'}, location.origin); }catch(e){} } sc.__wasOn = on; if(on) fitTrackSoon(); }).observe(document.getElementById('screen-track'), {attributes:true, attributeFilter:['class']}); }catch(e){}
   document.getElementById('trackMapFrame').addEventListener('load', fitTrackSoon);
   setTimeout(fitTrackMap, 300); setTimeout(fitTrackMap, 1500);
 

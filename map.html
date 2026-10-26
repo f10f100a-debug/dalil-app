@@ -1092,8 +1092,11 @@ updateOrigin();updateGpsBtn();
 if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();
 // «تتبعني تلقائيًا»: أول ما يوصل موقعك (إذا ما فيه وجهة محددة) تتبعك الخريطة بالوضع المختار
-// استثناءات: مكان محدد (وجهة)، شاشة الربيع، فتح من تنبيه مطر، أو طبقة الرادار ظاهرة (يبي يشوف العاصفة مو مكانه)
-let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert'&&!LP.radar;
+// استثناءات: مكان محدد (وجهة)، شاشة الربيع، فتح من تنبيه مطر أو زر «رادار الأمطار المباشر» (يبي يشوف العاصفة مو مكانه)
+let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert';
+// كل مرة تنفتح فيها الخريطة (التبويب) نركّز من جديد بالوضع المختار — إلا إذا فيه توجيه أو وجهة محددة، أو انفتحت من تنبيه مطر (أول مرة)
+let skipShow=query.get('from')==='alert';
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_SHOWN')return;if(skipShow){skipShow=false;return}readMapPrefs();if(!autoFollow||navigationActive||targetPoint||query.get('view')==='spring')return;if(!gps){autoFollowPending=true;return}if(view==='free')applyAutoFollow()});
 function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();z=Math.max(z,detailZ());enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
