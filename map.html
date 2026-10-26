@@ -302,7 +302,7 @@ function setHeadingPref(v){if(orientMode!=='auto')return;headingPref=v;try{local
 // اتجاه الخريطة من الإعدادات: auto (تلقائي) · course (اتجاه الحركة) · compass (اتجاه البوصلة) · north (الشمال للأعلى)
 // + «تتبعني تلقائيًا» عند فتح الخريطة. التدوير اليدوي بإصبعين يبقى في كل الأوضاع، وزر الشمال يرجّعها.
 let orientMode='auto',autoFollow=false;
-function readMapPrefs(){try{const o=localStorage.getItem('dalil_map_orient');orientMode=['auto','course','compass','north'].includes(o)?o:'auto';autoFollow=localStorage.getItem('dalil_map_autofollow')==='1'}catch(e){}if(orientMode==='north')headingPref='north';else if(orientMode!=='auto')headingPref='auto'}
+function readMapPrefs(){try{const o=localStorage.getItem('dalil_map_orient');orientMode=['auto','course','compass','north'].includes(o)?o:'auto';autoFollow=localStorage.getItem('dalil_map_autofollow')!=='0'}catch(e){}if(orientMode==='north')headingPref='north';else if(orientMode!=='auto')headingPref='auto'}
 readMapPrefs();
 // إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
 let screenLock=null;
@@ -311,7 +311,7 @@ function releaseScreen(){if(screenLock){screenLock.release().catch(()=>{});scree
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepScreenOn()});
 function setView(v){view=v;updateOrigin();updateGpsBtn()}
 function enterHeading(){setView('heading');const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
-function releaseView(){if(view!=='free')setView('free')}
+function releaseView(){autoFollowPending=false;if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
   ensureOrientation();
   startWatch();
@@ -493,6 +493,7 @@ let roomMarks=[];
 const okColor=c=>/^#[0-9A-Fa-f]{6}$/.test(c)?c:'#7A4E14';
 // فتح طبقات الطقس من شاشة الأجواء (رادار وبرق) مع تصغير مناسب لرؤية المنطقة
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_LAYERS')return;
+  autoFollowPending=false;
   if('radar' in e.data)LP.radar=!!e.data.radar;if('lightning' in e.data)LP.lightning=!!e.data.lightning;saveLP();applyPrefs();
   if(e.data.zoom&&z>e.data.zoom){const c=gps||stageToLatLng(innerWidth/2,innerHeight/2);z=e.data.zoom;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
   render();status.textContent='رادار الأمطار والبرق — اضغط ▶ لترى اتجاه المطر لآخر ساعتين'});
@@ -1078,7 +1079,8 @@ updateOrigin();updateGpsBtn();
 if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();
 // «تتبعني تلقائيًا»: أول ما يوصل موقعك (إذا ما فيه وجهة محددة) تتبعك الخريطة بالوضع المختار
-let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring';
+// استثناءات: مكان محدد (وجهة)، شاشة الربيع، فتح من تنبيه مطر، أو طبقة الرادار ظاهرة (يبي يشوف العاصفة مو مكانه)
+let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert'&&!LP.radar;
 function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');

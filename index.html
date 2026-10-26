@@ -1505,7 +1505,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="chip" data-orient="north">الشمال للأعلى</button>
       </div>
       <div class="theme-note" id="orientNote"></div>
-      <label class="perm-item" style="margin-top:8px;cursor:pointer">🎯 <span style="flex:1">تتبعني تلقائيًا إذا فتحت الخريطة</span> <input type="checkbox" id="mapAutoFollow" style="width:22px;height:22px;accent-color:var(--sand)"></label>
+      <label class="perm-item" style="margin-top:8px;cursor:pointer">🎯 <span style="flex:1">ركّز الخريطة على موقعي إذا فتحتها</span> <input type="checkbox" id="mapAutoFollow" style="width:22px;height:22px;accent-color:var(--sand)"></label>
 
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
@@ -6332,7 +6332,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     mark();
     document.querySelectorAll('[data-orient]').forEach(c=>c.addEventListener('click', ()=>{ try{ localStorage.setItem('dalil_map_orient', c.dataset.orient); if(c.dataset.orient === 'north') localStorage.setItem('dalil_map_heading', 'north'); else localStorage.setItem('dalil_map_heading', 'auto'); }catch(e){} mark(); tell(); }));
     const af = document.getElementById('mapAutoFollow');
-    try{ af.checked = localStorage.getItem('dalil_map_autofollow') === '1'; }catch(e){}
+    af.checked = true; try{ af.checked = localStorage.getItem('dalil_map_autofollow') !== '0'; }catch(e){}
     af.addEventListener('change', ()=>{ try{ localStorage.setItem('dalil_map_autofollow', af.checked ? '1' : '0'); }catch(e){} tell(); });
   })();
   (()=>{ // حجم أسماء الخريطة: يُحفظ ويُعاد تحميل الخريطة فقط
@@ -6899,6 +6899,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
   const requestedScreen = launchParams.get('screen');
+  // فتح الخريطة من رابط (تنبيه مطر ?screen=track): الخريطة تعرض المنطقة ولا تركّز على موقعك تلقائيًا
+  if(requestedScreen === 'track'){ const f = document.getElementById('trackMapFrame'); if(f && !f.getAttribute('src') && f.dataset.src) f.dataset.src += '&from=alert'; }
   const launchNavLat = Number(launchParams.get('navLat'));
   const launchNavLng = Number(launchParams.get('navLng'));
   if(launchParams.has('navLat') && launchParams.has('navLng') && validLatLng(launchNavLat, launchNavLng)){
