@@ -1109,6 +1109,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .theme-chips{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px;}
   .theme-chips .chip{justify-content:center; padding:0 6px; min-height:44px;}
   .theme-note{font-size:12.5px; color:var(--text-dim); margin:2px 2px 0; line-height:1.7;}
+  #orientChips{grid-template-columns:1fr 1fr;}
 
   /* ===== بطاقة الإعلان ===== */
   .ad-card{position:relative; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:12px; margin:14px 0 8px; display:grid; gap:10px;}
@@ -1302,7 +1303,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261024-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261026-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1495,6 +1496,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="chip" data-lbl="1.3">كبير</button>
         <button type="button" class="chip" data-lbl="1.6">أكبر</button>
       </div>
+
+      <div class="section-title">اتجاه الخريطة</div>
+      <div class="theme-chips" id="orientChips" role="radiogroup" aria-label="اتجاه الخريطة">
+        <button type="button" class="chip" data-orient="auto">تلقائي</button>
+        <button type="button" class="chip" data-orient="course">اتجاه الحركة</button>
+        <button type="button" class="chip" data-orient="compass">اتجاه البوصلة</button>
+        <button type="button" class="chip" data-orient="north">الشمال للأعلى</button>
+      </div>
+      <div class="theme-note" id="orientNote"></div>
+      <label class="perm-item" style="margin-top:8px;cursor:pointer">🎯 <span style="flex:1">تتبعني تلقائيًا إذا فتحت الخريطة</span> <input type="checkbox" id="mapAutoFollow" style="width:22px;height:22px;accent-color:var(--sand)"></label>
 
       <div class="section-title">الأذونات</div>
       <div class="perm-list">
@@ -6312,6 +6323,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const fr = document.getElementById('trackMapFrame');
     try{ if(fr && fr.contentDocument && fr.contentDocument.documentElement) fr.contentDocument.documentElement.setAttribute('data-theme', t); }catch(e){}
   }
+  (()=>{ // اتجاه الخريطة الافتراضي + «تتبعني تلقائيًا» — تقرأها الخريطة (map.html) من نفس التخزين، ونبلّغها فورًا
+    const NOTE = {auto:'الشمال للأعلى وأنت واقف، وتدور مع اتجاه السيارة إذا بدأت تسوق.', course:'تدور مع اتجاه سيرك حسب GPS — الأنسب للسواقة. وأنت واقف تبقى على آخر اتجاه.',
+      compass:'تدور مع اتجاه الجوال نفسه — الأنسب وأنت ماشي أو واقف تبي تعرف وين تتجه.', north:'ثابتة دايمًا والشمال للأعلى، ما تدور.'};
+    const cur = ()=>{ try{ const v = localStorage.getItem('dalil_map_orient'); return NOTE[v] ? v : 'auto'; }catch(e){ return 'auto'; } };
+    const tell = ()=>{ const f = document.getElementById('trackMapFrame'); try{ if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_MAP_PREFS'}, location.origin); }catch(e){} };
+    const mark = ()=>{ const v = cur(); document.querySelectorAll('[data-orient]').forEach(c=>{ c.classList.toggle('active', c.dataset.orient === v); c.setAttribute('aria-checked', String(c.dataset.orient === v)); }); setText('orientNote', NOTE[v] + ' التدوير بإصبعين يبقى متاح، وزر الشمال يرجّعها.'); };
+    mark();
+    document.querySelectorAll('[data-orient]').forEach(c=>c.addEventListener('click', ()=>{ try{ localStorage.setItem('dalil_map_orient', c.dataset.orient); if(c.dataset.orient === 'north') localStorage.setItem('dalil_map_heading', 'north'); else localStorage.setItem('dalil_map_heading', 'auto'); }catch(e){} mark(); tell(); }));
+    const af = document.getElementById('mapAutoFollow');
+    try{ af.checked = localStorage.getItem('dalil_map_autofollow') === '1'; }catch(e){}
+    af.addEventListener('change', ()=>{ try{ localStorage.setItem('dalil_map_autofollow', af.checked ? '1' : '0'); }catch(e){} tell(); });
+  })();
   (()=>{ // حجم أسماء الخريطة: يُحفظ ويُعاد تحميل الخريطة فقط
     const cur=()=>{try{return localStorage.getItem('dalil_label_scale')||'1.3'}catch(e){return '1.3'}};
     const mark=()=>document.querySelectorAll('[data-lbl]').forEach(c=>c.classList.toggle('active',c.dataset.lbl===cur()));

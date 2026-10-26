@@ -242,6 +242,8 @@ let courseOffset=null,deviceHeadingAt=0;
 const angleDiff=(a,b)=>((a-b+540)%360)-180,norm360=a=>((a%360)+360)%360;
 function isDriving(){return gpsCourse!==null&&Date.now()-gpsCourseAt<4000&&gps&&Number.isFinite(gps.speed)&&gps.speed*3.6>GPS_COURSE_MIN_KMH}
 function currentHeading(){
+  if(orientMode==='compass')return deviceHeading;
+  if(orientMode==='course')return isDriving()?gpsCourse:null;   // واقف: تبقى الخريطة على آخر اتجاه
   if(isDriving()){
     if(courseOffset!==null&&deviceHeading!==null&&Date.now()-deviceHeadingAt<2000)return norm360(deviceHeading+courseOffset);
     return gpsCourse;
@@ -290,13 +292,18 @@ const ICON_HEADING='<svg viewBox="0 0 24 24" width="24" height="24" fill="curren
 function updateGpsBtn(){
   gpsBtn.innerHTML=view==='heading'?ICON_HEADING:view==='follow'?ICON_FOLLOW:ICON_LOCATE;
   gpsBtn.classList.toggle('on',view==='follow'||view==='heading');
-  const label=view==='follow'?'يتبع موقعك — اضغط ليتبع اتجاهك':view==='heading'?'الخريطة تدور مع اتجاهك — اضغط لإرجاع الشمال للأعلى':'إظهار موقعي ومتابعته';
+  const label=view==='follow'?(typeof orientMode!=='undefined'&&orientMode==='north'?'يتبع موقعك — الشمال للأعلى':'يتبع موقعك — اضغط ليتبع اتجاهك'):view==='heading'?'الخريطة تدور مع اتجاهك — اضغط لإرجاع الشمال للأعلى':'إظهار موقعي ومتابعته';
   gpsBtn.setAttribute('aria-label',label);gpsBtn.title=label;
   northBtn.hidden=!isRotated()&&view!=='heading';
 }
 // تفضيل اتجاه الخريطة: 'auto' تدور مع السيارة تلقائيًا أثناء القيادة، 'north' الشمال للأعلى دائمًا.
 let headingPref=(()=>{try{return localStorage.getItem('dalil_map_heading')==='north'?'north':'auto'}catch(e){return'auto'}})();
-function setHeadingPref(v){headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
+function setHeadingPref(v){if(orientMode!=='auto')return;headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
+// اتجاه الخريطة من الإعدادات: auto (تلقائي) · course (اتجاه الحركة) · compass (اتجاه البوصلة) · north (الشمال للأعلى)
+// + «تتبعني تلقائيًا» عند فتح الخريطة. التدوير اليدوي بإصبعين يبقى في كل الأوضاع، وزر الشمال يرجّعها.
+let orientMode='auto',autoFollow=false;
+function readMapPrefs(){try{const o=localStorage.getItem('dalil_map_orient');orientMode=['auto','course','compass','north'].includes(o)?o:'auto';autoFollow=localStorage.getItem('dalil_map_autofollow')==='1'}catch(e){}if(orientMode==='north')headingPref='north';else if(orientMode!=='auto')headingPref='auto'}
+readMapPrefs();
 // إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
 let screenLock=null;
 async function keepScreenOn(){if(!navigationActive||!('wakeLock' in navigator)||document.visibilityState!=='visible'||(screenLock&&!screenLock.released))return;try{screenLock=await navigator.wakeLock.request('screen');screenLock.addEventListener('release',()=>{screenLock=null})}catch(e){screenLock=null}}
@@ -308,7 +315,12 @@ function releaseView(){if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
   ensureOrientation();
   startWatch();
-  if(view==='follow'||(view!=='heading'&&isDriving()&&headingPref!=='north')){setHeadingPref('auto');setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
+  if(orientMode==='north'){setRot(0);setView('follow')}
+  else if(orientMode!=='auto'){
+    if(view==='heading'){setRot(0);setView('follow')}
+    else{setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent=orientMode==='course'?'الخريطة بتدور مع اتجاه حركتك أول ما تتحرك':'بانتظار اتجاه الجوال… حرّك جوالك قليلًا'}
+  }
+  else if(view==='follow'||(view!=='heading'&&isDriving()&&headingPref!=='north')){setHeadingPref('auto');setView('heading');const h=currentHeading();if(h!==null)setRot(h);else status.textContent='بانتظار اتجاه الجوال… حرّك جوالك قليلًا';}
   else{if(view==='heading')setHeadingPref('north');setRot(0);setView('follow')}
   if(gps){z=Math.max(z,detailZ());centerOnGps();render()}
   else locateUser(true,true);
@@ -562,7 +574,8 @@ function acceptPosition(p,center=true){
     if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
   }else if(!isDriving())courseOffset=null;
   // عند بدء القيادة وأنت تتابع موقعك: الخريطة تدور تلقائيًا مع اتجاه السيارة.
-  if(view==='follow'&&headingPref!=='north'&&isDriving()){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
+  if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving()){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
+  if(autoFollowPending){autoFollowPending=false;applyAutoFollow()}
   if(view==='fit'&&navigationActive)fitNavigation();
   else if(view==='follow'||view==='heading')centerOnGps();
   else if(center&&!navigationActive){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng)}
@@ -1064,6 +1077,10 @@ updateOrigin();updateGpsBtn();
 // بدون نافذة إذن: يعمل مباشرة في أندرويد، وفي iOS إن سبق منح الإذن.
 if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'))bindOrientation();
 render();
+// «تتبعني تلقائيًا»: أول ما يوصل موقعك (إذا ما فيه وجهة محددة) تتبعك الخريطة بالوضع المختار
+let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring';
+function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script></body></html>
