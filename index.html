@@ -836,6 +836,17 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   /* الخريطة تملأ المساحة المتاحة بين العنوان وزر أدوات المسار */
   .track-svg-wrap{padding:6px;}
   #screen-track .track-tools-toggle{position:static; box-shadow:none;}
+  /* زر «تسجيل المسار وأدواته» أوضح — وأثناء التسجيل يصير أحمر ويعرض المسافة والوقت */
+  #screen-track .track-tools-toggle{display:flex; align-items:center; justify-content:center; gap:10px; background:rgba(201,150,79,.16); border:1.5px solid rgba(201,150,79,.75); color:#5E3A0C; font-weight:800; font-size:15.5px;}
+  .track-tools-toggle .tt-dot{width:12px; height:12px; border-radius:50%; background:#C0392B; box-shadow:0 0 0 3px rgba(192,57,43,.18); flex:0 0 auto;}
+  .track-tools-toggle .tt-ch{margin-inline-start:auto; font-size:16px; opacity:.8;}
+  .track-tools-toggle .tt-lbl{flex:0 1 auto;}
+  .track-tools-toggle .tt-dot + .tt-lbl{margin-inline-start:0;}
+  #screen-track .track-tools-toggle.rec{background:rgba(192,57,43,.10); border-color:rgba(192,57,43,.7); color:#8E1E17;}
+  .track-tools-toggle.rec .tt-dot{animation:ttPulse 1.4s ease-in-out infinite;}
+  @keyframes ttPulse{50%{box-shadow:0 0 0 7px rgba(192,57,43,0);}}
+  :is(html[data-theme="dark"], html[data-theme="red"]) #screen-track .track-tools-toggle{background:rgba(201,150,79,.14); color:var(--sand-dim);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) #screen-track .track-tools-toggle.rec{background:rgba(192,57,43,.18); color:#F3A398;}
   #screen-track .track-map-frame{height:calc(100dvh - 300px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height:320px; border-radius:16px;}
   .perm-item{min-height:52px; font-size:14px;}
   .trk-hint{font-size:12.5px; color:var(--text-dim); margin:10px 2px 0; line-height:1.7;}
@@ -1261,7 +1272,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
-      <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false">⌃ تسجيل المسار وأدواته</button>
+      <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false"><span class="tt-dot" aria-hidden="true"></span><span class="tt-lbl">تسجيل المسار وأدواته</span><span class="tt-ch" aria-hidden="true">⌃</span></button>
       <div class="track-tools-panel" id="trackToolsPanel">
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-top:12px;">
         <div class="stat"><div class="v" id="trkDist">0.0</div><div class="l">كم</div></div>
@@ -5142,10 +5153,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.querySelectorAll('.tab[data-screen="track"]').forEach(t=>t.addEventListener('click', startTrackFrame));
   const trackToolsPanel=document.getElementById('trackToolsPanel');
   const trackToolsToggle=document.getElementById('trackToolsToggle');
+  function renderToolsToggle(){
+    const open = trackToolsPanel.classList.contains('open'), rec = !!state.tracking && !!state.trackStart;
+    trackToolsToggle.classList.toggle('rec', rec);
+    const lbl = rec ? 'جارٍ التسجيل · ' + (trackDistance(state.trackPoints) / 1000).toFixed(1) + ' كم · ' + fmtDuration(Date.now() - state.trackStart)
+      : open ? 'إخفاء أدوات المسار' : 'تسجيل المسار وأدواته';
+    const l = trackToolsToggle.querySelector('.tt-lbl'), c = trackToolsToggle.querySelector('.tt-ch');
+    if(l && l.textContent !== lbl) l.textContent = lbl;
+    if(c) c.textContent = open ? '⌄' : '⌃';
+  }
   trackToolsToggle.addEventListener('click',()=>{
     const open=trackToolsPanel.classList.toggle('open');
     trackToolsToggle.setAttribute('aria-expanded',String(open));
-    trackToolsToggle.textContent=open?'⌄ إخفاء أدوات المسار':'⌃ تسجيل المسار وأدواته';
+    renderToolsToggle();
     // الخريطة تملأ الشاشة، فننزل تلقائيًا إلى الأدوات عند فتحها ونرجع للأعلى عند إخفائها
     requestAnimationFrame(()=>{
       if(open) trackToolsToggle.scrollIntoView({behavior:'smooth', block:'start'});
@@ -5405,6 +5425,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   function updateTrackStats(){
+    try{ renderToolsToggle(); }catch(e){}
     const pts = state.trackPoints;
     const dist = trackDistance(pts);
     document.getElementById('trkDist').textContent = (dist/1000).toFixed(2);
