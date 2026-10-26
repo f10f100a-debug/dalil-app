@@ -317,7 +317,7 @@ async function keepScreenOn(){if(!navigationActive||!('wakeLock' in navigator)||
 function releaseScreen(){if(screenLock){screenLock.release().catch(()=>{});screenLock=null}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepScreenOn()});
 function setView(v){view=v;updateOrigin();updateGpsBtn()}
-function enterHeading(){setView('heading');const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
+function enterHeading(){setView('heading');updateOrigin(true);const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
 function releaseView(){autoFollowPending=false;if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
   ensureOrientation();
@@ -557,7 +557,7 @@ function clearArea(){
 }
 // الخريطة تدور حول نقطة ثابتة في منتصف المساحة الظاهرة. عند التتبّع يوضع موقعك
 // على هذه النقطة، فيكفي عند الالتفات تغيير زاوية الدوران فقط دون إعادة رسم.
-function updateOrigin(){if(isRotated())return;const area=clearArea();originX=(area.left+area.right)/2;originY=view==='heading'?area.top+(area.bottom-area.top)*.66:(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
+function updateOrigin(force){if(isRotated()&&!force)return;const area=clearArea();originX=(area.left+area.right)/2;originY=view==='heading'?area.top+(area.bottom-area.top)*.66:(area.top+area.bottom)/2;stage.style.transformOrigin=originX+'px '+originY+'px'}
 function centerOnGps(){if(!gps)return;const[wx,wy]=world(gps.lat,gps.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY}
 function fitNavigation(){
   if(!gps||!targetPoint)return;
@@ -659,7 +659,9 @@ map.addEventListener('touchmove',e=>{e.preventDefault();
   else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
 map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
 map.addEventListener('click',e=>{if(!('ontouchstart'in window)){const[sx,sy]=screenToStage(e.clientX,e.clientY);selectMapPoint(sx,sy)}});
-window.addEventListener('resize',()=>{updateOrigin();if(view==='follow'||view==='heading')centerOnGps();render()});
+// تغيّر حجم الخريطة (مثلًا انضبط طولها بعد ما انفتحت): وأنت تتبع موقعك نعيد نقطة الدوران حتى لو الخريطة مدوّرة —
+// قبل كانت تبقى على الحجم القديم فتنزل نقطتك تحت أو تطلع برا الشاشة.
+window.addEventListener('resize',()=>{const tracking=view==='follow'||view==='heading';updateOrigin(tracking);if(tracking)centerOnGps();render()});
 
 // ---------- keep controls above the navigation card ----------
 function syncNavCardSpace(){const r=navCard.getBoundingClientRect();const visible=navCard.classList.contains('show')&&r.height>0;document.body.style.setProperty('--nav-top',visible?Math.round(innerHeight-r.top)+'px':'0px');updateOrigin()}
