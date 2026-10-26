@@ -2094,7 +2094,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const v = document.getElementById('aboutVer'), u = document.getElementById('aboutUpd');
     if(v) v.textContent = ios ? 'الإصدار ' + ios[1] + ' (آيفون)' : and ? 'الإصدار ' + and[1] + ' (أندرويد)' : 'نسخة الويب';
     const d = new Date(document.lastModified);   // وقت نشر الصفحة على الموقع (يتحدّث تلقائيًا مع كل تعديل)
-    if(u && !isNaN(d)) u.textContent = 'آخر تحديث: ' + d.toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long', year:'numeric'});
+    if(u && !isNaN(d)) u.textContent = 'آخر تحديث: ' + d.toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long', year:'numeric'}) + ' · ' + d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit', timeZone:'Asia/Riyadh'});
+    // رقم نسخة الموقع المحفوظة في الجوال (للتأكد أن التحديث نزل)
+    try{ caches.keys().then(k=>{ const m = k.map(x=>/^dalil-shell-v(\d+)$/.exec(x)).filter(Boolean).map(x=>+x[1]).sort((a,b)=>b-a)[0]; if(u && m) u.textContent += ' · نسخة ' + m; }).catch(()=>{}); }catch(e){}
   })();
 
   // ---------- تدرّج «فيه المزيد تحت» ----------
