@@ -6,6 +6,4 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - run: pip install -q numpy && python3 tools/fayd/sat_check.py && ls -la data/sat-rain.json
-      - uses: actions/upload-artifact@v4
-        with: { name: sat, path: data/sat-rain.json }
+      - run: pip install -q numpy && python3 tools/fayd/sat_orient.py
