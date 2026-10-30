@@ -121,7 +121,7 @@
     const hasLoc = e.lat != null && e.lng != null;
     v.innerHTML = `
       <div class="ev-v-bar">
-        <button type="button" class="ev-v-close" data-ev-act="close" aria-label="إغلاق">✕</button>
+        <button type="button" class="ev-v-close" data-ev-act="close" aria-label="رجوع"><b>✕</b>رجوع</button>
         ${kindBadge(e.kind)}<span class="ev-ago">${esc(ago(e.created_at))}</span>
       </div>
       <div class="ev-v-img">${e.video_path
@@ -140,8 +140,10 @@
       </div>`;
     v.classList.add('show');
     v.setAttribute('aria-hidden', 'false');
+    // زر الرجوع في الأندرويد (وسحبة الرجوع) يسكّر العارض بدل ما يطلع من الصفحة
+    try{ if(!(history.state && history.state.evViewer)) history.pushState({ evViewer: 1 }, ''); }catch(err){}
   }
-  function closeViewer(){ const v = $('evViewer'); const vid = v.querySelector('video'); if(vid){ try{ vid.pause(); vid.removeAttribute('src'); vid.load(); }catch(e){} } v.classList.remove('show'); v.setAttribute('aria-hidden', 'true'); v.innerHTML = ''; }
+  function closeViewer(fromBack){ if(fromBack !== true){ try{ if(history.state && history.state.evViewer) history.back(); }catch(err){} } const v = $('evViewer'); const vid = v.querySelector('video'); if(vid){ try{ vid.pause(); vid.removeAttribute('src'); vid.load(); }catch(e){} } v.classList.remove('show'); v.setAttribute('aria-hidden', 'true'); v.innerHTML = ''; }
   function eventPlace(e){
     const k = (KIND[e.kind]||KIND.other).name;
     return {id:'__event_' + e.id, name:k + (e.region ? ' — ' + e.region : '') + (e.caption ? ': ' + e.caption.slice(0, 40) : ''), icon:'📷', cat:'event', lat:e.lat, lng:e.lng, alt:null};
@@ -725,6 +727,29 @@
   $('evSheet').addEventListener('click', e=>{ if(e.target === $('evSheet')) closeComposer(); });
   $('evViewer').addEventListener('click', e=>{ if(e.target === $('evViewer') || e.target.classList.contains('ev-v-img')) closeViewer(); });
   document.addEventListener('keydown', e=>{ if(e.key === 'Escape' && $('evViewer').classList.contains('show')) closeViewer(); });
+  window.addEventListener('popstate', ()=>{ if($('evViewer').classList.contains('show')) closeViewer(true); });
+  // سحب الصورة أو الفيديو لتحت = إغلاق (مثل تطبيق الصور)
+  (()=>{
+    const v = $('evViewer'); let y0 = 0, x0 = 0, dy = 0, on = false, box = null;
+    v.addEventListener('touchstart', e=>{
+      box = e.target.closest && e.target.closest('.ev-v-img'); if(!box || e.touches.length !== 1){ on = false; return; }
+      on = true; dy = 0; y0 = e.touches[0].clientY; x0 = e.touches[0].clientX;
+    }, {passive:true});
+    v.addEventListener('touchmove', e=>{
+      if(!on || !box) return;
+      const d = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
+      if(dx > 40 && dx > d){ on = false; box.classList.remove('drag'); box.style.transform = ''; box.style.opacity = ''; return; }
+      dy = Math.max(0, d); box.classList.add('drag');
+      box.style.transform = 'translateY(' + dy + 'px)'; box.style.opacity = String(Math.max(.35, 1 - dy / 400));
+    }, {passive:true});
+    const end = ()=>{
+      if(!box) return; box.classList.remove('drag');
+      if(on && dy > 110){ closeViewer(); }
+      else { box.style.transform = ''; box.style.opacity = ''; }
+      on = false; dy = 0; box = null;
+    };
+    v.addEventListener('touchend', end, {passive:true}); v.addEventListener('touchcancel', end, {passive:true});
+  })();
   $('pushToggle').addEventListener('click', togglePush);
   $('pushRegion').addEventListener('change', regionChanged);
   if($('faydAlertKm')) $('faydAlertKm').addEventListener('change', e=>setFaydKm(+e.target.value));
