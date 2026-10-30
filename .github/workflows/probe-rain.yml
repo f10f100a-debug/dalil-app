@@ -6,7 +6,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - run: cp data/fq.json /tmp/fq_before.json && python3 tools/fayd/fq.py
+      - run: cp data/fq.json /tmp/fq_before.json && python3 tools/fayd/fq.py; ls -la data/synop-rain.json || true
       - run: |
           python3 - <<'PY'
           import json
