@@ -29,7 +29,7 @@ def fetch(wid, end, ndays):
         day = dt.date(int(d[6:]), int(d[:2]), int(d[3:5]))
         if h == "00": day -= dt.timedelta(days=1)
         k = day.isoformat(); out.setdefault(k, 0.0)
-        for v, per in re.findall(r"(\d+\.\d|Tr)/12h", p):
+        for v in re.findall(r"(\d+\.\d|Tr)/12h", p):
             out[k] += 0.0 if v == "Tr" else float(v)
     return out
 
