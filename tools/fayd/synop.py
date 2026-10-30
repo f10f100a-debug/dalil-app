@@ -4,25 +4,28 @@
 # نحفظ المجموع اليومي في data/synop-rain.json ونجيب آخر أيام بس كل مرة.
 import re, json, time, html, datetime as dt, urllib.request
 FILE = "data/synop-rain.json"
+FAILED = []
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 # رقم المحطة: الاسم، خط العرض، خط الطول
 STATIONS = {
     40356: ("طريف", 31.69, 38.73), 40357: ("عرعر", 30.91, 41.14), 40360: ("القريات", 31.41, 37.28), 40361: ("الجوف", 29.79, 40.10),
-    40362: ("رفحاء", 29.63, 43.49), 40373: ("القيصومة", 28.34, 46.13), 40377: ("حفر الباطن", 27.90, 45.53), 40375: ("تبوك", 28.37, 36.62),
+    40362: ("رفحاء", 29.63, 43.49), 40373: ("القيصومة", 28.34, 46.13), 40375: ("تبوك", 28.37, 36.62),
     40394: ("حائل", 27.44, 41.69), 40405: ("القصيم", 26.30, 43.77), 40400: ("الوجه", 26.20, 36.48),
 }
 
 def fetch(wid, end, ndays):
     u = f"https://www.ogimet.com/cgi-bin/gsynres?ind={wid}&ndays={ndays}&ano={end.year}&mes={end.month}&day={end.day}&hora=18&lang=en&decoded=yes"
-    for k in range(3):
+    # Ogimet يحدّ عدد الطلبات: إذا رجعت صفحة بدون بيانات ننتظر ونعيد
+    for k in range(4):
         try:
             t = urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=60).read().decode("latin-1")
-            break
+            txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", t)))
+            if "Decoded synop" in txt: break
+            print("synop no data", wid, end, txt[:120], flush=True)
         except Exception as e:
-            print("synop retry", wid, str(e)[:60], flush=True); time.sleep(10 * (k + 1))
+            print("synop retry", wid, str(e)[:60], flush=True)
+        time.sleep(30 * (k + 1))
     else: return None
-    txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", t)))
-    if "Decoded synop" not in txt: return None
     out = {}   # يوم الرياض → ملم ؛ الأيام اللي فيها تقارير بدون مطر = 0
     for d, h, p in re.findall(r"(\d\d/\d\d/\d{4}) (\d\d):\d\d((?:(?!\d\d/\d\d/\d{4} \d\d:\d\d).){0,600})", txt):
         if h not in ("00", "12"): continue
@@ -42,13 +45,14 @@ def update(since, until):
         need = [since + dt.timedelta(days=i) for i in range((until - since).days + 1)]
         need = [d for d in need if d.isoformat() not in rec or d >= until - dt.timedelta(days=3)]
         while need:
-            end = min(need[0] + dt.timedelta(days=19), until + dt.timedelta(days=1))
+            end = min(need[0] + dt.timedelta(days=19), until)   # تاريخ مستقبلي = صفحة خطأ
             got = fetch(wid, end, 20)
             if got:
                 for k, v in got.items():
                     if since.isoformat() <= k <= until.isoformat(): rec[k] = round(v, 1)
+            else: FAILED.append(f"{wid}@{end}")
             need = [d for d in need if d > end]
-            time.sleep(3)
+            time.sleep(8)
     json.dump(db, open(FILE, "w"), separators=(",", ":"), ensure_ascii=False)
     return db
 

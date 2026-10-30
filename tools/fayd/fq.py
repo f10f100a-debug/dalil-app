@@ -67,6 +67,7 @@ try:
         gauge[k] = g[0]
         for day, v in g[1].items():
             if fetch0.isoformat() <= day <= end.isoformat() and v > rain[k].get(day, 0): rain[k][day] = min(v, 150)
+    if synop.FAILED: print("::warning::synop failed " + " ".join(synop.FAILED))
 except Exception as e:
     import traceback; print("::warning::synop skipped " + repr(e) + " " + traceback.format_exc().replace("\n", " | ")[-600:])
 
