@@ -1,12 +1,13 @@
 name: rain-probe
 on: { workflow_dispatch: {} }
-permissions: { contents: read }
+permissions: { contents: write }
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: python3 tools/rainprobe/probe.py | tee out.txt
-      - uses: actions/upload-artifact@v4
-        with: { name: out, path: out.txt }
+      - run: python3 tools/rainprobe/probe.py > /tmp/out.txt 2>&1 || true
+      - run: |
+          git config user.name "dalil-bot"; git config user.email "bot@users.noreply.github.com"
+          git checkout --orphan probe-out && git rm -rq --cached . && cp /tmp/out.txt out.txt && git add out.txt && git commit -qm probe && git push -f origin probe-out
