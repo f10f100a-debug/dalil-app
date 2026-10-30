@@ -93,6 +93,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     background:var(--bg);
     position:relative;
   }
+  /* الصفحة الخارجية مثبّتة على الشاشة (ما تنسحب أبدًا): الآيفون كان أحيانًا يزيح الصفحة كلها لفوق بعد الكيبورد أو الرجوع للتطبيق —
+     يختفي الرأس ويطلع فراغ تحت شريط التبويبات — بدون ما يعتبرها «تمرير». المحتوى يتمرر داخل main بس، زي قبل. */
+  html{height:100%; overflow:hidden;}
+  html body{position:fixed; top:0; right:0; bottom:0; left:0; height:100%; overflow:hidden;}
+  html body #app{height:100%; min-height:0;}
 
   /* top bar */
   .topbar{
@@ -5260,11 +5265,23 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // الصفحة نفسها ما تتمرر (المحتوى داخل main بس): لو انسحبت لأي سبب — كيبورد أو سحب من الحافة — نرجعها بعد ما يتسكّر الكيبورد
   (()=>{
     const typing = ()=>{ const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
-    const fix = ()=>{ if((window.scrollY || document.documentElement.scrollTop) && !typing()) window.scrollTo(0, 0); };
+    // الآيفون أحيانًا يزيح الشاشة (visualViewport.offsetTop) بدون ما يتغيّر scrollY — نفحص الاثنين ونرجعها
+    const fix = ()=>{
+      if(typing()) return;
+      const vv = window.visualViewport, off = vv ? Math.round(vv.offsetTop) : 0;
+      if(window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || off){
+        window.scrollTo(0, 0); document.documentElement.scrollTop = 0; document.body.scrollTop = 0;
+      }
+    };
     let t = 0; const later = ()=>{ clearTimeout(t); t = setTimeout(fix, 150); };
     window.addEventListener('scroll', later, {passive:true});
     document.addEventListener('focusout', ()=>setTimeout(fix, 300));
-    if(window.visualViewport) visualViewport.addEventListener('resize', later);
+    if(window.visualViewport){ visualViewport.addEventListener('resize', later); visualViewport.addEventListener('scroll', later); }
+    // عند الرجوع للتطبيق أو للصفحة أو التنقل بين التبويبات
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible'){ later(); setTimeout(fix, 600); } });
+    window.addEventListener('pageshow', ()=>{ later(); setTimeout(fix, 600); });
+    window.addEventListener('focus', later);
+    document.querySelectorAll('.tab[data-screen]').forEach(b=>b.addEventListener('click', later));
   })();
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') fitTrackSoon(); });
   // أي طريقة تفتح الخريطة (تبويب، رابط إشعار ?screen=track، زر من شاشة ثانية) تغيّر كلاس الشاشة
