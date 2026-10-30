@@ -82,11 +82,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   body{
     font-family:"IBM Plex Sans Arabic", system-ui, sans-serif;
     color:var(--text);
-    min-height:100vh;
+    min-height:100vh; min-height:100dvh;
     display:flex; justify-content:center;
   }
+  /* طول الصفحة = طول الشاشة لكل المقاسات (كان للجوالات القصيرة بس): في Pro Max/Plus كانت الصفحة كلها تنسحب 47 بكسل
+     فيختفي العنوان تحت شريط الساعة — الحين العنوان ثابت والمحتوى (main) بس يتمرر */
   #app{
-    width:100%; max-width:480px; min-height:100vh;
+    width:100%; max-width:480px; min-height:100vh; min-height:100dvh; height:100vh; height:100dvh;
     display:flex; flex-direction:column;
     background:var(--bg);
     position:relative;
@@ -5255,6 +5257,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   window.addEventListener('orientationchange', fitTrackSoon);
   window.addEventListener('pageshow', fitTrackSoon);
   if(window.visualViewport) visualViewport.addEventListener('resize', ()=>setTimeout(fitTrackMap, 80));
+  // الصفحة نفسها ما تتمرر (المحتوى داخل main بس): لو انسحبت لأي سبب — كيبورد أو سحب من الحافة — نرجعها بعد ما يتسكّر الكيبورد
+  (()=>{
+    const typing = ()=>{ const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); };
+    const fix = ()=>{ if((window.scrollY || document.documentElement.scrollTop) && !typing()) window.scrollTo(0, 0); };
+    let t = 0; const later = ()=>{ clearTimeout(t); t = setTimeout(fix, 150); };
+    window.addEventListener('scroll', later, {passive:true});
+    document.addEventListener('focusout', ()=>setTimeout(fix, 300));
+    if(window.visualViewport) visualViewport.addEventListener('resize', later);
+  })();
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') fitTrackSoon(); });
   // أي طريقة تفتح الخريطة (تبويب، رابط إشعار ?screen=track، زر من شاشة ثانية) تغيّر كلاس الشاشة
   try{ new MutationObserver(()=>{ const sc = document.getElementById('screen-track'); const on = sc.classList.contains('active'); if(on && !sc.__wasOn){ const f = document.getElementById('trackMapFrame'); try{ if(f && f.contentWindow && f.getAttribute('src')) f.contentWindow.postMessage({type:'DALIL_MAP_SHOWN'}, location.origin); }catch(e){} } sc.__wasOn = on; if(on) fitTrackSoon(); }).observe(document.getElementById('screen-track'), {attributes:true, attributeFilter:['class']}); }catch(e){}
