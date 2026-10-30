@@ -1,0 +1,2 @@
+-- قياس دقة الرادار مقابل المطارات: كل 10 دقائق (بعد تنبيهات المطر بـ 3 دقائق)
+select cron.schedule('dalil-wx-verify', '3-59/10 * * * *', $$select net.http_post(url:='https://penhpgvjtxytgyrhmetg.supabase.co/functions/v1/dalil-verify', headers:=jsonb_build_object('x-cron-key',(select value from public.private_config where key='cron_key'),'content-type','application/json'), body:='{}'::jsonb, timeout_milliseconds:=90000)$$);

@@ -102,7 +102,7 @@
       <div class="muted" id="wtHead" style="font-size:12.5px">—</div>
       <svg id="wtMap" viewBox="0 0 440 330" direction="ltr" style="direction:ltr;width:100%;height:auto;margin-top:8px;background:#F7F3EC;border:1px solid var(--line);border-radius:14px" role="img" aria-label="خريطة الخلايا"></svg>
       <div class="muted" style="font-size:12px;margin-top:4px">🟡 مطر مع برق · 🟠 مطر غزير · 🟣 قوية جدًا (احتمال برد) · الحلقة السوداء = معها برق · 🔷 توقع مطر غزير · ◇ توقع عواصف</div>
-      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="white" data-wt="now" aria-pressed="true">الحين</button><button class="white" data-wt="today">اليوم</button><button class="white" data-wt="fc">التوقعات</button><button class="white" id="wtReload">تحديث</button></div>
+      <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="white" data-wt="now" aria-pressed="true">الحين</button><button class="white" data-wt="today">اليوم</button><button class="white" data-wt="fc">التوقعات</button><button class="white" data-wt="acc">📏 الدقة</button><button class="white" id="wtReload">تحديث</button></div>
       <div id="wtList" style="margin-top:8px"></div>
       <div class="muted" id="wtFoot" style="font-size:12px;margin-top:8px"></div>
     </div>
@@ -824,7 +824,19 @@
     $('wtHead').textContent = (d.frame ? 'آخر صورة رادار: ' + wtTime(d.frame) : 'ما فيه تسجيل بعد') + ' · المسجّل كله: ' + d.total + ' خلية';
     let svg = WT_CITIES.map(([n, la, lo])=>`<circle cx="${wtX(lo)}" cy="${wtY(la)}" r="2.2" fill="#9A9184"/><text x="${wtX(lo) - 4}" y="${wtY(la) + 3}" font-size="9" fill="#8A8174" text-anchor="end">${n}</text>`).join('');
     let list = '';
-    if(wtTab === 'fc'){
+    if(wtTab === 'acc'){
+      // 📏 الرادار فوق كل مطار مقابل تقرير المطار نفسه (آخر 7 أيام)
+      const v = d.verify || {n:0}, pc = (a, b)=>b ? Math.round(a / b * 100) + '٪' : '—';
+      const row = (t, val, note)=>`<div class="log-row" style="display:block"><b>${t}: ${val}</b><div class="muted" style="font-size:12.5px">${note}</div></div>`;
+      const CAT = ['جاف', 'مطر بالجوار', 'مطر', 'رعد / غزير'];
+      list = !v.n ? '<div class="muted">ما فيه تقارير مطارات بعد — يتجمّع كل 10 دقائق.</div>' :
+        row('التقاط المطر', pc(v.rain_caught, v.rain_obs), `من ${v.rain_obs} تقرير مطار فيه مطر، الرادار قال «فوقك» في ${v.rain_caught}`) +
+        row('صدق «فوقك»', pc(v.radar_confirmed, v.radar_yes), `من ${v.radar_yes} مرة الرادار قال «فوقك» فوق مطار، المطار أكّد مطر (أو بالجوار) في ${v.radar_confirmed}`) +
+        row('الرعد والمطر الغزير', pc(v.heavy_caught, v.heavy_obs), `من ${v.heavy_obs} تقرير رعد/غزير، الرادار أظهر 35 dBZ فأكثر في ${v.heavy_caught} (إذا قليل = RainViewer يقلّل الشدة)`) +
+        `<div class="muted" style="font-size:12.5px;margin:6px 0">${v.n} تقرير من مطارات المملكة آخر 7 أيام</div>` +
+        (v.recent || []).map(r=>`<div class="log-row" style="display:block"><b>${esc((r.name || r.station).replace(/,.*$/, ''))}</b> · ${wtTime(r.obs_at)}<div class="muted" style="font-size:12.5px">المطار: ${CAT[r.obs_cat] || '—'}${r.wx ? ' (' + esc(r.wx) + ')' : ''} · الرادار فوقه: ${r.dbz_here >= 0 ? r.dbz_here + ' dBZ' : 'لا شيء'}${r.dbz_near > r.dbz_here ? ' · خلال 5 كم: ' + r.dbz_near : ''} ${(r.obs_cat >= 2) === (r.dbz_here >= 15) ? '✅' : '❌'}</div></div>`).join('');
+      $('wtFoot').textContent = 'المصدر: تقارير الطقس الرسمية للمطارات (METAR) — تُقارن تلقائيًا بالرادار فوق المطار بنفس حساب «فوقك» في التطبيق.';
+    }else if(wtTab === 'fc'){
       svg += d.fc.map(f=>f.kind === 'heavy' ? `<rect x="${wtX(f.lng) - 5}" y="${wtY(f.lat) - 5}" width="10" height="10" fill="#2F7AD6" opacity=".75"/>` : `<rect x="${wtX(f.lng) - 4}" y="${wtY(f.lat) - 4}" width="8" height="8" fill="none" stroke="#2F7AD6" stroke-width="1.5" transform="rotate(45 ${wtX(f.lng)} ${wtY(f.lat)})"/>`).join('');
       list = d.fc.length ? d.fc.slice(0, 40).map(f=>`<div class="log-row" style="display:block"><b>${f.kind === 'heavy' ? '🔷 مطر غزير متوقع' : '◇ عواصف قوية محتملة'}</b> · ${esc(f.region || '')} <span class="muted">(${f.lat}, ${f.lng})</span><div class="muted" style="font-size:12.5px">${esc(wtTime(f.win_from))} – ${esc(wtTime(f.win_to))} · ${f.kind === 'heavy' ? f.agree + ' نماذج متفقة · حتى ' + f.mm + ' ملم/3س' : 'طاقة العواصف ' + f.cape + ' · مطر بـ ' + f.agree + ' نموذج'}</div></div>`).join('') : '<div class="muted">آخر توقع ما فيه مطر غزير ولا عواصف قوية.</div>';
       $('wtFoot').textContent = d.fcAt ? 'آخر توقع: ' + wtTime(d.fcAt) + ' — يتحدث 7:40 الصبح و7:40 المساء' : '';

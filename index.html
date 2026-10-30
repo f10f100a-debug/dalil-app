@@ -3261,7 +3261,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     // برق قريب منك (20 كم) أهم من أي شيء غير المطر فوقك أو الجاي خلال 45 دقيقة
     if(ltNear && !(r.kind === 'here' || ((r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 45))){ icon = '⚡'; t = 'برق قريب منك — ' + iso(Math.round(r.ltKm)) + ' كم ' + directionWord(r.ltBrg); sub = 'ابتعد عن المرتفعات والأماكن المكشوفة والأشجار المنفردة، والسيارة أأمن مكان'; cls = 'near'; showStrip = true; }
     card.hidden = false; card.className = 'storm-card ' + cls;
-    card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
+    // شفافية: عمر صورة الرادار اللي انبنى عليها الكلام (RainViewer يتأخر عادة 5–15 د)
+    const age = r.time ? Math.max(0, Math.round((Date.now() / 1000 - r.time) / 60)) : null;
+    const ageTxt = age == null ? '' : ' · صورة الرادار ' + (age < 2 ? 'الحين' : 'قبل ' + iso(age) + ' د');
+    card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}${ageTxt}</small></span>`;
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
@@ -3373,7 +3376,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.querySelector('.tab[data-screen="weather"]').click();
     setTimeout(()=>{ const c = document.getElementById('rainCard'); if(c) c.scrollIntoView({behavior:'smooth', block:'start'}); }, 250);
   });
-  setInterval(()=>{ if(document.visibilityState === 'visible') checkStorm(false); }, 60000);
+  setInterval(()=>{ if(document.visibilityState === 'visible'){ checkStorm(false); if(!STORM.busy) renderStorm(); } }, 60000);   // renderStorm: يحدّث «صورة الرادار قبل X د»
   setTimeout(()=>checkStorm(true), 6000);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') checkStorm(false); });
   // ---------- زوايا البوصلة ----------

@@ -153,7 +153,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
   try {
     const { data: jobs, error } = await sb.rpc("guard_cron_status");
     if (error) throw error;
-    const AR: Record<string, string> = { "dalil-auto-alerts": "تنبيهات المطر", "dalil-room-tick": "الغرف", "dalil-fayd-alerts": "تنبيه الفياض", "dalil-guard": "الحارس", "dalil-wx-trial-fc": "تجربة التوقعات" };
+    const AR: Record<string, string> = { "dalil-auto-alerts": "تنبيهات المطر", "dalil-room-tick": "الغرف", "dalil-fayd-alerts": "تنبيه الفياض", "dalil-guard": "الحارس", "dalil-wx-trial-fc": "تجربة التوقعات", "dalil-wx-verify": "قياس دقة الرادار" };
     const every = (s: string) => {   // المدة المتوقعة بين تشغيلين (دقائق) من صيغة cron
       const [m, h] = s.trim().split(/\s+/);
       if (/^\*\/\d+$/.test(m)) return +m.slice(2);
@@ -333,10 +333,12 @@ Deno.serve(async (req) => {
         sb.from("wx_trial_cells").select("id", { count: "exact", head: true }).eq("verified", -1),
       ]);
       const fc = fcLast ? (await sb.from("wx_trial_fc").select("lat,lng,region,kind,agree,win_from,win_to,mm,cape").gte("made_at", new Date(Date.parse(fcLast.made_at) - 60e3).toISOString()).order("win_from").limit(300)).data : [];
+      // 📏 دقة الرادار مقابل تقارير المطارات (آخر 7 أيام)
+      const { data: verify } = await sb.rpc("wx_verify_stats", { since: new Date(Date.now() - 7 * 864e5).toISOString() });
       const byReg: Record<string, { n: number; hail: number; lt: number }> = {};
       for (const r of (today || []) as { region: string; n: number; hail: number; lt: number }[]) byReg[r.region] = { n: Number(r.n), hail: Number(r.hail), lt: Number(r.lt) };
       return json(req, { ok: true, frame: lastRow?.frame || null, cells: cells || [], today: byReg, fcAt: fcLast?.made_at || null, fc: fc || [], total: total ?? 0,
-        marks: { yes: yes ?? 0, no: no ?? 0 } });
+        marks: { yes: yes ?? 0, no: no ?? 0 }, verify: verify || null });
     }
     if (action === "trial_mark") {
       const id = Number(body.id), v = Number(body.v);
