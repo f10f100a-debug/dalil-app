@@ -358,7 +358,7 @@
         const check = ()=>{
           nWait.delete(v.id);
           if(!R.sess || !R.voice.includes(v) || R.heard.has(v.id) || nPlay === v.id || R.muted.has(v.member_id)) return;
-          if(nPlay && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
+          if(nPlay && Date.now() < nPlayEnd && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
           diag({s:'native_timeout'}); queue.push(v); playNext();
         };
         nWait.set(v.id, setTimeout(check, 4000));
@@ -367,16 +367,24 @@
     renderVoiceSoon(); updateBtn();
   }
   // تشغيل التطبيق نفسه (1.6+) — الصفحة تعرض حالة التشغيل فقط، والتطبيق يبلّغ «سمعها» بنفسه
-  let nPlay = null;
+  let nPlay = null, nPlayEnd = 0, nTimer = 0;
   const nWait = new Map();
+  // أمان: إذا التطبيق قال «بدأت» وما وصل «خلصت» (الصفحة كانت نايمة بالخلفية لحظتها) كانت تبقى ■ للأبد
+  // وتأخّر الرسائل اللي بعدها دقيقة ونص — الحين ترجع ▶ بعد طول الرسالة + 4 ث
+  function nClear(why){ clearTimeout(nTimer); nTimer = 0; if(!nPlay) return; if(why) diag({s:'native_stuck', why}); nPlay = null; nPlayEnd = 0; renderVoiceSoon(); updateBtn(); }
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && nPlay && Date.now() > nPlayEnd) nClear('resume'); });
   const nativeFg = ()=>!!(window.__dalilPttFg && nativePtt());
   window.__dalilPttPlay = function(ev, id){
     id = String(id || '');
     if(nWait.has(id)){ clearTimeout(nWait.get(id)); nWait.delete(id); }
-    if(ev === 'nplay'){ nPlay = id; R.heard.add(id); diag({s:'play_ok', path:'native'}); }
-    else if(ev === 'ndone'){ if(nPlay === id) nPlay = null; }
+    if(ev === 'nplay'){
+      const v = R.voice.find(x=>x.id === id), ms = ((v && v.duration) || 30) * 1000 + 4000;
+      nPlay = id; nPlayEnd = Date.now() + ms; R.heard.add(id); diag({s:'play_ok', path:'native'});
+      clearTimeout(nTimer); nTimer = setTimeout(()=>{ if(nPlay === id) nClear('timeout'); }, ms);
+    }
+    else if(ev === 'ndone'){ if(nPlay === id) nClear(); }
     else if(ev === 'nfail'){
-      if(nPlay === id) nPlay = null;
+      if(nPlay === id) nClear();
       const v = R.voice.find(x=>x.id === id);
       diag({s:'native_fail'});
       if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !isPaused() && !queue.includes(v)){ queue.push(v); playNext(); }
@@ -1203,6 +1211,7 @@
     else if(act === 'play'){
       const v = R.voice.find(x=>x.id === id); if(!v) return;
       if(playing && playing.id === id){ player.pause(); playing = null; renderVoice(); return; }
+      if(nPlay === id){ nClear(); renderVoice(); return; }
       if(!v.url) return B.toast('انتهت صلاحية التسجيل');
       queue = []; playClip(v, true);
     }
