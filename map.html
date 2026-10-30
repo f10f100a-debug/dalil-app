@@ -320,7 +320,7 @@ function setView(v){view=v;updateOrigin();updateGpsBtn()}
 function enterHeading(){setView('heading');updateOrigin(true);const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}
 function releaseView(){autoFollowPending=false;if(view!=='free')setView('free')}
 gpsBtn.onclick=()=>{
-  ensureOrientation();
+  manualRot=false;ensureOrientation();
   startWatch();
   if(orientMode==='north'){setRot(0);setView('follow')}
   else if(orientMode!=='auto'){
@@ -332,7 +332,7 @@ gpsBtn.onclick=()=>{
   if(gps){z=Math.max(z,detailZ());centerOnGps();render()}
   else locateUser(true,true);
 };
-northBtn.onclick=()=>{setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
+northBtn.onclick=()=>{manualRot=false;setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
 function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
@@ -486,7 +486,7 @@ for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],[
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
-  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,z-1)+(LP.base==='sat'?'&sat=1':'')+(targetPoint?'&tLat='+targetPoint.lat.toFixed(6)+'&tLng='+targetPoint.lng.toFixed(6)+'&tName='+encodeURIComponent(navName.textContent||''):'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
+  const c=stageToLatLng(originX,originY),url='map2.html?mode=3d&lat='+c.lat.toFixed(5)+'&lng='+c.lng.toFixed(5)+'&z='+Math.max(9,Math.round(z-1))+(LP.base==='sat'?'&sat=1':'')+(targetPoint?'&tLat='+targetPoint.lat.toFixed(6)+'&tLng='+targetPoint.lng.toFixed(6)+'&tName='+encodeURIComponent(navName.textContent||''):'')+'&back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);
   if(isEmbedded)window.parent.location.href=url;else location.href=url};googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
 function drawDot(){
@@ -582,7 +582,7 @@ function acceptPosition(p,center=true){
     if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
   }else if(!isDriving())courseOffset=null;
   // عند بدء القيادة وأنت تتابع موقعك: الخريطة تدور تلقائيًا مع اتجاه السيارة.
-  if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving()){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
+  if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving()&&!manualRot){enterHeading();status.textContent='الخريطة تدور مع اتجاه السيارة — زر الشمال يعيدها'}
   if(autoFollowPending){autoFollowPending=false;applyAutoFollow()}
   if(view==='fit'&&navigationActive)fitNavigation();
   else if(view==='follow'||view==='heading')centerOnGps();
@@ -635,7 +635,7 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
     gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:Number.isFinite(pos.speed)?pos.speed:null};
     // اتجاه الحركة من GPS التطبيق (وضع «اتجاه الحركة» و«تلقائي» أثناء القيادة)
     if(Number.isFinite(pos.course)&&pos.course>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){gpsCourse=pos.course;gpsCourseAt=Date.now()}
-    if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving())enterHeading();
+    if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving()&&!manualRot)enterHeading();
     onHeadingChanged();
   }
   // في آيفون الموقع يوصل الخريطة من التطبيق (مو من GPS الخريطة نفسها) — نطبّق «ركّز على موقعي» هنا بعد
@@ -649,15 +649,33 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
   lastTrackSignature=signature;render();updateNavigation()});
 
 // ---------- gestures ----------
+// إصبعين: تكبير ناعم + تدوير. النقطة اللي بين الإصبعين تبقى تحتهم (مثل خرائط أبل وقوقل).
+// التدوير يبدأ بعد 10° لف حتى ما تدور الخريطة غصب وأنت تكبّر بس. وإذا كانت تدور مع اتجاهك، لفّها بيدك يوقف الدوران التلقائي
+// (تبقى تتبع موقعك) — زر الشمال أو زر الموقع يرجّعون الوضع الطبيعي.
+let pg=null,manualRot=false;
+const fingerAng=t=>Math.atan2(t[1].clientY-t[0].clientY,t[1].clientX-t[0].clientX)*180/Math.PI;
+const fingerMid=t=>[(t[0].clientX+t[1].clientX)/2,(t[0].clientY+t[1].clientY)/2];
+function startPinch(t){const m=fingerMid(t),[sx,sy]=screenToStage(m[0],m[1]),k=2**z;
+  pg={d0:dist(t),z0:z,a:fingerAng(t),turn:0,rot0:rot,rotating:false,wx:(sx-innerWidth/2+cx)/k,wy:(sy-innerHeight/2+cy)/k}}
+function movePinch(t){
+  const limit=mapMode==='online'?maxZ:maxLocalZ,a=fingerAng(t);
+  pg.turn+=((a-pg.a)%360+540)%360-180;pg.a=a;   // لف متراكم (يسمح بدورة كاملة وأكثر)
+  if(!pg.rotating&&Math.abs(pg.turn)>10){pg.rotating=true;pg.turn=0;pg.rot0=rot;
+    if(view==='heading'){manualRot=true;setView('follow')}else if(view==='follow')manualRot=true}
+  if(pg.rotating)setRot(pg.rot0-pg.turn);
+  z=Math.max(minZ,Math.min(limit,pg.z0+Math.log2(dist(t)/pg.d0)));
+  if(view==='follow'||view==='heading')centerOnGps();
+  else{const m=fingerMid(t),[sx,sy]=screenToStage(m[0],m[1]),k=2**z;cx=pg.wx*k-sx+innerWidth/2;cy=pg.wy*k-sy+innerHeight/2}
+  scheduleRender()}
 function dist(t){return Math.hypot(t[0].clientX-t[1].clientX,t[0].clientY-t[1].clientY)}
-map.addEventListener('touchstart',e=>{if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];touchStart={x:t.clientX,y:t.clientY,time:performance.now()};touchMoved=false}else if(e.touches.length===2){pinch0=dist(e.touches);drag=false;touchStart=null;touchMoved=true}},{passive:false});
+map.addEventListener('touchstart',e=>{if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];touchStart={x:t.clientX,y:t.clientY,time:performance.now()};touchMoved=false}else if(e.touches.length===2){pinch0=dist(e.touches);startPinch(e.touches);drag=false;touchStart=null;touchMoved=true}},{passive:false});
 map.addEventListener('touchmove',e=>{e.preventDefault();
   if(e.touches.length===1&&drag&&last){let x=e.touches[0].clientX,y=e.touches[0].clientY;
     if(touchStart&&Math.hypot(x-touchStart.x,y-touchStart.y)>8){touchMoved=true;releaseView()}
     if(touchMoved){const[dx,dy]=screenDeltaToStage(x-last[0],y-last[1]);cx-=dx;cy-=dy;scheduleRender()}
     last=[x,y]}
-  else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();let d=dist(e.touches);if(d>pinch0*1.25){zoomTo(z+1);pinch0=d}else if(d<pinch0*.8){zoomTo(z-1);pinch0=d}}},{passive:false});
-map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
+  else if(e.touches.length===2&&pinch0){touchMoved=true;if(view==='fit')releaseView();if(!pg)startPinch(e.touches);movePinch(e.touches)}},{passive:false});
+map.addEventListener('touchend',e=>{if(touchStart&&!touchMoved&&performance.now()-touchStart.time<600){let t=e.changedTouches[0];const[sx,sy]=screenToStage(t.clientX,t.clientY);selectMapPoint(sx,sy)}if(e.touches.length<2)pg=null;if(e.touches.length===0){drag=false;last=null;pinch0=null;touchStart=null}else if(e.touches.length===1){let t=e.touches[0];drag=true;last=[t.clientX,t.clientY];pinch0=null}});
 map.addEventListener('click',e=>{if(!('ontouchstart'in window)){const[sx,sy]=screenToStage(e.clientX,e.clientY);selectMapPoint(sx,sy)}});
 // تغيّر حجم الخريطة (مثلًا انضبط طولها بعد ما انفتحت): وأنت تتبع موقعك نعيد نقطة الدوران حتى لو الخريطة مدوّرة —
 // قبل كانت تبقى على الحجم القديم فتنزل نقطتك تحت أو تطلع برا الشاشة.
