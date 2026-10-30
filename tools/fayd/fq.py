@@ -3,7 +3,7 @@
 # لأن النماذج تفوّت الزخات الرعدية المحلية والرادار يلقطها. تأكيد إضافي: اخضرار الفياض القريبة. يُشغَّل يوميًا → data/fq.json
 import json, time, math, datetime as dt, urllib.request, urllib.parse, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
-import radar
+import radar, synop
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 AREAS = [  # الاسم، المنطقة، خط العرض، خط الطول
   ["رفحاء", "الحدود الشمالية", 29.63, 43.49], ["لينة", "الحدود الشمالية", 28.76, 43.83], ["العويقيلة", "الحدود الشمالية", 30.33, 42.25],
@@ -57,6 +57,20 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         radar_days[k] += 1
         if v > rain[k].get(day, 0): rain[k][day] = min(v, 120)
 
+# محطات الأرصاد الأرضية (مقياس مطر فعلي) خلال 35 كم: لكل يوم ناخذ الأعلى — هي أصدق مصدر للنقطة نفسها
+gauge = [None] * len(AREAS)
+try:
+    SY = synop.update(fetch0, min(end, today))
+    for k, (name, region, la, lo) in enumerate(AREAS):
+        g = synop.near(SY, la, lo)
+        if not g: continue
+        gauge[k] = g[0]
+        for day, v in g[1].items():
+            if fetch0.isoformat() <= day <= end.isoformat() and v > rain[k].get(day, 0): rain[k][day] = min(v, 150)
+    if synop.FAILED: print("::warning::synop failed " + " ".join(synop.FAILED))
+except Exception as e:
+    import traceback; print("::warning::synop skipped " + repr(e) + " " + traceback.format_exc().replace("\n", " | ")[-600:])
+
 # تأكيد من الخضرة: فياض خلال 60 كم صارت «مثل المعتاد» أو أخضر
 fy_near = [0] * len(AREAS)
 try:
@@ -82,7 +96,7 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         r = dt.date.fromisoformat(reached)
         w = [(r + dt.timedelta(days=60)).isoformat(), (r + dt.timedelta(days=75)).isoformat()]
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
-                 "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "green": fy_near[k]})
+                 "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "gauge": gauge[k], "green": fy_near[k]})
 json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "radar_days": len(R), "rows": rows},
           open("data/fq.json", "w"), ensure_ascii=False, separators=(",", ":"))
 print("::notice::" + " · ".join(f"{r['name']} {r['mm']}" for r in sorted(rows, key=lambda r: -r["mm"])[:8]))
