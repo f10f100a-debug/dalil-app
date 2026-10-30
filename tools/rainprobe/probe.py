@@ -1,41 +1,35 @@
-# تجربة: مطر الأقمار الصناعية (CMORPH RT من NOAA، 8 كم كل نص ساعة) لأكتوبر فوق المملكة → مجموع يومي بتوقيت الرياض
-import urllib.request, gzip, numpy as np, datetime as dt, sys, time
-from concurrent.futures import ThreadPoolExecutor
+# تجربة: مقياس المطر الفعلي من محطات الأرصاد السعودية (تقارير SYNOP عبر OGIMET) لأكتوبر
+import urllib.request, re, time, collections
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 def get(u):
-    for t in range(4):
+    for t in range(3):
         try:
-            with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120) as r: return r.read()
-        except Exception as e: err = e; time.sleep(5 * (t + 1))
-    print("fail", u[-40:], str(err)[:60], flush=True); return None
-NX, NY, D = 4948, 1649, 0.072756
-X0, Y0 = 0.036378, -59.963614
-i0, i1 = int((16 - Y0) / D), int((32.5 - Y0) / D) + 1
-j0, j1 = int((34 - X0) / D), int((56 - X0) / D) + 1
-print("box rows", i0, i1, "cols", j0, j1, flush=True)
-hours = [dt.datetime(2026, 9, 30, 21) + dt.timedelta(hours=h) for h in range(24 * 30 + 3)]
-sizes = []
-def one(h):
-    b = get(f"https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/{h:%Y}/{h:%Y%m}/CMORPH_V0.x_RT_8km-30min_{h:%Y%m%d%H}.gz")
-    if not b: return h, None
-    sizes.append(len(b))
-    a = np.frombuffer(gzip.decompress(b), "<f4")
-    if a.size != 2 * NX * NY: print("size?", a.size, flush=True); return h, None
-    a = a.reshape(2, NY, NX)[:, i0:i1, j0:j1].copy()
-    a[a < 0] = np.nan
-    return h, a
-T = time.time()
-acc, cnt = {}, {}
-with ThreadPoolExecutor(16) as ex:
-    for h, a in ex.map(one, hours):
-        if a is None: continue
-        day = (h + dt.timedelta(hours=3)).date().isoformat()
-        if not ("2026-10-01" <= day <= "2026-10-30"): continue
-        v = np.nan_to_num(a, nan=0).sum(0) * 0.5
-        acc[day] = acc.get(day, 0) + v; cnt[day] = cnt.get(day, 0) + int(np.isfinite(a).all(axis=(1, 2)).sum())
-print("cmorph t", round(time.time() - T), "files", len(sizes), "avgMB", round(np.mean(sizes) / 1e6, 1) if sizes else 0, flush=True)
-days = sorted(acc)
-grid = np.stack([np.round(acc[d] * 10).clip(0, 65535).astype("<u2") for d in days])
-np.savez_compressed("cmorph.npz", days=np.array(days), halfhours=np.array([cnt[d] for d in days]), mm10=grid,
-                    lat0=Y0 + i0 * D, lng0=X0 + j0 * D, step=D)
-for d in days: print("day", d, "halfhours", cnt[d], "max", round(float(acc[d].max()), 1), "wet>10mm px", int((acc[d] > 10).sum()), flush=True)
+            with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120) as r: return r.read().decode("latin1")
+        except Exception as e: print("retry", str(e)[:80], flush=True); time.sleep(30)
+    return ""
+txt = ""
+for a, b in [("202610010000", "202610102359"), ("202610110000", "202610202359"), ("202610210000", "202610302359")]:
+    t = get(f"https://www.ogimet.com/cgi-bin/getsynop?block=40&begin={a}&end={b}"); print("chunk", a, len(t), t[:150].replace("\n", " | ") if len(t) < 400 else "", flush=True); txt += t; time.sleep(20)
+st = collections.defaultdict(list)
+for line in txt.splitlines():
+    p = line.split(",")
+    if len(p) < 7 or not p[0].isdigit(): continue
+    wmo, y, m, d, h = p[0], p[1], p[2], p[3], p[4]; rep = p[6] if len(p) > 6 else ""
+    st[wmo].append((f"{y}-{m}-{d} {h}", rep.strip()))
+print("stations", len(st), flush=True)
+for wmo in sorted(st):
+    rows = st[wmo]
+    hits = []
+    for t, rep in rows:
+        g = rep.replace("=", "").split()
+        # القسم 1: 6RRRt بعد مجموعة الضغط؛ القسم 333: 7RRRR (24 ساعة)
+        try: k = g.index("AAXX") if "AAXX" in g else -1
+        except: k = -1
+        sec1 = g[:g.index("333")] if "333" in g else g
+        sec3 = g[g.index("333")+1:] if "333" in g else []
+        r6 = [x for x in sec1[4:] if re.fullmatch(r"6\d{3}[0-9/]", x)]
+        r24 = [x for x in sec3 if re.fullmatch(r"7\d{4}", x)]
+        ww = [x for x in sec1[4:] if re.fullmatch(r"7\d{4}", x) or re.fullmatch(r"7\d\d//", x)]
+        if r6 or r24: hits.append(f"{t} {' '.join(r6 + ['24h:' + x for x in r24])}")
+    print("ST", wmo, "reports", len(rows), "with-rain-groups", len(hits))
+    for h in hits[:40]: print("   ", h)
