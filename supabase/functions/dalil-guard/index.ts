@@ -65,7 +65,10 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
   // ٢) التنبيهات توصل فعلًا: تنبيه آخر 24 ساعة لمنطقة فيها مشتركين ووصل لصفر أجهزة
   try {
     const { data: aa } = await sb.from("auto_alerts").select("region,sent_web,sent_ios,at").gte("at", new Date(Date.now() - 24 * H).toISOString());
-    const zero = (aa || []).filter((a) => (a.sent_web || 0) + (a.sent_ios || 0) === 0);
+    // نحكم على آخر تنبيه لكل منطقة بس: تعثّر عابر من أبل (تنبيه ما وصل وبعده وصلت عادي) ما يعتبر عطل — كان يعطي إنذار كاذب 30 ساعة
+    const latest = new Map<string, { region: string; sent_web: number; sent_ios: number; at: string }>();
+    for (const a of aa || []) { const p = latest.get(a.region); if (!p || a.at > p.at) latest.set(a.region, a); }
+    const zero = [...latest.values()].filter((a) => (a.sent_web || 0) + (a.sent_ios || 0) === 0);
     let bad = 0;
     for (const z of zero) {
       const { count: n1 } = await sb.from("push_native").select("token", { count: "exact", head: true }).eq("region", z.region);
@@ -74,8 +77,8 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     }
     const { count: ios } = await sb.from("push_native").select("token", { count: "exact", head: true });
     const jwt = await apnsToken(sb).catch(() => null);
-    out.push({ id: "push", name: "وصول الإشعارات", level: !jwt ? "fail" : bad ? "fail" : "ok",
-      detail: !jwt ? "مفتاح تنبيهات أبل مفقود" : bad ? bad + " تنبيه آخر 24 س ما وصل لأي جهاز رغم وجود مشتركين" : (aa || []).length + " تنبيه آخر 24 س · " + (ios ?? 0) + " آيفون مشترك" });
+    out.push({ id: "push", name: "وصول الإشعارات", level: !jwt ? "fail" : bad >= 2 ? "fail" : bad ? "warn" : "ok",   // منطقة وحدة = تحذير (يحتاج فحصين ورا بعض)، منطقتين فأكثر = عطل
+      detail: !jwt ? "مفتاح تنبيهات أبل مفقود" : bad ? "آخر تنبيه لـ" + bad + " منطقة ما وصل لأي جهاز رغم وجود مشتركين" : (aa || []).length + " تنبيه آخر 24 س · " + (ios ?? 0) + " آيفون مشترك" });
   } catch (e) { out.push({ id: "push", name: "وصول الإشعارات", level: "warn", detail: "تعذّر القراءة" }); }
 
   // ٣) الفياض (الثلاثاء والجمعة)

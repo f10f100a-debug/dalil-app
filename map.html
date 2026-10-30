@@ -270,7 +270,7 @@ function onHeadingChanged(){
 // اتجاه الجوال من التطبيق نفسه (البوصلة اللي في الصفحة الرئيسية): في آيفون الخريطة المضمّنة ما تقدر تطلب إذن المستشعر
 // بدون ضغطة، فتاخذ الاتجاه من التطبيق — إلا إذا وصلها مستشعرها هي (أدق وأسرع).
 let ownHeadingAt=0,ownGpsAt=0;
-window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_HEADING'||!Number.isFinite(e.data.c))return;if(Date.now()-ownHeadingAt<1500)return;deviceHeading=smoothHeading(deviceHeading,(e.data.c+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()});
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_HEADING'||!Number.isFinite(e.data.c)||!glOk())return;if(Date.now()-ownHeadingAt<1500)return;deviceHeading=smoothHeading(deviceHeading,(e.data.c+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()});
 function stopOrientation(){if(!orientationHandler)return;window.removeEventListener('deviceorientationabsolute',orientationHandler,true);window.removeEventListener('deviceorientation',orientationHandler,true);orientationHandler=null;lastAbsoluteOrientationAt=0}
 function bindOrientation(){stopOrientation();orientationHandler=e=>{let now=performance.now();if(e.type==='deviceorientationabsolute')lastAbsoluteOrientationAt=now;else if(typeof e.webkitCompassHeading!=='number'&&now-lastAbsoluteOrientationAt<1000)return;let h=null;if(typeof e.webkitCompassHeading==='number'&&!isNaN(e.webkitCompassHeading))h=e.webkitCompassHeading;else if(e.alpha!==null&&e.alpha!==undefined&&!isNaN(e.alpha)){let screenAngle=Number(screen.orientation&&screen.orientation.angle);if(!Number.isFinite(screenAngle))screenAngle=Number(window.orientation)||0;h=360-e.alpha+screenAngle}if(h!==null){ownHeadingAt=Date.now();deviceHeading=smoothHeading(deviceHeading,(h+360)%360);deviceHeadingAt=Date.now();onHeadingChanged()}};window.addEventListener('deviceorientationabsolute',orientationHandler,true);window.addEventListener('deviceorientation',orientationHandler,true)}
 // على iOS يجب أن يأتي طلب الإذن من ضغطة المستخدم؛ إن سبق منحه لا تظهر نافذة.
@@ -308,7 +308,7 @@ let headingPref=(()=>{try{return localStorage.getItem('dalil_map_heading')==='no
 function setHeadingPref(v){if(orientMode!=='auto')return;headingPref=v;try{localStorage.setItem('dalil_map_heading',v)}catch(e){}}
 // اتجاه الخريطة من الإعدادات: auto (تلقائي) · course (اتجاه الحركة) · compass (اتجاه البوصلة) · north (الشمال للأعلى)
 // + «تتبعني تلقائيًا» عند فتح الخريطة. التدوير اليدوي بإصبعين يبقى في كل الأوضاع، وزر الشمال يرجّعها.
-let orientMode='auto',autoFollow=false;
+let orientMode='auto',autoFollow=false,autoFollowPending=false;
 function readMapPrefs(){try{const o=localStorage.getItem('dalil_map_orient');orientMode=['auto','course','compass','north'].includes(o)?o:'auto';autoFollow=localStorage.getItem('dalil_map_autofollow')!=='0'}catch(e){}if(orientMode==='north')headingPref='north';else if(orientMode!=='auto')headingPref='auto'}
 readMapPrefs();
 // إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
@@ -981,7 +981,10 @@ function showSaveCard(r){
   $('#scSave').onclick=()=>{const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
   $('#scLater').onclick=()=>{const o=readSnooze();o[r.id]=Date.now()+86400000;try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(o))}catch(e){}$('#saveCard').hidden=true};
 }
+// محرك الرسم ما اشتغل (الآيفون رفض WebGL): لا نلمسه — الصفحة تعيد التحميل بنفسها (glFail)
+function glOk(){try{return !!gl}catch(e){return false}}
 function syncEngine(){
+  if(!glOk())return;
   // عند الدوران تُرسم الخريطة في مربع يغطي الشاشة من كل الزوايا حول نقطة الدوران
   let L=0,T=0,W=innerWidth,H=innerHeight;
   if(isRotated()||view==='heading'){const r=Math.ceil(Math.hypot(Math.max(originX,innerWidth-originX),Math.max(originY,innerHeight-originY)))+4;L=originX-r;T=originY-r;W=H=2*r}
@@ -1099,7 +1102,7 @@ if(!(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.
 render();
 // «تتبعني تلقائيًا»: أول ما يوصل موقعك (إذا ما فيه وجهة محددة) تتبعك الخريطة بالوضع المختار
 // استثناءات: مكان محدد (وجهة)، شاشة الربيع، فتح من تنبيه مطر أو زر «رادار الأمطار المباشر» (يبي يشوف العاصفة مو مكانه)
-let autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert';
+autoFollowPending=autoFollow&&!targetPoint&&query.get('view')!=='spring'&&query.get('from')!=='alert';
 // كل مرة تنفتح فيها الخريطة (التبويب) نركّز من جديد بالوضع المختار — إلا إذا فيه توجيه أو وجهة محددة، أو انفتحت من تنبيه مطر (أول مرة)
 let skipShow=query.get('from')==='alert';
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_SHOWN')return;if(skipShow){skipShow=false;return}readMapPrefs();if(!autoFollow||navigationActive||targetPoint||query.get('view')==='spring')return;if(!gps){autoFollowPending=true;return}if(view==='free')applyAutoFollow()});

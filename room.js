@@ -472,7 +472,9 @@
       if(!micLive()){ releaseMicNow(); rec.stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true, noiseSuppression:true, autoGainControl:true}}); }
     }catch(e){
       rec.on = false; renderPtt(); diag({...rec.d, s:'mic_fail', err:String(e && e.name || e).slice(0, 40), gum:Date.now() - g0});
-      return B.toast(window.DALIL_NATIVE ? 'اسمح لدليل باستخدام الميكروفون: الإعدادات ← دليل ← الميكروفون' : 'اسمح باستخدام الميكروفون لإرسال الصوت');
+      // المايك مرفوض = إذن، غير كذا غالبًا مشغول (مكالمة أو تطبيق ثاني ماسك الصوت)
+      if(e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) return B.toast(window.DALIL_NATIVE ? 'اسمح لدليل باستخدام الميكروفون: الإعدادات ← دليل ← الميكروفون' : 'اسمح باستخدام الميكروفون لإرسال الصوت');
+      return B.toast('🎙️ المايك مشغول — سكّر المكالمة أو التطبيق اللي يستخدم الصوت وحاول مرة ثانية');
     }
     rec.d.gum = Date.now() - g0;
     const tk = rec.stream.getAudioTracks()[0]; rec.d.tr = tk ? tk.readyState + (tk.muted ? '/muted' : '') : 'none';
@@ -710,10 +712,10 @@
   // محرك النغمات يتوقف بعد 20 ثانية بدون نغمات، وفورًا إذا طلعت من التطبيق: لو بقى شغال يعتبره الآيفون «صوت يشتغل»
   // فيخلي التطبيق صاحي في الخلفية ويصرف البطارية (اللاسلكي في الخلفية يشتغل من نظام أبل نفسه، ما يحتاجه)
   let actx = null, actxIdle = null;
-  function sleepCtx(ms){ clearTimeout(actxIdle); actxIdle = setTimeout(()=>{ try{ if(actx && actx.state === 'running') actx.suspend(); }catch(e){} }, ms); }
-  function audioCtx(){ try{ if(!actx){ const C = window.AudioContext || window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state === 'suspended') actx.resume(); }catch(e){} if(actx) sleepCtx(20000); return actx; }
+  function sleepCtx(ms){ clearTimeout(actxIdle); actxIdle = setTimeout(()=>{ try{ if(actx && actx.state === 'running'){ const r = actx.suspend(); if(r && r.catch) r.catch(()=>{}); } }catch(e){} }, ms); }
+  function audioCtx(){ try{ if(!actx){ const C = window.AudioContext || window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state === 'suspended'){ const r = actx.resume(); if(r && r.catch) r.catch(()=>{}); } }catch(e){} if(actx) sleepCtx(20000); return actx; }   // resume في آيفون يرفض إذا الصوت مشغول (مكالمة) — النغمة تُتجاوز بصمت
   window.__dalilToneState = ()=>actx ? actx.state : 'none';   // للفحص الآلي
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState !== 'visible'){ clearTimeout(actxIdle); try{ if(actx && actx.state === 'running') actx.suspend(); }catch(e){} } });
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState !== 'visible'){ clearTimeout(actxIdle); try{ if(actx && actx.state === 'running'){ const r = actx.suspend(); if(r && r.catch) r.catch(()=>{}); } }catch(e){} } });
   function tone(kind){
     const ctx = audioCtx(); if(!ctx) return 0;
     const seq = kind === 'start' ? [[1200, .07], [1600, .09]] : kind === 'end' ? [[1600, .06], [1000, .1]] : [[900, .06], [1300, .06], [1800, .09]];
@@ -733,7 +735,7 @@
       o.type = 'square'; o.frequency.value = 880; g.gain.value = 0.08;
       o.connect(g); g.connect(ctx.destination); o.start();
       [0, .3, .6, .9].forEach((t, i)=>{ o.frequency.setValueAtTime(i % 2 ? 660 : 880, ctx.currentTime + t); });
-      o.stop(ctx.currentTime + 1.2); o.onended = ()=>ctx.close();
+      o.stop(ctx.currentTime + 1.2); o.onended = ()=>{ const r = ctx.close(); if(r && r.catch) r.catch(()=>{}); };
     }catch(e){}
   }
 

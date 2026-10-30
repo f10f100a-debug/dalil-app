@@ -44,6 +44,9 @@ function dbz(r: number, g: number, b: number, a: number) {
 }
 // بصمة شبكة المناطق: للتأكد أنها نُشرت كاملة بدون تغيير (تظهر في الفحص التجريبي فقط)
 const GRID_SUM = [...GRID.g].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) + ":" + GRID.g.length;
+// بصمة الكود المنشور (الفحص التجريبي فقط): للتأكد أن الملفات المنشورة نفس ملفات المستودع حرفيًا
+const sum = (t: string) => [...t].reduce((h, c) => (Math.imul(h, 31) + c.charCodeAt(0)) >>> 0, 7) + ":" + t.length;
+const srcSum = () => { try { return ["index.ts", "region-grid.ts"].map((f) => f + "=" + sum(Deno.readTextFileSync(new URL("./" + f, import.meta.url)))).join(" "); } catch (e) { return "err:" + String(e).slice(0, 80); } };
 const DIRS = ["شمال", "شمال شرق", "شرق", "جنوب شرق", "جنوب", "جنوب غرب", "غرب", "شمال غرب"];
 const dirWord = (deg: number) => DIRS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 function bearing(la1: number, lo1: number, la2: number, lo2: number) {
@@ -196,7 +199,7 @@ async function forecastTrial(sb: SupabaseClient, dry: boolean) {
   return { ok: true, points: pts.length, heavy: rows.filter((r) => r.kind === "heavy").length, storm: rows.filter((r) => r.kind === "storm").length, ...(dry ? { sample: rows.slice(0, 5) } : {}) };
 }
 
-async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, region: string, p: { title: string; body: string; url: string; tag: string }) {
+async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, region: string, p: { title: string; body: string; url: string; tag: string; silent?: boolean }) {
   let web = 0, ios = 0;
   try {
     webpush.setVapidDetails(cfg.vapid_subject, cfg.vapid_public, cfg.vapid_private);
@@ -213,7 +216,8 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
     const jwt = await apnsToken(sb);
     if (jwt) {
       const { data } = await sb.from("push_native").select("token").eq("region", region).order("updated_at", { ascending: false }).limit(20000);
-      const body = JSON.stringify({ aps: { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": p.tag }, url: p.url });
+      // ساعات الهدوء: بدون صوت ولا اهتزاز (passive) — يظهر في مركز الإشعارات ويشوفه أول ما يمسك جواله
+      const body = JSON.stringify({ aps: p.silent ? { alert: { title: p.title, body: p.body }, "interruption-level": "passive", "thread-id": p.tag } : { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": p.tag }, url: p.url });
       const gone: string[] = [];
       await Promise.allSettled((data || []).map(async (r) => {
         const res = await fetch("https://api.push.apple.com/3/device/" + r.token, { method: "POST", body,
@@ -302,6 +306,7 @@ Deno.serve(async (req) => {
       if (towns && Math.min(...towns.map(([a, b]) => km(a, b, la, lo))) > FAR_KM) return "far";
       return "";
     };
+    const rh = new Date(Date.now() + 3 * 3600e3).getUTCHours(), quiet = rh < 6;
     const out: unknown[] = [];
     const cands = [...byRegion.entries()].filter(([, c]) => c.length >= MIN_CELLS).sort((a, b) => b[1].length - a[1].length);
     // كل المناطق اللي فيها مطر غزير (قبل كانت أكبر 4 بس، فالمناطق الممنوعة بالحد اليومي تاخذ مكان منطقة تستاهل التنبيه)
@@ -316,6 +321,8 @@ Deno.serve(async (req) => {
         title: (max >= 50 ? "⛈️ " : "🌧️ ") + what + " — منطقة " + region,
         body: "الآن " + where + (mv ? "، تتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
         url: "./?screen=track", tag: "auto-rain-" + region,
+        // ساعات الهدوء (12 الليل–6 الصبح بتوقيت الرياض): بدون صوت — إلا العواصف القوية جدًا (≥55، احتمال برد) تنبّه بصوت
+        silent: quiet && max < 55,
       };
       const skip = why(region, cLat, cLng);
       if (skip) { out.push({ region, cells: cells.length, max, skipped: skip, ...p }); continue; }
@@ -325,7 +332,7 @@ Deno.serve(async (req) => {
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());
-    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, radarAcc, trial, regions: out, ...(dry ? { gridSum: GRID_SUM } : {}) });
+    return done({ ok: true, frame: new Date(now.time * 1000).toISOString(), ageMin, tiles: N.tiles, lightning: !!L, heavyRaw, clutter, noLightning, motion, radarAcc, trial, regions: out, ...(dry ? { gridSum: GRID_SUM, src: srcSum() } : {}) });
   } catch (e) {
     console.error("dalil-alerts", e);
     return done({ ok: false, error: String((e as Error)?.message || e).slice(0, 200) }, 500);
