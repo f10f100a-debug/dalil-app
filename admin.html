@@ -764,7 +764,16 @@
     if(!L){ $('gdLast').textContent = 'ما صار أي فحص بعد.'; $('gdList').innerHTML = ''; }
     else{
       $('gdLast').textContent = 'آخر فحص: ' + when(L.at);
-      $('gdList').innerHTML = L.checks.map(c=>`<div class="log-row" style="display:block"><b>${GD_IC[c.level] || ''} ${esc(c.name)}</b><div class="muted" style="font-size:12.5px">${esc(c.detail)}</div></div>`).join('');
+      const safeHref = h=>/^https:\/\/(github\.com|developer\.apple\.com)\//.test(h || '') ? h : '';
+      $('gdList').innerHTML = L.checks.map(c=>`<div class="log-row" style="display:block"><b>${GD_IC[c.level] || ''} ${esc(c.name)}</b><div class="muted" style="font-size:12.5px">${esc(c.detail)}</div>` +
+        (c.fixed ? `<div style="font-size:12.5px;margin-top:3px">🔧 ${esc(c.fixed)}</div>` : '') +
+        (c.level !== 'ok' && c.fix ? `<button type="button" class="gdFix" style="margin-top:6px;padding:6px 12px;border-radius:10px">🔧 أصلح الآن</button> ` : '') +
+        (c.level !== 'ok' && c.help && safeHref(c.help.href) ? `<a href="${esc(safeHref(c.help.href))}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;padding:6px 12px;border-radius:10px;background:var(--gold, #C8873A);color:#fff;text-decoration:none">${esc(c.help.label)}</a>` : '') +
+        `</div>`).join('');
+      $('gdList').querySelectorAll('.gdFix').forEach(btn=>btn.addEventListener('click', async ()=>{
+        $('gdList').querySelectorAll('.gdFix').forEach(x=>{ x.disabled = true; x.textContent = 'يصلح…'; });
+        try{ const n = await gdApi('fix_now'), d = await gdApi('status'); d.last = n.last; gdRender(d); }catch(e){ showErr(e); }
+      }));
     }
     // سجل 7 أيام: أسوأ حالة لكل خدمة في كل يوم
     if(d.log && d.log.length){

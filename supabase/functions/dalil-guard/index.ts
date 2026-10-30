@@ -12,7 +12,9 @@ import { apnsToken } from "../_shared/apns.ts";
 const PAGES = "https://f10f100a-debug.github.io/dalil-app/";
 const GH = "https://api.github.com/repos/f10f100a-debug/dalil-app/actions/workflows/";
 type Level = "ok" | "warn" | "fail";
-type Check = { id: string; name: string; level: Level; detail: string };
+// fix: إصلاح يقدر الحارس يسويه بنفسه · help: زر يودّي المالك للحل (الأعطال اللي ما يصلحها إلا هو) · fixed: وش انصلح تلقائيًا
+type Check = { id: string; name: string; level: Level; detail: string; fix?: string; fixed?: string; help?: { label: string; href: string } };
+const REPO = "https://github.com/f10f100a-debug/dalil-app";
 const H = 3600e3;
 const ago = (t: string | number | null | undefined) => t ? (Date.now() - new Date(t).getTime()) / H : Infinity;
 const hrs = (h: number) => h < 1 ? Math.round(h * 60) + " د" : h < 48 ? Math.round(h) + " س" : Math.round(h / 24) + " يوم";
@@ -57,7 +59,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const off = (await appCfg("auto_alerts")) === "off";
     const h = ago(L?.at);
     const level: Level = h > 2 ? "fail" : h > 0.6 || (L && L.ok === false) ? "warn" : "ok";
-    out.push({ id: "rain", name: "الرادار وتنبيهات المطر", level, detail:
+    out.push({ id: "rain", name: "الرادار وتنبيهات المطر", level, ...(level !== "ok" ? { fix: "rain" } : {}), detail:
       h === Infinity ? "ما فيه أي فحص مسجّل" : h > 0.6 ? "آخر فحص قبل " + hrs(h) + " (المفروض كل 10 د)"
       : L.ok === false ? (L.error === "stale" ? "صور الرادار متأخرة " + (L.ageMin || "") + " د" : "تعذّر الفحص: " + (L.error || "خطأ")) : "يفحص كل 10 د" + (off ? " · التنبيهات موقوفة من اللوحة" : "") });
   } catch (e) { out.push({ id: "rain", name: "الرادار وتنبيهات المطر", level: "warn", detail: "تعذّر القراءة: " + String(e).slice(0, 60) }); }
@@ -78,7 +80,8 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const { count: ios } = await sb.from("push_native").select("token", { count: "exact", head: true });
     const jwt = await apnsToken(sb).catch(() => null);
     out.push({ id: "push", name: "وصول الإشعارات", level: !jwt ? "fail" : bad >= 2 ? "fail" : bad ? "warn" : "ok",   // منطقة وحدة = تحذير (يحتاج فحصين ورا بعض)، منطقتين فأكثر = عطل
-      detail: !jwt ? "مفتاح تنبيهات أبل مفقود" : bad ? "آخر تنبيه لـ" + bad + " منطقة ما وصل لأي جهاز رغم وجود مشتركين" : (aa || []).length + " تنبيه آخر 24 س · " + (ios ?? 0) + " آيفون مشترك" });
+      ...(!jwt || bad ? { help: { label: "🔑 مفاتيح أبل", href: "https://developer.apple.com/account/resources/authkeys/list" } } : {}),
+      detail: !jwt ? "مفتاح تنبيهات أبل مفقود — سوّ مفتاح APNs جديد من حساب أبل" : bad ? "آخر تنبيه لـ" + bad + " منطقة ما وصل لأي جهاز رغم وجود مشتركين (غالبًا تعثّر مؤقت من أبل؛ إذا تكرر: مفتاح أبل انتهى أو انحذف)" : (aa || []).length + " تنبيه آخر 24 س · " + (ios ?? 0) + " آيفون مشترك" });
   } catch (e) { out.push({ id: "push", name: "وصول الإشعارات", level: "warn", detail: "تعذّر القراءة" }); }
 
   // ٣) الفياض (الثلاثاء والجمعة)
@@ -87,7 +90,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const run = await gh("fayd.yml");
     const days = ago(fy.asof + "T12:00:00Z") / 24;
     const failed = run && run.conclusion !== "success" && ago(run.updated_at) < 48;
-    out.push({ id: "fayd", name: "الفياض", level: days > 10 ? "fail" : days > 6.5 || failed ? "warn" : "ok",
+    out.push({ id: "fayd", name: "الفياض", level: days > 10 ? "fail" : days > 6.5 || failed ? "warn" : "ok", ...(days > 6.5 || failed ? { help: { label: "افتح التحديث في GitHub", href: REPO + "/actions/workflows/fayd.yml" } } : {}),
       detail: "آخر صورة قمر " + fy.asof + " (قبل " + Math.round(days) + " يوم)" + (failed ? " · آخر تحديث فشل في GitHub" : "") });
   } catch { out.push({ id: "fayd", name: "الفياض", level: "fail", detail: "تعذّر قراءة بيانات الفياض المنشورة" }); }
 
@@ -97,7 +100,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const run = await gh("fq.yml");
     const late = (new Date(riyadhDay()).getTime() - new Date(fq.asof).getTime()) / 864e5;
     const failed = run && run.conclusion !== "success" && ago(run.updated_at) < 30;
-    out.push({ id: "fq", name: "مؤشر الفقع", level: late >= 3 ? "fail" : late >= 2 || failed ? "warn" : "ok",
+    out.push({ id: "fq", name: "مؤشر الفقع", level: late >= 3 ? "fail" : late >= 2 || failed ? "warn" : "ok", ...(late >= 2 || failed ? { help: { label: "افتح التحديث في GitHub", href: REPO + "/actions/workflows/fq.yml" } } : {}),
       detail: "آخر تحديث " + fq.asof + (late >= 1 ? " (متأخر " + Math.round(late) + " يوم)" : "") + (failed ? " · آخر تشغيل فشل" : "") });
   } catch { out.push({ id: "fq", name: "مؤشر الفقع", level: "fail", detail: "تعذّر قراءة بيانات الفقع المنشورة" }); }
 
@@ -106,7 +109,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const on = (await appCfg("ai_mod")) !== "off";
     const { count: stuck } = await sb.from("events").select("id", { count: "exact", head: true }).eq("status", "pending").is("ai_at", null).lt("created_at", new Date(Date.now() - 20 * 60e3).toISOString());
     const { count: pending } = await sb.from("events").select("id", { count: "exact", head: true }).eq("status", "pending");
-    out.push({ id: "ai", name: "فلترة الصور", level: on && (stuck ?? 0) > 0 ? "fail" : "ok",
+    out.push({ id: "ai", name: "فلترة الصور", level: on && (stuck ?? 0) > 0 ? "fail" : "ok", ...(on && (stuck ?? 0) > 0 ? { fix: "ai" } : {}),
       detail: !on ? "موقوفة من اللوحة · " + (pending ?? 0) + " صورة تنتظرك" : (stuck ?? 0) > 0 ? (stuck) + " صورة ما فحصها الذكاء الاصطناعي من أكثر من 20 د" : (pending ?? 0) + " صورة تنتظر مراجعتك" });
   } catch { out.push({ id: "ai", name: "فلترة الصور", level: "warn", detail: "تعذّر القراءة" }); }
 
@@ -118,7 +121,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     let okN = 0, failN = 0;
     for (const r of dg || []) { const s = String(r.msg); if (s.includes('"s":"play_ok"')) okN++; else if (s.includes('"s":"play_fail"')) failN++; }
     const rate = okN + failN >= 10 ? failN / (okN + failN) : 0;
-    out.push({ id: "rooms", name: "غرفة الرحلة", level: (stale ?? 0) > 0 ? "warn" : rate > 0.3 ? "warn" : "ok",
+    out.push({ id: "rooms", name: "غرفة الرحلة", level: (stale ?? 0) > 0 ? "warn" : rate > 0.3 ? "warn" : "ok", ...((stale ?? 0) > 0 ? { fix: "tick" } : {}),
       detail: ((stale ?? 0) > 0 ? stale + " غرفة منتهية ما انحذفت" : "التنظيف شغّال") + (okN + failN ? " · تشغيل الرسائل " + Math.round((1 - rate) * 100) + "٪ ناجح (" + (okN + failN) + ")" : "") });
   } catch { out.push({ id: "rooms", name: "غرفة الرحلة", level: "warn", detail: "تعذّر القراءة" }); }
 
@@ -135,7 +138,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
   try {
     const { count: due } = await sb.from("room_members").select("member_id", { count: "exact", head: true }).lt("paused_until", new Date(Date.now() - 5 * 60e3).toISOString());
     const { count: now } = await sb.from("room_members").select("member_id", { count: "exact", head: true }).gt("paused_until", new Date().toISOString());
-    out.push({ id: "pause", name: "الإيقاف المؤقت بالغرف", level: (due ?? 0) > 0 ? "fail" : "ok",
+    out.push({ id: "pause", name: "الإيقاف المؤقت بالغرف", level: (due ?? 0) > 0 ? "fail" : "ok", ...((due ?? 0) > 0 ? { fix: "tick" } : {}),
       detail: (due ?? 0) > 0 ? due + " عضو انتهى إيقافه وما رجع للغرفة (جدول الغرف واقف؟)" : "يرجّع الأعضاء في وقتهم" + ((now ?? 0) > 0 ? " · " + now + " موقوف الحين" : "") });
   } catch { out.push({ id: "pause", name: "الإيقاف المؤقت بالغرف", level: "warn", detail: "تعذّر القراءة" }); }
 
@@ -168,7 +171,7 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
       if (j.fails24 >= 2) bad.push(nm + " فشل " + j.fails24 + " مرات" + (j.last_err ? " (" + j.last_err.slice(0, 50) + ")" : ""));
     }
     const n = (jobs || []).length;
-    out.push({ id: "cron", name: "الجداول التلقائية", level: !n ? "fail" : bad.length && !(warn && bad.length === 1) ? "fail" : bad.length ? "warn" : "ok",
+    out.push({ id: "cron", name: "الجداول التلقائية", level: !n ? "fail" : bad.length && !(warn && bad.length === 1) ? "fail" : bad.length ? "warn" : "ok", ...(warn ? { fix: "cron" } : {}),
       detail: !n ? "ما فيه أي جدول تلقائي!" : bad.length ? bad.join(" · ") : n + " جداول شغّالة بدون أخطاء" });
   } catch (e) { out.push({ id: "cron", name: "الجداول التلقائية", level: "warn", detail: "تعذّر القراءة: " + String((e as Error)?.message || e).slice(0, 60) }); }
 
@@ -179,10 +182,48 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     const runs = ((await r.json()).workflow_runs || []) as { conclusion: string; updated_at: string }[];
     let fails = 0; for (const x of runs) { if (x.conclusion === "success") break; fails++; }
     const okAt = runs.find((x) => x.conclusion === "success")?.updated_at, h = ago(okAt);
-    out.push({ id: "backup", name: "النسخة الاحتياطية", level: fails >= 2 || h > 50 ? "fail" : "ok",
+    out.push({ id: "backup", name: "النسخة الاحتياطية", level: fails >= 2 || h > 50 ? "fail" : "ok", ...(fails ? { help: { label: "🔑 حدّث الرابط في GitHub", href: REPO + "/settings/secrets/actions" } } : {}),
       detail: (h === Infinity ? "ما فيه نسخة ناجحة" : "آخر نسخة ناجحة قبل " + hrs(h)) + (fails ? " · فشلت " + fails + " مرة ورا بعض (كلمة سر القاعدة تغيّرت؟ حدّث SUPABASE_DB_URL في GitHub)" : "") });
   } catch { out.push({ id: "backup", name: "النسخة الاحتياطية", level: "ok", detail: "تعذّر سؤال GitHub — نعيد الفحص الساعة الجاية" }); }
   return out;
+}
+
+// ---------- الإصلاح التلقائي ----------
+// آمن فقط: يعيد تشغيل نفس الخدمات اللي تشتغل كل يوم (فحص الرادار، جدول الغرف، فحص الصور، تفعيل جدول موقوف). ما يغيّر بيانات ولا إعدادات.
+async function autoFix(sb: SupabaseClient, checks: Check[]) {
+  const todo = checks.filter((c) => c.fix && c.level !== "ok");
+  if (!todo.length) return {} as Record<string, string>;
+  const key = (await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle()).data?.value || "";
+  const call = (path: string, body: unknown = {}, ms = 60000) => fetch(Deno.env.get("SUPABASE_URL") + "/functions/v1/" + path, { method: "POST",
+    headers: { "x-cron-key": key, "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(ms) }).then((r) => r.ok).catch(() => false);
+  const done: Record<string, string> = {}, ran = new Map<string, Promise<string>>();
+  const once = (k: string, f: () => Promise<string>) => { if (!ran.has(k)) ran.set(k, f()); return ran.get(k)!; };
+  for (const c of todo) {
+    if (c.fix === "rain") done[c.id] = await once("rain", async () => (await call("dalil-alerts")) ? "شغّلت فحص الرادار من جديد" : "حاولت أشغّل فحص الرادار وما رد");
+    else if (c.fix === "tick") done[c.id] = await once("tick", async () => (await call("dalil-rooms?a=tick", {}, 30000)) ? "شغّلت جدول الغرف (التنظيف وإرجاع الموقوفين)" : "حاولت أشغّل جدول الغرف وما رد");
+    else if (c.fix === "ai") done[c.id] = await once("ai", async () => {
+      const { data } = await sb.from("events").select("id").eq("status", "pending").is("ai_at", null).lt("created_at", new Date(Date.now() - 20 * 60e3).toISOString()).limit(5);
+      let ok = 0; for (const e of data || []) if (await call("dalil-mod", { id: e.id }, 40000)) ok++;
+      return "أعدت إرسال " + (data || []).length + " صورة للفحص (" + ok + " نجح)";
+    });
+    else if (c.fix === "cron") done[c.id] = await once("cron", async () => {
+      const { data: jobs } = await sb.rpc("guard_cron_status");
+      const off = ((jobs || []) as { jobname: string; active: boolean }[]).filter((j) => !j.active).map((j) => j.jobname);
+      let ok = 0; for (const j of off) { const { data } = await sb.rpc("guard_cron_enable", { j }); if (data) ok++; }
+      return "رجّعت شغّلت " + ok + " جدول موقوف";
+    });
+  }
+  return done;
+}
+// فحص ← إصلاح اللي ينصلح ← فحص ثاني. كل إصلاح يُكتب في نتيجة الفحص (يبان في اللوحة)
+async function checkAndFix(sb: SupabaseClient) {
+  const first = await runChecks(sb);
+  const done = await autoFix(sb, first);
+  if (!Object.keys(done).length) return first;
+  await new Promise((r) => setTimeout(r, 3000));
+  const second = await runChecks(sb);
+  for (const c of second) if (done[c.id]) c.fixed = done[c.id] + (c.level === "ok" ? " ✓ وانحلّت" : " — وما انحلّت");
+  return second;
 }
 
 // ---------- الإرسال لجوال المالك ----------
@@ -217,7 +258,8 @@ Deno.serve(async (req) => {
     if (action === "run") {
       const { data: keyRow } = await sb.from("private_config").select("value").eq("key", "cron_key").maybeSingle();
       if (!keyRow?.value || req.headers.get("x-cron-key") !== keyRow.value) return json(req, { error: "forbidden" }, 403);
-      const checks = await runChecks(sb);
+      const { data: dayLog } = await sb.from("guard_log").select("checks").gte("at", new Date(Date.now() - 24 * H).toISOString()).limit(48);
+      const checks = await checkAndFix(sb);
       await sb.from("guard_log").insert({ checks });
       if (Math.random() < 0.1) await sb.from("guard_log").delete().lt("at", new Date(Date.now() - 7 * 864e5).toISOString());
       // تغيّر الحالة: «تحذير» لازم يتكرر فحصين ورا بعض (ما نزعجك بتأخير عابر)، «معطّل» فورًا
@@ -231,10 +273,15 @@ Deno.serve(async (req) => {
         else if (c.level === "warn" && told === "ok" && n >= 2) { bad.push("⚠️ " + c.name + ": " + c.detail); told = "warn"; }
         else if (c.level === "ok" && told !== "ok") { good.push(c.name); told = "ok"; }
         next[c.id] = { told, seen: c.level, n };
+        // انصلح تلقائيًا للمرة الرابعة خلال 24 ساعة = فيه سبب أعمق، نبلّغ المالك (مرة وحدة)
+        if (c.fixed) {
+          const times = 1 + (dayLog || []).filter((r) => (r.checks as Check[]).some((x) => x.id === c.id && x.fixed)).length;
+          if (times === 4) bad.push("🔁 " + c.name + ": انصلح تلقائيًا " + times + " مرات خلال 24 ساعة — فيه سبب أعمق يحتاج نظرة");
+        }
       }
       await sb.from("private_config").upsert({ key: "guard_state", value: JSON.stringify(next) });
       let sent = 0;
-      if (bad.length) sent += await notify(sb, "🛡️ حارس دليل: " + (bad.length === 1 ? "فيه مشكلة" : bad.length + " مشاكل"), bad.join("\n").slice(0, 900));
+      if (bad.length) sent += await notify(sb, "🛡️ حارس دليل: " + (bad.length === 1 ? "فيه مشكلة" : bad.length + " مشاكل"), (bad.join("\n") + "\nالتفاصيل والحل في لوحة الإدارة ← حالة دليل").slice(0, 900));
       if (good.length) sent += await notify(sb, "✅ حارس دليل: رجعت تشتغل", good.join("، "));
       return json(req, { ok: true, checks, alerted: bad.length, recovered: good.length, sent });
     }
@@ -264,6 +311,10 @@ Deno.serve(async (req) => {
       const { data: log } = await sb.from("guard_log").select("at,checks").gte("at", new Date(Date.now() - 7 * 864e5).toISOString()).order("at", { ascending: false }).limit(200);
       const devs = JSON.parse((await sb.from("private_config").select("value").eq("key", "guard_devices").maybeSingle()).data?.value || "[]") as unknown[];
       return json(req, { ok: true, last: log?.[0] || null, log: (log || []).map((r) => ({ at: r.at, l: (r.checks as Check[]).map((c) => [c.id, c.level]) })), devices: me.role === "owner" ? devs.length : undefined, owner: me.role === "owner" });
+    }
+    if (action === "fix_now") {
+      const checks = await checkAndFix(sb);
+      return json(req, { ok: true, last: { at: new Date().toISOString(), checks } });
     }
     if (action === "check_now") {
       const checks = await runChecks(sb);
