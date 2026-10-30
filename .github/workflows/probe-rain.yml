@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          t(){ code=$(curl -s -o /tmp/o -w '%{http_code}' -A "dalil-app/1.0" -L --max-time 60 "$1"); echo "::notice::$code $(wc -c </tmp/o) $1"; echo "== $1"; sed 's/<[^>]*>/ /g' /tmp/o | tr -s ' \n' | head -c 3000; echo; }
+          t(){ code=$(curl -s -o /tmp/o -w '%{http_code}' -A "dalil-app/1.0" -L --max-time 60 "$1"); echo "::notice::$code $(wc -c </tmp/o) $1"; echo "::notice::BODY $(sed "s/<[^>]*>/ /g" /tmp/o | tr -s " \n" " " | head -c 4000)"; }
           t "https://www.ncei.noaa.gov/access/services/data/v1?dataset=global-summary-of-the-day&stations=40394099999,40357099999,40361099999&startDate=2026-10-10&endDate=2026-10-30&format=json&dataTypes=PRCP"
           t "https://www.ogimet.com/cgi-bin/gsodres?lang=en&mode=0&state=Saud&ord=REV&ano=2026&mes=10&day=20&ndays=1"
           t "https://www.ogimet.com/cgi-bin/gsynres?ind=40394&ndays=20&ano=2026&mes=10&day=30&hora=18&lang=en&decoded=yes"
