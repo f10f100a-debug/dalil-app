@@ -1,0 +1,13 @@
+name: store-shots
+on: { push: { branches: [store-shots] } }
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm i --no-save playwright@1.48.2 >/dev/null && npx playwright install --with-deps chromium >/dev/null && node tools/storeshots/shots.js
+      - run: |
+          cd out && git init -q && git checkout -q -b store-assets && git add . && git -c user.email=ci@dalil -c user.name=ci commit -qm "store assets"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" store-assets
+          for f in *.png; do echo "::notice::https://raw.githubusercontent.com/${{ github.repository }}/store-assets/$f"; done
