@@ -103,10 +103,11 @@ jobs:
           grep -n "uses-permission\|uses-feature" $M
           echo "::notice::Android $VERSION_NAME ($VERSION_CODE) — UserAgent DalilAndroid/$VERSION_NAME"
 
-      - name: Target SDK 36 (شرط Google Play من 31 أغسطس 2026)
+      - name: Target SDK 36 (شرط Google Play من 31 أغسطس 2026) + أقل إصدار أندرويد 7 (minSdk 24)
         run: |
           V=android/variables.gradle
-          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/; s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/' $V
+          # minSdk 24: «الحماية التلقائية» في Google Play ترفض أي حزمة أقل من 24 (أندرويد 7)
+          sed -i 's/compileSdkVersion = [0-9]*/compileSdkVersion = 36/; s/targetSdkVersion = [0-9]*/targetSdkVersion = 36/; s/minSdkVersion = [0-9]*/minSdkVersion = 24/' $V
           grep -n "SdkVersion" $V
 
       - name: Upload key (release only)
