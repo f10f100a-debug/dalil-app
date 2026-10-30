@@ -5,7 +5,7 @@
 #   python3 update.py            ← مرتين بالأسبوع: آخر صور Sentinel-2 (10 م، بدون غيم) + MODIS للمقارنة بالمعتاد → data/fayd.json
 import json, sys, os, time, datetime as dtm, statistics as st, urllib.request, urllib.parse
 sys.path.insert(0, os.path.dirname(__file__))
-import s2, radar
+import s2, radar, synop
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, rasterio
 from rasterio.warp import transform
@@ -189,8 +189,21 @@ R = radar.load((today - dtm.timedelta(days=75)).isoformat())
 for i in green:
     rr = sum(x for x in (radar.mm_at(rec, SITES[i][1], SITES[i][2]) for rec in R.values()) if x)
     rain[i] = max(rain.get(i, 0), rr)
+# + محطات الأرصاد الأرضية خلال 35 كم (مقياس مطر فعلي؛ الملف يحدّثه مؤشر الفقع يوميًا)
+try:
+    SY = json.load(open(synop.FILE)); since75 = (today - dtm.timedelta(days=75)).isoformat()
+    for i in green:
+        g = synop.near(SY, SITES[i][1], SITES[i][2])
+        if g: rain[i] = max(rain.get(i, 0), sum(v for d, v in g[1].items() if d >= since75))
+except Exception as e:
+    print("synop skipped", e)
+dropped = []
 for r in rows:
-    if r[2] > 0 and rain.get(r[0], 0) < 8: r[2] = 0; r[1] = min(r[1], 15)
+    if r[2] > 0 and rain.get(r[0], 0) < 8:
+        dropped.append(f"{SITES[r[0]][0]} ({SITES[r[0]][3]}) خضرة {r[1]} مطر {rain.get(r[0], 0):.0f}")
+        r[2] = 0; r[1] = min(r[1], 15)
+# سجل: الفياض اللي بانت خضراء وشالها فلتر المطر (نراجعها: ربيع فاتته المصادر ولا مزارع مسقية؟)
+print("::notice::dropped " + str(len(dropped)) + ": " + " · ".join(dropped)[:3500], flush=True)
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
