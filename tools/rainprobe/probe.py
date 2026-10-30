@@ -1,22 +1,41 @@
-import urllib.request, re
+# تجربة: مطر الأقمار الصناعية (CMORPH RT من NOAA، 8 كم كل نص ساعة) لأكتوبر فوق المملكة → مجموع يومي بتوقيت الرياض
+import urllib.request, gzip, numpy as np, datetime as dt, sys, time
+from concurrent.futures import ThreadPoolExecutor
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
-def get(u, n=None):
-    try:
-        with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=90) as r:
-            b = r.read(n) if n else r.read(); return r.status, b
-    except Exception as e: return str(e)[:120], b""
-def ls(name, url, n=6, pat=None):
-    s, b = get(url); t = b.decode("utf8", "replace")
-    rows = re.findall(r'href="([^"?#]+)"[^\n]*?(\d{4}-\d\d-\d\d \d\d:\d\d|\d\d-\w{3}-\d{4} \d\d:\d\d)?\s*([\d.]+[KMG]?)?', t)
-    if pat: rows = [r for r in rows if re.search(pat, r[0])]
-    print("LS", name, s, "count", len(rows)); [print("   ", r) for r in rows[:3] + [("...",)] + rows[-n:]]
-ls("CMORPH2NRT", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH2/CMORPH2NRT/")
-ls("CMORPH2NRT/DATA", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH2/CMORPH2NRT/DATA/")
-ls("CMORPH2NRT/DATA/2026", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH2/CMORPH2NRT/DATA/2026/")
-ls("CMORPH2NRT/DATA/2026/202610", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH2/CMORPH2NRT/DATA/2026/202610/")
-ls("CMORPH_RT 202610", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/2026/202610/", 3)
-ls("CMORPH_RT GLOBE", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/")
-ls("CMORPH_RT root", "https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/")
-ls("PERSIANN-CCS 26", "https://persiann.eng.uci.edu/CHRSdata/PERSIANN-CCS/daily/", 4, r"1d26")
-ls("PDIR 26", "https://persiann.eng.uci.edu/CHRSdata/PDIRNow/PDIRNowdaily/", 4, r"1d26")
-ls("CPC global daily", "https://ftp.cpc.ncep.noaa.gov/precip/CPC_UNI_PRCP/GAUGE_GLB/RT/2026/", 4)
+def get(u):
+    for t in range(4):
+        try:
+            with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=120) as r: return r.read()
+        except Exception as e: err = e; time.sleep(5 * (t + 1))
+    print("fail", u[-40:], str(err)[:60], flush=True); return None
+NX, NY, D = 4948, 1649, 0.072756
+X0, Y0 = 0.036378, -59.963614
+i0, i1 = int((16 - Y0) / D), int((32.5 - Y0) / D) + 1
+j0, j1 = int((34 - X0) / D), int((56 - X0) / D) + 1
+print("box rows", i0, i1, "cols", j0, j1, flush=True)
+hours = [dt.datetime(2026, 9, 30, 21) + dt.timedelta(hours=h) for h in range(24 * 30 + 3)]
+sizes = []
+def one(h):
+    b = get(f"https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/{h:%Y}/{h:%Y%m}/CMORPH_V0.x_RT_8km-30min_{h:%Y%m%d%H}.gz")
+    if not b: return h, None
+    sizes.append(len(b))
+    a = np.frombuffer(gzip.decompress(b), "<f4")
+    if a.size != 2 * NX * NY: print("size?", a.size, flush=True); return h, None
+    a = a.reshape(2, NY, NX)[:, i0:i1, j0:j1].copy()
+    a[a < 0] = np.nan
+    return h, a
+T = time.time()
+acc, cnt = {}, {}
+with ThreadPoolExecutor(16) as ex:
+    for h, a in ex.map(one, hours):
+        if a is None: continue
+        day = (h + dt.timedelta(hours=3)).date().isoformat()
+        if not ("2026-10-01" <= day <= "2026-10-30"): continue
+        v = np.nan_to_num(a, nan=0).sum(0) * 0.5
+        acc[day] = acc.get(day, 0) + v; cnt[day] = cnt.get(day, 0) + int(np.isfinite(a).all(axis=(1, 2)).sum())
+print("cmorph t", round(time.time() - T), "files", len(sizes), "avgMB", round(np.mean(sizes) / 1e6, 1) if sizes else 0, flush=True)
+days = sorted(acc)
+grid = np.stack([np.round(acc[d] * 10).clip(0, 65535).astype("<u2") for d in days])
+np.savez_compressed("cmorph.npz", days=np.array(days), halfhours=np.array([cnt[d] for d in days]), mm10=grid,
+                    lat0=Y0 + i0 * D, lng0=X0 + j0 * D, step=D)
+for d in days: print("day", d, "halfhours", cnt[d], "max", round(float(acc[d].max()), 1), "wet>10mm px", int((acc[d] > 10).sum()), flush=True)
