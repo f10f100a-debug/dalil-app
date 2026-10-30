@@ -386,7 +386,7 @@
     else if(ev === 'nfail'){
       if(nPlay === id) nClear();
       const v = R.voice.find(x=>x.id === id);
-      diag({s:'native_fail'});
+      diag({s:'native_playfail'});
       if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !isPaused() && !queue.includes(v)){ queue.push(v); playNext(); }
     }
     renderVoiceSoon(); updateBtn();
@@ -425,7 +425,9 @@
     });
     renderVoiceSoon(); updateBtn();
   }
-  player.addEventListener('ended', ()=>{ playing = null; renderVoiceSoon(); playNext(); });
+  let webAudioAt = 0;   // آخر مرة شغّلت الصفحة صوت — صوت الصفحة يمسك صوت الجوال «تشغيل فقط» فأبل ترفض بدء اللاسلكي
+  player.addEventListener('playing', ()=>{ webAudioAt = Date.now(); });
+  player.addEventListener('ended', ()=>{ webAudioAt = Date.now(); playing = null; renderVoiceSoon(); playNext(); });
   player.addEventListener('error', ()=>{ if(playing){ playing = null; renderVoiceSoon(); playNext(); } });
 
   const rec = {on:false, stream:null, mr:null, chunks:[], t0:0, timer:null, idle:null, cancelled:false};
@@ -452,21 +454,38 @@
     }else if(ev === 'sent'){
       const was = rec.native; rec.native = false; renderPtt();
       if(data && data.id){ addVoice(data, false); diag({s:'sent', path:'native', dur:data.duration, mine:was}); }
+    }else if(ev === 'fail' && rec.native && rec.on && !rec.t0 && (rec.txTry || 0) < 1){
+      // أبل رفضت البدء (غالبًا صوت الصفحة لسا ماسك الجوال): نفك الصوت ونحاول مرة ثانية بدون ما نزعجه
+      rec.txTry = (rec.txTry || 0) + 1; clearTimeout(rec.nWait);
+      diag({s:'native_txretry', why:data && data.why || 'apple', web:Date.now() - webAudioAt < 5000});
+      pttMsg(false); releaseWebAudio();
+      setTimeout(()=>{ if(rec.native && rec.on) txBegin(); }, 600);
     }else if(ev === 'fail' || ev === 'short' || ev === 'upload_fail'){
       const was = rec.native; clearTimeout(rec.nWait); clearInterval(rec.timer); rec.native = false; rec.on = false; renderPtt();
-      diag({s:'native_' + ev});
+      diag(ev === 'fail' ? {s:'native_txfail', why:data && data.why || 'apple', web:Date.now() - webAudioAt < 5000, tries:rec.txTry || 0} : {s:'native_' + ev});
       if(was) B.toast(ev === 'short' ? 'اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك' : ev === 'upload_fail' ? 'تعذّر إرسال الرسالة — تأكد من الاتصال' : 'ما قدر يبدأ اللاسلكي — حاول مرة ثانية');
     }
   };
+  // يفك صوت الصفحة كامل (مو بس إيقاف) حتى يرجع صوت الجوال للاسلكي
+  function releaseWebAudio(){
+    try{ player.pause(); if(player.getAttribute('src')){ player.removeAttribute('src'); player.load(); } }catch(e){}
+    try{ if(actx && actx.state === 'running'){ const r = actx.suspend(); if(r && r.catch) r.catch(()=>{}); } }catch(e){}
+  }
+  function txBegin(){
+    pttMsg(true);
+    clearTimeout(rec.nWait);
+    rec.nWait = setTimeout(()=>{ if(rec.native && rec.t0 < Date.now() - 2000){ window.__dalilPttEvt('fail', {why:'no_start'}); pttMsg(false); } }, 2500);
+  }
   async function recStart(){
     if(rec.on || rec.native || !R.sess) return;
     if(isPaused()) endPause(false, 'talk');   // تكلّم = رجع للغرفة
     if(nativePtt()){
-      unlockAudio(); player.pause(); playing = null;
-      rec.on = true; rec.native = true; renderPtt('wait');
-      pttMsg(true);
+      if(!unlocked) unlockAudio();   // مرة وحدة بس — كل ضغطة كانت تشغّل صوت الصفحة من جديد وتزاحم اللاسلكي
+      const busy = !!playing || Date.now() - webAudioAt < 2500;
+      releaseWebAudio(); playing = null;
+      rec.on = true; rec.native = true; rec.txTry = 0; renderPtt('wait');
       clearTimeout(rec.nWait);
-      rec.nWait = setTimeout(()=>{ if(rec.native && rec.t0 < Date.now() - 2000){ window.__dalilPttEvt('fail'); pttMsg(false); } }, 2500);
+      setTimeout(()=>{ if(rec.native) txBegin(); }, busy ? 400 : 0);
       rec.t0 = 0;
       return;
     }
