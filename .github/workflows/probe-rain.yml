@@ -3,11 +3,9 @@ on: { push: { branches: [probe-rain] } }
 jobs:
   p:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
-      - run: |
-          c=$(curl -s -o /tmp/i.nc4 -w '%{http_code} %{url_effective}' -L --max-time 60 https://gpm1.gesdisc.eosdis.nasa.gov/data/GPM_L3/GPM_3IMERGDE.07/2026/10/3B-DAY-E.MS.MRG.3IMERG.20261028-S000000-E235959.V07C.nc4); echo "::notice::imerg $c $(wc -c </tmp/i.nc4) $(head -c 60 /tmp/i.nc4 | tr -dc '[:print:]')"
-          curl -s -L https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/ -o /tmp/l; echo "::notice::rtdir $(grep -oE 'href=\"[^\"]+\"' /tmp/l | tr '\n' ' ' | head -c 600)"
-          curl -s -L https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/ -o /tmp/l; echo "::notice::globe $(grep -oE 'href=\"[^\"]+\"' /tmp/l | tr '\n' ' ' | head -c 600)"
-          curl -s -L https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/2026/202610/ -o /tmp/l; echo "::notice::first $(grep -oE 'CMORPH_V0.x_RT_8km-30min_20261[0-9]{5}.gz' /tmp/l | sort -u | head -2 | tr '\n' ' ') count $(grep -oE 'CMORPH_V0.x_RT_8km-30min_20261[0-9]{5}.gz' /tmp/l | sort -u | wc -l)"
-          curl -s -L -o /tmp/c.gz https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/2026/202610/CMORPH_V0.x_RT_8km-30min_2026102812.gz; echo "::notice::cm $(wc -c </tmp/c.gz) unz $(gunzip -c /tmp/c.gz | wc -c)"
-          for f in README README.txt readme.txt CMORPH_RT_README.txt; do curl -s -L --max-time 20 https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/$f -o /tmp/r; echo "::notice::$f $(head -c 1500 /tmp/r | tr '\n' ' ')"; done
+      - uses: actions/checkout@v4
+      - run: pip install -q numpy && python3 tools/fayd/sat_check.py && ls -la data/sat-rain.json
+      - uses: actions/upload-artifact@v4
+        with: { name: sat, path: data/sat-rain.json }
