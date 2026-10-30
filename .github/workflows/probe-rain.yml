@@ -1,0 +1,21 @@
+name: probe-rain
+on: { push: { branches: [probe-rain] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          t(){ code=$(curl -s -o /tmp/o -w '%{http_code}' -L --max-time 60 "$1"); echo "::notice::$code $(wc -c </tmp/o) $1 :: $(grep -oE '[A-Za-z0-9_.-]*2026[0-9]{4}[A-Za-z0-9_.-]*' /tmp/o | sort -u | tail -4 | tr '\n' ' ')"; }
+          t https://www.ncei.noaa.gov/data/cmorph-high-resolution-global-precipitation-estimates/access/daily/0.25deg/2026/10/
+          t https://www.ncei.noaa.gov/data/cmorph-high-resolution-global-precipitation-estimates/access/30min/8km/2026/10/
+          t https://ftp.cpc.ncep.noaa.gov/precip/CMORPH2/
+          t https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_RT/GLOBE/data/2026/202610/
+          t https://ftp.cpc.ncep.noaa.gov/precip/CMORPH_V1.0/RAW/0.25deg-DLY_00Z/2026/202610/
+          t https://data.chc.ucsb.edu/products/CHIRP/daily/2026/
+          t https://data.chc.ucsb.edu/products/CHIRPS-2.0/prelim/global_daily/tifs/p05/2026/
+          t https://gpm1.gesdisc.eosdis.nasa.gov/data/GPM_L3/GPM_3IMERGDE.07/2026/10/
+          t https://jsimpsonhttps.pps.eosdis.nasa.gov/imerg/gis/early/2026/10/
+          t https://pmmpublisher.pps.eosdis.nasa.gov/opensearch?q=precip_1d&lat=28&lon=42&limit=3
+          t https://hydro1.gesdisc.eosdis.nasa.gov/
+          t https://ftp.cpc.ncep.noaa.gov/precip/PEOPLE/xie/
+          t https://ftp.cpc.ncep.noaa.gov/fews/fewsdata/
