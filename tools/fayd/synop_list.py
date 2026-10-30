@@ -2,7 +2,7 @@
 import sys, os, csv, io, urllib.request, collections
 sys.path.insert(0, os.path.dirname(__file__)); import synop
 UA = {"User-Agent": "dalil-app/1.0"}
-t = urllib.request.urlopen(urllib.request.Request("https://www.ogimet.com/cgi-bin/getsynop?state=Saud&begin=202610010000&end=202610302359", headers=UA), timeout=120).read().decode("latin-1")
+t = urllib.request.urlopen(urllib.request.Request("https://www.ogimet.com/cgi-bin/getsynop?block=4043&begin=202610010000&end=202610302359", headers=UA), timeout=120).read().decode("latin-1")
 cnt = collections.Counter(); grp = collections.Counter(); wet = collections.Counter(); tot = collections.Counter()
 for line in t.splitlines():
     f = line.split(",", 6)

@@ -6,4 +6,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 tools/fayd/synop_list.py
+      - run: python3 tools/fayd/synop_list.py; sed -i "s/block=4043&/block=4039&/" tools/fayd/synop_list.py; sleep 15; python3 tools/fayd/synop_list.py
