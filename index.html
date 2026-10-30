@@ -3029,10 +3029,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const W = (x1-x0+1)*256, H = (y1-y0+1)*256, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const g = cv.getContext('2d', {willReadFrequently:true});
     const jobs = [];
-    for(let tx = x0; tx <= x1; tx++) for(let ty = y0; ty <= y1; ty++) jobs.push(fetch(`${host}${path}/256/${RV_Z}/${tx}/${ty}/2/1_1.png`).then(r => r.ok ? r.blob() : null).then(b => b && createImageBitmap(b)).then(im => { if(im) g.drawImage(im, (tx-x0)*256, (ty-y0)*256); }).catch(()=>{}));
+    // بدون تنعيم (0_1): الصور المنعّمة تمد حواف المطر 1–2 كم زيادة — كانت تقول «فوقك» والمطر جنبك
+    for(let tx = x0; tx <= x1; tx++) for(let ty = y0; ty <= y1; ty++) jobs.push(fetch(`${host}${path}/256/${RV_Z}/${tx}/${ty}/2/0_1.png`).then(r => r.ok ? r.blob() : null).then(b => b && createImageBitmap(b)).then(im => { if(im) g.drawImage(im, (tx-x0)*256, (ty-y0)*256); }).catch(()=>{}));
     await Promise.all(jobs);
     const d = g.getImageData(0, 0, W, H).data, wet = new Uint8Array(W*H);
-    for(let k = 0; k < W*H; k++) wet[k] = d[k*4+3] > 40 ? 1 : 0;
+    // «مبلول» = صدى 10 dBZ فأكثر؛ الرمادي الباهت (0–5) غالبًا غيم أو تشويش مو مطر
+    for(let k = 0; k < W*H; k++){ if(d[k*4+3] <= 40) continue; const v = rvDbzPx(d[k*4], d[k*4+1], d[k*4+2]); wet[k] = v != null && v >= 10 ? 1 : 0; }
     return {wet, rgba:d, W, H, ox:x0*256, oy:y0*256, ux:cx-x0*256, uy:cy-y0*256, rp, mpp};
   }
   // أقرب كتلة مطر حقيقية: نتجاهل النقاط المتفرقة، والصدى الثابت حول الرادارات (يظهر في كل الصور منذ ساعتين = تشويش وليس مطرًا)
@@ -3054,6 +3056,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   // شدة المطر من ألوان الرادار (Universal Blue: لون ← dBZ)
   const RV_PAL = [[0,0x82,0x7b,0x69],[5,0x92,0x88,0x71],[10,0xce,0xc0,0x87],[15,0x88,0xdd,0xee],[20,0x00,0xa3,0xe0],[25,0x00,0x77,0xaa],[30,0x00,0x55,0x88],[35,0xff,0xee,0x00],[40,0xff,0xaa,0x00],[45,0xff,0x44,0x00],[50,0xc1,0x00,0x00],[55,0xff,0xaa,0xff],[60,0xff,0x77,0xff],[65,0xff,0xff,0xff]];
+  function rvDbzPx(R0, G0, B0){ let best = 1e9, v = null; for(const [dz,R,Gc,Bc] of RV_PAL){ const e = (R0-R)**2+(G0-Gc)**2+(B0-Bc)**2; if(e < best){ best = e; v = dz; } } return v; }
   function dbzAt(G, x, y, r){
     let max = null;
     for(let j = -r; j <= r; j++) for(let i = -r; i <= r; i++){
@@ -3149,7 +3152,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   async function checkStorm(force){
     const pos = state.pos;
     if(!pos || !navigator.onLine || STORM.busy) return;
-    if(!force && Date.now() - STORM.at < 8*60000) return;
+    const moved = STORM.res && STORM.res.pos ? haversine(pos.lat, pos.lng, STORM.res.pos.lat, STORM.res.pos.lng) : 0;
+    if(!force && Date.now() - STORM.at < (moved > 3000 ? 60000 : 8*60000)) return;
     STORM.busy = true; STORM.at = Date.now();
     try{
       const j = await (await fetch('https://api.rainviewer.com/public/weather-maps.json', {cache:'no-store'})).json();
@@ -3182,7 +3186,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         const tr = distTrend(tp), appr = !!(tr && tr.fit && tr.rate >= 0.12 && tr.d0 - km >= 2), rec = !!(tr && tr.fit && tr.rate <= -0.12);
         const nearing = ()=>{ const eta = Math.round(km / tr.rate); return eta <= 180 ? {kind:'nearing', eta, km, brg:a.brg, was:tr.d0, ago:Math.round(tr.t0)} : {kind:'far', km, brg:a.brg}; };
         const vague = extra => ({kind: a.dist < 10000 ? 'close' : 'far', km, brg:a.brg, ...extra});
-        if(a.dist < 4000) r = {kind:'here'};
+        const atMe = dbzAt(Gn, Gn.ux, Gn.uy, 1);
+        if(atMe != null && atMe >= 15 && a.dist < 4000) r = {kind:'here'};
         else if(mOk){
           // مسار المطر: هل يمر عليك؟ (المسافة الجانبية بين مساره وبينك، والمسافة على المسار)
           const toUser = (a.brg + 180) % 360, ang = (motion.brg - toUser) * Math.PI / 180;
@@ -3205,12 +3210,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(LT && LT.length){
         let lu = Infinity, lb = 0, lc = Infinity;
         for(const q of LT){ const du = haversine(pos.lat, pos.lng, q.lat, q.lng); if(du < lu){ lu = du; lb = bearing(pos.lat, pos.lng, q.lat, q.lng); } if(a){ const dc = haversine(a.lat, a.lng, q.lat, q.lng); if(dc < lc) lc = dc; } }
-        r.ltKm = lu / 1000; r.ltBrg = lb; r.storm = lc < 20000 || (r.kind === 'here' && lu < 20000);
+        r.ltKm = lu / 1000; r.ltBrg = lb; r.storm = lc < 20000 || (r.kind === 'here' && lu < 10000);
       }
       r.ltKnown = !!LT;
       if(a){
         // الشدة: فوقك (3 كم حولك) أو عند أقرب كتلة مطر
-        r.dbz = r.kind === 'here' ? dbzAt(Gn, Gn.ux, Gn.uy, 3) : (()=>{ let best = null; const rr = Math.round(a.dist / Gn.mpp);
+        r.dbz = r.kind === 'here' ? dbzAt(Gn, Gn.ux, Gn.uy, 1) : (()=>{ let best = null; const rr = Math.round(a.dist / Gn.mpp);
           const bx = Gn.ux + Math.sin(a.brg*Math.PI/180) * rr, by = Gn.uy - Math.cos(a.brg*Math.PI/180) * rr; best = dbzAt(Gn, bx, by, 4); return best; })(); }
       r.motion = mOk ? motion : null;
       // صدى ضعيف جدًا (<15) أو خفيف في جو جاف = غالبًا ما ينزل مطر فعلي
@@ -3218,7 +3223,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       r.dryAir = WND && WND.dd != null ? Math.round(WND.dd) : null;
       r.virga = r.kind !== 'none' && !r.storm && r.dbz != null && r.dbz < 25 && r.dryAir != null && r.dryAir >= 15;
       try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_RAIN_MOTION', kmh:r.motion ? r.motion.kmh : 0, dir:r.motion ? directionWord(r.motion.brg) : ''}, location.origin); }catch(e){}
-      r.time = now.time; STORM.res = r;
+      r.time = now.time; r.pos = {lat:pos.lat, lng:pos.lng}; STORM.res = r;
     }catch(e){}
     STORM.busy = false;
     renderStorm();
@@ -3227,6 +3232,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const r = STORM.res, strip = document.getElementById('stormStrip'), card = document.getElementById('stormCard');
     if(!strip || !card) return;
     if(!r){ strip.hidden = card.hidden = true; return; }
+    if(r.pos && state.pos && haversine(state.pos.lat, state.pos.lng, r.pos.lat, r.pos.lng) > 3000 && r.kind !== 'none'){
+      // تحركت بعد آخر قراءة للرادار: الكلام عن «فوقك/قريب منك» صار قديم — نعرض إنه يتحدّث
+      card.hidden = false; strip.hidden = true; card.className = 'storm-card calm';
+      card.innerHTML = `<span class="sx">🔄</span><span><b>يحدّث حالة المطر لموقعك الجديد…</b><small>تحركت أكثر من ${iso(3)} كم عن آخر قراءة للرادار</small></span>`;
+      if(!STORM.busy && Date.now() - STORM.at > 60000) setTimeout(()=>checkStorm(true), 0);   // مرة بالدقيقة كحد أقصى (لو الشبكة طايحة ما ندخل في دوامة)
+      return;
+    }
     const dir = r.brg != null ? directionWord(r.brg) : '', km = r.km != null ? iso(r.km >= 10 ? Math.round(r.km) : r.km.toFixed(1)) + ' كم' : '';
     const etaTxt = m => m < 60 ? iso(m) + ' دقيقة' : iso(Math.floor(m/60)) + ' س ' + (m%60 ? iso(m%60) + ' د' : '');
     let icon = '☀️', t = 'لا أمطار حولك', sub = 'الرادار لا يظهر مطرًا خلال ' + iso(150) + ' كم من موقعك', cls = '', showStrip = false;
