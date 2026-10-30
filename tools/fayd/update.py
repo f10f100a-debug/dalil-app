@@ -189,11 +189,11 @@ R = radar.load((today - dtm.timedelta(days=75)).isoformat())
 for i in green:
     rr = sum(x for x in (radar.mm_at(rec, SITES[i][1], SITES[i][2]) for rec in R.values()) if x)
     rain[i] = max(rain.get(i, 0), rr)
-# + محطات الأرصاد الأرضية خلال 35 كم (مقياس مطر فعلي؛ الملف يحدّثه مؤشر الفقع يوميًا)
+# + محطات الأرصاد الأرضية خلال 50 كم (مقياس مطر فعلي؛ الملف يحدّثه مؤشر الفقع يوميًا) — وإذا مو موجود نحدّثه هنا
 try:
-    SY = json.load(open(synop.FILE)); since75 = (today - dtm.timedelta(days=75)).isoformat()
+    SY = synop.update(today - dtm.timedelta(days=75), today) if not os.path.exists(synop.FILE) else json.load(open(synop.FILE)); since75 = (today - dtm.timedelta(days=75)).isoformat()
     for i in green:
-        g = synop.near(SY, SITES[i][1], SITES[i][2])
+        g = synop.near(SY, SITES[i][1], SITES[i][2], max_km=50)
         if g: rain[i] = max(rain.get(i, 0), sum(v for d, v in g[1].items() if d >= since75))
 except Exception as e:
     print("synop skipped", e)

@@ -4,19 +4,17 @@ concurrency: { group: probe-rain, cancel-in-progress: true }
 jobs:
   p:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
+      - uses: actions/checkout@v4
+      - run: cp data/fq.json /tmp/fq_before.json && python3 tools/fayd/fq.py
       - run: |
           python3 - <<'PY'
-          import re, html, time, urllib.request
-          out=[]
-          for w in [40437, 40438, 40377, 40391, 40473, 41033, 41056, 41120, 40401, 40420, 40417]:
-              u=f"https://www.ogimet.com/cgi-bin/gsynres?ind={w}&ndays=1&ano=2026&mes=10&day=29&hora=12&lang=en&decoded=yes"
-              try:
-                  t=urllib.request.urlopen(urllib.request.Request(u,headers={"User-Agent":"dalil-app/1.0"}),timeout=60).read().decode("latin-1")
-                  txt=re.sub(r"\s+"," ",html.unescape(re.sub(r"<[^>]*>"," ",t)))
-                  m=re.search(r"([^.]{0,40}\(Saudi Arabia\)[^A]*Altitude: [0-9]+)", txt)
-                  out.append(f"{w}: {m.group(1) if m else txt[:80]}")
-              except Exception as e: out.append(f"{w}: ERR {e}")
-              time.sleep(12)
-          print("::notice::" + " || ".join(out))
+          import json
+          a={r['name']:r for r in json.load(open('/tmp/fq_before.json'))['rows']}; b=json.load(open('data/fq.json'))['rows']
+          ch=[f"{r['name']} {a[r['name']]['mm']}→{r['mm']} pre{a[r['name']]['pre']}→{r['pre']} st{a[r['name']]['st']}→{r['st']} {r.get('gauge')}" for r in b if r['name'] in a and (r['mm']!=a[r['name']]['mm'] or r['pre']!=a[r['name']]['pre'] or r.get('gauge'))]
+          print("::notice::FQ " + " || ".join(ch))
+          s=json.load(open('data/synop-rain.json'))['stations']
+          print("::notice::SYN " + " || ".join(k+f"[{len(x)}d]:"+" ".join(f"{d[5:]}={v}" for d,v in sorted(x.items()) if v>0) for k,x in s.items()))
           PY
+      - run: pip install --quiet rasterio numpy && python3 tools/fayd/update.py
