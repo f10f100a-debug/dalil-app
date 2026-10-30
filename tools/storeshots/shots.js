@@ -19,8 +19,16 @@ const OUT = 'out'; fs.mkdirSync(OUT, { recursive: true });
     await p.screenshot({ path: `${OUT}/${name}.png` });
     console.log('shot', name);
   };
+  // البوصلة: تشغيلها ثم اتجاه وهمي (الكمبيوتر ما فيه حساس)
+  await p.click('#navActivationBtn').catch(() => {});
+  await p.waitForTimeout(800);
+  await p.evaluate(() => { let a = 0; setInterval(() => { const e = new Event('deviceorientationabsolute'); Object.assign(e, { alpha: 360 - 52, beta: 0, gamma: 0, absolute: true }); window.dispatchEvent(e); const e2 = new Event('deviceorientation'); Object.assign(e2, { webkitCompassHeading: 52, webkitCompassAccuracy: 5, alpha: 308, beta: 0, gamma: 0 }); window.dispatchEvent(e2); }, 100); });
   await shot('compass', '1-compass', 4000);
-  await shot('track', '2-map', 12000);
+  await p.click('.tab[data-screen="track"]').catch(() => {});
+  await p.waitForTimeout(6000);
+  // نافذة «احفظ خريطة المنطقة» داخل الخريطة: لاحقًا
+  for (const fr of p.frames()) { const btn = fr.getByText('لاحقًا', { exact: true }); if (await btn.count().catch(() => 0)) await btn.first().click().catch(() => {}); }
+  await shot('track', '2-map', 8000);
   await shot('weather', '3-weather', 9000);
   await shot('places', '4-places', 4000);
   // صورة العرض
