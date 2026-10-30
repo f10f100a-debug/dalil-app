@@ -1,0 +1,12 @@
+name: rain-probe
+on: { workflow_dispatch: {} }
+permissions: { contents: read }
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/rainprobe/probe.py | tee out.txt
+      - uses: actions/upload-artifact@v4
+        with: { name: out, path: out.txt }
