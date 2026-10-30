@@ -5,5 +5,18 @@ jobs:
   p:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 tools/fayd/synop_list.py; sed -i "s/block=4043&/block=4039&/" tools/fayd/synop_list.py; sleep 15; python3 tools/fayd/synop_list.py
+      - run: |
+          python3 - <<'PY'
+          import re, html, time, urllib.request
+          out=[]
+          for w in [40437, 40438, 40377, 40391, 40473, 41033, 41056, 41120, 40401, 40420, 40417]:
+              u=f"https://www.ogimet.com/cgi-bin/gsynres?ind={w}&ndays=1&ano=2026&mes=10&day=29&hora=12&lang=en&decoded=yes"
+              try:
+                  t=urllib.request.urlopen(urllib.request.Request(u,headers={"User-Agent":"dalil-app/1.0"}),timeout=60).read().decode("latin-1")
+                  txt=re.sub(r"\s+"," ",html.unescape(re.sub(r"<[^>]*>"," ",t)))
+                  m=re.search(r"([^.]{0,40}\(Saudi Arabia\)[^A]*Altitude: [0-9]+)", txt)
+                  out.append(f"{w}: {m.group(1) if m else txt[:80]}")
+              except Exception as e: out.append(f"{w}: ERR {e}")
+              time.sleep(12)
+          print("::notice::" + " || ".join(out))
+          PY
