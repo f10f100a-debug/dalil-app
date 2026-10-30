@@ -1,7 +1,7 @@
 // تنبيهات الأمطار التلقائية حسب المنطقة: كل 10 دقائق (pg_cron) يقرأ الرادار والبرق للسعودية كاملة،
 // وإذا لقى أمطارًا غزيرة مؤكدة بالبرق داخل منطقة يرسل إشعارًا لمشتركي تنبيهات المنطقة.
-// ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين تنبيهين لنفس المكان (أقل من 100 كم) — عاصفة جديدة بعيدة تنبّه،
-// نفس العاصفة (أقل من 60 كم خلال 12 ساعة) ما تتكرر،
+// ضد الإزعاج: حد أقصى تنبيهين للمنطقة باليوم، 6 ساعات بين تنبيهين لنفس المكان (أقل من 50 كم) — عاصفة جديدة بعيدة تنبّه،
+// نفس العاصفة (أقل من 50 كم خلال 12 ساعة) ما تتكرر، إلا إذا وصلت مدينة المنطقة: «الآن على حائل» مرة كل 12 س (حد 3 باليوم)،
 // والعاصفة البعيدة (أكثر من 200 كم عن أي مدينة أو محافظة في المنطقة) ما يُرسل لها.
 // لا يستخدم موقع أي مستخدم — فقط المنطقة التي اختارها في الإعدادات. مشتركو «كل المناطق» لا تصلهم هذه التنبيهات (صور الأحداث فقط).
 import UPNG from "npm:upng-js@2.1.0";
@@ -13,7 +13,9 @@ import { GRID } from "./region-grid.ts";
 
 const LAT0 = 16, LAT1 = 32.5, LNG0 = 34, LNG1 = 56, STEP = 0.05;          // شبكة التحليل ~5 كم
 const ROWS = Math.round((LAT1 - LAT0) / STEP), COLS = Math.round((LNG1 - LNG0) / STEP);
-const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 6, COOL_KM = 100, DAY_MAX = 2, SAME_KM = 60, SAME_H = 12, FAR_KM = 200;
+// COOL_KM كان 100: عاصفة حائل 30 أكتوبر نبّهنا عنها وهي 75 كم جنوب المدينة، ولما وصلت المدينة (88 كم من التنبيه الأول) ما نبّهنا
+const Z = 6, HEAVY = 40, MIN_CELLS = 3, COOLDOWN_H = 6, COOL_KM = 50, DAY_MAX = 2, SAME_KM = 50, SAME_H = 12, FAR_KM = 200;
+const CITY_KM = 25;   // «الآن على المدينة»: خلية غزيرة خلال 25 كم من مدينة المنطقة — تنبيه إضافي مرة وحدة (حتى لو نبّهنا عن نفس العاصفة قبل)
 const CITY: Record<string, [string, number, number]> = {
   "جازان": ["جازان", 16.89, 42.55], "حائل": ["حائل", 27.52, 41.69], "الحدود الشمالية": ["عرعر", 30.98, 41.04], "الجوف": ["سكاكا", 29.97, 40.21],
   "عسير": ["أبها", 18.22, 42.5], "مكة": ["مكة", 21.42, 39.83], "الشرقية": ["الدمام", 26.43, 50.1], "نجران": ["نجران", 17.49, 44.13],
@@ -285,7 +287,8 @@ Deno.serve(async (req) => {
       }
       if (best < A.length * 0.25) return null;
       const mins = (now.time - prev.time) / 60, kmh = Math.hypot(bx * STEP * 111 * Math.cos(25 * Math.PI / 180), by * STEP * 111) / mins * 60;
-      return kmh >= 8 && kmh <= 120 ? { kmh: Math.round(kmh), dir: dirWord(Math.atan2(bx * Math.cos(25 * Math.PI / 180), by) * 180 / Math.PI) } : null;
+      const brg = (Math.atan2(bx * Math.cos(25 * Math.PI / 180), by) * 180 / Math.PI + 360) % 360;
+      return kmh >= 8 && kmh <= 120 ? { kmh: Math.round(kmh), dir: dirWord(brg), brg } : null;
     };
     const motion = motionAt(ROWS >> 1, COLS >> 1, Math.max(ROWS, COLS));   // للسجل فقط
     // تجربة صامتة «أقرب مطر غزير وبرد»: نسجّل كل خلية ≥45 dBZ (بعد إزالة التشويش) بدون ما نعرضها — للتحقق بعد أسبوعين
@@ -294,7 +297,7 @@ Deno.serve(async (req) => {
     if (off) return done({ ok: true, off: true, radarAcc, trial });
 
     // سجل آخر 24 ساعة للمنطقة: الحد اليومي، الفاصل بين التنبيهين، ونفس العاصفة
-    const { data: recent } = await sb.from("auto_alerts").select("region,at,lat,lng").gte("at", new Date(Date.now() - 24 * 3600e3).toISOString());
+    const { data: recent } = await sb.from("auto_alerts").select("region,at,lat,lng,kind").gte("at", new Date(Date.now() - 24 * 3600e3).toISOString());
     const dayStart = new Date(Math.floor((Date.now() + 3 * 3600e3) / 864e5) * 864e5 - 3 * 3600e3).getTime();   // منتصف ليل الرياض
     const why = (region: string, la: number, lo: number) => {
       const rows = (recent || []).filter((r) => r.region === region);
@@ -307,6 +310,10 @@ Deno.serve(async (req) => {
       return "";
     };
     const rh = new Date(Date.now() + 3 * 3600e3).getUTCHours(), quiet = rh < 6;
+    const clock = (ms: number) => { const d = new Date(ms + 3 * 3600e3), h = d.getUTCHours(), m = d.getUTCMinutes(); return (h % 12 || 12) + ":" + String(m).padStart(2, "0") + (h < 12 ? " ص" : " م"); };
+    // «الآن على المدينة» مسموح إذا ما نبّهنا عن المدينة نفسها آخر 12 س، وما تعدّى 3 تنبيهات للمنطقة اليوم
+    const cityOk = (region: string) => { const rows = (recent || []).filter((r) => r.region === region);
+      return !rows.some((r) => r.kind === "city" && Date.now() - Date.parse(r.at) < SAME_H * 3600e3) && rows.filter((r) => Date.parse(r.at) >= dayStart).length < DAY_MAX + 1; };
     const out: unknown[] = [];
     const cands = [...byRegion.entries()].filter(([, c]) => c.length >= MIN_CELLS).sort((a, b) => b[1].length - a[1].length);
     // كل المناطق اللي فيها مطر غزير (قبل كانت أكبر 4 بس، فالمناطق الممنوعة بالحد اليومي تاخذ مكان منطقة تستاهل التنبيه)
@@ -317,18 +324,34 @@ Deno.serve(async (req) => {
       const mv = motionAt(Math.round((cLat - LAT0) / STEP - .5), Math.round((cLng - LNG0) / STEP - .5));
       const dist = km(la, lo, cLat, cLng), where = dist < 15 ? "على " + city : dir2(bearing(la, lo, cLat, cLng)) + " " + city + " بنحو " + Math.round(dist / 5) * 5 + " كم";
       const what = max >= 55 ? "عواصف رعدية قوية مع احتمال برد" : max >= 50 ? "عواصف رعدية وأمطار غزيرة جدًا" : "أمطار غزيرة وبرق";
+      // أقرب خلية غزيرة لمدينة المنطقة (مو المركز — العاصفة الكبيرة طرفها يوصل المدينة قبل مركزها)
+      const cityKm = Math.min(...cells.map((c) => km(la, lo, LAT0 + (c.i + .5) * STEP, LNG0 + (c.j + .5) * STEP)));
+      // متى توصل المدينة: إذا مسارها يمر خلال 20 كم من المدينة (نفس حساب «جايتك» في التطبيق)
+      let eta = "";
+      if (mv && dist >= 15) {
+        const toCity = bearing(cLat, cLng, la, lo), ang = (mv.brg - toCity) * Math.PI / 180, along = dist * Math.cos(ang), cross = Math.abs(dist * Math.sin(ang));
+        const mins = along / mv.kmh * 60;
+        if (along > 0 && cross <= 20 && mins >= 10 && mins <= 180) eta = " — تتجه نحو " + city + "، تصل تقريبًا " + clock(Date.now() + mins * 60e3);
+      }
       const p = {
         title: (max >= 50 ? "⛈️ " : "🌧️ ") + what + " — منطقة " + region,
-        body: "الآن " + where + (mv ? "، تتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
+        body: "الآن " + where + (eta || (mv ? "، تتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "")) + ". ابتعد عن بطون الأودية والشعبان — افتح الرادار في دليل.",
         url: "./?screen=track", tag: "auto-rain-" + region,
         // ساعات الهدوء (12 الليل–6 الصبح بتوقيت الرياض): بدون صوت — إلا العواصف القوية جدًا (≥55، احتمال برد) تنبّه بصوت
         silent: quiet && max < 55,
       };
-      const skip = why(region, cLat, cLng);
-      if (skip) { out.push({ region, cells: cells.length, max, skipped: skip, ...p }); continue; }
-      if (dry) { out.push({ region, cells: cells.length, max, dry: true, ...p }); continue; }
+      let skip = why(region, cLat, cLng), kind = "storm";
+      // وصلت المدينة: تنبيه «الآن على حائل» حتى لو نبّهنا عن نفس العاصفة قبل (cooldown/same_storm/الحد اليومي 2)
+      if (cityKm <= CITY_KM && CITY[region] && cityOk(region) && skip !== "far") {
+        kind = "city"; skip = "";
+        p.title = (max >= 50 ? "⛈️ " : "🌧️ ") + what + " — الآن على " + city;
+        p.body = "العاصفة وصلت " + city + (cityKm < 8 ? "" : " (أقرب جزء منها " + Math.round(cityKm) + " كم)") + (mv ? "، وتتجه " + mv.dir + " (" + mv.kmh + " كم/س)" : "") + ". ابتعد عن بطون الأودية والشعبان وتجمعات المياه — افتح الرادار في دليل.";
+        p.tag = "auto-city-" + region;
+      }
+      if (skip) { out.push({ region, cells: cells.length, max, skipped: skip, cityKm: Math.round(cityKm), ...p }); continue; }
+      if (dry) { out.push({ region, cells: cells.length, max, dry: true, kind, cityKm: Math.round(cityKm), ...p }); continue; }
       const sent = await sendRegion(sb, cfg, region, p);
-      await sb.from("auto_alerts").insert({ region, title: p.title, body: p.body, cells: cells.length, max_dbz: max, sent_web: sent.web, sent_ios: sent.ios, lat: Math.round(cLat * 100) / 100, lng: Math.round(cLng * 100) / 100 });
+      await sb.from("auto_alerts").insert({ region, title: p.title, body: p.body, cells: cells.length, max_dbz: max, sent_web: sent.web, sent_ios: sent.ios, lat: Math.round(cLat * 100) / 100, lng: Math.round(cLng * 100) / 100, kind });
       out.push({ region, cells: cells.length, max, ...sent, ...p });
     }
     if (Math.random() < 0.05) await sb.from("auto_alerts").delete().lt("at", new Date(Date.now() - 7 * 86400e3).toISOString());

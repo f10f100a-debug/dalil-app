@@ -791,6 +791,33 @@
   refreshPushState().then(followRegion).then(()=>syncFayd());
   // التلقائي يتبع موقعك: عند الرجوع للتطبيق، وكل 10 دقائق، وبعد وصول أول موقع
   setTimeout(followRegion, 20000);
+  // «كل المناطق» ما توصله تنبيهات المطر — كثير اختاروها من نسخ قديمة وهم يحسبون إنها توصلهم. نسأل مرة وحدة
+  // وتلقائي بدون موقع: تذكير (مرة باليوم) إن التنبيهات تحتاج الموقع
+  function regionNudge(){
+    if(!pushOn || document.getElementById('regNudge')) return;
+    const today = new Date().toISOString().slice(0, 10);
+    let html = '';
+    if(regionPref() === '' && !lsGet('dalil_allreg_nudge_v1')){
+      lsSet('dalil_allreg_nudge_v1', '1');
+      html = `<b>تنبيهات المطر ما توصلك</b><small>اختيارك «كل المناطق» توصله صور الأحداث بس. تبي تنبيهات المطر لمنطقتك؟ (تتغير لحالها إذا سافرت)</small>
+        <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="cp-btn cp-btn-gold" data-rn="auto" style="flex:1">نعم، منطقتي تلقائيًا</button><button type="button" class="cp-btn cp-btn-white" data-rn="no" style="flex:0 0 auto">لا</button></div>`;
+    }else if(regionPref() === AUTO && !autoRegion() && lsGet('dalil_noloc_nudge') !== today){
+      lsSet('dalil_noloc_nudge', today);
+      html = `<b>تنبيهات المطر تحتاج موقعك</b><small>ما قدرنا نحدد منطقتك، فما توصلك تنبيهات المطر. فعّل الموقع لدليل، أو اختر منطقتك من الإعدادات ← التنبيهات.</small>
+        <div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="cp-btn cp-btn-white" data-rn="no" style="flex:1">تمام</button></div>`;
+    }
+    if(!html) return;
+    const el = document.createElement('div'); el.id = 'regNudge'; el.setAttribute('role', 'dialog');
+    el.style.cssText = 'position:fixed;left:12px;right:12px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:80;background:var(--panel,#fff);border:1px solid var(--line,#e5dccd);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-width:456px;margin:0 auto;display:block;line-height:1.5';
+    el.innerHTML = html.replace('<small>', '<small style="display:block;margin-top:2px;color:var(--text-faint,#7a7166)">');
+    el.addEventListener('click', async e=>{
+      const b = e.target.closest('[data-rn]'); if(!b) return;
+      el.remove();
+      if(b.dataset.rn === 'auto'){ const s = $('pushRegion'); if(s){ s.value = AUTO; await regionChanged(); } }
+    });
+    document.body.appendChild(el);
+  }
+  setTimeout(regionNudge, 6000);
   setInterval(()=>{ if(document.visibilityState === 'visible'){ followRegion(); syncFayd(); } }, 10 * 60e3);
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') followRegion(); });
 })();
