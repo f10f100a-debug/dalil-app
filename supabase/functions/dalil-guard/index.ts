@@ -171,6 +171,17 @@ async function runChecks(sb: SupabaseClient): Promise<Check[]> {
     out.push({ id: "cron", name: "الجداول التلقائية", level: !n ? "fail" : bad.length && !(warn && bad.length === 1) ? "fail" : bad.length ? "warn" : "ok",
       detail: !n ? "ما فيه أي جدول تلقائي!" : bad.length ? bad.join(" · ") : n + " جداول شغّالة بدون أخطاء" });
   } catch (e) { out.push({ id: "cron", name: "الجداول التلقائية", level: "warn", detail: "تعذّر القراءة: " + String((e as Error)?.message || e).slice(0, 60) }); }
+
+  // ١١) النسخة الاحتياطية اليومية (GitHub، 3:07 الفجر): فشل مرة = نعيد بكرة بدون إزعاج، مرتين ورا بعض أو ما فيه نسخة ناجحة من يومين = عطل
+  try {
+    const r = await fetch(GH + "db-backup.yml/runs?per_page=5&status=completed", { headers: { "user-agent": "dalil-guard", accept: "application/vnd.github+json" } });
+    if (!r.ok) throw new Error("github " + r.status);
+    const runs = ((await r.json()).workflow_runs || []) as { conclusion: string; updated_at: string }[];
+    let fails = 0; for (const x of runs) { if (x.conclusion === "success") break; fails++; }
+    const okAt = runs.find((x) => x.conclusion === "success")?.updated_at, h = ago(okAt);
+    out.push({ id: "backup", name: "النسخة الاحتياطية", level: fails >= 2 || h > 50 ? "fail" : "ok",
+      detail: (h === Infinity ? "ما فيه نسخة ناجحة" : "آخر نسخة ناجحة قبل " + hrs(h)) + (fails ? " · فشلت " + fails + " مرة ورا بعض (كلمة سر القاعدة تغيّرت؟ حدّث SUPABASE_DB_URL في GitHub)" : "") });
+  } catch { out.push({ id: "backup", name: "النسخة الاحتياطية", level: "ok", detail: "تعذّر سؤال GitHub — نعيد الفحص الساعة الجاية" }); }
   return out;
 }
 
