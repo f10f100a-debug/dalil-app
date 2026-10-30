@@ -13,8 +13,8 @@ for wid in IDS:
         m = re.search(r"<B>([^<]*)\(Saudi Arabia\)", t, re.I) or re.search(r"([A-Za-z' -]+)\(Saudi Arabia\)", t)
         if m: name = m.group(1).strip()
         n += len(t)
-        txt = re.sub(r"<[^>]*>", " ", t)
-        for d, h, p in re.findall(r"(\d\d/\d\d/2026) (\d\d:\d\d)((?:(?!\d\d/\d\d/2026).){0,200})", txt, re.S):
+        txt = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]*>", " ", t)))
+        for d, h, p in re.findall(r"(\d\d/\d\d/2026) (\d\d:\d\d)((?:(?!\d\d/\d\d/2026).){0,600})", txt, re.S):
             q = re.findall(r"(\d+\.\d|Tr)/(\d+)h", p)
             for v, per in q:
                 if v != "0.0": out.append(f"{d[3:5]}/{d[:2]} {h[:2]}Z {v}/{per}h")
