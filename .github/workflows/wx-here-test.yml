@@ -1,0 +1,11 @@
+# مقارنة يدوية: «المطر فوقك» الطريقة القديمة والجديدة على صور الرادار الحالية
+name: WX here test
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/wxtrial }
+      - run: pip install pillow numpy scipy -q && python3 tools/wxtrial/here_test.py
