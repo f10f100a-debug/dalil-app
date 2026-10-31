@@ -24,6 +24,15 @@
   const esc = B.escapeHtml, ico = B.ico;
   const lsGet = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
+  // طنّة داخل التطبيق: «نقرتين» لحدث جديد و«طنّة صافية» لتنبيه المطر (تُقفل من الإعدادات)
+  const toneAt = {};
+  function tone(kind){
+    if(lsGet('dalil_tone') === '0' || document.visibilityState !== 'visible') return;
+    if(Date.now() - (toneAt[kind] || 0) < 60000) return;   // ما نكرر نفس الطنّة خلال دقيقة
+    toneAt[kind] = Date.now();
+    try{ const a = new Audio('assets/sounds/' + (kind === 'rain' ? 'rain' : 'event') + '.m4a'); a.volume = 0.9; a.play().catch(()=>{}); }catch(e){}
+  }
+  window.__dalilTone = tone;
   // منطقة التنبيهات: «auto» (الافتراضي) = منطقتك الحالية من الموقع وتتبعك إذا سافرت، '' = كل المناطق، أو منطقة ثابتة.
   // من لم يختر شيئًا سابقًا (المفتاح غير موجود) يُعامل كتلقائي.
   const AUTO = 'auto', LS_AUTO_REG = 'dalil_push_auto_region', LS_SENT_REG = 'dalil_push_sent_region';
@@ -64,7 +73,7 @@
     const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster,video_path,video_dur';
     st.loading = fetch(`${SB}/rest/v1/events?select=${cols}&order=created_at.desc&limit=120`, {headers:{apikey:KEY}, cache:'no-store'})
       .then(r=>{ if(!r.ok) throw new Error('http ' + r.status); return r.json(); })
-      .then(list=>{ st.events = visible(Array.isArray(list) ? list : []); st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
+      .then(list=>{ const before = st.loadedAt ? newestAt() : 0; st.events = visible(Array.isArray(list) ? list : []); if(before && newestAt() > before) tone('event'); st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
       .catch(()=>{ st.error = navigator.onLine === false ? 'offline' : 'failed'; return st.events; })
       .finally(()=>{ st.loading = null; });
     return st.loading;
@@ -517,6 +526,10 @@
     try{ localStorage.removeItem(LS_TOKEN); localStorage.removeItem('dalil_fayd_synced'); }catch(e){}
     try{ await PN().unregister(); }catch(e){}
   }
+  // تنبيه وصل والصفحة مفتوحة (الموقع): الخدمة تعرضه بدون صوت الجوال وتطلب الطنّة هنا
+  if(!NATIVE && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e=>{
+    const d = e.data || {}; if(d.type === 'dalil-tone') tone(d.kind);
+  });
   if(NATIVE){
     // الضغط على التنبيه يفتح الصفحة المرتبطة به (الحدث أو الأجواء)
     PN().addListener('pushNotificationActionPerformed', a=>{
@@ -525,7 +538,7 @@
       if(n && (n.title || n.body)) lsSet('dalil_last_alert', JSON.stringify({t:n.title || '', b:n.body || '', at:Date.now()}));
       if(url){ try{ const u = new URL(url, location.href); if(/screen=track/.test(u.search)) u.searchParams.set('alert', '1'); if(u.origin === location.origin) location.href = u.href; }catch(e){} }
     });
-    PN().addListener('pushNotificationReceived', n=>{ if(n && (n.title || n.body)) B.toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' — ')); });
+    PN().addListener('pushNotificationReceived', n=>{ toneAt.event = toneAt.rain = Date.now(); if(n && (n.title || n.body)) B.toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' — ')); });
     // تحديث الرمز بصمت عند كل فتح (قد يتغير بعد تحديث النظام)
     if(lsGet(LS_TOKEN)) PN().checkPermissions().then(p=>{ if(p.receive === 'granted') nativeSubscribe(effRegion()).catch(()=>{}); });
   }
@@ -754,6 +767,10 @@
   })();
   $('pushToggle').addEventListener('click', togglePush);
   $('pushRegion').addEventListener('change', regionChanged);
+  if($('toneSel')){
+    $('toneSel').value = lsGet('dalil_tone') === '0' ? '0' : '1';
+    $('toneSel').addEventListener('change', e=>{ lsSet('dalil_tone', e.target.value); if(e.target.value === '1'){ toneAt.event = 0; tone('event'); } });
+  }
   if($('faydAlertKm')) $('faydAlertKm').addEventListener('change', e=>setFaydKm(+e.target.value));
 
   let timer = 0;

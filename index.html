@@ -1581,6 +1581,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <label class="push-row"><span>منطقتي</span><select class="text-input" id="pushRegion" aria-label="منطقة التنبيهات"></select></label>
         <label class="push-row" id="faydAlertRow" hidden><span>🌱 اخضرار الفياض</span><select class="text-input" id="faydAlertKm" aria-label="تنبيه اخضرار الفياض"><option value="0">إيقاف</option><option value="50">خلال 50 كم</option><option value="100">خلال 100 كم</option><option value="250">خلال 250 كم</option><option value="500">خلال 500 كم</option></select></label>
         <div class="permission-note" id="faydAlertNote" hidden style="margin:2px 0 8px"></div>
+        <label class="push-row"><span>🔔 طنّة والتطبيق مفتوح</span><select class="text-input" id="toneSel" aria-label="طنّة التنبيهات داخل التطبيق"><option value="1">تشغيل</option><option value="0">إيقاف</option></select></label>
         <button type="button" class="cp-btn cp-btn-gold" id="pushToggle" hidden>تفعيل التنبيهات</button>
       </div>
 
@@ -5972,7 +5973,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=22';
+      sc.src = 'events.js?v=23';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
