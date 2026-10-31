@@ -160,6 +160,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .btn-sage{background:var(--sage); color:#0e1a10;}
   .btn:disabled{opacity:.4; cursor:not-allowed;}
   .btn-row{display:flex; gap:8px; margin-top:10px;}
+  .ddm-row{align-items:center; gap:6px;}
+  .ddm-row .ddm-deg{flex:0 0 22%; min-width:0;}
+  .ddm-row .ddm-min{flex:0 0 22%; min-width:0;}
+  .ddm-row .ddm-frac{flex:1 1 auto; min-width:0;}
+  .ddm-dot{font-size:22px; font-weight:700; color:var(--text-dim); line-height:1;}
   .places-src{flex-direction:column;} .places-src .chip{width:100%; justify-content:center; text-align:center; white-space:normal; line-height:1.4; padding:8px 14px;}
   .btn-row .btn{width:auto; flex:1;}
   .btn.small{padding:9px 12px; font-size:12.5px; border-radius:10px;}
@@ -1675,14 +1680,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div id="coordFieldsDDM" style="display:none;">
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط العرض (شمال N)</div>
-        <div class="btn-row" style="direction:ltr;">
-          <input class="text-input coord-part" id="ddmLatDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
-          <input class="text-input coord-part" id="ddmLatMin" placeholder="دقيقة 45.555" inputmode="decimal" style="direction:ltr;text-align:center;">
+        <div class="btn-row ddm-row" style="direction:ltr;">
+          <input class="text-input coord-part ddm-deg" id="ddmLatDeg" placeholder="درجة" inputmode="numeric" maxlength="3" data-next="ddmLatMinI" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part ddm-min" id="ddmLatMinI" placeholder="دقيقة" inputmode="numeric" maxlength="2" data-next="ddmLatMinF" style="direction:ltr;text-align:center;">
+          <span class="ddm-dot" aria-hidden="true">.</span>
+          <input class="text-input coord-part ddm-frac" id="ddmLatMinF" placeholder="000" inputmode="numeric" maxlength="3" aria-label="كسر الدقيقة (خط العرض)" style="direction:ltr;text-align:center;">
         </div>
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط الطول (شرق E)</div>
-        <div class="btn-row" style="direction:ltr;">
-          <input class="text-input coord-part" id="ddmLngDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
-          <input class="text-input coord-part" id="ddmLngMin" placeholder="دقيقة" inputmode="decimal" style="direction:ltr;text-align:center;">
+        <div class="btn-row ddm-row" style="direction:ltr;">
+          <input class="text-input coord-part ddm-deg" id="ddmLngDeg" placeholder="درجة" inputmode="numeric" maxlength="3" data-next="ddmLngMinI" style="direction:ltr;text-align:center;">
+          <input class="text-input coord-part ddm-min" id="ddmLngMinI" placeholder="دقيقة" inputmode="numeric" maxlength="2" data-next="ddmLngMinF" style="direction:ltr;text-align:center;">
+          <span class="ddm-dot" aria-hidden="true">.</span>
+          <input class="text-input coord-part ddm-frac" id="ddmLngMinF" placeholder="000" inputmode="numeric" maxlength="3" aria-label="كسر الدقيقة (خط الطول)" style="direction:ltr;text-align:center;">
         </div>
       </div>
 
@@ -3738,6 +3747,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   let coordInputMode = 'dd';
 
   function num(id){ return parseFloat(document.getElementById(id).value); }
+  // الدقيقة في DDM خانتين: رقم الدقيقة + كسرها (3 أرقام ≈ 1.85 م)
+  function ddmMin(p){
+    const i=document.getElementById(p+'MinI').value.trim(), f=document.getElementById(p+'MinF').value.trim();
+    if(!/^\d{1,2}$/.test(i) || !/^\d{0,3}$/.test(f)) return NaN;
+    return parseInt(i,10) + (f ? parseFloat('0.'+f) : 0);
+  }
+  function setDdm(p,v){
+    let deg=Math.floor(Math.abs(v)), t=Math.round((Math.abs(v)-deg)*60000); if(t>=60000){ deg++; t-=60000; }
+    document.getElementById(p+'Deg').value=deg;
+    document.getElementById(p+'MinI').value=Math.floor(t/1000);
+    document.getElementById(p+'MinF').value=String(t%1000).padStart(3,'0');
+  }
   function validLatLng(lat,lng){
     return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat)<=90 && Math.abs(lng)<=180
       && !(Math.abs(lat)<0.000001 && Math.abs(lng)<0.000001);
@@ -3748,7 +3769,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(coordInputMode === 'dd'){
       lat = num('ddLat'); lng = num('ddLng');
     } else if(coordInputMode === 'ddm'){
-      const a=num('ddmLatDeg'), b=num('ddmLatMin'), c=num('ddmLngDeg'), d=num('ddmLngMin');
+      const a=num('ddmLatDeg'), b=ddmMin('ddmLat'), c=num('ddmLngDeg'), d=ddmMin('ddmLng');
       if(![a,b,c,d].every(Number.isFinite) || b<0 || b>=60 || d<0 || d>=60) return null;
       lat = a + b/60; lng = c + d/60;
     } else {
@@ -3766,11 +3787,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       document.getElementById('ddLat').value = lat.toFixed(6);
       document.getElementById('ddLng').value = lng.toFixed(6);
     } else if(mode==='ddm'){
-      const la=Math.abs(lat), lo=Math.abs(lng);
-      document.getElementById('ddmLatDeg').value=Math.floor(la);
-      document.getElementById('ddmLatMin').value=((la%1)*60).toFixed(5);
-      document.getElementById('ddmLngDeg').value=Math.floor(lo);
-      document.getElementById('ddmLngMin').value=((lo%1)*60).toFixed(5);
+      setDdm('ddmLat',lat); setDdm('ddmLng',lng);
     } else {
       const la=Math.abs(lat), lo=Math.abs(lng), lad=Math.floor(la), lod=Math.floor(lo);
       const lam=(la-lad)*60, lom=(lo-lod)*60, lami=Math.floor(lam), lomi=Math.floor(lom);
@@ -3813,6 +3830,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   document.querySelectorAll('[data-coord-input]').forEach(el=>el.addEventListener('click',()=>setCoordMode(el.dataset.coordInput)));
+  // خانات DDM: أرقام فقط، والمؤشر ينتقل تلقائيًا (الدرجة رقمين، الدقيقة رقمين، أو نقطة في الدقيقة تنقله للكسر)
+  document.querySelectorAll('.ddm-row .coord-part').forEach(el=>el.addEventListener('input',e=>{
+    const dot=/[.,٫]/.test(el.value);
+    el.value=el.value.replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/\D/g,'');
+    const nx=el.dataset.next && document.getElementById(el.dataset.next);
+    if(nx && e.inputType && e.inputType.startsWith('insert') && (dot || el.value.length>=2)) nx.focus();
+  }));
   document.querySelectorAll('.coord-part').forEach(el=>el.addEventListener('input',updateManualCoordFeedback));
 
   document.getElementById('pasteCoordIntoFieldsBtn').addEventListener('click', ()=>{
