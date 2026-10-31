@@ -6147,8 +6147,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const shown = rows.slice(0, faydMore ? 30 : 8);
     list.innerHTML = shown.map((r, k)=>{
       const conf = r.green ? `<span class="fq-when" style="display:block;color:#2F6F22">✓ اخضرّت ${r.green === 1 ? 'فيضة' : r.green === 2 ? 'فيضتين' : r.green + ' ' + (r.green <= 10 ? 'فياض' : 'فيضة')} حولها — تأكيد إن المطر كان كافي</span>` : '';
+      const est = r.est ? `<span class="fq-when" style="display:block;color:var(--text-faint)">📡 تقدير رادار — ما فيه محطة أرصاد قريبة تأكده</span>` : '';
       const pre = r.pre >= 3 ? `<span class="fq-when" style="display:block;color:var(--text-faint)">مطر قبل الوسم ${r.pre} ملم — ما ينحسب للفقع</span>` : '';
-      const when = pre + (r.window ? `<span class="fq-when" style="display:block">📅 يُتوقع يطلع: <b>${fqDay(r.window[0])} – ${fqDay(r.window[1])}</b></span>` + conf
+      const when = est + pre + (r.window ? `<span class="fq-when" style="display:block">📅 يُتوقع يطلع: <b>${fqDay(r.window[0])} – ${fqDay(r.window[1])}</b></span>` + conf
         : r.fc7 >= 5 ? `<span class="fq-when" style="display:block">🌧️ متوقع مطر خلال أسبوع: ${r.fc7} ملم</span>` : '');
       return `<button type="button" class="fy-row" data-fq-i="${fqData.rows.indexOf(fqData.rows.find(x=>x.name === r.name))}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.mm} ملم${r.km != null ? ' · ' + Math.round(r.km) + ' كم' : ''}</span><span class="fy-bar fq-bar" style="display:block"><i style="width:${Math.max(4, Math.min(100, r.mm / max * 100))}%"></i></span>${when}</span><span class="fy-pill ${ST[r.st][1]}">${ST[r.st][0]}</span></button>`;
     }).join('') + (rows.length > 8 ? `<button type="button" class="fy-more" data-fq-more>${faydMore ? 'عرض أقل' : 'كل مناطق الفقع (' + rows.length + ')'}</button>` : '');

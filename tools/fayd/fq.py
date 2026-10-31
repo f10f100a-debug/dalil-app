@@ -3,7 +3,7 @@
 # لأن النماذج تفوّت الزخات الرعدية المحلية والرادار يلقطها. تأكيد إضافي: اخضرار الفياض القريبة. يُشغَّل يوميًا → data/fq.json
 import json, time, math, datetime as dt, urllib.request, urllib.parse, os, sys
 sys.path.insert(0, os.path.dirname(__file__))
-import radar, synop
+import radar, synop, rainqc
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 AREAS = [  # الاسم، المنطقة، خط العرض، خط الطول
   ["رفحاء", "الحدود الشمالية", 29.63, 43.49], ["لينة", "الحدود الشمالية", 28.76, 43.83], ["العويقيلة", "الحدود الشمالية", 30.33, 42.25],
@@ -46,30 +46,41 @@ for k, loc in enumerate(j if isinstance(j, list) else [j]):
         if day > today: fc[k] += p or 0
         elif fetch0 <= day <= end and d not in rain[k]: rain[k][d] = p or 0
 
-# مطر الرادار: لكل يوم ناخذ الأعلى بين النموذج والرادار
-R = radar.load(fetch0.isoformat())
-radar_days = [0] * len(AREAS)
-for k, (name, region, la, lo) in enumerate(AREAS):
-    for day, rec in R.items():
-        if not (fetch0.isoformat() <= day <= end.isoformat()): continue
-        v = radar.mm_at(rec, la, lo)
-        if v is None: continue
-        radar_days[k] += 1
-        if v > rain[k].get(day, 0): rain[k][day] = min(v, 120)
-
-# محطات الأرصاد الأرضية (مقياس مطر فعلي) خلال 35 كم: لكل يوم ناخذ الأعلى — هي أصدق مصدر للنقطة نفسها
-gauge = [None] * len(AREAS)
+# محطات الأرصاد الأرضية (مقياس مطر فعلي) — نحمّلها أول لأنها تنقّي الرادار
+SY = None
 try:
     SY = synop.update(fetch0, min(end, today))
-    for k, (name, region, la, lo) in enumerate(AREAS):
-        g = synop.near(SY, la, lo)
-        if not g: continue
-        gauge[k] = g[0]
-        for day, v in g[1].items():
-            if fetch0.isoformat() <= day <= end.isoformat() and v > rain[k].get(day, 0): rain[k][day] = min(v, 150)
     if synop.FAILED: print("::warning::synop failed " + " ".join(synop.FAILED))
 except Exception as e:
     import traceback; print("::warning::synop skipped " + repr(e) + " " + traceback.format_exc().replace("\n", " | ")[-600:])
+    try: SY = json.load(open(synop.FILE))
+    except Exception: SY = None
+
+# مطر الرادار: لكل يوم ناخذ الأعلى بين النموذج والرادار — بعد شيل الصدى الكاذب (rainqc)
+R = radar.load(fetch0.isoformat())
+Q = rainqc.QC(R, SY)
+if Q.bad: print("::notice::radar echo days " + " · ".join(f"{d}: " + ",".join(f"{n} {v:.0f}" for _, _, n, v in b) for d, b in sorted(Q.bad.items()) if d >= start.isoformat())[:3000])
+radar_days = [0] * len(AREAS)
+src = [dict() for _ in AREAS]     # يوم → 'radar' إذا رقم اليوم جاء من الرادار
+echo = [0.0] * len(AREAS)
+for k, (name, region, la, lo) in enumerate(AREAS):
+    for day in R:
+        if not (fetch0.isoformat() <= day <= end.isoformat()): continue
+        v, why = Q.radar(day, la, lo)
+        if v is None: continue
+        radar_days[k] += 1
+        if why == "echo": echo[k] += radar.mm_at(R[day], la, lo) or 0
+        if v > rain[k].get(day, 0): rain[k][day] = min(v, 120); src[k][day] = "radar"
+
+# المحطة خلال 35 كم تحكم: صفر = صفر، وإلا اليوم ما يتجاوز ضعف رقمها (المطر يختلف شوي من مكان لمكان)
+gauge = [None] * len(AREAS)
+for k, (name, region, la, lo) in enumerate(AREAS):
+    g = Q.gauge(la, lo)
+    if not g: continue
+    gauge[k] = g[0]
+    for day, v in g[1].items():
+        if fetch0.isoformat() <= day <= end.isoformat():
+            rain[k][day] = min(rainqc.cap(rain[k].get(day, 0), v), 150); src[k].pop(day, None)
 
 # تأكيد من الخضرة: فياض خلال 60 كم صارت «مثل المعتاد» أو أخضر
 fy_near = [0] * len(AREAS)
@@ -96,7 +107,8 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         r = dt.date.fromisoformat(reached)
         w = [(r + dt.timedelta(days=60)).isoformat(), (r + dt.timedelta(days=75)).isoformat()]
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
-                 "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "gauge": gauge[k], "green": fy_near[k]})
+                 "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "gauge": gauge[k], "green": fy_near[k],
+                 "est": int(not gauge[k] and sum(rain[k][d] for d in days if src[k].get(d) == "radar") >= 0.5 * max(tot, 1)), "echo": round(echo[k])})
 json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "radar_days": len(R), "rows": rows},
           open("data/fq.json", "w"), ensure_ascii=False, separators=(",", ":"))
 print("::notice::" + " · ".join(f"{r['name']} {r['mm']}" for r in sorted(rows, key=lambda r: -r["mm"])[:8]))

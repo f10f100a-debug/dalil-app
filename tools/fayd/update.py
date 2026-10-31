@@ -5,7 +5,7 @@
 #   python3 update.py            ← مرتين بالأسبوع: آخر صور Sentinel-2 (10 م، بدون غيم) + MODIS للمقارنة بالمعتاد → data/fayd.json
 import json, sys, os, time, datetime as dtm, statistics as st, urllib.request, urllib.parse
 sys.path.insert(0, os.path.dirname(__file__))
-import s2, radar, synop
+import s2, radar, synop, rainqc
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np, rasterio
 from rasterio.warp import transform
@@ -192,19 +192,26 @@ def rain75(idx):
     return out
 green = [r[0] for r in rows if r[2] > 0]
 rain = rain75(green) if green else {}
-# + مطر الرادار (يلقط الزخات المحلية اللي النماذج تفوتها)
-R = radar.load((today - dtm.timedelta(days=75)).isoformat())
-for i in green:
-    rr = sum(x for x in (radar.mm_at(rec, SITES[i][1], SITES[i][2]) for rec in R.values()) if x)
-    rain[i] = max(rain.get(i, 0), rr)
-# + محطات الأرصاد الأرضية خلال 50 كم (مقياس مطر فعلي؛ الملف يحدّثه مؤشر الفقع يوميًا) — وإذا مو موجود نحدّثه هنا
+# + محطات الأرصاد الأرضية (مقياس مطر فعلي؛ الملف يحدّثه مؤشر الفقع يوميًا) — وإذا مو موجود نحدّثه هنا
+since75 = (today - dtm.timedelta(days=75)).isoformat()
 try:
-    SY = synop.update(today - dtm.timedelta(days=75), today) if not os.path.exists(synop.FILE) else json.load(open(synop.FILE)); since75 = (today - dtm.timedelta(days=75)).isoformat()
-    for i in green:
-        g = synop.near(SY, SITES[i][1], SITES[i][2], max_km=50)
-        if g: rain[i] = max(rain.get(i, 0), sum(v for d, v in g[1].items() if d >= since75))
+    SY = synop.update(today - dtm.timedelta(days=75), today) if not os.path.exists(synop.FILE) else json.load(open(synop.FILE))
 except Exception as e:
-    print("synop skipped", e)
+    print("synop skipped", e); SY = None
+# + مطر الرادار (يلقط الزخات المحلية اللي النماذج تفوتها) — بعد شيل الصدى الكاذب، والمحطة خلال 50 كم تحكم يومها
+R = radar.load(since75)
+Q = rainqc.QC(R, SY)
+for i in green:
+    la, lo = SITES[i][1], SITES[i][2]
+    g = Q.gauge(la, lo, max_km=50)
+    gd = g[1] if g else {}
+    rr = 0.0
+    for day in R:
+        v, _ = Q.radar(day, la, lo)
+        if v is None: continue
+        rr += rainqc.cap(v, gd.get(day)) if day in gd else v
+    gt = sum(v for d, v in gd.items() if d >= since75)
+    rain[i] = max(rain.get(i, 0), rr, gt)
 dropped = []
 for r in rows:
     if r[2] > 0 and rain.get(r[0], 0) < 8:
