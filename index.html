@@ -6079,17 +6079,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     card.hidden = spView !== 'fayd';
     if(!faydFilter) faydFilter = state.pos ? 'near' : 'all';  // الافتراضي: الأقرب لي
     const fmt = d=>{ try{ return new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long'}).format(new Date(d + 'T12:00:00Z')); }catch(e){ return d; } };
-    setText('faydSub', (faydData.s2 ? 'Sentinel-2 بدقة 10 م بدون غيم' : 'أقمار NASA') + ' · آخر صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بنفسها قبل الموسم وبمعتادها');
+    setText('faydSub', (faydData.s2 ? 'Sentinel-2 بدقة 10 م بدون غيم' : 'أقمار NASA') + ' · أحدث صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بنفسها قبل الموسم وبمعتادها' + (Array.isArray(faydData.farm) && faydData.farm.length ? ' · ' + faydData.farm.length + ' فيضة فيها زراعة ما تنقاس' : ''));
     document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
     const pos = state.pos;
-    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], pct:r[3]} : null; }).filter(Boolean);
+    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], pct:r[3], chk:r[5] || 0, d:r[6] || ''} : null; }).filter(Boolean);
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
     if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
     if(faydFilter === 'near'){
       if(!pos){ document.getElementById('faydList').innerHTML = '<div class="pl-note">فعّل الموقع عشان نرتب الفياض القريبة منك.</div>'; return; }
       rows = rows.filter(r=>r.km <= 150).sort((a, b)=>(b.st > 0) - (a.st > 0) || b.g - a.g);
     }
-    const green = rows.filter(r=>r.st > 0);
+    // «تحتاج تأكيد» (قفزة خضرة كبيرة = غالبًا محور زراعي جديد) تنزل آخر القائمة
+    const green = rows.filter(r=>r.st > 0).sort((a, b)=>(a.chk || 0) - (b.chk || 0));
     const list = document.getElementById('faydList');
     renderFaydAlert();
     if(!green.length){
@@ -6099,7 +6100,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}</span><span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${FY_ST[r.st][1]}">${FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}</span>${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------

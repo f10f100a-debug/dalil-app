@@ -145,6 +145,10 @@ dates = [d for d, v in groups.items() if len(v) >= need - 1][-2:]  # آخر صو
 res = run_dates({d: groups[d] for d in dates})
 rows = []
 s2dates = []
+farm = []          # فياض فيها زراعة (خضراء وقت الجفاف بالقمر الدقيق) — ما نقدر نقيس ربيعها
+# MODIS بديل فقط إذا صورته حديثة (كانت تُستخدم صور عمرها شهر وتنعرض كأنها «آخر صورة 29 أكتوبر»)
+modis_fresh = bool(dates) and (today - dtm.date.fromisoformat(dates[-1])).days <= 16
+JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
     b = base[i]; v = [r[i] for r in res.values() if i in r]
     if not b: continue
@@ -152,18 +156,22 @@ for i, s in enumerate(SITES):
     if dry > 0.25: continue                          # خضراء حتى في الصيف = مزارع أو شجر كثيف
     span = max(0.03, med - dry)
     sb, c = s2base[i] if i < len(s2base) else None, cur.get(i)
-    if sb and c and sb[0] < 0.3:
+    if sb and sb[0] >= 0.3:
+        farm.append(i); continue                     # القمر الدقيق شافها خضراء قبل المطر = زراعة داخل الفيضة
+    if sb and c:
         # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
         (d8, p75, mean, gfrac, valid), = c
         g = p75 - sb[0]; gain_frac = gfrac - sb[1]
         started = g >= 0.04 or gain_frac >= 0.10
         idx = g / span
         st_ = 0 if not started else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
-        rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
-    elif v:
+        check = 1 if g > JUMP else 0
+        if check: st_ = 1                            # ما ننبّه عنها ولا نقول «أخضر من المعتاد» لين تتأكد ميدانيًا
+        rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1, check, d8]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
+    elif v and modis_fresh:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
         st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
-        rows.append([i, round(max(0, g) * 1000), st_, None, 0])
+        rows.append([i, round(max(0, g) * 1000), st_, None, 0, 0, dates[-1]])
 # الخضرة بدون مطر = سقي (مزارع جديدة) مو ربيع: نتأكد من مطر آخر 75 يوم لكل فيضة تبان خضراء
 def rain75(idx):
     out = {}
@@ -207,6 +215,6 @@ print("::notice::dropped " + str(len(dropped)) + ": " + " · ".join(dropped)[:35
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
-json.dump({"asof": asof, "dates": dates, "s2": len(s2dates), "n": len(SITES), "rows": rows},
+json.dump({"asof": asof, "dates": dates, "s2": len(s2dates), "n": len(SITES), "rows": rows, "farm": farm},
           open("data/fayd.json", "w"), separators=(",", ":"))
 print("asof", dates, "rows", len(rows), "green", sum(r[2] > 0 for r in rows))
