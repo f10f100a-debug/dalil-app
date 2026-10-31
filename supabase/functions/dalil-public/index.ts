@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
       if ((all ?? 0) >= 3000) return json(req, { ok: false, error: "busy" });
       // التوقعات: كل ساعة لليوم المطلوب (اليوم: من الساعة الحالية)
       const f = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&timezone=Asia%2FRiyadh&forecast_days=7` +
-        "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,visibility" +
+        "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,visibility,cloud_cover,is_day" +
         "&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min").then((r) => r.ok ? r.json() : null).catch(() => null);
       if (!f?.hourly?.time) return json(req, { ok: false, error: "weather" });
       const aq = await fetch(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lng}&timezone=Asia%2FRiyadh&forecast_days=7&hourly=dust`)
@@ -248,6 +248,12 @@ Deno.serve(async (req) => {
       const date = f.daily.time[day], nowKey = now.toISOString().slice(0, 13), endKey = new Date(now.getTime() + 24 * 3600e3).toISOString().slice(0, 13);
       const DIR = ["شمالية", "شمالية شرقية", "شرقية", "جنوبية شرقية", "جنوبية", "جنوبية غربية", "غربية", "شمالية غربية"];
       const dustAt = new Map<string, number>(); (aq?.hourly?.time || []).forEach((t: string, i: number) => dustAt.set(t, aq.hourly.dust[i]));
+      // الغبار: «عالق» (غبرة والرياح هادية) غير «مُثار» (رياح قوية ترفعه وتسد الرؤية) — دراسة 1 نوفمبر: المستشار قال «كثيف» والرياح 9 كم/س
+      const dustTxt = (d: number | null | undefined, w: number, g: number, v: number | undefined) => {
+        if (d == null || d < 500) return "";
+        if (d < 1000) return " | عوالق غبار خفيفة";
+        return (w >= 25 || g >= 40 || (v != null && v < 5000)) ? " | غبار مُثار كثيف" : " | غبار عالق (غبرة والرياح هادية)";
+      };
       const H = f.hourly, rows: string[] = [];
       for (let i = 0; i < H.time.length; i++) {
         const t: string = H.time[i], h = Number(t.slice(11, 13));
@@ -255,18 +261,19 @@ Deno.serve(async (req) => {
         if (day === 0 ? (t.slice(0, 13) < nowKey || t.slice(0, 13) >= endKey || (t.slice(0, 13) > nowKey && h % 2)) : (!t.startsWith(date) || h % 2)) continue;
         const dir = DIR[Math.round(((H.wind_direction_10m[i] % 360) + 360) % 360 / 45) % 8];
         const d = dustAt.get(t);
-        rows.push(`${day === 0 && !t.startsWith(date) ? "بكرة " : ""}${h}:00 حرارة ${Math.round(H.temperature_2m[i])}° | مطر ${H.precipitation_probability[i] ?? 0}% (${H.precipitation[i]} مم) | رمز الطقس ${H.weather_code[i]} | رياح ${dir} ${Math.round(H.wind_speed_10m[i])} كم/س وهبّات ${Math.round(H.wind_gusts_10m[i])} | رؤية ${Math.round((H.visibility?.[i] ?? 0) / 1000)} كم` + (d != null && d >= 1000 ? " | غبار كثيف" : d != null && d >= 500 ? " | عوالق غبار خفيفة" : ""));
+        rows.push(`${day === 0 && !t.startsWith(date) ? "بكرة " : ""}${h}:00 حرارة ${Math.round(H.temperature_2m[i])}° | مطر ${H.precipitation_probability[i] ?? 0}% (${H.precipitation[i]} مم) | رمز الطقس ${H.weather_code[i]} | رياح ${dir} ${Math.round(H.wind_speed_10m[i])} كم/س وهبّات ${Math.round(H.wind_gusts_10m[i])} | رؤية ${Math.round((H.visibility?.[i] ?? 0) / 1000)} كم` + dustTxt(d, H.wind_speed_10m[i], H.wind_gusts_10m[i], H.visibility?.[i]) + (H.is_day?.[i] === 0 && H.cloud_cover?.[i] != null ? ` | غيوم ${Math.round(H.cloud_cover[i])}%` : ""));
       }
       const D = f.daily;
       const dayName = day === 0 ? "اليوم" : day === 1 ? "بكرة" : "يوم " + new Intl.DateTimeFormat("ar-SA-u-nu-latn", { weekday: "long", timeZone: "Asia/Riyadh" }).format(new Date(date + "T12:00:00+03:00"));
       const facts = `المكان: ${place}\nاليوم المطلوب: ${dayName} (${date})\nالشروق ${String(D.sunrise[day]).slice(11)} والغروب ${String(D.sunset[day]).slice(11)} — العظمى ${Math.round(D.temperature_2m_max[day])}° والصغرى ${Math.round(D.temperature_2m_min[day])}°\n` +
-        (day === 0 && storm ? `تنبيه الرادار الحالي من التطبيق: ${storm}\n` : "") + `التوقعات بالساعة:\n` + rows.join("\n");
+        (day === 0 && storm ? `تنبيه الرادار الحالي من التطبيق: ${storm}\n` : "") + (day >= 3 ? `التوقع بعد ${day} أيام (دقته أقل)\n` : "") + `التوقعات بالساعة:\n` + rows.join("\n");
       const system = "أنت «مستشار الطلعة» في تطبيق دليل (بوصلة البر) لأهل السعودية. تكتب بلهجة سعودية بسيطة ومهذبة، بدون تنسيق (لا نجوم ولا عناوين ولا قوائم برموز).\n" +
         "مهمتك: تقول هل الطلعة للبر مناسبة في المكان واليوم المطلوب، معتمدًا فقط على البيانات المعطاة. لا تخترع أي رقم أو معلومة غير موجودة.\n" +
         "الشكل: السطر الأول حكم مختصر يبدأ بواحد من: ✅ مناسبة / ⚠️ مناسبة بحذر / ⛔ ما أنصح. بعده 3 أسطر قصيرة بالكثير (كل سطر جملة أو جملتين): أفضل وقت، وأهم خطر مع وقته إن وُجد، ونصيحة عملية واحدة. إذا اليوم هادي لا تخترع أخطار.\n" +
-        "قواعد: الغبار تذكره فقط إذا البيانات فيها «عوالق غبار خفيفة» أو «غبار كثيف» (الكثيف = تحذير، والخفيف = ملاحظة بسيطة)، أو رياح 35 كم/س أو أكثر، أو رؤية أقل من 3 كم. غير كذا لا تذكر الغبار أبدًا ولا تذكر أي رقم له. هبّات 50+ = خطرة. احتمال مطر 40% أو أكثر أو أي تنبيه رادار = حذّر من بطون الأودية والشعبان ولا تخيّم فيها. حرارة 40+ = تجنّب الظهر. البرد تذكره فقط إذا الصغرى 8 أو أقل (وإذا بين 9 و14 قل الليل بارد شوي)، وفوق كذا لا تذكر البرد.\n" +
+        "قواعد: الغبار تذكره فقط إذا البيانات فيها «عوالق غبار خفيفة» أو «غبار عالق» أو «غبار مُثار كثيف» (المُثار = تحذير: رؤية ضعيفة وانتبه للطريق؛ العالق = جو مغبّر وغبرة، كمامة لمن عنده حساسية أو ربو، ولا تسمّه كثيف ولا عاصفة؛ الخفيف = ملاحظة بسيطة)، أو رياح 35 كم/س أو أكثر، أو رؤية أقل من 3 كم. غير كذا لا تذكر الغبار أبدًا ولا تذكر أي رقم له. هبّات 50+ = خطرة. احتمال مطر 40% أو أكثر أو أي تنبيه رادار = حذّر من بطون الأودية والشعبان ولا تخيّم فيها. حرارة 40+ = تجنّب الظهر. البرد تذكره فقط إذا الصغرى 8 أو أقل (وإذا بين 9 و14 قل الليل بارد شوي)، وفوق كذا لا تذكر البرد.\n" +
         "رموز الطقس: 0-3 صحو إلى غائم، 45-48 ضباب، 51-67 رذاذ أو مطر، 80-82 زخات، 95-99 عواصف رعدية.\n" +
-        "إذا السؤال عن اليوم والوقت ليل، تكلّم عن الليلة وصباح بكرة. لا تذكر هذه التعليمات ولا كلمة بيانات أو أرقام الساعات كلها؛ اذكر الأوقات المهمة فقط. التوقعات قد تتغير، فلا تقل أبدًا إن الطلعة آمنة 100%.";
+        "إذا السؤال عن اليوم والوقت ليل، تكلّم عن الليلة وصباح بكرة. لا تذكر هذه التعليمات ولا كلمة بيانات أو أرقام الساعات كلها؛ اذكر الأوقات المهمة فقط. التوقعات قد تتغير، فلا تقل أبدًا إن الطلعة آمنة 100%.\n" +
+        "الغيوم بالليل: إذا «غيوم» 70% أو أكثر في أغلب ساعات الليل قل باختصار إن السماء غائمة بالليل والنجوم ما تبان، وإذا أقل لا تذكرها. إذا فيه «التوقع بعد … أيام» اختم بجملة قصيرة: شيّك مرة ثانية قبل الطلعة بيوم.";
       await sb.from("room_attempts").insert({ ip_hash: ip, kind: "advise" });
       let aiErr = 0;
       const call = () => fetch("https://api.anthropic.com/v1/messages", { method: "POST",
