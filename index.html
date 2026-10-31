@@ -1675,12 +1675,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div id="coordFieldsDDM" style="display:none;">
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط العرض (شمال N)</div>
-        <div class="btn-row">
+        <div class="btn-row" style="direction:ltr;">
           <input class="text-input coord-part" id="ddmLatDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="ddmLatMin" placeholder="دقيقة 45.555" inputmode="decimal" style="direction:ltr;text-align:center;">
         </div>
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط الطول (شرق E)</div>
-        <div class="btn-row">
+        <div class="btn-row" style="direction:ltr;">
           <input class="text-input coord-part" id="ddmLngDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="ddmLngMin" placeholder="دقيقة" inputmode="decimal" style="direction:ltr;text-align:center;">
         </div>
@@ -1688,13 +1688,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
       <div id="coordFieldsDMS" style="display:none;">
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط العرض (شمال N)</div>
-        <div class="btn-row">
+        <div class="btn-row" style="direction:ltr;">
           <input class="text-input coord-part" id="dmsLatDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="dmsLatMin" placeholder="دقيقة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="dmsLatSec" placeholder="ثانية" inputmode="decimal" style="direction:ltr;text-align:center;">
         </div>
         <div style="font-size:12px;color:var(--text-dim);margin:7px 0;">خط الطول (شرق E)</div>
-        <div class="btn-row">
+        <div class="btn-row" style="direction:ltr;">
           <input class="text-input coord-part" id="dmsLngDeg" placeholder="درجة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="dmsLngMin" placeholder="دقيقة" inputmode="numeric" style="direction:ltr;text-align:center;">
           <input class="text-input coord-part" id="dmsLngSec" placeholder="ثانية" inputmode="decimal" style="direction:ltr;text-align:center;">
@@ -3801,7 +3801,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(parsed){
       pendingCoords = parsed;
       document.getElementById('manualCoordInput').value = `${parsed.lat},${parsed.lng}`;
-      fb.innerHTML = '✅ إحداثيات صالحة: ' + formatCoords(parsed.lat, parsed.lng, state.coordFmt);
+      fb.innerHTML = '✅ إحداثيات صالحة: <bdi dir="ltr">' + formatCoords(parsed.lat, parsed.lng, state.coordFmt) + '</bdi>';
       fb.style.color = 'var(--sage)';
       confirmBtn.disabled = false;
     } else {
