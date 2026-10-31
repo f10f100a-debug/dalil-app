@@ -12,7 +12,7 @@ const OUT = 'out'; fs.mkdirSync(OUT, { recursive: true });
   await p.waitForTimeout(3000);
   const sk = await p.$('#skipPermissionsBtn'); if (sk) await sk.click().catch(() => {});
   await p.waitForTimeout(1500);
-  const hide = () => p.evaluate(() => { for (const id of ['pushAsk', 'regNudge']) { const e = document.getElementById(id); if (e) e.hidden = true, e.remove && id === 'regNudge' && e.remove(); } document.querySelectorAll('.toast').forEach(t => t.remove()); });
+  const hide = () => p.evaluate(() => { for (const id of ['pushAsk', 'regNudge']) { const e = document.getElementById(id); if (e) e.hidden = true, e.remove && id === 'regNudge' && e.remove(); } document.querySelectorAll('.toast').forEach(t => t.remove()); const d = document.getElementById('diagBanner'); if (d) d.style.display = 'none'; });
   const shot = async (screen, name, wait = 5000) => {
     await p.click(`.tab[data-screen="${screen}"]`).catch(() => {});
     await p.waitForTimeout(wait); await hide();
