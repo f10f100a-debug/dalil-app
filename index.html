@@ -5310,7 +5310,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ملء الشاشة للخريطة: الزر داخل الخريطة يطلب، والرجوع (سحب/زر الجوال) يقفله
   (()=>{
     let fs = false;
-    const tell = ()=>{ try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_MAP_FS_STATE', on:fs}, location.origin); }catch(e){} };
+    // الإطار ما يعرف مساحة شريط الرجوع أسفل الآيفون (env داخل iframe = صفر) — نقيسها هنا ونرسلها
+    const safeBottom = ()=>{ const d = document.createElement('div'); d.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden'; document.body.appendChild(d); const v = parseFloat(getComputedStyle(d).paddingBottom) || 0; d.remove(); return Math.round(v); };
+    const tell = ()=>{ try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_MAP_FS_STATE', on:fs, sab:safeBottom()}, location.origin); }catch(e){} };
     const set = on=>{ if(fs === on) return; fs = on; document.body.classList.toggle('map-fs', on); tell(); if(!on) fitTrackSoon(); };
     window.addEventListener('message', e=>{
       if(e.origin !== location.origin || !e.data || e.data.type !== 'DALIL_MAP_FS') return;

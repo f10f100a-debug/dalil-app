@@ -60,6 +60,7 @@ button{font-family:inherit;color:#1C1A17;box-shadow:0 2px 10px rgba(60,45,20,.18
 #dot.has-heading{background:transparent;border-color:transparent;box-shadow:none}
 #dot.has-heading .dot-arrow{display:block}
 .ctrl button[hidden]{display:none}
+body.fs .ctrl,body.fs .badge{bottom:calc(var(--fs-sab,0px) + 20px)}body.fs .attribution{bottom:calc(var(--fs-sab,0px) + 3px)}body.fs .rain-sheet{bottom:calc(var(--fs-sab,0px) + 16px)}
 #gps.on{background:#1C1A17;border-color:#1C1A17;color:#F2C27A}
 #northBtn{display:grid;place-items:center;background:#fff}
 #northBtn[hidden]{display:none}
@@ -487,7 +488,7 @@ $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()}
 (()=>{const b=$('#fsBtn');if(!b||!document.body.classList.contains('embed')||parent===window)return;b.hidden=false;let on=false;
   const IN='M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',OUT='M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5';
   b.onclick=()=>{try{parent.postMessage({type:'DALIL_MAP_FS',on:!on},location.origin)}catch(e){}};
-  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_FS_STATE')return;on=!!e.data.on;
+  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_FS_STATE')return;on=!!e.data.on;document.body.classList.toggle('fs',on);document.documentElement.style.setProperty('--fs-sab',(+e.data.sab||0)+'px');
     $('#fsIcon path').setAttribute('d',on?OUT:IN);b.setAttribute('aria-label',on?'تصغير الخريطة':'تكبير الخريطة لكامل الشاشة');b.title=on?'تصغير':'ملء الشاشة'})})();;
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
