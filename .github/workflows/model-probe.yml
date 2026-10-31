@@ -1,0 +1,11 @@
+name: model-probe
+on: { push: { branches: [model-probe] } }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          curl -s "https://api.open-meteo.com/v1/forecast?latitude=27.5&longitude=41.7&hourly=precipitation&models=ecmwf_aifs025_single,ecmwf_aifs025&forecast_days=1" | head -c 600; echo
+          echo "::notice::$(curl -s 'https://api.open-meteo.com/v1/forecast?latitude=27.5&longitude=41.7&hourly=precipitation,precipitation_probability,weather_code,cape&models=ecmwf_aifs025_single&forecast_days=1' | head -c 700)"
+      - run: python3 tools/fayd/modelskill.py
