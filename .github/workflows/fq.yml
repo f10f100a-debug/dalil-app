@@ -7,7 +7,7 @@ jobs:
   fq:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    permissions: { contents: write }
+    permissions: { contents: write, issues: write }
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/fayd/fq.py   # + مطر محطات الأرصاد (Ogimet) → data/synop-rain.json
@@ -15,7 +15,20 @@ jobs:
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add data/fq.json data/synop-rain.json data/model-skill.json
+          git add data/fq.json data/fq-qa.json data/synop-rain.json data/model-skill.json
           git diff --cached --quiet && exit 0
           git commit -qm "مؤشر الفقع: تحديث يومي"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+      - name: Alert developer on suspicious numbers
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          python3 - <<'PY' > /tmp/body.md || exit 0
+          import json,sys
+          q=json.load(open("data/fq-qa.json"))
+          if not q["flags"]: sys.exit(1)
+          print("مؤشر الفقع لقى أرقام مشكوك فيها، وانعرضت في التطبيق «تحتاج تأكيد» بدل «مطر جيد»:\n\n" + "\n".join(q["flags"]) + "\n\nراجعها مع Claude.")
+          PY
+          T="⚠️ فحص الفقع $(date -u +%F)"
+          gh issue list --state open --search "$T in:title" --json number -q '.[0].number' | grep -q . && exit 0
+          gh issue create --title "$T" --body-file /tmp/body.md

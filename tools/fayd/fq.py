@@ -73,11 +73,12 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         if v > rain[k].get(day, 0): rain[k][day] = min(v, 120); src[k][day] = "radar"
 
 # المحطة خلال 35 كم تحكم: صفر = صفر، وإلا اليوم ما يتجاوز ضعف رقمها (المطر يختلف شوي من مكان لمكان)
-gauge = [None] * len(AREAS)
+gauge = [None] * len(AREAS); gtot = [0.0] * len(AREAS)
 for k, (name, region, la, lo) in enumerate(AREAS):
     g = Q.gauge(la, lo)
     if not g: continue
     gauge[k] = g[0]
+    gtot[k] = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
     for day, v in g[1].items():
         if fetch0.isoformat() <= day <= end.isoformat():
             rain[k][day] = min(rainqc.cap(rain[k].get(day, 0), v), 150); src[k].pop(day, None)
@@ -92,10 +93,10 @@ try:
 except Exception as e:
     print("fayd confirm skipped", e)
 
-rows = []
+rows = []; days_of = []
 for k, (name, region, la, lo) in enumerate(AREAS):
     pre = sum(v for d, v in rain[k].items() if d < start.isoformat())   # قبل الوسم: يُعرض ولا ينحسب
-    days = sorted(d for d in rain[k] if d >= start.isoformat()); tot = 0.0; reached = None; best = (0.0, None)
+    days = sorted(d for d in rain[k] if d >= start.isoformat()); days_of.append(days); tot = 0.0; reached = None; best = (0.0, None)
     for i, d in enumerate(days):
         tot += rain[k][d]
         if reached is None and tot >= GOOD: reached = d
@@ -109,6 +110,23 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
                  "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "gauge": gauge[k], "green": fy_near[k],
                  "est": int(not gauge[k] and sum(rain[k][d] for d in days if src[k].get(d) == "radar") >= 0.5 * max(tot, 1)), "echo": round(echo[k])})
+# ---- فحص قبل النشر: أي رقم مشكوك فيه ما ينشر كـ«مطر جيد» — يطلع «يحتاج تأكيد» ويوصل تنبيه للمطوّر (Issue في GitHub) ----
+try: prev = {r["name"]: r for r in json.load(open("data/fq.json")).get("rows", [])}
+except Exception: prev = {}
+flags = []
+for k, r in enumerate(rows):
+    why = []
+    if r["gauge"] and r["mm"] > max(2 * gtot[k], gtot[k] + 15): why.append(f"أعلى بكثير من محطة {r['gauge']} ({gtot[k]:.0f} ملم)")
+    if r["est"] and r["st"] >= 1 and not r["green"]: why.append("«مطر جيد» من الرادار بس، بدون محطة ولا خضرة تأكده")
+    spike = [d for d in days_of[k] if src[k].get(d) == "radar" and rain[k][d] > 80]
+    if spike and not r["gauge"]: why.append("يوم رادار فوق 80 ملم: " + ",".join(spike))
+    p0 = prev.get(r["name"])
+    if p0 and r["st"] - p0.get("st", 0) >= 2: why.append(f"قفز من {p0.get('mm')} إلى {r['mm']} ملم في تحديث واحد")
+    if why:
+        r["check"] = 1; r["st_raw"] = r["st"]; r["st"] = 0
+        flags.append(f"- **{r['name']}** ({r['region']}): {r['mm']} ملم — " + " · ".join(why))
+json.dump({"date": today.isoformat(), "flags": flags}, open("data/fq-qa.json", "w"), ensure_ascii=False, indent=1)
+if flags: print("::warning::FQ check " + " | ".join(flags)[:3000])
 json.dump({"asof": today.isoformat(), "season": season, "start": start.isoformat(), "end": end.isoformat(), "good": GOOD, "great": GREAT, "radar_days": len(R), "rows": rows},
           open("data/fq.json", "w"), ensure_ascii=False, separators=(",", ":"))
 print("::notice::" + " · ".join(f"{r['name']} {r['mm']}" for r in sorted(rows, key=lambda r: -r["mm"])[:8]))
