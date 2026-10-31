@@ -438,6 +438,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-pill.rain{background:#E8F1FB; color:#1C4E86; border-color:#BCD5EF; font-weight:700; gap:4px}
   :is(html[data-theme="dark"], html[data-theme="red"]) .cp-pill.rain{background:#16273A; color:#9CC6F0; border-color:#2B4560}
   .rain-card{margin:0 0 12px; padding:14px}
+  /* آخر تنبيهات المطر (قائمة في «الأجواء») وشريط نص التنبيه فوق الخريطة لما يُفتح التطبيق من الإشعار */
+  .al-card{margin:0 0 12px; padding:12px 14px}
+  .al-card h3{margin:0 0 8px; font-size:15px}
+  .al-item{display:block; width:100%; text-align:right; border:0; background:none; padding:9px 0; border-top:1px solid var(--cp-line,#E7DFD3); font-family:inherit; color:inherit; cursor:pointer}
+  .al-item:first-of-type{border-top:0}
+  .al-item b{display:block; font-size:13.5px; line-height:1.5}
+  .al-item span{display:block; font-size:12.5px; color:var(--text-dim,#6B6155); line-height:1.6; margin-top:2px}
+  .al-item small{font-size:11.5px; color:var(--text-faint,#8A8072)}
+  .al-more{all:unset; cursor:pointer; font-size:12.5px; font-weight:700; color:var(--sand,#C9964F); padding-top:6px; display:inline-block}
+  .al-banner{position:relative; margin:0 0 10px; padding:12px 40px 12px 14px; border-radius:14px; background:#FFF4E2; border:1px solid #EBC98C; color:#3A2A12; line-height:1.6}
+  .al-banner b{display:block; font-size:14px}
+  .al-banner span{display:block; font-size:13px; margin-top:2px}
+  .al-banner small{display:block; font-size:11.5px; color:#8A6A3A; margin-top:4px}
+  .al-banner .al-x{all:unset; cursor:pointer; position:absolute; top:6px; left:8px; width:30px; height:30px; display:grid; place-items:center; font-size:15px; color:#8A6A3A}
+  :is(html[data-theme=dark],html[data-theme=red]) .al-banner{background:#2A2216; border-color:#5A4526; color:#F2E6D2}
   .rain-card h3{margin:0; font-size:16px; display:flex; align-items:center; gap:6px}
   .rain-card .rc-sum{margin:6px 0 10px; font-size:14.5px; line-height:1.7; color:var(--cp-ink)}
   .rain-card .rc-sum b{color:#1C4E86} :is(html[data-theme="dark"], html[data-theme="red"]) .rain-card .rc-sum b{color:#9CC6F0}
@@ -1313,6 +1328,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
     <!-- ============ TRACK SCREEN ============ -->
     <section class="screen" id="screen-track">
+      <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
         <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261031-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
@@ -1373,6 +1389,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div id="wxPane">
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
+      <div class="cp-card al-card" id="alertsCard" hidden></div>
       <button type="button" class="wxo-btn" id="wxoBtn">🔎 طقس مكان ثاني</button>
       <button type="button" class="wx-radar-cta" id="openRadarBtn">
         <span class="cp-ic" data-ico="rain"></span>
@@ -2094,7 +2111,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(tab.dataset.screen === 'places'){ renderPlaces(); ensureBundledCatalog(); refreshAds(); }
       if(tab.dataset.screen === 'settings') ensureBundledCatalog();
       if(tab.dataset.screen === 'track') renderTrackHistory();
-      if(tab.dataset.screen === 'weather') updateWeather();
+      if(tab.dataset.screen === 'weather'){ updateWeather(); if(window.__dalilShowAlerts) window.__dalilShowAlerts(); }
       if(tab.dataset.screen === 'settings') updateDiagnostics();
     });
   });
@@ -5955,7 +5972,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=21';
+      sc.src = 'events.js?v=22';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -6413,6 +6430,61 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- المنطقة (بدون إرسال الموقع) + عدّاد الاستخدام اليومي + الإعلانات ----------
   const DALIL_SB = 'https://penhpgvjtxytgyrhmetg.supabase.co';
   const DALIL_KEY = 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';
+  // ---------- آخر تنبيهات المطر: قائمة في «الأجواء» + نص التنبيه فوق الخريطة لما يُفتح التطبيق من الإشعار ----------
+  // (قبل: الضغط على الإشعار يفتح الرادار ويختفي النص — ما فيه مكان ترجع تقرأه منه)
+  const AL = {at:0, list:null, busy:null};
+  function alertRegion(){
+    try{ const p = localStorage.getItem('dalil_push_region'), pref = p === null ? 'auto' : p;
+      return pref === 'auto' ? (localStorage.getItem('dalil_push_auto_region') || '') : pref; }catch(e){ return ''; }
+  }
+  function alWhen(iso){
+    const d = new Date(iso), m = Math.round((Date.now() - d) / 60e3);
+    const t = d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    const today = d.toDateString() === new Date().toDateString();
+    return (m < 60 ? 'قبل ' + Math.max(1, m) + ' د' : (today ? 'اليوم ' : 'أمس ') + t);
+  }
+  function loadAlerts(force){
+    if(AL.busy) return AL.busy;
+    if(!force && AL.list && Date.now() - AL.at < 3 * 60e3) return Promise.resolve(AL.list);
+    AL.busy = fetch(DALIL_SB + '/rest/v1/rpc/recent_alerts', {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', apikey:DALIL_KEY, authorization:'Bearer ' + DALIL_KEY}, body:JSON.stringify({p_region:alertRegion()})})
+      .then(r=>r.ok ? r.json() : null).then(j=>{ if(Array.isArray(j)){ AL.list = j; AL.at = Date.now(); } return AL.list; })
+      .catch(()=>AL.list).finally(()=>{ AL.busy = null; });
+    return AL.busy;
+  }
+  let alAll = false;
+  function renderAlerts(){
+    const card = document.getElementById('alertsCard'); if(!card) return;
+    const list = AL.list || [];
+    if(!list.length){ card.hidden = true; return; }
+    const reg = alertRegion(), shown = alAll ? list : list.slice(0, 3);
+    card.innerHTML = '<h3>🔔 آخر تنبيهات المطر' + (reg ? ' — ' + escapeHtml(reg) : '') + '</h3>' +
+      shown.map(a=>'<button type="button" class="al-item" data-al-radar><b>' + escapeHtml(a.title) + '</b><span>' + escapeHtml(a.body) + '</span><small>' + alWhen(a.at) + (reg ? '' : ' · ' + escapeHtml(a.region)) + '</small></button>').join('') +
+      (list.length > 3 ? '<button type="button" class="al-more" data-al-more>' + (alAll ? 'عرض أقل' : 'عرض الكل (' + list.length + ')') + '</button>' : '');
+    card.hidden = false;
+  }
+  document.getElementById('alertsCard').addEventListener('click', e=>{
+    if(e.target.closest('[data-al-more]')){ alAll = !alAll; renderAlerts(); return; }
+    if(e.target.closest('[data-al-radar]')){ const b = document.getElementById('openRadarBtn'); if(b) b.click(); }
+  });
+  window.__dalilShowAlerts = ()=>{ loadAlerts(false).then(renderAlerts); };
+  function showAlertBanner(title, body, at){
+    const el = document.getElementById('alertBanner'); if(!el || !title) return;
+    el.innerHTML = '<button type="button" class="al-x" aria-label="إغلاق">✕</button><b>' + escapeHtml(title) + '</b>' + (body ? '<span>' + escapeHtml(body) + '</span>' : '') +
+      '<small>' + (at ? alWhen(at) + ' · ' : '') + 'تلقاه بعدين في «الأجواء» ← آخر تنبيهات المطر</small>';
+    el.hidden = false;
+    el.querySelector('.al-x').onclick = ()=>{ el.hidden = true; };
+  }
+  // فُتح التطبيق من إشعار مطر: النص من الإشعار نفسه (المتصفح يمرّره في الرابط، والآيفون يحفظه قبل الفتح)، وإلا آخر تنبيه للمنطقة
+  window.__dalilAlertLaunch = function(qs){
+    if(qs.get('alert') !== '1') return;
+    let t = qs.get('nt') || '', b = qs.get('nb') || '';
+    if(!t){ try{ const j = JSON.parse(localStorage.getItem('dalil_last_alert') || 'null'); if(j && Date.now() - j.at < 15 * 60e3){ t = j.t || ''; b = j.b || ''; } }catch(e){} }
+    try{ localStorage.removeItem('dalil_last_alert'); }catch(e){}
+    if(t) showAlertBanner(t, b, null);
+    else loadAlerts(true).then(l=>{ const a = (l || [])[0]; if(a && Date.now() - Date.parse(a.at) < 6 * 3600e3) showAlertBanner(a.title, a.body, a.at); });
+    try{ const u = new URL(location.href); ['alert', 'nt', 'nb'].forEach(k=>u.searchParams.delete(k)); history.replaceState(history.state, '', u.pathname + u.search + u.hash); }catch(e){}
+  };
   let regionGrid = null, regionGridLoading = null;
   function loadRegionGrid(){
     if(regionGrid) return Promise.resolve(regionGrid);
@@ -6951,6 +7023,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   const launchParams = new URLSearchParams(location.search);
   const requestedScreen = launchParams.get('screen');
   // فتح الخريطة من رابط (تنبيه مطر ?screen=track): الخريطة تعرض المنطقة ولا تركّز على موقعك تلقائيًا
+  if(window.__dalilAlertLaunch) window.__dalilAlertLaunch(launchParams);
   if(requestedScreen === 'track'){ const f = document.getElementById('trackMapFrame'); if(f && !f.getAttribute('src') && f.dataset.src) f.dataset.src += '&from=alert'; }
   const launchNavLat = Number(launchParams.get('navLat'));
   const launchNavLng = Number(launchParams.get('navLng'));

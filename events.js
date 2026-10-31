@@ -520,8 +520,10 @@
   if(NATIVE){
     // الضغط على التنبيه يفتح الصفحة المرتبطة به (الحدث أو الأجواء)
     PN().addListener('pushNotificationActionPerformed', a=>{
-      const url = a && a.notification && a.notification.data && a.notification.data.url;
-      if(url){ try{ const u = new URL(url, location.href); if(u.origin === location.origin) location.href = u.href; }catch(e){} }
+      const n = a && a.notification, url = n && n.data && n.data.url;
+      // نص التنبيه يُحفظ قبل الفتح، فيطلع فوق الخريطة (قبل كان يختفي)
+      if(n && (n.title || n.body)) lsSet('dalil_last_alert', JSON.stringify({t:n.title || '', b:n.body || '', at:Date.now()}));
+      if(url){ try{ const u = new URL(url, location.href); if(/screen=track/.test(u.search)) u.searchParams.set('alert', '1'); if(u.origin === location.origin) location.href = u.href; }catch(e){} }
     });
     PN().addListener('pushNotificationReceived', n=>{ if(n && (n.title || n.body)) B.toast('🔔 ' + [n.title, n.body].filter(Boolean).join(' — ')); });
     // تحديث الرمز بصمت عند كل فتح (قد يتغير بعد تحديث النظام)

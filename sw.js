@@ -1,6 +1,6 @@
-const SHELL_CACHE='dalil-shell-v216';
+const SHELL_CACHE='dalil-shell-v217';
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
-const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=21',
+const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=22',
   './room.js?v=28','./privacy.html','./support.html','./mapimport.js','./vendor/sql-wasm.js','./vendor/sql-wasm.wasm','./vendor/geotiff.js','./data/region-grid.json?v=1'];
 SHELL.push(...["./v63/data/maps-v63.json", "./v63/fonts/Tajawal-Bold.ttf", "./v63/icons/man_made_water_well.png", "./v63/icons/natural_cave_entrance.png", "./v63/icons/natural_spring.png", "./v63/icons/natural_volcano_map.png", "./v63/import-bundle.js", "./v63/map-v63.html", "./v63/profiles-v63.json", "./v63/v63-layers.js", "./v63/v63-layers.json", "./v63/vendor/maplibre-gl-shared.mjs", "./v63/vendor/maplibre-gl-worker.mjs", "./v63/vendor/maplibre-gl.css", "./v63/vendor/maplibre-gl.mjs", "./v63/vendor/pmtiles.js"]);
 
@@ -72,7 +72,10 @@ self.addEventListener('notificationclick',event=>{
   let target=new URL('./',self.registration.scope).href;
   try{
     const u=new URL(event.notification.data&&event.notification.data.url||'./',self.registration.scope);
-    if(u.origin===self.location.origin&&u.pathname.startsWith(new URL(self.registration.scope).pathname)) target=u.href;
+    if(u.origin===self.location.origin&&u.pathname.startsWith(new URL(self.registration.scope).pathname)){
+      // تنبيه مطر: نمرّر نصه للصفحة عشان يطلع فوق الخريطة (قبل كان يختفي بعد الضغط)
+      if(/screen=track/.test(u.search)){u.searchParams.set('alert','1');u.searchParams.set('nt',(event.notification.title||'').slice(0,200));u.searchParams.set('nb',(event.notification.body||'').slice(0,400))}
+      target=u.href}
   }catch(e){}
   event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(list=>{
     for(const c of list){ if('navigate' in c){ return c.navigate(target).then(w=>(w||c).focus()); } }
