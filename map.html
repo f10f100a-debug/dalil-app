@@ -893,8 +893,12 @@ function showSetFrame(set,i){if(set.id==='radar'){radarSelect(i);return}set.fram
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id!=='rain')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
   if(set.id==='radar')showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);
-  const age=set.id==='radar'&&/^\d{4}-/.test(set.frames[i])?Math.round((Date.now()-Date.parse(set.frames[i]))/60e3):0;
-  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():age>25?' · قبل '+age+' د':' · الآن'):' ('+(i+1)+'/'+n+')'))}
+  frameText(set,i)}
+// عمر صورة الرادار بصدق: «قبل 9 د» بدل «الآن» (الرادار يصوّر كل 10 د وينشر بعد دقايق) — ويتحدّث كل دقيقة
+function frameText(set,i){const n=set.frames.length,age=set.id==='radar'&&/^\d{4}-/.test(set.frames[i])?Math.round((Date.now()-Date.parse(set.frames[i]))/60e3):0;
+  setText($('#rainTime'),set.name+': '+frameLabel(set.frames[i])+(i===n-1?(set.id==='clouds'?cloudDiagText():age>=2?' · قبل '+age+' د':' · الآن'):' ('+(i+1)+'/'+n+')'))}
+setInterval(()=>{try{const el=$('#rainTime');if(playTimer||!LP.radar||!el||el.dataset.weak)return;const set=playSet();if(set.id!=='radar')return;
+  const i=RADAR_FRAMES.findIndex(f=>radarId(f)===radarShown);if(i===RADAR_FRAMES.length-1)frameText(set,i)}catch(e){}},60e3);
 function stopRain(){clearInterval(playTimer);playTimer=0;setText($('#rainPlay'),'▶')}
 $('#rainPlay').onclick=()=>{if(playTimer){stopRain();showFrame(playSet().frames.length-1);return}setText($('#rainPlay'),'❚❚');let i=0;playTimer=setInterval(()=>{const n=playSet().frames.length;i=(i+1)%n;showFrame(i)},1100);radarVis();showFrame(0)};
 // خرائط مستوردة مزاحة يدويًا (خرائط ورقية ممسوحة معايرتها غير دقيقة): كل بلاطة تُركَّب من بلاطات الأصل مع الإزاحة بالأمتار
