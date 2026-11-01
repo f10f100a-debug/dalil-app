@@ -6,7 +6,7 @@ jobs:
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
-      - run: pip install pillow -q && python3 tools/wxtrial/compare.py 2026-11-01T15:54:00 | tee out.txt
+      - run: pip install pillow -q && python3 tools/wxtrial/compare.py 2026-11-01T15:54:00 1_1 | tee out.txt && python3 tools/wxtrial/compare.py 2026-11-01T15:54:00 0_1
       - run: |
           git config user.email ci@dalil && git config user.name dalil-bot
-          git add compare.png out.txt && git commit -qm "compare result" && git push -q origin HEAD:probe-compare
+          git add compare-*.png out.txt && git commit -qm "compare result" && git push -q origin HEAD:probe-compare
