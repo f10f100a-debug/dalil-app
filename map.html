@@ -380,7 +380,7 @@ async function radarAt(lat,lng){
   const f=RADAR_FRAMES.find(x=>radarId(x)===radarShown)||RADAR_FRAMES[RADAR_FRAMES.length-1];if(!f)return null;
   const Z=7,n=2**Z,fx=(lng+180)/360*n,r=lat*Math.PI/180,fy=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n,tx=Math.floor(fx),ty=Math.floor(fy);
   const key=f.path+'/'+tx+'/'+ty;let px=rvTileCache.get(key);
-  if(!px){const res=await fetch(radarHost+f.path+'/512/'+Z+'/'+tx+'/'+ty+'/2/1_1.png');if(!res.ok)return{dbz:null,time:f.time};
+  if(!px){const res=await fetch(radarHost+f.path+'/512/'+Z+'/'+tx+'/'+ty+'/2/0_1.png');if(!res.ok)return{dbz:null,time:f.time};
     const bm=await createImageBitmap(await res.blob()),c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(bm,0,0,512,512);px=x.getImageData(0,0,512,512).data;
     if(rvTileCache.size>12)rvTileCache.delete(rvTileCache.keys().next().value);rvTileCache.set(key,px)}
   const X=Math.floor((fx-tx)*512),Y=Math.floor((fy-ty)*512);let max=null;
@@ -410,7 +410,7 @@ async function radarAreaNote(){
   try{
     const Z=7,n=2**Z,fx=(c.lng+180)/360*n,r=c.lat*Math.PI/180,fy=(1-Math.asinh(Math.tan(r))/Math.PI)/2*n,tx=Math.floor(fx),ty=Math.floor(fy);
     const tk=f.path+'/'+tx+'/'+ty;let px=rvTileCache.get(tk);
-    if(!px){const res=await fetch(radarHost+f.path+'/512/'+Z+'/'+tx+'/'+ty+'/2/1_1.png');if(!res.ok){el.hidden=true;return}
+    if(!px){const res=await fetch(radarHost+f.path+'/512/'+Z+'/'+tx+'/'+ty+'/2/0_1.png');if(!res.ok){el.hidden=true;return}
       const bm=await createImageBitmap(await res.blob()),cv=document.createElement('canvas');cv.width=cv.height=512;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(bm,0,0,512,512);px=x.getImageData(0,0,512,512).data;
       if(rvTileCache.size>12)rvTileCache.delete(rvTileCache.keys().next().value);rvTileCache.set(tk,px)}
     if(rvNoteKey!==key)return;
@@ -837,7 +837,7 @@ const RAIN_FRAMES=(()=>{const out=[],h=Math.floor(Date.now()/3600e3)*3600e3;for(
 const RADAR_N=13;let RADAR_FRAMES=[],radarHost='',radarLoading=null,radarLoadedAt=0;
 // كل لقطة لها طبقة ثابتة باسم وقتها: التحديث يضيف الجديدة فقط ولا يعيد تحميل القديمة، والصورة الحالية تبقى ظاهرة حتى تكتمل الجديدة
 const radarId=f=>'radar-'+f.time;
-const radarUrl=(f,bust)=>'rvr://'+radarHost.replace(/^https:\/\//,'')+f.path+'/512/{z}/{x}/{y}/2/1_1.png'+(bust?'?r='+bust:'');
+const radarUrl=(f,bust)=>'rvr://'+radarHost.replace(/^https:\/\//,'')+f.path+'/512/{z}/{x}/{y}/2/0_1.png'+(bust?'?r='+bust:'');
 // صدى 15–20 dBZ (أزرق فاتح): نخففه — في الجو الجاف غالبًا يتبخر قبل يوصل الأرض (طقس ينبع ما يعرضه)
 // الصدى الضعيف (أقل من 15 dBZ) لونه بيج في الرادار = نفس لون أرض البر فيختفي. نعيد تلوينه بنفسجي فاتح واضح
 // (الشدة الأعلى بنفس ألوانها). عند فشل البلاطة نرمي خطأ حتى تشتغل إعادة المحاولة كالعادة.
