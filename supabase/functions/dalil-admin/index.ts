@@ -84,7 +84,7 @@ async function sendApns(sb: SupabaseClient, region: string, payload: Record<stri
   const { data, error } = await q.order("updated_at", { ascending: false }).limit(20000);
   if (error) throw error;
   const toks = (data || []).map((r) => r.token as string);
-  const body = JSON.stringify({ aps: { alert: { title: payload.title, body: payload.body }, sound: "default", "thread-id": String(payload.tag || "dalil") }, url: payload.url || "./" });
+  const body = JSON.stringify({ aps: { alert: { title: payload.title, body: payload.body }, sound: String(payload.tag || "").startsWith("event-") ? "dalil-event.caf" : "default", "thread-id": String(payload.tag || "dalil") }, url: payload.url || "./" });
   let sent = 0, failed = 0; const gone: string[] = [];
   for (let i = 0; i < toks.length; i += 50) {
     const batch = toks.slice(i, i + 50);

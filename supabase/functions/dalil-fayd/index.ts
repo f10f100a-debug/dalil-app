@@ -36,7 +36,7 @@ async function pushIos(sb: SupabaseClient, jwt: string | null, token: string, p:
   if (!s) return "gone";
   if (!jwt) return "fail";
   const res = await fetch("https://api.push.apple.com/3/device/" + token, { method: "POST",
-    body: JSON.stringify({ aps: { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": "fayd" }, url: p.url }),
+    body: JSON.stringify({ aps: { alert: { title: p.title, body: p.body }, sound: "dalil-rain.caf", "thread-id": "fayd" }, url: p.url }),
     headers: { authorization: "bearer " + jwt, "apns-topic": "com.alluhaybi.dalil", "apns-push-type": "alert", "apns-priority": "5",
       "apns-expiration": String(Math.floor(Date.now() / 1000) + 24 * 3600), "content-type": "application/json" } });
   if (res.ok) return "ok";

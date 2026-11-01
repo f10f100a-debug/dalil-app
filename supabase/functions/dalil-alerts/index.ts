@@ -219,7 +219,7 @@ async function sendRegion(sb: SupabaseClient, cfg: Record<string, string>, regio
     if (jwt) {
       const { data } = await sb.from("push_native").select("token").eq("region", region).order("updated_at", { ascending: false }).limit(20000);
       // ساعات الهدوء: بدون صوت ولا اهتزاز (passive) — يظهر في مركز الإشعارات ويشوفه أول ما يمسك جواله
-      const body = JSON.stringify({ aps: p.silent ? { alert: { title: p.title, body: p.body }, "interruption-level": "passive", "thread-id": p.tag } : { alert: { title: p.title, body: p.body }, sound: "default", "thread-id": p.tag }, url: p.url });
+      const body = JSON.stringify({ aps: p.silent ? { alert: { title: p.title, body: p.body }, "interruption-level": "passive", "thread-id": p.tag } : { alert: { title: p.title, body: p.body }, sound: "dalil-rain.caf", "thread-id": p.tag }, url: p.url });   // 1.8: نغمة المطر (النسخ الأقدم: الافتراضية)
       const gone: string[] = [];
       await Promise.allSettled((data || []).map(async (r) => {
         const res = await fetch("https://api.push.apple.com/3/device/" + r.token, { method: "POST", body,
