@@ -765,6 +765,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wx-hour .cp-ic{width:26px; height:26px; margin:6px auto 4px; display:block; color:var(--cp-gold-ink);}
   .wx-hour .v{font-size:17px; font-weight:700;}
   .wx-hour .w{font-size:11.5px; color:var(--text-dim); margin-top:2px;}
+  .wx-hour .w.g{font-size:10.5px; margin-top:0; opacity:.8}
   .wx-hour .w.strong{color:var(--cp-red); font-weight:600;}
   .wx-unit{font-weight:500; color:var(--text-faint); font-size:12px;}
   .wx-days{padding:4px 14px;}
@@ -1396,6 +1397,21 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="seg-b" role="tab" aria-selected="false" data-wxpane="ev"><span class="cp-ic" data-ico="camera"></span>الأحداث<span class="seg-dot" hidden></span></button>
       </div>
       <div id="wxPane">
+      <div class="cp-card wx-hero" aria-live="polite">
+        <div class="wx-top">
+          <span class="wx-icon" id="wxIcon"></span>
+          <div class="wx-now">
+            <div class="wx-temp" id="wxTemp">--°</div>
+            <div class="wx-desc" id="wxDesc">بانتظار تحديد الموقع</div>
+            <div class="wx-feels" id="wxFeels"></div>
+          </div>
+        </div>
+        <div class="wx-updated">
+          <span id="wxUpdated">فعّل الموقع لعرض الطقس في مكانك</span>
+          <button class="cp-icon-btn" type="button" id="refreshWeatherHubBtn" aria-label="تحديث الطقس"><span class="cp-ic" data-ico="refresh"></span></button>
+        </div>
+      </div>
+      <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
       <div class="cp-card al-card" id="alertsCard" hidden></div>
@@ -1412,26 +1428,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="adv-ask" id="advAsk">اسأل المستشار</button>
         <div class="adv-out" id="advOut" aria-live="polite" hidden></div>
       </div>
-      <div class="cp-card wx-hero" aria-live="polite">
-        <div class="wx-top">
-          <span class="wx-icon" id="wxIcon"></span>
-          <div class="wx-now">
-            <div class="wx-temp" id="wxTemp">--°</div>
-            <div class="wx-desc" id="wxDesc">بانتظار تحديد الموقع</div>
-            <div class="wx-feels" id="wxFeels"></div>
-          </div>
-        </div>
-        <div class="wx-updated">
-          <span id="wxUpdated">فعّل الموقع لعرض الطقس في مكانك</span>
-          <button class="cp-icon-btn" type="button" id="refreshWeatherHubBtn" aria-label="تحديث الطقس"><span class="cp-ic" data-ico="refresh"></span></button>
-        </div>
-      </div>
-      <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
       <div class="cp-card pr-card" id="prayerCard" hidden></div>
 
       <div id="wxData" hidden>
         <div class="wx-grid" id="wxGrid"></div>
-        <div class="section-title">الساعات القادمة <span class="wx-unit">· الرياح والهبّات كم/س</span></div>
+        <div class="section-title">الساعات القادمة <span class="wx-unit">· الحرارة والرياح</span></div>
         <div class="wx-hours" id="wxHours"></div>
         <div class="section-title">الأيام القادمة</div>
         <div class="cp-card wx-days" id="wxDays"></div>
@@ -2879,7 +2880,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     let cls = 'cp-dot', text = 'GPS…';
     if(Number.isFinite(acc)){
       cls += acc <= 15 ? ' good' : acc <= 40 ? ' fair' : ' poor';
-      text = iso('±' + Math.round(acc)) + ' م';
+      text = 'دقة ' + iso('±' + Math.round(acc)) + ' م';
     }else if(lastPositionError && !state.pos){
       cls += ' poor';
       text = 'لا يوجد GPS';
@@ -3305,7 +3306,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     card.hidden = false; card.className = 'storm-card ' + cls;
     // شفافية: عمر صورة الرادار اللي انبنى عليها الكلام (RainViewer يتأخر عادة 5–15 د)
     const age = r.time ? Math.max(0, Math.round((Date.now() / 1000 - r.time) / 60)) : null;
-    const ageTxt = age == null ? '' : ' · صورة الرادار ' + (age < 2 ? 'الحين' : 'قبل ' + iso(age) + ' د');
+    const ageTxt = age == null ? '' : ' · صورة الرادار ' + (age < 2 ? 'الحين' : 'قبل\u00A0' + iso(age) + '\u00A0د');
     card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}${ageTxt}</small></span>`;
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
@@ -3374,6 +3375,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const more = wins.filter(w=>w !== main && w.lv >= 2).slice(0, 2);
       if(more.length) sum += '<br>وبعدها: ' + more.map(w=>dayWord(w.start) + ' ' + hm(w.start) + ' (' + LV_WORD[w.lv] + ')').join('، ') + '.';
     }
+    if(!wins.length) return {wins, html:'<h3>🌧️ متى المطر؟</h3><div class="rc-sum" style="margin-bottom:0">' + sum + '</div>'};
     // شريط 48 ساعة
     const now = Date.now() - 3600e3, next = hrs.filter(h=>h.t.getTime() >= now).slice(0, 48);
     const bars = next.map(h=>'<i class="' + (h.lv ? 'l' + h.lv : '') + (h.thunder ? ' t' : '') + '" style="height:' + Math.max(6, h.lv ? 30 + h.prob * 0.7 : 6) + '%" title="' + hm(h.t) + ' ' + h.prob + '%"></i>').join('');
@@ -3388,7 +3390,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const card = document.getElementById('rainCard'), badge = document.getElementById('cpRainBadge');
     const j = RAIN_OUT.data; if(!card || !j){ return; }
     const {wins, html} = rainOutlookHtml(j, 'مكانك');
-    card.innerHTML = html + '<div class="rc-note">الـ 48 ساعة الجاية · كل ما غمق اللون زاد الاحتمال · الخط الأصفر = رعد. مرجّح = اتفقت 3 نماذج (الأوروبي والأمريكي والألماني)، محتمل = اثنين، ضعيف = واحد. القريب (أول ساعتين) من الرادار فوق.</div>';
+    card.innerHTML = html + (!wins.length ? '' : '<div class="rc-note">الـ 48 ساعة الجاية · كل ما غمق اللون زاد الاحتمال · الخط الأصفر = رعد. مرجّح = اتفقت 3 نماذج (الأوروبي والأمريكي والألماني)، محتمل = اثنين، ضعيف = واحد. القريب (أول ساعتين) من الرادار فوق.</div>');
     card.hidden = false;
     // أيقونة البوصلة: مطر محتمل أو مرجّح خلال 48 ساعة
     const soon = wins.find(w=>w.lv >= 2 && w.start.getTime() - Date.now() < 48 * 3600e3);
@@ -5106,8 +5108,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(dustLevel(dust)) tiles.push(wxTile('dust', 'الغبار', dustLevel(dust), iso(Math.round(dust)) + ' ميكروغرام/م³ · تقدير'));
     const vis = current.visibility == null ? NaN : Number(current.visibility);
     if(Number.isFinite(vis)) tiles.push(wxTile('eye', 'مدى الرؤية', vis >= 20000 ? 'أكثر من ' + iso(20) + ' كم' : iso(vis < 1000 ? (vis / 1000).toFixed(1) : Math.round(vis / 1000)) + ' كم', 'تقدير نموذج الطقس'));
-    if(daily.sunrise?.[0]) tiles.push(wxTile('sunrise', 'الشروق', wxClock(daily.sunrise[0])));
-    if(daily.sunset?.[0]) tiles.push(wxTile('sun', 'الغروب', wxClock(daily.sunset[0])));
+    // الشروق والغروب موجودين في أوقات الصلاة (الشروق والمغرب) — ما نكررهم
     document.getElementById('wxGrid').innerHTML = tiles.join('');
 
     // الساعات القادمة (12 ساعة)
@@ -5121,7 +5122,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const r = Number(hourly.precipitation_probability?.[i]);
       hoursHtml += `<div class="wx-hour${i===start?' now':''}"><div class="t">${i===start?'الآن':wxHour(times[i])}</div>${icoSpan(WEATHER_ICON_BY_CODE(Number(hourly.weather_code?.[i])))}`+
         `<div class="v">${Number.isFinite(t)?iso(Math.round(t)+'°'):''}</div>`+
-        `<div class="w${g>=40?' strong':''}">${Number.isFinite(w)?iso(Math.round(w))+(Number.isFinite(g)?'–'+iso(Math.round(g)):''):''}</div>`+
+        `<div class="w${g>=40?' strong':''}">${Number.isFinite(w)?iso(Math.round(w))+' كم/س':''}</div>`+
+        (Number.isFinite(g) ? `<div class="w g${g>=40?' strong':''}">هبّات ${iso(Math.round(g))}</div>` : '')+
         (r >= 20 ? `<div class="w">مطر ${iso(Math.round(r)+'%')}</div>` : '') + `</div>`;
     }
     document.getElementById('wxHours').innerHTML = hoursHtml;
