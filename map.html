@@ -341,8 +341,9 @@ function readMapPrefs(){try{const o=localStorage.getItem('dalil_map_orient');ori
 readMapPrefs();
 // إبقاء الشاشة مضاءة أثناء التوجيه على الخريطة (خارج التطبيق المضمّن).
 let screenLock=null;
-async function keepScreenOn(){if(!navigationActive||!('wakeLock' in navigator)||document.visibilityState!=='visible'||(screenLock&&!screenLock.released))return;try{screenLock=await navigator.wakeLock.request('screen');screenLock.addEventListener('release',()=>{screenLock=null})}catch(e){screenLock=null}}
-function releaseScreen(){if(screenLock){screenLock.release().catch(()=>{});screenLock=null}}
+let nativeAwakeOn=null;function nativeAwake(on){on=!!on;if(on===nativeAwakeOn)return;nativeAwakeOn=on;try{const h=window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.dalil;if(h)h.postMessage({cmd:'awake',src:'map',on:!!on})}catch(e){}}
+async function keepScreenOn(){nativeAwake(navigationActive&&document.visibilityState==='visible');if(!navigationActive||!('wakeLock' in navigator)||document.visibilityState!=='visible'||(screenLock&&!screenLock.released))return;try{screenLock=await navigator.wakeLock.request('screen');screenLock.addEventListener('release',()=>{screenLock=null})}catch(e){screenLock=null}}
+function releaseScreen(){nativeAwake(false);if(screenLock){screenLock.release().catch(()=>{});screenLock=null}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepScreenOn()});
 function setView(v){view=v;updateOrigin();updateGpsBtn()}
 function enterHeading(){setView('heading');updateOrigin(true);const h=currentHeading();if(h!==null)setRot(h);if(gps)centerOnGps();render()}

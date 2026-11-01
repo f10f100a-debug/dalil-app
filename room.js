@@ -382,7 +382,7 @@
   function nClear(why){ clearTimeout(nTimer); nTimer = 0; if(!nPlay) return; if(why) diag({s:'native_stuck', why}); nPlay = null; nPlayEnd = 0; renderVoiceSoon(); updateBtn(); }
   document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && nPlay && Date.now() > nPlayEnd) nClear('resume'); });
   const nativeFg = ()=>!!(window.__dalilPttFg && nativePtt());
-  window.__dalilPttPlay = function(ev, id){
+  window.__dalilPttPlay = function(ev, id, why){
     id = String(id || '');
     if(nWait.has(id)){ clearTimeout(nWait.get(id)); nWait.delete(id); }
     if(ev === 'nplay'){
@@ -394,7 +394,7 @@
     else if(ev === 'nfail'){
       if(nPlay === id) nClear();
       const v = R.voice.find(x=>x.id === id);
-      diag({s:'native_playfail'});
+      diag({s:'native_playfail', why:String(why || '').slice(0, 40) || undefined});
       if(v && !R.heard.has(id) && !R.muted.has(v.member_id) && !isPaused() && !queue.includes(v)){ queue.push(v); playNext(); }
     }
     renderVoiceSoon(); updateBtn();
@@ -465,12 +465,12 @@
     }else if(ev === 'fail' && rec.native && rec.on && !rec.t0 && (rec.txTry || 0) < 1){
       // أبل رفضت البدء (غالبًا صوت الصفحة لسا ماسك الجوال): نفك الصوت ونحاول مرة ثانية بدون ما نزعجه
       rec.txTry = (rec.txTry || 0) + 1; clearTimeout(rec.nWait);
-      diag({s:'native_txretry', why:data && data.why || 'apple', web:Date.now() - webAudioAt < 5000});
+      diag({s:'native_txretry', why:data && data.why || 'apple', code:data && data.code, web:Date.now() - webAudioAt < 5000});
       pttMsg(false); releaseWebAudio();
       setTimeout(()=>{ if(rec.native && rec.on) txBegin(); }, 600);
     }else if(ev === 'fail' || ev === 'short' || ev === 'upload_fail'){
       const was = rec.native; clearTimeout(rec.nWait); clearInterval(rec.timer); rec.native = false; rec.on = false; renderPtt();
-      diag(ev === 'fail' ? {s:'native_txfail', why:data && data.why || 'apple', web:Date.now() - webAudioAt < 5000, tries:rec.txTry || 0} : {s:'native_' + ev});
+      diag(ev === 'fail' ? {s:'native_txfail', why:data && data.why || 'apple', code:data && data.code, web:Date.now() - webAudioAt < 5000, tries:rec.txTry || 0} : {s:'native_' + ev});
       if(was) B.toast(ev === 'short' ? 'اضغط مطوّلًا وتكلّم، ثم ارفع إصبعك' : ev === 'upload_fail' ? 'تعذّر إرسال الرسالة — تأكد من الاتصال' : 'ما قدر يبدأ اللاسلكي — حاول مرة ثانية');
     }
   };

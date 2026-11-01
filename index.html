@@ -1340,7 +1340,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261101-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261101-5" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5380,7 +5380,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   // إبقاء الشاشة مضاءة أثناء تسجيل مسار أو التوجّه إلى مكان.
   const screenNeeded = ()=>state.tracking || !!state.navTarget;
+  // تطبيق الآيفون 1.8: إبقاء الشاشة من النظام (طريقة المتصفح ما تشتغل داخل التطبيق قبل iOS 18.4)
+  let nativeAwakeOn = null;
+  const nativeAwake = on=>{ on = !!on; if(on === nativeAwakeOn) return; nativeAwakeOn = on; try{ const h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dalil; if(h) h.postMessage({cmd:'awake', src:'main', on:!!on}); }catch(e){} };
   async function requestTrackWakeLock(){
+    nativeAwake(screenNeeded() && document.visibilityState === 'visible');
     if(!screenNeeded() || !('wakeLock' in navigator) || document.visibilityState !== 'visible') return;
     try{
       if(trackWakeLock && !trackWakeLock.released) return;
@@ -5390,6 +5394,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
 
   async function releaseTrackWakeLock(){
+    nativeAwake(screenNeeded());
     if(!trackWakeLock || screenNeeded()) return;
     try{ await trackWakeLock.release(); }catch(e){}
     trackWakeLock=null;
@@ -5532,7 +5537,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // مزامنة قفل الشاشة مع حالة التوجيه (يبدأ مع أي توجّه وينتهي بإلغائه أو الوصول).
   window.setInterval(()=>{
     if(screenNeeded()) requestTrackWakeLock();
-    else if(trackWakeLock) releaseTrackWakeLock();
+    else releaseTrackWakeLock();
   }, 1500);
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && screenNeeded()) requestTrackWakeLock(); });
   // الآيفون قد يوقف تحديث الموقع عند الخروج من التطبيق أو قفل الشاشة؛ نعيد تشغيله فور العودة.
@@ -5997,7 +6002,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=29';
+      sc.src = 'room.js?v=30';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);
