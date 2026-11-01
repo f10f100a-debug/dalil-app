@@ -1340,7 +1340,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261101-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261101-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5322,6 +5322,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       else if(fs){ if(history.state && history.state.dalilMapFs) history.back(); else set(false); }
     });
     window.addEventListener('popstate', ()=>{ if(fs) set(false); });
+    // الخريطة المصغّرة: بطاقة النقطة تحت الخريطة — نتأكد إنها ظاهرة
+    window.addEventListener('message', e=>{ if(e.origin !== location.origin || !e.data || e.data.type !== 'DALIL_MAP_SHOW_BOTTOM' || fs) return; const f = document.getElementById('trackMapFrame'); if(!f) return; const r = f.getBoundingClientRect(), bar = document.querySelector('.tabbar'), lim = bar ? bar.getBoundingClientRect().top : innerHeight; if(r.bottom > lim){ f.style.scrollMarginBottom = Math.max(0, innerHeight - lim + 8) + 'px'; f.scrollIntoView({block:'end', behavior:'smooth'}); } });
     // لو تغيّرت الشاشة لأي سبب (رابط إشعار مثلًا) نطلع من ملء الشاشة
     try{ new MutationObserver(()=>{ if(fs && !document.getElementById('screen-track').classList.contains('active')) set(false); }).observe(document.getElementById('screen-track'), {attributes:true, attributeFilter:['class']}); }catch(e){}
   })();
