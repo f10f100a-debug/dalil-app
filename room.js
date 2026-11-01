@@ -149,11 +149,16 @@
   let helloReply = null;
 
   // ---------- المواقع ----------
-  function myPosPayload(){
+  // age = عمر القراءة بالثواني (مو وقت مطلق — ساعات الجوالات تختلف). الصفحة وهي متجمدة بالخلفية كانت ترد
+  // بموقع قديم فيقفز العضو بين مكانه القديم والحقيقي — فما نرسل قراءة أقدم من دقيقتين (إلا الاستغاثة)
+  const POS_MAX_AGE_S = 120;
+  function myPosPayload(allowStale){
     const p = B.getPos();
     if(!p || !Number.isFinite(p.lat)) return null;
+    const age = Number.isFinite(p.at) ? Math.max(0, Math.round((Date.now() - p.at) / 1000)) : 0;
+    if(age > POS_MAX_AGE_S && !allowStale) return null;
     return {lat:+p.lat.toFixed(6), lng:+p.lng.toFixed(6), acc:Number.isFinite(p.accuracy) ? Math.round(p.accuracy) : null,
-      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar()};
+      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar(), age};
   }
   // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
   // تطبيق الآيفون 1.3: بيانات العضوية لإرسال الموقع من الخلفية
@@ -177,8 +182,11 @@
   }
   function setPos(id, p){
     if(!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180)) return;
+    // وقت القراءة بساعة هذا الجوال: الآن ناقص عمرها. نرفض الأقدم من اللي عندنا (بهامش 5 ث)
+    const age = Number.isFinite(+p.age) && +p.age > 0 ? Math.min(+p.age, 86400) : 0, fixT = Date.now() - age * 1000, old = R.pos.get(id);
+    if(old && fixT < old.t - 5000) return;
     const car = p.car && Math.abs(p.car.lat) <= 90 && Math.abs(p.car.lng) <= 180 ? {lat:+p.car.lat, lng:+p.car.lng} : (p.bg ? (R.pos.get(id) || {}).car || null : null);
-    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:Date.now()});
+    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:fixT});
     if(R.navObj && R.navObj._car === id && car){ R.navObj.lat = car.lat; R.navObj.lng = car.lng; }
     if(R.navObj && R.navObj._member === id){ R.navObj.lat = +p.lat; R.navObj.lng = +p.lng; }
     checkLag(); renderMembersSoon(); syncMapSoon();
@@ -352,7 +360,7 @@
     if(v.member_id === me()) R.heard.add(v.id);
     else if(live && !R.muted.has(v.member_id) && !isPaused()){
       // 1.6+: والتطبيق مفتوح، تطبيق الآيفون نفسه يشغّل الرسالة عن طريق لاسلكي Apple (تشغيلها من الصفحة كان ينقطع AbortError).
-      // الصفحة تنتظره، وإذا ما بدأ خلال 4 ث تشغّلها هي (مثلًا رسالة من جوال ما يدعم اللاسلكي)
+      // الصفحة تنتظره، وإذا ما بدأ خلال 3 ث تشغّلها هي (كانت 4 — السجل: التطبيق يبدأ عادة قبلها) (مثلًا رسالة من جوال ما يدعم اللاسلكي)
       if(nativeFg() && /mp4|aac|m4a|mpeg/.test(v.mime || '') && /^[0-9a-f-]{36}$/.test(v.id)){
         const t0 = Date.now();
         const check = ()=>{
@@ -361,7 +369,7 @@
           if(nPlay && Date.now() < nPlayEnd && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
           diag({s:'native_timeout'}); queue.push(v); playNext();
         };
-        nWait.set(v.id, setTimeout(check, 4000));
+        nWait.set(v.id, setTimeout(check, 3000));
       }else{ queue.push(v); playNext(); }
     }
     renderVoiceSoon(); updateBtn();
@@ -705,7 +713,7 @@
   // ---------- الاستغاثة داخل الغرفة ----------
   function sendSos(){
     if(isPaused()) endPause(false, 'sos');
-    const mp = myPosPayload();
+    const mp = myPosPayload(true);
     if(!mp) return B.toast('انتظر حتى يتحدد موقعك');
     api('sos', authBody()).catch(()=>{});
     R.mySos = {t:Date.now()};
@@ -713,7 +721,7 @@
     clearInterval(R.mySosTimer);
     R.mySosTimer = setInterval(()=>{
       if(!R.mySos || Date.now() - R.mySos.t > 15 * 60e3) return stopMySos();
-      const p = myPosPayload(); if(p) RT.send('sos', p);
+      const p = myPosPayload(true); if(p) RT.send('sos', p);
     }, 20000);
     vibe(200);
     B.toast('🆘 أُرسلت استغاثتك وموقعك لكل أعضاء الغرفة');

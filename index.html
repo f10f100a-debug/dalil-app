@@ -2558,7 +2558,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     state.pos = {
       lat: p.coords.latitude, lng: p.coords.longitude,
       alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy,
-      courseRaw: Number.isFinite(p.coords.heading) ? p.coords.heading : null
+      courseRaw: Number.isFinite(p.coords.heading) ? p.coords.heading : null,
+      at: Date.now()   // وقت وصول القراءة — غرفة الرحلة ما ترسل موقعًا قديمًا
     };
     speedSamples.push({t:Date.now(), lat:p.coords.latitude, lng:p.coords.longitude, spd:p.coords.speed, acc:p.coords.accuracy});
     while(speedSamples.length && Date.now() - speedSamples[0].t > SPEED_WINDOW_MS) speedSamples.shift();
@@ -5996,7 +5997,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(roomLoading) return roomLoading;
     roomLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'room.js?v=28';
+      sc.src = 'room.js?v=29';
       sc.onload = ()=>window.DalilRoom ? resolve(window.DalilRoom) : reject(new Error('room'));
       sc.onerror = ()=>{ roomLoading = null; reject(new Error('room')); };
       document.head.appendChild(sc);
