@@ -2471,21 +2471,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       document.getElementById('permLoc').textContent = '— غير مدعوم —';
       return Promise.resolve(false);
     }
-    if(forceRestart && geoWatchId !== null){
+    if(geoWatchId !== null){
       try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
       geoWatchId = null;
     }
+    // طلب واحد فقط (watchPosition) بدل getCurrentPosition ثم watchPosition:
+    // في تطبيق الآيفون كل طلب كان يطلع رسالة «github.io يرغب في استخدام موقعك» مرة ثانية
     return new Promise(resolve=>{
-      navigator.geolocation.getCurrentPosition(position=>{
-        onPosition(position);
-        startGeoWatch();
-        resolve(true);
-      }, err=>{
-        onPositionError(err);
-        // عند ضعف الإشارة نستمر بالمراقبة؛ أما الرفض فلا نكرر الطلب تلقائيًا.
-        if(err.code !== 1) startGeoWatch();
-        resolve(false);
-      }, {enableHighAccuracy:true, maximumAge:1000, timeout:15000});
+      let done = false; const fin = v=>{ if(!done){ done = true; resolve(v); } };
+      setTimeout(()=>fin(!!state.pos), 20000);
+      try{
+        geoWatchId = navigator.geolocation.watchPosition(position=>{
+          onPosition(position);
+          fin(true);
+        }, err=>{
+          onPositionError(err);
+          // الرفض: نوقف المراقبة وما نكرر الطلب. ضعف الإشارة: المراقبة تستمر
+          if(err.code === 1){ try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){} geoWatchId = null; }
+          fin(false);
+        }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+      }catch(e){ fin(false); }
     });
   }
 
@@ -6026,7 +6031,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=23';
+      sc.src = 'events.js?v=24';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

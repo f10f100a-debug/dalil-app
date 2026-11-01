@@ -827,8 +827,8 @@
       if(!NATIVE){ await this.subscribeNow(); return true; }
       lsSet('dalil_apns_asked', '1');
       if(!(await nativePermission())) return false;
-      await ensureRegion(); noRegionHint();
-      nativeSubscribeBg(effRegion(), onDone);
+      // نرجع فورًا بعد «سماح» (الزر ينقفل)، وتحديد المنطقة + التسجيل يكملون في الخلفية — كانت تنتظر حتى ~10 ث
+      (async()=>{ try{ await ensureRegion(); noRegionHint(); }catch(e){} nativeSubscribeBg(effRegion(), onDone); })();
       return true;
     }
   };
