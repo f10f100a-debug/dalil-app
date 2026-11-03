@@ -5175,6 +5175,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return (await r.json()).current || null;
     }catch(e){ return null; }
   }
+  let wxRetryN = 0, wxRetryT = 0;   // إعادة محاولة الطقس إذا الخدمة تعطلت
   async function updateWeather(force=false){
     setTimeout(()=>{ try{ advInit(); }catch(e){} }, 0);   // بعد ما يكتمل تحميل السكربت
     if(!state.pos) return;
@@ -5190,20 +5191,35 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         daily:'weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunrise,sunset',
         timezone:'auto', forecast_days:'4'
       });
-      const [response, dust] = await Promise.all([fetch('https://api.open-meteo.com/v1/forecast?'+qs), fetchDust(state.pos.lat, state.pos.lng)]);
-      if(!response.ok) throw new Error('weather '+response.status);
+      // الخدمة أحيانًا ترد «مضغوطة» (503) لثواني — نعيد مرة بعد ثانيتين قبل ما نعتبرها فشل
+      const getWx = ()=>fetch('https://api.open-meteo.com/v1/forecast?'+qs);
+      let [response, dust] = await Promise.all([getWx(), fetchDust(state.pos.lat, state.pos.lng)]);
+      if(!response.ok && response.status >= 500){ await new Promise(r=>setTimeout(r, 2000)); response = await getWx(); }
+      if(!response.ok) throw Object.assign(new Error('weather '+response.status), {svc:true});
       const bundle = {data:await response.json(), dust, at:Date.now(), lat:state.pos.lat, lng:state.pos.lng};
       try{ localStorage.setItem(WX_CACHE_KEY, JSON.stringify(bundle)); }catch(e){}
       renderWeather(bundle, false);
+      wxRetryN = 0; clearTimeout(wxRetryT);
     }catch(e){
+      // سبب الفشل: الجوال بدون إنترنت، ولا خدمة الطقس نفسها متعطلة
+      const svc = navigator.onLine !== false && (e.svc || e instanceof TypeError);
       const cached = readStoredJson(WX_CACHE_KEY, null);
-      if(cached && cached.data) renderWeather(cached, true);
-      else{
-        setText('wxDesc', 'تعذّر تحديث الطقس');
-        setText('wxUpdated', 'تحقق من اتصال الإنترنت ثم اضغط زر التحديث');
+      if(cached && cached.data){
+        renderWeather(cached, true);
+        const mins = Math.max(1, Math.round((Date.now() - cached.at) / 60000));
+        const age = mins < 60 ? 'قبل ' + iso(mins) + ' د' : mins < 1440 ? 'قبل ' + iso(Math.round(mins / 60)) + ' س' : 'قبل ' + iso(Math.round(mins / 1440)) + ' يوم';
+        setText('wxUpdated', '⚠️ آخر تحديث ' + age + ' — ' + (svc ? 'خدمة الطقس متعطلة مؤقتًا، نحاول من جديد' : 'بدون إنترنت، نحاول من جديد'));
+      }else{
+        setText('wxDesc', svc ? 'خدمة الطقس متعطلة مؤقتًا' : 'تعذّر تحديث الطقس');
+        setText('wxUpdated', svc ? 'نحاول من جديد تلقائيًا كل دقيقة' : 'تحقق من اتصال الإنترنت — نحاول من جديد تلقائيًا');
       }
+      // إعادة المحاولة لحالها: دقيقة، دقيقتين، ثم كل 5 دقائق (والصفحة ظاهرة)
+      clearTimeout(wxRetryT);
+      const wait = [60, 120, 300][Math.min(wxRetryN++, 2)] * 1000;
+      wxRetryT = setTimeout(()=>{ if(document.visibilityState === 'visible'){ lastWeatherFetch = 0; updateWeather(true); } else wxRetryN = 0; }, wait);
     }
   }
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible' && wxRetryN){ lastWeatherFetch = 0; updateWeather(true); } });
   (function showCachedWeather(){
     const cached = readStoredJson(WX_CACHE_KEY, null);
     if(cached && cached.data && Date.now() - cached.at < 48*3600*1000) renderWeather(cached, 'cached');
