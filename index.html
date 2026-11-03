@@ -235,6 +235,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   body.map-fs .tabbar, body.map-fs #trackToolsToggle, body.map-fs #trackToolsPanel, body.map-fs #recPill{visibility:hidden;}
   body.map-fs #trackMapFrame{position:fixed; left:0; right:0; top:env(safe-area-inset-top,0px); bottom:0; width:100%; height:calc(100vh - env(safe-area-inset-top,0px)) !important; height:calc(100dvh - env(safe-area-inset-top,0px)) !important; min-height:0; z-index:2000; border-radius:0 !important;}
   body.map-fs::before{content:""; position:fixed; left:0; right:0; top:0; height:env(safe-area-inset-top,0px); background:var(--bg,#15120E); z-index:2001;}
+  .hl-card h3{color:#7B5CC4} :is(html[data-theme=dark],html[data-theme=red]) .hl-card h3{color:#CBB8FF}
+  .hl-row{display:flex;align-items:center;gap:8px;width:100%;text-align:right;background:none;border:0;border-top:1px solid var(--line);padding:10px 0;font:inherit;color:inherit;cursor:pointer}
+  .hl-row:first-of-type{border-top:0} .hl-row .n{flex:1} .hl-row b{display:block;font-size:15px} .hl-row small{color:var(--text-faint);font-size:12.5px}
+  .hl-pill{font-size:11.5px;padding:3px 9px;border-radius:99px;background:#EDE6FB;color:#5B42A6;white-space:nowrap} .hl-pill.ok{background:#E3F2E0;color:#2F6F22}
+  :is(html[data-theme=dark],html[data-theme=red]) .hl-pill{background:#2a2240;color:#cbb8ff} :is(html[data-theme=dark],html[data-theme=red]) .hl-pill.ok{background:#1f3324;color:#9fd38a}
+  .hl-note{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-top:6px}
   .track-map-frame{width:100%; height:min(60dvh,560px); min-height:420px; display:block; border:0; border-radius:10px;}
   #trackSvg{display:none;}
   .pl-more{display:block;width:100%;margin:2px 0 12px;padding:11px;border:1px dashed var(--line);border-radius:14px;background:transparent;color:var(--sand);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
@@ -1415,6 +1421,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
       <div class="cp-card al-card" id="alertsCard" hidden></div>
+      <div class="cp-card al-card hl-card" id="hailCard" hidden></div>
       <button type="button" class="wxo-btn" id="wxoBtn">🔎 طقس مكان ثاني</button>
       <button type="button" class="wx-radar-cta" id="openRadarBtn">
         <span class="cp-ic" data-ico="rain"></span>
@@ -3304,7 +3311,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(r.kind === 'here' && soft){ icon = '☁️'; t = (r.weak ? 'سحب ممطرة خفيفة' : 'رذاذ محتمل') + ' فوقك'; sub = dryTxt + mvTxt; cls = 'calm'; showStrip = true; }
     else if(r.kind === 'here'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌧️'; t = what + ' فوقك الآن'; sub = (r.storm ? 'برق قريب: ابتعد عن المرتفعات والأماكن المكشوفة وادخل السيارة · ' : '') + 'انتبه للشعبان والأودية' + mvTxt; cls = 'near'; showStrip = true; }
     else if((r.kind === 'coming' || r.kind === 'nearing') && soft){ icon = '☁️'; t = (r.weak ? 'سحب ممطرة خفيفة' : 'مطر خفيف') + ' تقترب منك — ' + km + ' ' + dir; sub = dryTxt + mvTxt + ltTxt; cls = 'calm'; showStrip = r.km < 20; }
-    else if(r.kind === 'coming'){ icon = '⛈️'; t = (r.storm || r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، متجه نحوك بسرعة ' + iso(r.kmh) + ' كم/س' + ltTxt; cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
+    else if(r.kind === 'coming'){ const hail = r.dbz >= 55 && r.storm; icon = hail ? '🧊' : '⛈️'; t = (hail ? 'احتمال برد يتجه نحوك' : r.storm || r.dbz >= 45 ? 'العاصفة جايتك' : 'المطر جايك') + ' — بعد ' + etaTxt(r.eta) + ' تقريبًا'; sub = what + ' على بعد ' + km + ' من جهة ' + dir + '، متجه نحوك بسرعة ' + iso(r.kmh) + ' كم/س' + ltTxt + (hail ? ' · ادخل سيارتك تحت مظلة وابتعد عن الأماكن المكشوفة' : ''); cls = r.eta <= 45 ? 'near' : 'app'; showStrip = true; }
     else if(r.kind === 'pass' && faint){ icon = '☁️'; t = 'لا مطر قريب منك'; sub = 'سحب ضعيفة على بعد ' + km + ' ' + dir + ' — غالبًا ما ينزل منها مطر · تمر بعيدًا عنك' + mvTxt; cls = 'calm'; }
     else if(r.kind === 'pass'){ icon = '🌦️'; t = what + ' ' + km + ' — ' + dir; sub = 'يتجه ' + directionWord(r.motion.brg) + ' ' + iso(r.motion.kmh) + ' كم/س ويمر على بعد ' + iso(r.cross) + ' كم منك تقريبًا — غالبًا ما يوصلك' + ltTxt; cls = r.km < 40 ? 'app' : ''; showStrip = r.km < 40; }
     else if(r.kind === 'nearing'){ icon = r.storm || r.dbz >= 45 ? '⛈️' : '🌦️'; t = what + ' يقترب منك — ' + km + ' ' + dir; sub = 'كان على بعد ' + iso(Math.round(r.was)) + ' كم قبل ' + iso(r.ago) + ' دقيقة — قد يوصلك خلال ' + etaTxt(r.eta) + ' تقريبًا إذا استمر' + ltTxt; cls = 'app'; showStrip = true; }
@@ -3961,6 +3968,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(id === '__car__') return carPlaceItem();
     if(String(id).startsWith('k:')) return catalogItem(Number(String(id).slice(2)));
     // فيضة من قائمة الربيع، أو منطقة فقع — مكان مؤقت (مثل مواقع دليل) تقدر تتوجه له أو تحفظه
+    if(String(id).startsWith('hl:')){ const h = HL.list && HL.list[Number(String(id).slice(3))]; return h ? {id, name:'برد ' + h.name, lat:h.lat, lng:h.lng, alt:null, cat:'catalog', catalog:true, kind:h.src === 'report' ? 'بلاغ برد' : 'احتمال برد', region:h.region || ''} : null; }
     if(String(id).startsWith('fy:')){ const x = faydSites && faydSites[Number(String(id).slice(3))]; return x ? {id, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:'فيضة / روضة', region:x[3] || '', spring:true} : null; }
     if(String(id).startsWith('fq:')){ const r = fqData && fqData.rows[Number(String(id).slice(3))]; return r ? {id, name:r.name, lat:r.lat, lng:r.lng, alt:null, cat:'catalog', catalog:true, kind:'منطقة فقع', region:r.region || '', spring:true} : null; }
     return state.places.find(p=>p.id===id) || null;
@@ -6573,7 +6581,57 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(e.target.closest('[data-al-more]')){ alAll = !alAll; renderAlerts(); return; }
     if(e.target.closest('[data-al-radar]')){ const b = document.getElementById('openRadarBtn'); if(b) b.click(); }
   });
-  window.__dalilShowAlerts = ()=>{ loadAlerts(false).then(renderAlerts); };
+  window.__dalilShowAlerts = ()=>{ loadAlerts(false).then(renderAlerts); loadHail(false).then(renderHail); };
+  // ---------- «🧊 وين نزل البرد اليوم؟»: رادار ≥55 مع برق (آخر 24 ساعة) + بلاغات الناس «برد» ----------
+  const HL = {list:null, at:0, busy:null}; let hlAll = false;
+  function hlName(lat, lng){
+    // أقرب معلم رئيسي خلال 40 كم، وإلا أقرب موقع خلال 25 كم
+    let best = null, bestMain = null;
+    const main = catalog.cats.indexOf('معلم رئيسي');
+    for(const x of catalog.p){
+      if(Math.abs(x[1] - lat) > 0.4 || Math.abs(x[2] - lng) > 0.45) continue;
+      const d = haversine(lat, lng, x[1], x[2]);
+      if(x[4] === main && d < 40000 && (!bestMain || d < bestMain.d)) bestMain = {d, x};
+      if(d < 25000 && (!best || d < best.d)) best = {d, x};
+    }
+    const b = bestMain || best;
+    return b ? (b.d < 3000 ? '' : directionWord(bearing(b.x[1], b.x[2], lat, lng)) + ' ') + b.x[0] : '';
+  }
+  function loadHail(force){
+    if(HL.busy) return HL.busy;
+    if(!force && HL.list && Date.now() - HL.at < 5 * 60e3) return Promise.resolve(HL.list);
+    HL.busy = fetch(DALIL_SB + '/rest/v1/rpc/recent_hail', {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', apikey:DALIL_KEY, authorization:'Bearer ' + DALIL_KEY}, body:'{}'})
+      .then(r=>r.ok ? r.json() : null).then(j=>{
+        if(!Array.isArray(j)) return HL.list;
+        // نجمع الأماكن المتقاربة (مسار عاصفة وحدة) — نخلي الأحدث، ونجمع بلاغات الناس حوله
+        const kept = [];
+        for(const h of j.sort((a, b)=>new Date(b.t) - new Date(a.t))){
+          const lat = Number(h.lat), lng = Number(h.lng), near = kept.find(k=>haversine(k.lat, k.lng, lat, lng) < 20000);
+          if(near){ near.rep += Number(h.rep) || 0; continue; }
+          kept.push({lat, lng, t:h.t, dbz:h.dbz, region:h.region || '', rep:Number(h.rep) || 0, src:h.src});
+        }
+        HL.list = kept; HL.at = Date.now();
+        return (catalog.p.length ? Promise.resolve() : loadCatalog().catch(()=>{})).then(()=>{ kept.forEach(k=>{ k.name = hlName(k.lat, k.lng) || k.region || 'منطقة مفتوحة'; }); return HL.list; });
+      }).catch(()=>HL.list).finally(()=>{ HL.busy = null; });
+    return HL.busy;
+  }
+  function renderHail(){
+    const card = document.getElementById('hailCard'); if(!card) return;
+    const pos = state.pos, list = (HL.list || []).map((h, i)=>({...h, i, km:pos ? haversine(pos.lat, pos.lng, h.lat, h.lng) / 1000 : null}));
+    if(!list.length){ card.hidden = true; return; }
+    const shown = hlAll ? list : list.slice(0, 4);
+    card.innerHTML = '<h3>🧊 وين نزل البرد اليوم؟</h3><small style="color:var(--text-faint)">آخر 24 ساعة · من الرادار وبلاغات الناس · اضغط للتوجّه</small>' +
+      shown.map(h=>'<button type="button" class="hl-row" data-hl="' + h.i + '"><span class="n"><b>' + escapeHtml(h.name) + '</b><small>' + alWhen(h.t) + (h.km != null ? ' · ' + iso(Math.round(h.km)) + ' كم منك' : '') + '</small></span>' +
+        (h.rep > 0 ? '<span class="hl-pill ok">✓ أكده ' + (h.rep === 1 ? 'شخص' : iso(h.rep) + ' أشخاص') + '</span>' : '<span class="hl-pill">احتمال برد</span>') + '</button>').join('') +
+      (list.length > 4 ? '<button type="button" class="al-more" data-hl-more>' + (hlAll ? 'عرض أقل' : 'عرض الكل (' + iso(list.length) + ')') + '</button>' : '') +
+      '<div class="hl-note">«احتمال برد» = الرادار شاف مطر قوي جدًا مع برق، وغالبًا برد بس مو دايمًا. «✓ أكده» = ناس هناك بلّغوا «🧊 برد» من زر «مطر عندي الآن» في الخريطة.</div>';
+    card.hidden = false;
+  }
+  document.getElementById('hailCard').addEventListener('click', e=>{
+    if(e.target.closest('[data-hl-more]')){ hlAll = !hlAll; renderHail(); return; }
+    const b = e.target.closest('[data-hl]'); if(b) openPlaceSheet('hl:' + b.dataset.hl);
+  });
   function showAlertBanner(title, body, at){
     const el = document.getElementById('alertBanner'); if(!el || !title) return;
     el.innerHTML = '<button type="button" class="al-x" aria-label="إغلاق">✕</button><b>' + escapeHtml(title) + '</b>' + (body ? '<span>' + escapeHtml(body) + '</span>' : '') +
