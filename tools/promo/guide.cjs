@@ -37,6 +37,8 @@ async function shot(p, n, fn) {
   catch (e) { log('FAIL', n, e.message.split('\n')[0]); }
 }
 const tab = (p, s) => p.click(`.tab[data-screen="${s}"]`);
+// الصفحة مقفولة (المحتوى يتمرر داخل main) — نرجّع كل الحاويات لأعلى
+const toTop = p => p.evaluate(() => { scrollTo(0, 0); document.querySelectorAll('main, .screen, .screen *').forEach(e => { if (e.scrollTop) e.scrollTop = 0; }); });
 const frame = p => p.frameLocator('#trackMapFrame');
 const later = async p => { await frame(p).getByText('لاحقًا', { exact: true }).first().click({ timeout: 2500 }).catch(() => {}); };
 const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.html')).evaluate(([lat, lng, zz]) => {
@@ -55,7 +57,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 2) البوصلة
   await shot(p, '02-compass');
   await shot(p, '03-compass-lower', () => p.evaluate(() => document.getElementById('emergencyBtn').scrollIntoView({ block: 'end' })));
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
 
   // 3) الأماكن
   await tab(p, 'places'); await p.waitForTimeout(2500);
@@ -96,41 +98,41 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await frame(p).locator('#fsBtn').click().catch(() => {}); await p.waitForTimeout(1200);
   await frame(p).locator('[data-q="rain"]').click().catch(() => {});
   await shot(p, '14-track-tools', async () => { await p.click('#trackToolsToggle'); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
 
   // 5) الأجواء
   await tab(p, 'weather'); await p.waitForTimeout(5000);
-  await shot(p, '15-weather');
+  await shot(p, '15-weather', () => toTop(p));
   await shot(p, '15c-weather-alerts', () => p.evaluate(() => { const e = document.getElementById('alertsCard'); if (e && !e.hidden) e.scrollIntoView({ block: 'center' }); }));
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
   await shot(p, '16-prayer', () => p.evaluate(() => document.getElementById('prayerCard').scrollIntoView({ block: 'center' })));
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
   // مستشار الطلعة (رد حقيقي من السيرفر)
   await shot(p, '36-advisor', async () => {
     await p.waitForSelector('#advCard:not([hidden])', { timeout: 20000 });
     await p.click('#advDays [data-advday="1"]'); await p.click('#advAsk');
-    await p.waitForFunction(() => { const o = document.getElementById('advOut'); return o && !o.hidden && !/يقرأ/.test(o.textContent); }, null, { timeout: 40000 });
+    for (let i = 0; i < 40; i++) { await p.waitForTimeout(1000); if (await p.evaluate(() => { const o = document.getElementById('advOut'); return !!o && !o.hidden && !/يقرأ/.test(o.textContent); })) break; }   // waitForFunction ممنوع بسياسة CSP
     await p.evaluate(() => document.getElementById('advCard').scrollIntoView({ block: 'start' }));
   });
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
   for (const [k, n] of [['wind', '17-wind'], ['spring', '18-spring'], ['ev', '19-events']]) {
     if (k === 'spring') {
       await shot(p, '18-spring', async () => { await p.click('[data-wxpane="spring"]'); await p.waitForTimeout(5000); await p.click('#faydChips [data-fy="all"]').catch(() => {}); await p.waitForTimeout(800); });
       await shot(p, '18b-spring-fq', async () => { await p.click('#spSeg [data-sp="fq"]'); await p.waitForTimeout(2500); });
       await shot(p, '18c-spring-around', async () => { await p.click('#spSeg [data-sp="fayd"]'); await p.waitForTimeout(1500); await p.evaluate(() => document.querySelector('#springPane .sp-card').scrollIntoView({ block: 'start' })); await p.waitForTimeout(6000); });
-      await p.evaluate(() => scrollTo(0, 0));
+      await toTop(p);
       continue;
     }
     await shot(p, n, async () => { await p.click(`[data-wxpane="${k}"]`); await p.waitForTimeout(4000); });
     if (k === 'wind') {
       await shot(p, '17b-wind-chart', () => p.evaluate(() => { const e = document.getElementById('windChart'); if (e) e.scrollIntoView({ block: 'center' }); }));
       await shot(p, '17c-wind-week', () => p.evaluate(() => { const e = document.getElementById('windWeek'); if (e) e.scrollIntoView({ block: 'start' }); }));
-      await p.evaluate(() => scrollTo(0, 0));
+      await toTop(p);
     }
   }
   await p.click('[data-wxpane="wx"]').catch(() => {});
   await shot(p, '15b-weather-hours', () => p.evaluate(() => { const e = document.getElementById('wxHours'); if (e) e.scrollIntoView({ block: 'center' }); }));
-  await p.evaluate(() => scrollTo(0, 0));
+  await toTop(p);
 
   // اسأل دليل (رد حقيقي)
   await shot(p, '37-ask', async () => {
