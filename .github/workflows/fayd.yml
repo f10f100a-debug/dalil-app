@@ -4,12 +4,12 @@ on:
   schedule: [{ cron: "17 3 * * 2,5" }]
   workflow_dispatch:
     inputs:
-      mode: { description: "baseline أو s2base أو فاضي للتحديث", type: string, default: "" }
+      mode: { description: "baseline أو s2base أو force (ينشر حتى لو تغيّر كثير) أو فاضي للتحديث", type: string, default: "" }
 jobs:
   fayd:
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    permissions: { contents: write }
+    permissions: { contents: write, issues: write }
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet rasterio numpy
@@ -17,8 +17,16 @@ jobs:
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add data/fayd*.json
+          git add -A data/fayd*.json data/fayd-qa.md 2>/dev/null || git add -A data/fayd*.json
           git diff --cached --quiet && exit 0
           git commit -qm "حالة الفياض: تحديث تلقائي"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
           echo "::notice::$(head -c 200 data/fayd.json 2>/dev/null)"
+      - name: Alert developer if held
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          [ -f data/fayd-qa.md ] || exit 0
+          T="⚠️ فحص الفياض $(date -u +%F)"
+          gh issue list --state open --search "$T in:title" --json number -q '.[0].number' | grep -q . && exit 0
+          gh issue create --title "$T" --body-file data/fayd-qa.md

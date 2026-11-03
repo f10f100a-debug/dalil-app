@@ -216,12 +216,28 @@ dropped = []
 for r in rows:
     if r[2] > 0 and rain.get(r[0], 0) < 8:
         dropped.append(f"{SITES[r[0]][0]} ({SITES[r[0]][3]}) خضرة {r[1]} مطر {rain.get(r[0], 0):.0f}")
-        r[2] = 0; r[1] = min(r[1], 15)
+        # خضرة قوية من القمر الصناعي دليل بحد ذاته (مطر محلي ما لقطته المحطات) → تبقى «تحتاج تأكيد» بدون تنبيه
+        if r[1] >= 60 and not r[5]: r[2] = 1; r[5] = 2
+        else: r[2] = 0; r[1] = min(r[1], 15)
 # سجل: الفياض اللي بانت خضراء وشالها فلتر المطر (نراجعها: ربيع فاتته المصادر ولا مزارع مسقية؟)
 print("::notice::dropped " + str(len(dropped)) + ": " + " · ".join(dropped)[:3500], flush=True)
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
-json.dump({"asof": asof, "dates": dates, "s2": len(s2dates), "n": len(SITES), "rows": rows, "farm": farm},
-          open("data/fayd.json", "w"), separators=(",", ":"))
+# ---- بوابة النشر: إذا عدد الفياض الخضراء تغيّر أكثر من 30% عن المنشور → ما ننشر، نحفظه للمراجعة وننبّه المطوّر ----
+out = {"asof": asof, "dates": dates, "s2": len(s2dates), "n": len(SITES), "rows": rows, "farm": farm}
+try: prev = json.load(open("data/fayd.json"))
+except Exception: prev = None
+cnt = lambda rs: sum(1 for r in rs if r[2] > 0)
+pn, nn = (cnt(prev["rows"]) if prev else 0), cnt(rows)
+force = "force" in sys.argv[1:]
+held = prev and not force and max(pn, nn) >= 5 and abs(nn - pn) > 0.3 * max(pn, 1)
+if held:
+    json.dump(out, open("data/fayd-pending.json", "w"), separators=(",", ":"))
+    open("data/fayd-qa.md", "w").write(f"تحديث الفياض {asof}: الفياض الخضراء تغيّرت من {pn} إلى {nn} — انحفظ للمراجعة في data/fayd-pending.json وما انتشر.\n\nالمشالة بفلتر المطر ({len(dropped)}): " + " · ".join(dropped)[:3000] + "\n")
+    print(f"::warning::fayd held: green {pn} → {nn}", flush=True)
+else:
+    json.dump(out, open("data/fayd.json", "w"), separators=(",", ":"))
+    try: os.remove("data/fayd-pending.json"); os.remove("data/fayd-qa.md")
+    except Exception: pass
 print("asof", dates, "rows", len(rows), "green", sum(r[2] > 0 for r in rows))
