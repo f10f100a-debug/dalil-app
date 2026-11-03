@@ -70,6 +70,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await p.fill('#placeSearch', '').catch(() => {});
   await tab(p, 'places'); await p.waitForTimeout(800);
   await shot(p, '07-add-place', async () => { await p.click('#addPlaceBtn'); await p.waitForTimeout(1200); });
+  await shot(p, '07b-add-place-ddm', async () => { await p.click('[data-coord-input="ddm"]'); await p.waitForTimeout(600); await p.evaluate(() => document.getElementById('coordFieldsDDM').scrollIntoView({ block: 'center' })); });
   await p.keyboard.press('Escape').catch(() => {});
   await p.evaluate(() => { document.querySelectorAll('.overlay.show, .modal.show, .sheet.show').forEach(x => x.classList.remove('show')); }).catch(() => {});
 
@@ -89,6 +90,10 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await shot(p, '12-map-terrain', async () => { await frame(p).locator('[data-q="topo"]').click(); await mapGo(p, 27.55, 41.62, 12); await p.waitForTimeout(6000); });
   await frame(p).locator('[data-q="topo"]').click().catch(() => {});
   await shot(p, '13-map-radar', async () => { await frame(p).locator('[data-q="rain"]').click(); await p.waitForTimeout(8000); });
+  await shot(p, '13b-radar-info', async () => { await frame(p).locator('#rlInfo').click(); await p.waitForTimeout(800); });
+  await frame(p).locator('#rlInfo').click().catch(() => {});
+  await shot(p, '13c-map-fullscreen', async () => { await frame(p).locator('#fsBtn').click(); await p.waitForTimeout(2500); });
+  await frame(p).locator('#fsBtn').click().catch(() => {}); await p.waitForTimeout(1200);
   await frame(p).locator('[data-q="rain"]').click().catch(() => {});
   await shot(p, '14-track-tools', async () => { await p.click('#trackToolsToggle'); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
   await p.evaluate(() => scrollTo(0, 0));
@@ -96,6 +101,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 5) الأجواء
   await tab(p, 'weather'); await p.waitForTimeout(5000);
   await shot(p, '15-weather');
+  await shot(p, '15c-weather-alerts', () => p.evaluate(() => { const e = document.getElementById('alertsCard'); if (e && !e.hidden) e.scrollIntoView({ block: 'center' }); }));
+  await p.evaluate(() => scrollTo(0, 0));
   await shot(p, '16-prayer', () => p.evaluate(() => document.getElementById('prayerCard').scrollIntoView({ block: 'center' })));
   await p.evaluate(() => scrollTo(0, 0));
   // مستشار الطلعة (رد حقيقي من السيرفر)
