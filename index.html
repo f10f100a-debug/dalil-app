@@ -1783,9 +1783,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="cp-btn cp-btn-gold" id="placeRenameSave">حفظ</button>
       </div>
       <div class="cp-sheet-list">
+        <button type="button" class="cp-sheet-item" id="placeSheetGo"><span class="cp-ic" data-ico="nav"></span><span><b>توجّه بالبوصلة</b><small>السهم والمسافة — يشتغل بدون إنترنت</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetMap"><span class="cp-ic" data-ico="map"></span><span><b>عرض على الخريطة</b><small>والتوجّه عليها</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetWadi" hidden><span class="cp-ic" data-ico="nav"></span><span><b>توجّه إلى أقرب نقطة من الوادي</b><small id="placeSheetWadiSub"></small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetWx"><span class="cp-ic" data-ico="partly"></span><span><b>طقس هذا المكان</b><small>متى المطر والأيام السبعة والرياح</small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetGmaps"><span class="cp-ic" data-ico="map"></span><span><b>خرائط Google</b><small>طريق السيارة</small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetSpring" hidden><span class="cp-ic" data-ico="leaf"></span><span><b>تفاصيل الربيع</b><small>الاخضرار والأمطار حولها</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetSave" hidden><span class="cp-ic" data-ico="pin"></span><span><b>حفظ في أماكني</b></span></button>
@@ -3957,6 +3960,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function findPlace(id){
     if(id === '__car__') return carPlaceItem();
     if(String(id).startsWith('k:')) return catalogItem(Number(String(id).slice(2)));
+    // فيضة من قائمة الربيع، أو منطقة فقع — مكان مؤقت (مثل مواقع دليل) تقدر تتوجه له أو تحفظه
+    if(String(id).startsWith('fy:')){ const x = faydSites && faydSites[Number(String(id).slice(3))]; return x ? {id, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:'فيضة / روضة', region:x[3] || '', spring:true} : null; }
+    if(String(id).startsWith('fq:')){ const r = fqData && fqData.rows[Number(String(id).slice(3))]; return r ? {id, name:r.name, lat:r.lat, lng:r.lng, alt:null, cat:'catalog', catalog:true, kind:'منطقة فقع', region:r.region || '', spring:true} : null; }
     return state.places.find(p=>p.id===id) || null;
   }
 
@@ -4666,6 +4672,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const isCatalog = !!place.catalog;
     document.getElementById('placeSheetRename').hidden = isCar || isCatalog;
     document.getElementById('placeSheetSave').hidden = !isCatalog;
+    document.getElementById('placeSheetSpring').hidden = !place.spring;
     document.getElementById('placeSheetDelete').hidden = isCatalog;
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
     updateWadiButton(place);
@@ -4754,6 +4761,23 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   function closePlaceSheet(){ placeSheetOverlay.classList.remove('show'); sheetPlaceId = null; }
   document.getElementById('placeSheetClose').addEventListener('click', closePlaceSheet);
+  document.getElementById('placeSheetGo').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(place) navigateToPlace(place);
+  });
+  document.getElementById('placeSheetGmaps').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(place) window.open('https://www.google.com/maps/dir/?api=1&destination=' + place.lat.toFixed(6) + ',' + place.lng.toFixed(6), '_blank', 'noopener');
+  });
+  document.getElementById('placeSheetSpring').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(!place) return;
+    springCustom = {key:'q', name:place.name, lat:place.lat, lng:place.lng}; fillSpringLoc(); document.getElementById('springLoc').value = 'q'; showSpring(false);
+    document.querySelector('#springPane .sp-card').scrollIntoView({behavior:'smooth', block:'start'});
+  });
   document.getElementById('placeSheetMap').addEventListener('click', ()=>{
     const place = findPlace(sheetPlaceId);
     closePlaceSheet();
@@ -6302,9 +6326,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.getElementById('fqList').addEventListener('click', e=>{
     if(e.target.closest('[data-fq-more]')){ faydMore = !faydMore; renderFq(); return; }
     const b = e.target.closest('[data-fq-i]'); if(!b || !fqData) return;
-    const r = fqData.rows[+b.dataset.fqI]; if(!r) return;
-    springCustom = {key:'q', name:r.name, lat:r.lat, lng:r.lng}; fillSpringLoc(); document.getElementById('springLoc').value = 'q'; showSpring(false);
-    document.querySelector('#springPane .sp-card').scrollIntoView({behavior:'smooth', block:'start'});
+    if(!fqData.rows[+b.dataset.fqI]) return;
+    openPlaceSheet('fq:' + b.dataset.fqI);
   });
   document.getElementById('faydChips').addEventListener('click', e=>{
     const b = e.target.closest('[data-fy]'); if(!b) return;
@@ -6321,10 +6344,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       toast(on ? '🔔 بننبهك إذا اخضرّت ' + (s ? s[0] : 'الفيضة') : 'أُلغي التنبيه'); renderFayd(); return;
     }
     const b = e.target.closest('[data-fy-i]'); if(!b) return;
-    const s = faydSites[+b.dataset.fyI]; if(!s) return;
-    // نعرض تفاصيلها في بطاقة «حالة الربيع» (الاخضرار والأمطار) تحتها
-    springCustom = {key:'q', name:s[0], lat:s[1], lng:s[2]}; fillSpringLoc(); document.getElementById('springLoc').value = 'q'; showSpring(false);
-    document.querySelector('#springPane .sp-card').scrollIntoView({behavior:'smooth', block:'start'});
+    if(!faydSites[+b.dataset.fyI]) return;
+    // نافذة: توجّه، على الخريطة، خرائط Google، حفظ، وتفاصيل الربيع
+    openPlaceSheet('fy:' + b.dataset.fyI);
   });
   async function showSpring(force){
     const body = document.getElementById('springBody'), q = springPos();
