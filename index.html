@@ -1598,6 +1598,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <label class="push-row"><span>منطقتي</span><select class="text-input" id="pushRegion" aria-label="منطقة التنبيهات"></select></label>
         <label class="push-row" id="faydAlertRow" hidden><span>🌱 اخضرار الفياض</span><select class="text-input" id="faydAlertKm" aria-label="تنبيه اخضرار الفياض"><option value="0">إيقاف</option><option value="50">خلال 50 كم</option><option value="100">خلال 100 كم</option><option value="250">خلال 250 كم</option><option value="500">خلال 500 كم</option></select></label>
         <div class="permission-note" id="faydAlertNote" hidden style="margin:2px 0 8px"></div>
+        <label class="push-row" id="nearRow" hidden><span>📍 نبّهني حسب موقعي</span><select class="text-input" id="nearSel" aria-label="تنبيه حسب موقعي"><option value="0">إيقاف</option><option value="1">تشغيل</option></select></label>
+        <div class="permission-note" id="nearNote" hidden style="margin:2px 0 8px"></div>
         <label class="push-row"><span>🔔 طنّة والتطبيق مفتوح</span><select class="text-input" id="toneSel" aria-label="طنّة التنبيهات داخل التطبيق"><option value="1">تشغيل</option><option value="0">إيقاف</option></select></label>
         <button type="button" class="cp-btn cp-btn-gold" id="pushToggle" hidden>تفعيل التنبيهات</button>
       </div>

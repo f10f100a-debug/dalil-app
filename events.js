@@ -578,8 +578,8 @@
     finally{ following = false; renderPushSettings(); }
   }
   async function refreshPushState(){
-    if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); syncFayd(); return; }
-    if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); syncFayd(); }
+    if(NATIVE){ let g = false; try{ g = (await PN().checkPermissions()).receive === 'granted'; }catch(e){} pushOn = g && !!lsGet(LS_TOKEN); nativeDenied = !g && !!lsGet('dalil_apns_asked'); renderPushSettings(); syncFayd(); syncNear(); return; }
+    if(window.DALIL_NATIVE){ renderPushSettings(); return; } pushOn = !!(await currentSub()) && Notification.permission === 'granted'; renderPushSettings(); syncFayd(); syncNear(); }
   function pushBanner(){
     if(pushOn || (window.DALIL_NATIVE && !NATIVE)) return '';
     return `<div class="ev-push"><span class="cp-ic">${ico('bell')}</span><span><b>نبّهني عند السيول والأمطار</b><small>تصلك صور منطقتك فور نشرها</small></span><button type="button" class="cp-btn cp-btn-white" data-ev-act="push-settings">تفعيل</button></div>`;
@@ -616,7 +616,7 @@
     btn.textContent = pushOn ? 'إيقاف التنبيهات' : 'تفعيل التنبيهات';
     btn.className = 'cp-btn ' + (pushOn ? 'cp-btn-white' : 'cp-btn-gold');
     if(NATIVE && bgSub && !pushOn){ status.textContent = 'جاري تسجيل جوالك للتنبيهات…'; btn.textContent = '⏳ جاري التفعيل…'; }
-    renderFaydSettings();
+    renderFaydSettings(); renderNear();
     const p = $('evPane'); if(p && !p.hidden) render();
   }
   // ---------- تنبيه اخضرار الفياض ----------
@@ -648,6 +648,50 @@
     $('faydAlertKm').value = String(fyKm());
     note.textContent = fyKm() && !(B.getPos && B.getPos()) ? '⚠️ فعّل الموقع عشان نعرف الفياض اللي حولك.' :
       'يوصلك إشعار إذا اخضرّت فيضة في نطاقك — أقصى شي إشعارين بالأسبوع، وما يتكرر نفس الفيضة. نستخدم موقعك مقرّبًا لحدود 25 كم فقط.';
+  }
+  // ---------- «📍 حسب موقعي» (اختياري، مطفي افتراضيًا) ----------
+  // موقعك مقرّب لـ0.05° (~5 كم) يُرسل كل ما تفتح التطبيق (أقصى شي كل 30 دقيقة)، والسيرفر يحذفه بعد 24 ساعة.
+  // المرحلة الحالية تجريبية: السيرفر يحسب مين كان بيوصله «متجه نحوك» بدون إرسال، لين نتأكد من الدقة.
+  const LS_NR = 'dalil_near', LS_NRS = 'dalil_near_synced';
+  const nearOn = ()=>lsGet(LS_NR) === '1';
+  async function nearRpc(body){
+    const r = await fetch(SB + '/rest/v1/rpc/set_near_watch', {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', apikey:KEY, authorization:'Bearer ' + KEY}, body:JSON.stringify(body)});
+    const j = await r.json().catch(()=>({}));
+    return r.ok && j && j.ok ? j : Object.assign(new Error((j && j.error) || ('http ' + r.status)), {code:j && j.error});
+  }
+  async function syncNear(force){
+    if(!pushOn || !nearOn()) return false;
+    const id = await fySub(); if(!id) return false;
+    const p = B.getPos && B.getPos(); if(!p || !Number.isFinite(p.lat)) return false;
+    const r20 = v=>Math.round(v * 20) / 20, lat = r20(p.lat), lng = r20(p.lng);
+    let last = null; try{ last = JSON.parse(lsGet(LS_NRS) || 'null'); }catch(e){}
+    if(!force && last && last.lat === lat && last.lng === lng && last.sub === id.sub.slice(-24) && Date.now() - last.at < 30 * 60e3) return true;
+    try{
+      const j = await nearRpc({p_kind:id.kind, p_sub:id.sub, p_mode:1, p_lat:lat, p_lng:lng});
+      if(j instanceof Error) return false;
+      lsSet(LS_NRS, JSON.stringify({lat, lng, sub:id.sub.slice(-24), at:Date.now()})); return true;
+    }catch(e){ return false; }
+  }
+  function renderNear(){
+    const row = $('nearRow'), note = $('nearNote'); if(!row) return;
+    row.hidden = note.hidden = !pushOn;
+    $('nearSel').value = nearOn() ? '1' : '0';
+    let last = null; try{ last = JSON.parse(lsGet(LS_NRS) || 'null'); }catch(e){}
+    const ago = last && nearOn() ? Math.round((Date.now() - last.at) / 60e3) : null;
+    note.textContent = nearOn() && !(B.getPos && B.getPos()) ? '⚠️ فعّل الموقع لدليل عشان نعرف وين أنت.' :
+      'إذا عاصفة أو برد متجه نحوك وقريب منك، يوصلك تنبيه بالمسافة والوقت. موقعك تقريبي (حدود 5 كم)، يتحدث كل ما تفتح التطبيق، وينحذف بعد 24 ساعة، وما نشاركه مع أحد. ' +
+      '🧪 تجريبي: نختبر الدقة الحين بدون إرسال، وتنبيه منطقتك يكمل مثل ما هو.' + (ago != null ? ' آخر تحديث لموقعك: ' + (ago < 1 ? 'الآن' : ago < 60 ? 'قبل ' + ago + ' د' : 'قبل ' + Math.round(ago / 60) + ' س') + '.' : '');
+  }
+  async function setNear(on){
+    lsSet(LS_NR, on ? '1' : '0');
+    if(on){ const ok = await syncNear(true); renderNear(); B.toast(ok ? '📍 تم — بنبّهك إذا شي متجه نحوك' : 'تعذّر الحفظ — تأكد من الاتصال وإن الموقع مفعّل'); return ok; }
+    try{ localStorage.removeItem(LS_NRS); }catch(e){}
+    renderNear();
+    const id = await fySub();
+    if(id) nearRpc({p_kind:id.kind, p_sub:id.sub, p_mode:0}).catch(()=>{});
+    B.toast('أُوقف التنبيه حسب موقعك وانحذف موقعك من عندنا');
+    return true;
   }
   async function setFaydKm(km){
     lsSet(LS_FY, String(km)); renderFaydSettings();
@@ -772,6 +816,7 @@
     $('toneSel').addEventListener('change', e=>{ lsSet('dalil_tone', e.target.value); if(e.target.value === '1'){ toneAt.event = 0; tone('event'); } });
   }
   if($('faydAlertKm')) $('faydAlertKm').addEventListener('change', e=>setFaydKm(+e.target.value));
+  if($('nearSel')) $('nearSel').addEventListener('change', e=>setNear(e.target.value === '1'));
 
   let timer = 0;
   window.DalilEvents = {
@@ -862,6 +907,7 @@
     document.body.appendChild(el);
   }
   setTimeout(regionNudge, 6000);
-  setInterval(()=>{ if(document.visibilityState === 'visible'){ followRegion(); syncFayd(); } }, 10 * 60e3);
-  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') followRegion(); });
+  setInterval(()=>{ if(document.visibilityState === 'visible'){ followRegion(); syncFayd(); syncNear(); } }, 10 * 60e3);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible'){ followRegion(); syncNear(); } });
+  setTimeout(()=>syncNear(), 15000);   // بعد ما يوصل أول موقع
 })();
