@@ -1346,7 +1346,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261101-6" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261104-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -3952,8 +3952,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     });
   });
   document.getElementById('placeSearch').addEventListener('input', ()=>{ placesLimit = 100; renderPlaces(); });
+  // الرجوع من الخريطة لنفس الصفحة والقسم اللي فتحتها منه (قبل: دايم «الأماكن» حتى من البرد والفياض والفقع)
+  function mapBackParams(place){
+    const t = document.querySelector('.tab.active[data-screen]'), scr = t ? t.dataset.screen : 'places';
+    let q = 'back=' + (['places','weather','compass','track','settings'].includes(scr) ? scr : 'places');
+    if(scr === 'weather' && window.__dalilWxTab){ const tb = window.__dalilWxTab(place && place.id); if(tb) q += '&tab=' + tb; }
+    return q;
+  }
   function openPlaceOnMap(place){
-    location.href=`map.html?v=20261003-9&back=places&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
+    location.href=`map.html?v=20261003-9&${mapBackParams(place)}&lat=${encodeURIComponent(place.lat)}&lng=${encodeURIComponent(place.lng)}&label=${encodeURIComponent(place.name)}`;
   }
   function directionWord(b){ return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]; }
   function placeMeta(p){
@@ -3966,11 +3973,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const car = getCar();
     return car ? {id:'__car__', name:'السيارة', icon:'🚙', cat:'car', lat:car.lat, lng:car.lng, alt:null} : null;
   }
+  // متى نزل البرد: «قبل ساعة و20 د (10:50 م)» — عشان ما يُفهم إنه نازل الحين
+  function hlSheetNote(h){
+    const d = new Date(h.t), m = Math.max(1, Math.round((Date.now() - d) / 60e3));
+    const clock = d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    const hh = Math.floor(m / 60), mm = m % 60;
+    const ago = m < 60 ? 'قبل ' + m + ' د' : 'قبل ' + (hh === 1 ? 'ساعة' : hh === 2 ? 'ساعتين' : hh + ' ساعات') + (mm ? ' و' + mm + ' د' : '');
+    return '🧊 ' + (h.src === 'report' ? 'بلّغ عنه الناس' : 'الرادار شاف احتمال برد') + ' ' + ago + ' (' + clock + ')' +
+      (h.rep ? ' · ✓ أكده ' + (h.rep === 1 ? 'شخص' : h.rep === 2 ? 'شخصين' : h.rep + ' أشخاص') : '') + '.';
+  }
   function findPlace(id){
     if(id === '__car__') return carPlaceItem();
     if(String(id).startsWith('k:')) return catalogItem(Number(String(id).slice(2)));
     // فيضة من قائمة الربيع، أو منطقة فقع — مكان مؤقت (مثل مواقع دليل) تقدر تتوجه له أو تحفظه
-    if(String(id).startsWith('hl:')){ const h = HL.list && HL.list[Number(String(id).slice(3))]; return h ? {id, name:'برد ' + h.name, lat:h.lat, lng:h.lng, alt:null, cat:'catalog', catalog:true, kind:h.src === 'report' ? 'بلاغ برد' : 'احتمال برد', region:h.region || ''} : null; }
+    if(String(id).startsWith('hl:')){ const h = HL.list && HL.list[Number(String(id).slice(3))]; return h ? {id, name:'برد ' + h.name, lat:h.lat, lng:h.lng, alt:null, cat:'catalog', catalog:true, kind:h.src === 'report' ? 'بلاغ برد' : 'احتمال برد', region:h.region || '', note:hlSheetNote(h)} : null; }
     if(String(id).startsWith('fy:')){ const x = faydSites && faydSites[Number(String(id).slice(3))]; return x ? {id, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:'فيضة / روضة', region:x[3] || '', spring:true} : null; }
     if(String(id).startsWith('fq:')){ const r = fqData && fqData.rows[Number(String(id).slice(3))]; return r ? {id, name:r.name, lat:r.lat, lng:r.lng, alt:null, cat:'catalog', catalog:true, kind:'منطقة فقع', region:r.region || '', spring:true} : null; }
     return state.places.find(p=>p.id===id) || null;
@@ -4687,7 +4703,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
     updateWadiButton(place);
     const hazardEl = document.getElementById('placeSheetHazard');
-    hazardEl.textContent = isCatalog ? CATALOG_HAZARD[place.kind] || '' : '';
+    hazardEl.textContent = place.note || (isCatalog ? CATALOG_HAZARD[place.kind] || '' : '');
     hazardEl.hidden = !hazardEl.textContent;
     document.getElementById('placeRenameRow').hidden = true;
     document.getElementById('placeSheetDeleteLabel').textContent = isCar ? 'إزالة موقع السيارة' : 'حذف المكان';
@@ -6435,6 +6451,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     toast('طبقة الربيع مفعّلة — صغّر الخريطة لترى الأخضر حولك');
   });
   let wxPaneShown = 'wx';
+  window.__dalilWxTab = id=>wxPaneShown === 'spring' ? spView : wxPaneShown === 'ev' ? 'events' : wxPaneShown === 'wind' ? 'wind' : String(id || '').startsWith('hl:') ? 'hail' : '';
   function showWxPane(which, openId){
     wxPaneShown = which;
     document.querySelectorAll('.seg-b[data-wxpane]').forEach(b=>{
@@ -7201,7 +7218,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   if(requestedScreen === 'weather'){
     document.querySelector('.tab[data-screen="weather"]').click();
     if(launchParams.get('tab') === 'events') showWxPane('ev', launchParams.get('event') || null);
-    if(launchParams.get('tab') === 'fayd'){ spView = 'fayd'; showWxPane('spring'); }
+    const lt = launchParams.get('tab');
+    if(lt === 'fayd' || lt === 'fq' || lt === 'birds'){ spView = lt; showWxPane('spring'); }
+    if(lt === 'wind') showWxPane('wind');
+    if(lt === 'hail'){ let n = 0; const go = ()=>{ const c = document.getElementById('hailCard'); if(c && !c.hidden) c.scrollIntoView({block:'center'}); else if(++n < 20) setTimeout(go, 400); }; setTimeout(go, 400); }
   }
   // فحص خفيف لوجود صور جديدة لإظهار نقطة التنبيه على تبويب «الأجواء».
   window.setTimeout(()=>{ if(navigator.onLine !== false) loadEvents().then(m=>m.checkNew()).catch(()=>{}); }, 6000);

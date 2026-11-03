@@ -225,7 +225,7 @@ body.embed.fs.has-target .ctrl,body.embed.fs.has-target .badge{bottom:calc(var(-
 <script>
 const query=new URLSearchParams(location.search);
 // زر الرجوع يعيدك للشاشة اللي فتحت منها الخريطة (الأماكن/الأجواء…) بدل البوصلة دائمًا
-{const bk=query.get('back'),BK={places:'الأماكن',weather:'الأجواء',settings:'الإعدادات',track:'الخريطة',compass:'البوصلة'};const a=document.querySelector('.back-link');if(a&&BK[bk]){a.href='index.html?screen='+bk;a.textContent='← رجوع إلى '+BK[bk]}}
+{const bk=query.get('back'),BK={places:'الأماكن',weather:'الأجواء',settings:'الإعدادات',track:'الخريطة',compass:'البوصلة'};const a=document.querySelector('.back-link');if(a&&BK[bk]){const tb=query.get('tab');a.href='index.html?screen='+bk+(/^(fayd|fq|birds|hail|wind|events)$/.test(tb||'')?'&tab='+tb:'');a.textContent='← رجوع إلى '+BK[bk]}}
 const isEmbedded=query.get('embed')==='1';
 if(isEmbedded)document.body.classList.add('embed');
 const S=256,minZ=5,maxZ=20,maxLocalZ=18,maxOnlineTileZ=19;
