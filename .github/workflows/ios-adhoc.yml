@@ -1,0 +1,1010 @@
+# نسخة تجريبية Ad Hoc من فرع ios-1.8 لأجهزة مسجّلة فقط (بدون TestFlight ولا App Store Connect).
+# - يسجّل الجهاز (UDID) عند أبل بمفتاح App Store Connect، ويبني نفس خطوات ios.yml ويصدّر بطريقة release-testing.
+# - ملف IPA يُرفع كإصدار تجريبي (pre-release) في GitHub، وصفحة التثبيت adhoc/ على GitHub Pages.
+# - ما يُرفع شي لـ App Store Connect، وما يتغير فرع ios-1.8.
+name: iOS Ad Hoc
+
+on:
+  workflow_dispatch:
+    inputs:
+      udid:
+        description: "UDID الجهاز (يُسجّل إذا ما هو مسجّل)"
+        type: string
+        required: true
+      device_name:
+        description: "اسم الجهاز عند أبل"
+        type: string
+        default: "Dalil tester"
+      version:
+        description: "رقم الإصدار"
+        type: string
+        default: "1.8"
+      ref:
+        description: "الفرع"
+        type: string
+        default: "ios-1.8"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ios-adhoc
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      MARKETING_VERSION: ${{ inputs.version }}
+      # أقل من رقم بناء المتجر (50) عشان التحديث الرسمي يركب فوقها عادي
+      BUILD_NUMBER: 49.${{ github.run_number }}
+      DO_UPLOAD: 'true'
+    defaults:
+      run:
+        shell: bash
+        working-directory: native
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          sparse-checkout: |
+            native
+            .github
+            assets/sounds
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Select Xcode
+        run: |
+          # أبل تشترط البناء بأحدث SDK، فنختار أحدث Xcode مستقر على الجهاز السحابي
+          ls -d /Applications/Xcode_*.app
+          XCODE="$(ls -d /Applications/Xcode_*.app | grep -viE 'beta|rc' | sort -V | tail -1)"
+          sudo xcode-select -s "$XCODE"
+          echo "::notice::$(xcodebuild -version | paste -sd ' ' -) — iOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Notification sounds
+        run: |
+          # 1.8: نغمة المطر ونغمة الحدث بصيغة يقبلها الآيفون للتنبيهات (.caf) — تنسخ مع الصفحة إلى التطبيق
+          mkdir -p www/sounds
+          for k in rain event; do afconvert -f caff -d ima4 "../assets/sounds/$k.m4a" "www/sounds/dalil-$k.caf"; done
+          ls -la www/sounds
+
+      - name: Install Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Generate iOS project
+        run: |
+          # نعرض آخر سطور الخطأ كتنبيه حتى يُقرأ من صفحة التشغيل
+          run_logged () { "$@" > "$RUNNER_TEMP/step.log" 2>&1 || { cat "$RUNNER_TEMP/step.log"; echo "::error::$(tail -25 "$RUNNER_TEMP/step.log" | paste -sd '|' -)"; exit 1; }; cat "$RUNNER_TEMP/step.log"; }
+          run_logged npx cap --version
+          # رقم الإصدار في هوية المتصفح: الويب يفتح ميزات الإصدار الجديد (مثل غرفة الرحلة) حسبه
+          node -e 'const f="capacitor.config.json",c=require("./"+f);c.appendUserAgent="DalilApp/"+process.env.MARKETING_VERSION;require("fs").writeFileSync(f,JSON.stringify(c,null,2))'
+          echo "::notice::UserAgent DalilApp/$MARKETING_VERSION"
+          run_logged npx cap add ios
+          run_logged npx cap sync ios
+
+      - name: Icon, splash and Info.plist
+        run: |
+          set -e
+          XC=ios/App/App/Assets.xcassets
+          # الأيقونة (1024 بلا شفافية) تحل محل أيقونة Capacitor الافتراضية
+          ICONSET="$XC/AppIcon.appiconset"
+          for f in "$ICONSET"/*.png; do cp resources/icon-1024.png "$f"; done
+          # شاشة البداية بلون دليل
+          for f in "$XC"/Splash.imageset/*.png; do cp resources/splash-2732x2732.png "$f"; done
+
+          P=ios/App/App/Info.plist
+          PB=/usr/libexec/PlistBuddy
+          set_str () { $PB -c "Delete :$1" "$P" 2>/dev/null || true; $PB -c "Add :$1 string $2" "$P"; }
+          set_str CFBundleDisplayName "دليل"
+          set_str CFBundleDevelopmentRegion "ar"
+          set_str NSLocationWhenInUseUsageDescription "يستخدم دليل موقعك لعرضه على الخريطة وتشغيل البوصلة والتوجيه وتسجيل مسارك. لا يُشارَك إلا مع أعضاء غرفة رحلة تدخلها بنفسك."
+          set_str NSMotionUsageDescription "يستخدم دليل مستشعرات الحركة لتشغيل البوصلة وتحديد اتجاهك."
+          set_str NSCameraUsageDescription "لالتقاط صورة حدث (سيل أو مطر) ونشرها لمستخدمي منطقتك إن اخترت ذلك."
+          set_str NSMicrophoneUsageDescription "لإرسال رسائل صوتية لأعضاء غرفة الرحلة عند الضغط على «اضغط وتكلّم» فقط."
+          set_str NSSpeechRecognitionUsageDescription "لتحويل رسائلك الصوتية في غرفة الرحلة إلى نص يقرؤه أعضاء الغرفة إذا ما قدروا يسمعون."
+          set_str NSPhotoLibraryUsageDescription "لاختيار صورة حدث من ألبومك أو استيراد ملفات خرائطك."
+          $PB -c "Delete :ITSAppUsesNonExemptEncryption" "$P" 2>/dev/null || true
+          $PB -c "Add :ITSAppUsesNonExemptEncryption bool false" "$P"
+          # النطاق الوحيد الذي يعمل داخله التطبيق (يسمح بعمل Service Worker والخرائط بدون إنترنت)
+          $PB -c "Delete :WKAppBoundDomains" "$P" 2>/dev/null || true
+          $PB -c "Add :WKAppBoundDomains array" "$P"
+          $PB -c "Add :WKAppBoundDomains:0 string f10f100a-debug.github.io" "$P"
+          # 1.3: موقع في الخلفية أثناء تسجيل مسار أو داخل غرفة رحلة (بإذن «أثناء الاستخدام» مع المؤشر الأزرق)
+          $PB -c "Print :UIBackgroundModes" "$P" >/dev/null 2>&1 || $PB -c "Add :UIBackgroundModes array" "$P"
+          $PB -c "Print :UIBackgroundModes" "$P" | grep -q location || $PB -c "Add :UIBackgroundModes: string location" "$P"
+          # 1.3: روابط dalil:// لفتح دعوة غرفة الرحلة داخل التطبيق
+          $PB -c "Delete :CFBundleURLTypes" "$P" 2>/dev/null || true
+          $PB -c "Add :CFBundleURLTypes array" "$P"
+          $PB -c "Add :CFBundleURLTypes:0 dict" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLName string com.alluhaybi.dalil" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$P"
+          $PB -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string dalil" "$P"
+          plutil -lint "$P"
+          # التنبيهات الأصلية (APNs): صلاحية التطبيق + تمرير رمز الجهاز إلى Capacitor
+          cat > ios/App/App/App.entitlements <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>aps-environment</key><string>production</string></dict></plist>
+          XML
+          sed -i '' -e 's/^          //' ios/App/App/App.entitlements
+          plutil -lint ios/App/App/App.entitlements
+          # 1.4: الروابط العامة (Universal Links) — رابط الدعوة يفتح التطبيق مباشرة
+          case "$MARKETING_VERSION" in 1.0|1.1|1.2|1.3) echo "::notice::Associated domains: skipped for $MARKETING_VERSION";; *)
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains array" ios/App/App/App.entitlements
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:0 string applinks:f10f100a-debug.github.io" ios/App/App/App.entitlements
+            # 1.5: الروابط القصيرة dalilbarr.com/r/… تفتح التطبيق مباشرة
+            case "$MARKETING_VERSION" in 1.4) ;; *) /usr/libexec/PlistBuddy -c "Add :com.apple.developer.associated-domains:1 string applinks:dalilbarr.com" ios/App/App/App.entitlements ;; esac
+            plutil -lint ios/App/App/App.entitlements
+            echo "::notice::Associated domains: $(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' ios/App/App/App.entitlements | tr -d '\n ')"
+            # 1.4: اللاسلكي (Apple PushToTalk) — الصوت يشتغل والجوال مقفل
+            /usr/libexec/PlistBuddy -c "Add :com.apple.developer.push-to-talk bool true" ios/App/App/App.entitlements
+            $PB -c "Print :UIBackgroundModes" "$P" | grep -q push-to-talk || $PB -c "Add :UIBackgroundModes: string push-to-talk" "$P"
+            # 1.6: Apple تنصح بخاصية الصوت في الخلفية لتطبيقات اللاسلكي (تشغيل الرسالة والتطبيق مقفول)
+            $PB -c "Print :UIBackgroundModes" "$P" | grep -q audio || $PB -c "Add :UIBackgroundModes: string audio" "$P"
+            plutil -lint ios/App/App/App.entitlements; plutil -lint "$P"
+            echo "::notice::Push to Talk: entitlement + background mode";;
+          esac
+          python3 - <<'PY'
+          p = "ios/App/App/AppDelegate.swift"
+          s = open(p).read()
+          if "didRegisterForRemoteNotificationsWithDeviceToken" not in s:
+              add = """
+              func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                  NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+              }
+
+              func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                  NotificationCenter.default.post(name: .capacitorDidFailToRegisterForRemoteNotifications, object: error)
+              }
+          """
+              i = s.rstrip().rfind("}")
+              s = s[:i] + add + "}\n"
+              open(p, "w").write(s)
+          print("::notice::AppDelegate push hooks: " + ("OK" if "capacitorDidRegisterForRemoteNotifications" in open(p).read() else "MISSING"))
+          # بوصلة أصلية: تقرأ اتجاه الجوال من النظام (بلا إذن «الحركة» ولا ضغطة) وترسله للصفحة
+          s = open(p).read()
+          if "DalilHeading" not in s:
+              s = s.replace("import UIKit", "import UIKit\nimport CoreLocation\nimport WebKit", 1)
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "DalilHeading.shared.start()\n        " + s[j:]
+              s = s.rstrip() + """
+
+          final class DalilHeading: NSObject, CLLocationManagerDelegate {
+              static let shared = DalilHeading()
+              private let lm = CLLocationManager()
+              private weak var web: WKWebView?
+              private var lastJS: String?
+              private var timer: Timer?
+              func start() {
+                  guard CLLocationManager.headingAvailable() else { return }
+                  lm.delegate = self
+                  lm.headingFilter = 1
+                  lm.headingOrientation = .portrait
+                  lm.startUpdatingHeading()
+                  // الجوال الثابت لا يرسل قراءات جديدة: نعيد آخر اتجاه كل ثانية حتى لا تظن الصفحة أن البوصلة توقفت
+                  timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.send() }
+                  NotificationCenter.default.addObserver(self, selector: #selector(resume), name: UIApplication.didBecomeActiveNotification, object: nil)
+                  NotificationCenter.default.addObserver(self, selector: #selector(pause), name: UIApplication.didEnterBackgroundNotification, object: nil)
+              }
+              @objc private func resume() { lm.startUpdatingHeading() }
+              @objc private func pause() { lm.stopUpdatingHeading() }
+              func locationManager(_ manager: CLLocationManager, didUpdateHeading h: CLHeading) {
+                  let v = h.trueHeading >= 0 ? h.trueHeading : h.magneticHeading
+                  guard v >= 0, h.headingAccuracy >= 0 else { return }
+                  let js = String(format: "window.__dalilNativeHeading&&window.__dalilNativeHeading(%.1f,%.0f)", v, h.headingAccuracy)
+                  lastJS = js
+                  send()
+              }
+              private func send() {
+                  guard UIApplication.shared.applicationState == .active, let js = lastJS else { return }
+                  webView()?.evaluateJavaScript(js, completionHandler: nil)
+              }
+              func locationManagerShouldDisplayHeadingCalibration(_ manager: CLLocationManager) -> Bool { false }
+              private func webView() -> WKWebView? {
+                  if let w = web { return w }
+                  let root = (UIApplication.shared.delegate as? AppDelegate)?.window?.rootViewController
+                  web = find(root?.view)
+                  return web
+              }
+              private func find(_ v: UIView?) -> WKWebView? {
+                  guard let v = v else { return nil }
+                  if let w = v as? WKWebView { return w }
+                  for s in v.subviews { if let w = find(s) { return w } }
+                  return nil
+              }
+          }
+          """
+              open(p, "w").write(s)
+          # 1.3: موقع في الخلفية (مسار + غرفة الرحلة) وروابط dalil://
+          s = open(p).read()
+          if "DalilBg" not in s:
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "DalilBg.shared.start()\n        " + s[j:]
+              s = s.replace("return ApplicationDelegateProxy.shared.application(app, open: url, options: options)",
+                            "DalilBg.shared.openURL(url)\n        return ApplicationDelegateProxy.shared.application(app, open: url, options: options)", 1)
+              s = s.replace("return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)",
+                            "if let u = userActivity.webpageURL { DalilBg.shared.openURL(u) }\n        return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)", 1)
+              s = s.rstrip() + """
+
+          final class DalilBg: NSObject, CLLocationManagerDelegate, WKScriptMessageHandler {
+              static let shared = DalilBg()
+              private let lm = CLLocationManager()
+              private weak var web: WKWebView?
+              private var attached = false
+              private var track = false
+              private var room: [String: Any]? = nil
+              private var buffer: [[String: Double]] = []
+              private var lastSent = Date.distantPast
+              private var lastSentLoc: CLLocation?
+              private var pendingURL: String?
+              private var timer: Timer?
+              private var awake = Set<String>()
+              func start() {
+                  lm.delegate = self
+                  lm.desiredAccuracy = kCLLocationAccuracyBest
+                  lm.distanceFilter = 5
+                  lm.activityType = .otherNavigation
+                  lm.pausesLocationUpdatesAutomatically = false
+                  timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in self?.tick() }
+              }
+              func openURL(_ url: URL) { pendingURL = url.absoluteString }
+              func js(_ code: String) { DispatchQueue.main.async { self.webView()?.evaluateJavaScript(code, completionHandler: nil) } }
+              private var pttReady: Bool?
+              private func tick() {
+                  guard let w = webView() else { return }
+                  if !attached { attached = true; w.configuration.userContentController.add(self, name: "dalil") }
+                  // 1.5: الصفحة تعرف إن لاسلكي Apple جاهز، فزر التطبيق يسجّل عن طريقه (مالك واحد للميكروفون)
+                  if #available(iOS 16.0, *) {
+                      let r = DalilPTT.shared.ready
+                      // 1.6: كل ثانية (مو بس عند التغيّر) — إذا انعادت الصفحة (تحديث) تنسى القيمة فيرجع التسجيل لطريقة الويب
+                      pttReady = r; w.evaluateJavaScript("window.__dalilPttReady=" + (r ? "true" : "false") + ";window.__dalilPttFg=true", completionHandler: nil)
+                  }
+                  if let u = pendingURL, UIApplication.shared.applicationState == .active,
+                     let d = try? JSONSerialization.data(withJSONObject: [u]), var js = String(data: d, encoding: .utf8) {
+                      js = String(js.dropFirst().dropLast())
+                      w.evaluateJavaScript("window.__dalilOpenUrl ? window.__dalilOpenUrl(" + js + ") : false") { r, _ in
+                          if (r as? Bool) == true { self.pendingURL = nil }
+                      }
+                  }
+              }
+              func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
+                  guard let b = m.body as? [String: Any], let cmd = b["cmd"] as? String else { return }
+                  if cmd == "bg" {
+                      track = (b["track"] as? Bool) ?? false
+                      room = b["room"] as? [String: Any]
+                      if #available(iOS 16.0, *) { DalilPTT.shared.sync(room) }
+                      if !track { buffer.removeAll() }
+                      if track || room != nil {
+                          lm.allowsBackgroundLocationUpdates = true
+                          lm.showsBackgroundLocationIndicator = true
+                          lm.startUpdatingLocation()
+                      } else {
+                          lm.stopUpdatingLocation()
+                          lm.allowsBackgroundLocationUpdates = false
+                      }
+                  } else if cmd == "ptt" {
+                      if #available(iOS 16.0, *) { if (b["on"] as? Bool) == true { DalilPTT.shared.beginTx() } else { DalilPTT.shared.endTx() } }
+                  } else if cmd == "awake" {
+                      // 1.8: إبقاء الشاشة مضاءة أثناء التوجيه وتسجيل المسار (الصفحة الرئيسية والخريطة كل وحدة لحالها)
+                      let src = (b["src"] as? String) ?? "main"
+                      if (b["on"] as? Bool) == true { awake.insert(src) } else { awake.remove(src) }
+                      UIApplication.shared.isIdleTimerDisabled = !awake.isEmpty
+                  } else if cmd == "played" {
+                      if #available(iOS 16.0, *), let id = b["id"] as? String { DalilPTT.shared.markWebPlayed(id) }
+                  } else if cmd == "drain" {
+                      let pts = buffer; buffer.removeAll()
+                      if let d = try? JSONSerialization.data(withJSONObject: pts), let s = String(data: d, encoding: .utf8) {
+                          m.webView?.evaluateJavaScript("window.__dalilBgDrain && window.__dalilBgDrain(" + s + ")", completionHandler: nil)
+                      }
+                  }
+              }
+              func locationManager(_ manager: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
+                  if UIApplication.shared.applicationState == .active { return }   // في المقدمة: الصفحة تتولى الموقع
+                  if track {
+                      for l in locs where l.horizontalAccuracy >= 0 && l.horizontalAccuracy <= 60 {
+                          buffer.append(["lat": l.coordinate.latitude, "lng": l.coordinate.longitude, "t": l.timestamp.timeIntervalSince1970 * 1000, "acc": l.horizontalAccuracy])
+                      }
+                      if buffer.count > 20000 { buffer.removeFirst(buffer.count - 20000) }
+                  }
+                  if let r = room, let l = locs.last, l.horizontalAccuracy >= 0 {
+                      let since = Date().timeIntervalSince(lastSent)
+                      let moved = lastSentLoc.map { l.distance(from: $0) } ?? 1e9
+                      if since > 25 && (moved > 15 || since > 90) { send(r, l) }
+                  }
+              }
+              private func send(_ r: [String: Any], _ l: CLLocation) {
+                  guard let us = r["url"] as? String, let url = URL(string: us), let key = r["key"] as? String else { return }
+                  lastSent = Date(); lastSentLoc = l
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("application/json", forHTTPHeaderField: "content-type")
+                  req.setValue(key, forHTTPHeaderField: "apikey")
+                  var body = r; body.removeValue(forKey: "url"); body.removeValue(forKey: "key")
+                  body["lat"] = l.coordinate.latitude; body["lng"] = l.coordinate.longitude
+                  body["acc"] = l.horizontalAccuracy; body["spd"] = max(0, l.speed)
+                  body["age"] = max(0, Date().timeIntervalSince(l.timestamp))   // 1.8: عمر القراءة — الغرفة ترفض الأقدم
+                  req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { _, _, _ in UIApplication.shared.endBackgroundTask(task) }.resume()
+              }
+              private func webView() -> WKWebView? {
+                  if let w = web { return w }
+                  let root = (UIApplication.shared.delegate as? AppDelegate)?.window?.rootViewController
+                  web = find(root?.view)
+                  return web
+              }
+              private func find(_ v: UIView?) -> WKWebView? {
+                  guard let v = v else { return nil }
+                  if let w = v as? WKWebView { return w }
+                  for s in v.subviews { if let w = find(s) { return w } }
+                  return nil
+              }
+          }
+          """
+              open(p, "w").write(s)
+          # 1.4: اللاسلكي في الخلفية (Apple PushToTalk) — يُفعَّل فقط مع صلاحيته (1.4+)، ويعمل من iOS 16
+          s = open(p).read()
+          if "class DalilPTT" not in s:
+              s = s.replace("import UIKit", "import UIKit\nimport AVFoundation\nimport PushToTalk\nimport Speech", 1)
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "if #available(iOS 16.0, *) { DalilPTT.shared.setup() }\n        " + s[j:]
+              s = s.rstrip() + """
+          @available(iOS 16.0, *)
+          final class DalilPTT: NSObject, PTChannelManagerDelegate, PTChannelRestorationDelegate, AVAudioPlayerDelegate {
+              static let shared = DalilPTT()
+              private var mgr: PTChannelManager?
+              private var room: [String: Any]? = UserDefaults.standard.dictionary(forKey: "dalil_ptt_room")
+              private var joined: UUID?
+              private var joining = false
+              // 1.6: افتراضيًا «مو قدام المستخدم». لما تصحّي Apple التطبيق بالخفاء (كان مقفول) ما يصير «نشط» أبدًا،
+              // فلازم نشغّل الصوت بأنفسنا. قبل كانت true فيترك التشغيل للصفحة المتوقفة = ما يطلع صوت
+              private var active = false
+              private var pre: [URL: Data] = [:]
+              // 1.6 (44): رسائل شغّلتها الصفحة بنفسها — ما نعيدها لو وصل تنبيه اللاسلكي بعدها
+              private var webPlayed: [String] = []
+              private let lk = NSLock()
+              func markWebPlayed(_ id: String) { lk.lock(); webPlayed.append(id); if webPlayed.count > 50 { webPlayed.removeFirst() }; lk.unlock() }
+              private func playedByWeb(_ id: String) -> Bool { lk.lock(); defer { lk.unlock() }; return !id.isEmpty && webPlayed.contains(id) }
+              // نبلّغ الصفحة بحالة التشغيل (تعرض «يشتغل» وتعرف إن التطبيق تكفّل بالرسالة)
+              private func pev(_ name: String, _ id: String, _ why: String = "") {
+                  let sid = String(id.filter { $0.isHexDigit || $0 == "-" }.prefix(36))
+                  let w = String(why.filter { $0.isLetter || $0.isNumber || $0 == "_" }.prefix(24))
+                  DalilBg.shared.js("window.__dalilPttPlay && window.__dalilPttPlay('" + name + "','" + sid + "','" + w + "')")
+              }
+              private var queue: [(URL, String)] = []
+              private var playingId = ""
+              private var sessionOn = false
+              private var watchdog: DispatchWorkItem?
+              private var player: AVAudioPlayer?
+              private var recorder: AVAudioRecorder?
+              private var recStart = Date()
+              private var transmitting = false
+              private var token = ""
+              var ready: Bool { mgr != nil && joined != nil }
+              // صفحة الويب (تشغيل الصوت داخل التطبيق) تغيّر نوع الصوت إلى «تشغيل فقط»، فيقطع النظام الإرسال بعد ثانية.
+              // نرجّعه «تسجيل وتشغيل» قبل كل إرسال، وعند بدايته، وكل ما تطلع من التطبيق.
+              private func ensureCategory() {
+                  let a = AVAudioSession.sharedInstance()
+                  if a.category != .playAndRecord { try? a.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
+              }
+              private func evt(_ name: String, _ json: String = "null") { DalilBg.shared.js("window.__dalilPttEvt && window.__dalilPttEvt('" + name + "'," + json + ")") }
+              func beginTx() {
+                  guard let m = mgr, let c = joined else { evt("fail"); return }
+                  ensureCategory()
+                  m.requestBeginTransmitting(channelUUID: c)
+              }
+              func endTx() { if let m = mgr, let c = joined { m.stopTransmitting(channelUUID: c) } }
+              func channelManager(_ channelManager: PTChannelManager, failedToBeginTransmittingInChannel channelUUID: UUID, error: Error) {
+                  NSLog("dalil ptt tx: \\(error)")
+                  let code = (error as NSError).code
+                  DispatchQueue.main.async {
+                      self.transmitting = false
+                      // 1.8: رقم خطأ Apple يوصل للسجل (نعرف ليش رفضت البدء)
+                      if let d = try? JSONSerialization.data(withJSONObject: ["why": "apple", "code": code]), let j = String(data: d, encoding: .utf8) { self.evt("fail", j) } else { self.evt("fail") }
+                  }
+              }
+              func setup() {
+                  // إعداد الصوت مرة وحدة قبل أي إرسال أو استقبال (تغييره والصوت مفعّل يقطع زر «تحدّث»)
+                  try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                  active = UIApplication.shared.applicationState == .active
+                  NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false }
+                  NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = true; self?.unstick(); self?.reconcile() }
+                  NotificationCenter.default.addObserver(forName: UIApplication.willResignActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.active = false; self?.ensureCategory() }
+                  Task { @MainActor in
+                      do { self.mgr = try await PTChannelManager.channelManager(delegate: self, restorationDelegate: self) } catch { NSLog("dalil ptt manager: \\(error)") }
+                      self.joined = self.mgr?.activeChannelUUID
+                      self.reconcile()
+                  }
+              }
+              func sync(_ r: [String: Any]?) {
+                  room = r
+                  if let r = r { UserDefaults.standard.set(r, forKey: "dalil_ptt_room") } else { UserDefaults.standard.removeObject(forKey: "dalil_ptt_room") }
+                  DispatchQueue.main.async { self.reconcile() }
+              }
+              private func want() -> UUID? { (room?["room_id"] as? String).flatMap { UUID(uuidString: $0) } }
+              private func reconcile() {
+                  guard let m = mgr else { return }
+                  let w = want(), cur = m.activeChannelUUID ?? joined
+                  if let c = cur, c != w { m.leaveChannel(channelUUID: c); joined = nil }
+                  if let w = w, (m.activeChannelUUID ?? joined) != w, active, !joining {
+                      joining = true
+                      let n = (room?["name"] as? String) ?? ""
+                      m.requestJoinChannel(channelUUID: w, descriptor: PTChannelDescriptor(name: n.isEmpty ? "غرفة الرحلة — دليل" : n, image: nil))
+                  }
+              }
+              func channelDescriptor(restoredChannelUUID channelUUID: UUID) -> PTChannelDescriptor {
+                  // Apple: جهّز الصوت هنا (لما يصحى التطبيق المقفول) قبل ما يفعّله النظام، وإلا ما ينادى didActivate
+                  try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+                  let n = (room?["name"] as? String) ?? ""
+                  return PTChannelDescriptor(name: n.isEmpty ? "غرفة الرحلة — دليل" : n, image: nil)
+              }
+              func channelManager(_ channelManager: PTChannelManager, didJoinChannel channelUUID: UUID, reason: PTChannelJoinReason) {
+                  joined = channelUUID; joining = false
+                  if !token.isEmpty { post("ptt", ["ptt_token": token]) }
+              }
+              func channelManager(_ channelManager: PTChannelManager, failedToJoinChannel channelUUID: UUID, error: Error) { joining = false; NSLog("dalil ptt join: \\(error)") }
+              func channelManager(_ channelManager: PTChannelManager, didLeaveChannel channelUUID: UUID, reason: PTChannelLeaveReason) {
+                  if joined == channelUUID { joined = nil }
+                  if want() == channelUUID { post("ptt", ["ptt_token": ""]) }   // خرج من زر النظام: يرجع للإشعارات العادية
+              }
+              func channelManager(_ channelManager: PTChannelManager, receivedEphemeralPushToken pushToken: Data) {
+                  token = pushToken.map { String(format: "%02x", $0) }.joined()
+                  post("ptt", ["ptt_token": token])
+              }
+              // صوت وصل والجوال مقفل: النظام يصحّي التطبيق ويفعّل الصوت، ونحن نشغّل الرسالة
+              func incomingPushResult(channelManager: PTChannelManager, channelUUID: UUID, pushPayload: [String: Any]) -> PTPushResult {
+                  if (pushPayload["leave"] as? Bool) == true { return .leaveChannel }
+                  let who = (pushPayload["activeSpeaker"] as? String) ?? "عضو في الغرفة"
+                  let vid = (pushPayload["id"] as? String) ?? ""
+                  // 1.6 (44): نشغّل الرسالة بأنفسنا حتى والتطبيق مفتوح. قبل كانت الصفحة تشغّلها، فيأخذ النظام الصوت منها لحظة
+                  // تفعيل اللاسلكي وينقطع التشغيل (AbortError ~45%). إلا إذا الصفحة شغّلتها قبلنا
+                  if let s = pushPayload["url"] as? String, let u = URL(string: s), !playedByWeb(vid) {
+                      // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
+                      // نبدأ التحميل فورًا (ما ننتظر تفعيل الصوت) حتى يشتغل أول ما يجهز
+                      URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
+                      DispatchQueue.main.async { self.queue.append((u, vid)); self.arm(); if self.player == nil && self.sessionOn { self.playNext() } }
+                  } else {
+                      // الصفحة شغّلتها (أو ما فيه رابط): نفك «المتكلم الحالي» على طول
+                      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { channelManager.setActiveRemoteParticipant(nil, channelUUID: channelUUID, completionHandler: nil) }
+                  }
+                  return .activeRemoteParticipant(PTParticipant(name: who, image: nil))
+              }
+              func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {
+                  if audioSession.category != .playAndRecord { try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
+                  DispatchQueue.main.async { self.sessionOn = true; if self.transmitting { self.startRec() } else { self.playNext() } }
+              }
+              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) { DispatchQueue.main.async { self.sessionOn = false } }
+              // صمّام أمان: «المتكلم الحالي» ما يعلق أبدًا (وإلا يقفل زر «تحدّث» في شاشة القفل)
+              private func arm() {
+                  watchdog?.cancel()
+                  let w = DispatchWorkItem { [weak self] in
+                      guard let self = self else { return }
+                      if self.player == nil { self.queue.removeAll(); self.finish() } else { self.arm() }
+                  }
+                  watchdog = w
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: w)
+              }
+              private func unstick() { if player == nil { queue.removeAll(); finish() } }
+              private func playNext() {
+                  guard player == nil else { return }
+                  guard !queue.isEmpty else { finish(); return }
+                  let (u, vid) = queue.removeFirst()
+                  arm()
+                  let start: (Data?) -> Void = { d in
+                      DispatchQueue.main.async {
+                          guard let d = d else { self.pev("nfail", vid, "download"); self.playNext(); return }
+                          guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.playNext(); return }
+                          self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
+                          if p.play() { self.pev("nplay", vid) } else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.playNext() }
+                      }
+                  }
+                  if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
+                  else { URLSession.shared.dataTask(with: u) { d, _, _ in start(d) }.resume() }
+              }
+              func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+                  DispatchQueue.main.async {
+                      // «سمعها»: نبلّغ المرسل إن الرسالة اشتغلت والجوال مقفل
+                      if flag && !self.playingId.isEmpty { self.post("heard", ["ids": [self.playingId]]) }
+                      self.pev(flag ? "ndone" : "nfail", self.playingId, flag ? "" : "finish")
+                      self.player = nil; self.playingId = ""; self.playNext()
+                  }
+              }
+              private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
+              // الكلام من زر اللاسلكي في شاشة القفل
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { ensureCategory(); DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); if !self.playingId.isEmpty { self.pev("ndone", self.playingId); self.playingId = "" }; self.player = nil; self.startRec() } } }
+              func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.evt("end"); self.stopRec() } }
+              private func startRec() {
+                  guard recorder == nil else { return }
+                  let url = FileManager.default.temporaryDirectory.appendingPathComponent("ptt-" + UUID().uuidString + ".m4a")
+                  let set: [String: Any] = [AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 22050, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 24000]
+                  recorder = try? AVAudioRecorder(url: url, settings: set)
+                  recStart = Date(); recorder?.record()
+              }
+              private func stopRec() {
+                  guard let r = recorder else { return }
+                  r.stop(); recorder = nil
+                  let dur = Date().timeIntervalSince(recStart)
+                  guard dur > 0.4, let data = try? Data(contentsOf: r.url), data.count > 200 else { try? FileManager.default.removeItem(at: r.url); evt("short"); return }
+                  let vid = UUID().uuidString.lowercased()
+                  upload(data, dur, vid)
+                  transcribe(r.url, vid)
+              }
+              // 1.7: نص الرسالة — يحوّلها الجوال (على الجهاز إذا يدعم العربي، وإلا خدمة Apple) ويرسل النص بعد ما يكتمل الرفع
+              private var speech: SFSpeechRecognitionTask?
+              private var upDone = Set<String>()
+              private var vtxt: [String: String] = [:]
+              private func flushText(_ vid: String) {
+                  guard upDone.contains(vid), let t = vtxt.removeValue(forKey: vid) else { return }
+                  upDone.remove(vid)
+                  post("voice_text", ["id": vid, "text": t])
+                  if let d = try? JSONSerialization.data(withJSONObject: ["id": vid, "text": t]), let js = String(data: d, encoding: .utf8) { evt("vtext", js) }
+              }
+              private func transcribe(_ url: URL, _ vid: String) {
+                  let cleanup = { try? FileManager.default.removeItem(at: url) }
+                  let go = {
+                      guard let rec = SFSpeechRecognizer(locale: Locale(identifier: "ar-SA")), rec.isAvailable else { cleanup(); return }
+                      let req = SFSpeechURLRecognitionRequest(url: url)
+                      req.shouldReportPartialResults = false
+                      req.addsPunctuation = true
+                      if rec.supportsOnDeviceRecognition { req.requiresOnDeviceRecognition = true }
+                      var task: UIBackgroundTaskIdentifier = .invalid
+                      task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                      self.speech = rec.recognitionTask(with: req) { res, err in
+                          let fin = res?.isFinal ?? false
+                          if fin, let t = res?.bestTranscription.formattedString.trimmingCharacters(in: .whitespacesAndNewlines), !t.isEmpty {
+                              DispatchQueue.main.async { self.vtxt[vid] = String(t.prefix(600)); self.flushText(vid) }
+                          }
+                          if fin || err != nil { cleanup(); UIApplication.shared.endBackgroundTask(task) }
+                      }
+                  }
+                  switch SFSpeechRecognizer.authorizationStatus() {
+                  case .authorized: go()
+                  case .notDetermined: SFSpeechRecognizer.requestAuthorization { st in DispatchQueue.main.async { if st == .authorized { go() } else { cleanup() } } }
+                  default: cleanup()
+                  }
+              }
+              private func endpoint(_ action: String) -> (URL, String, [String: Any])? {
+                  guard let r = room, let base = r["url"] as? String, let key = r["key"] as? String,
+                        let url = URL(string: base.replacingOccurrences(of: "a=bgpos", with: "a=" + action)) else { return nil }
+                  var auth: [String: Any] = [:]
+                  for k in ["room_id", "member_id", "token"] { auth[k] = r[k] }
+                  return (url, key, auth)
+              }
+              private func send(_ req: URLRequest) {
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { _, _, _ in UIApplication.shared.endBackgroundTask(task) }.resume()
+              }
+              private func post(_ action: String, _ extra: [String: Any]) {
+                  guard let ep = endpoint(action) else { return }
+                  let (url, key, auth) = ep
+                  var body = auth; for (k, v) in extra { body[k] = v }
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("application/json", forHTTPHeaderField: "content-type"); req.setValue(key, forHTTPHeaderField: "apikey")
+                  req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+                  send(req)
+              }
+              private func upload(_ data: Data, _ dur: Double, _ vid: String) {
+                  guard let ep = endpoint("voice") else { return }
+                  let (url, key, auth) = ep
+                  let b = "dalil-" + UUID().uuidString
+                  var body = Data()
+                  func field(_ n: String, _ v: String) { body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"" + n + "\\"\\r\\n\\r\\n" + v + "\\r\\n").data(using: .utf8)!) }
+                  for (k, v) in auth { field(k, (v as? String) ?? "") }
+                  field("id", vid); field("duration", String(format: "%.1f", dur)); field("native", "1")
+                  body.append(("--" + b + "\\r\\nContent-Disposition: form-data; name=\\"audio\\"; filename=\\"voice.m4a\\"\\r\\nContent-Type: audio/mp4\\r\\n\\r\\n").data(using: .utf8)!)
+                  body.append(data); body.append(("\\r\\n--" + b + "--\\r\\n").data(using: .utf8)!)
+                  var req = URLRequest(url: url); req.httpMethod = "POST"
+                  req.setValue("multipart/form-data; boundary=" + b, forHTTPHeaderField: "content-type"); req.setValue(key, forHTTPHeaderField: "apikey")
+                  req.httpBody = body
+                  // نرجّع نتيجة الرفع للصفحة حتى تظهر الرسالة عند المرسل نفسه
+                  var task: UIBackgroundTaskIdentifier = .invalid
+                  task = UIApplication.shared.beginBackgroundTask { UIApplication.shared.endBackgroundTask(task) }
+                  URLSession.shared.dataTask(with: req) { d, _, _ in
+                      if let d = d, let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any], let v = o["voice"],
+                         let vd = try? JSONSerialization.data(withJSONObject: v), let vs = String(data: vd, encoding: .utf8) { self.evt("sent", vs); DispatchQueue.main.async { self.upDone.insert(vid); self.flushText(vid) } }
+                      else { self.evt("upload_fail") }
+                      UIApplication.shared.endBackgroundTask(task)
+                  }.resume()
+              }
+          }
+          """
+              open(p, "w").write(s)
+          # 1.8: الموقع من النظام للصفحة مباشرة + الكاميرا/المايكروفون بإذن التطبيق + نغمات التنبيهات
+          s = open(p).read()
+          if "class DalilGeo" not in s:
+              i = s.find("didFinishLaunchingWithOptions")
+              j = s.find("return true", i)
+              s = s[:j] + "DalilSounds.install()\n        " + s[j:]
+              s = s.rstrip() + '''
+
+          // 1.8: صفحة الويب كانت تطلب الموقع بنفسها فيطلع إذن ثاني باسم «f10f100a-debug.github.io».
+          // الآن navigator.geolocation في الصفحة يأخذ الموقع من النظام عن طريق التطبيق (إذن واحد باسم «دليل»)
+          final class DalilVC: CAPBridgeViewController {
+              private var proxy: DalilUIProxy?
+              override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
+                  let c = super.webViewConfiguration(for: instanceConfiguration)
+                  DalilGeo.shared.install(c.userContentController)
+                  return c
+              }
+              override func capacitorDidLoad() {
+                  super.capacitorDidLoad()
+                  hook()
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in self?.hook() }
+              }
+              private func hook() {
+                  guard let w = webView else { return }
+                  DalilGeo.shared.web = w
+                  if !(w.uiDelegate is DalilUIProxy) { let px = DalilUIProxy(w.uiDelegate); proxy = px; w.uiDelegate = px }
+              }
+          }
+
+          // يمرّر كل شيء لمعالج Capacitor، ويوافق على الكاميرا والمايكروفون لصفحة دليل (إذن النظام للتطبيق يبقى كما هو)
+          final class DalilUIProxy: NSObject, WKUIDelegate {
+              private weak var inner: WKUIDelegate?
+              init(_ inner: WKUIDelegate?) { self.inner = inner; super.init() }
+              override func responds(to aSelector: Selector!) -> Bool {
+                  if super.responds(to: aSelector) { return true }
+                  return inner?.responds(to: aSelector) ?? false
+              }
+              override func forwardingTarget(for aSelector: Selector!) -> Any? {
+                  if let i = inner, i.responds(to: aSelector) { return i }
+                  return super.forwardingTarget(for: aSelector)
+              }
+              @available(iOS 15.0, *)
+              func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin, initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType, decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+                  decisionHandler(origin.host == "f10f100a-debug.github.io" ? .grant : .prompt)
+              }
+          }
+
+          final class DalilGeo: NSObject, CLLocationManagerDelegate, WKScriptMessageHandler {
+              static let shared = DalilGeo()
+              private let lm = CLLocationManager()
+              weak var web: WKWebView?
+              private var ids = Set<Int>()
+              override init() {
+                  super.init()
+                  lm.delegate = self
+                  lm.desiredAccuracy = kCLLocationAccuracyBest
+                  lm.distanceFilter = kCLDistanceFilterNone
+                  lm.activityType = .otherNavigation
+                  lm.pausesLocationUpdatesAutomatically = false
+                  // في الخلفية DalilBg هو اللي يتابع الموقع (المسار + الغرفة)
+                  NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in self?.lm.stopUpdatingLocation() }
+                  NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in self?.resume() }
+              }
+              private func state() -> String {
+                  switch lm.authorizationStatus {
+                  case .authorizedAlways, .authorizedWhenInUse: return "granted"
+                  case .denied, .restricted: return "denied"
+                  default: return "prompt"
+                  }
+              }
+              func install(_ uc: WKUserContentController) {
+                  uc.add(self, name: "dalilgeo")
+                  uc.addUserScript(WKUserScript(source: DalilGeo.shim.replacingOccurrences(of: "__STATE__", with: state()), injectionTime: .atDocumentStart, forMainFrameOnly: false))
+              }
+              func userContentController(_ c: WKUserContentController, didReceive m: WKScriptMessage) {
+                  guard let b = m.body as? [String: Any], let cmd = b["cmd"] as? String else { return }
+                  if let w = m.webView { web = w }
+                  let id = (b["id"] as? NSNumber)?.intValue ?? 0
+                  if cmd == "start" { ids.insert(id); begin() }
+                  else if cmd == "stop" { ids.remove(id); if ids.isEmpty { lm.stopUpdatingLocation() } }
+              }
+              private func begin() {
+                  switch lm.authorizationStatus {
+                  case .notDetermined: lm.requestWhenInUseAuthorization()
+                  case .denied, .restricted: fail(1, "User denied Geolocation")
+                  default: if UIApplication.shared.applicationState != .background { lm.startUpdatingLocation() }
+                  }
+              }
+              private func resume() { if !ids.isEmpty && state() == "granted" { lm.startUpdatingLocation() } }
+              func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+                  let st = state()
+                  js("window.__dalilGeo&&window.__dalilGeo('state','" + st + "')")
+                  if st == "granted" { resume() } else if st == "denied" && !ids.isEmpty { fail(1, "User denied Geolocation") }
+              }
+              func locationManager(_ manager: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
+                  guard let l = locs.last, l.horizontalAccuracy >= 0, !ids.isEmpty else { return }
+                  var o: [String: Any] = ["lat": l.coordinate.latitude, "lng": l.coordinate.longitude, "acc": l.horizontalAccuracy, "t": l.timestamp.timeIntervalSince1970 * 1000]
+                  if l.verticalAccuracy >= 0 { o["alt"] = l.altitude; o["altAcc"] = l.verticalAccuracy }
+                  if l.course >= 0 { o["hdg"] = l.course }
+                  if l.speed >= 0 { o["spd"] = l.speed }
+                  if let d = try? JSONSerialization.data(withJSONObject: o), let js0 = String(data: d, encoding: .utf8) { js("window.__dalilGeo&&window.__dalilGeo('pos'," + js0 + ")") }
+              }
+              func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+                  if let ce = error as? CLError, ce.code == .denied { fail(1, "User denied Geolocation") }
+              }
+              private func fail(_ code: Int, _ msg: String) {
+                  ids.removeAll(); lm.stopUpdatingLocation()
+                  js("window.__dalilGeo&&window.__dalilGeo('err',{code:" + String(code) + ",message:'" + msg + "'})")
+              }
+              private func js(_ code: String) { DispatchQueue.main.async { self.web?.evaluateJavaScript(code, completionHandler: nil) } }
+              static let shim = #"""
+          (function(){
+            try{
+              if(window !== window.top){
+                try{ var tg = window.top.__dalilGeoApi; if(tg) Object.defineProperty(navigator, 'geolocation', {value: tg, configurable: true}); }catch(e){}
+                return;
+              }
+              var H = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dalilgeo;
+              if(!H) return;
+              window.__dalilGeoState = '__STATE__';
+              var reg = {}, seq = 0, last = null;
+              function nz(v){ return v == null ? null : v; }
+              function mkPos(p){ return {coords:{latitude:p.lat, longitude:p.lng, accuracy:p.acc, altitude:nz(p.alt), altitudeAccuracy:nz(p.altAcc), heading:nz(p.hdg), speed:nz(p.spd)}, timestamp:p.t}; }
+              function mkErr(c, m){ return {code:c, message:m || 'error', PERMISSION_DENIED:1, POSITION_UNAVAILABLE:2, TIMEOUT:3}; }
+              function done(id){ var r = reg[id]; if(!r) return; if(r.tm) clearTimeout(r.tm); delete reg[id]; H.postMessage({cmd:'stop', id:Number(id)}); }
+              window.__dalilGeo = function(type, d){
+                if(type === 'pos'){
+                  last = d; var p = mkPos(d);
+                  Object.keys(reg).forEach(function(id){ var r = reg[id]; if(!r) return; if(r.tm){ clearTimeout(r.tm); r.tm = null; } if(r.once) done(id); try{ if(r.ok) r.ok(p); }catch(e){ setTimeout(function(){ throw e; }, 0); } });
+                }else if(type === 'err'){
+                  if(d && d.code === 1) window.__dalilGeoState = 'denied';
+                  Object.keys(reg).forEach(function(id){ var r = reg[id]; if(!r) return; done(id); try{ if(r.err) r.err(mkErr(d.code, d.message)); }catch(e){} });
+                }else if(type === 'state'){ window.__dalilGeoState = d; }
+              };
+              function start(ok, err, o, once){
+                var id = ++seq; o = o || {};
+                if(once && last && o.maximumAge > 0 && Date.now() - last.t <= o.maximumAge){ setTimeout(function(){ if(ok) ok(mkPos(last)); }, 0); return id; }
+                var r = reg[id] = {ok:ok, err:err, once:once, tm:null};
+                var to = Number(o.timeout);
+                if(isFinite(to) && to >= 0 && to < 1e9){ r.tm = setTimeout(function(){ var x = reg[id]; if(!x) return; x.tm = null; if(once) done(id); try{ if(x.err) x.err(mkErr(3, 'Timeout expired')); }catch(e){} }, to); }
+                H.postMessage({cmd:'start', id:id});
+                return id;
+              }
+              var api = {
+                getCurrentPosition: function(ok, err, o){ start(ok, err, o, true); },
+                watchPosition: function(ok, err, o){ return start(ok, err, o, false); },
+                clearWatch: function(id){ done(id); }
+              };
+              window.__dalilGeoApi = api;
+              Object.defineProperty(navigator, 'geolocation', {value: api, configurable: true});
+              if(navigator.permissions && navigator.permissions.query){
+                var q = navigator.permissions.query.bind(navigator.permissions);
+                navigator.permissions.query = function(d){
+                  if(d && d.name === 'geolocation') return Promise.resolve({state: window.__dalilGeoState, onchange: null, addEventListener: function(){}, removeEventListener: function(){}});
+                  return q(d);
+                };
+              }
+            }catch(e){}
+          })();
+          """#
+          }
+
+          // 1.8: نغمة المطر ونغمة الحدث للتنبيهات والتطبيق مقفول (iOS يقرأها من Library/Sounds)
+          enum DalilSounds {
+              static func install() {
+                  let fm = FileManager.default
+                  guard let lib = fm.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
+                  let dir = lib.appendingPathComponent("Sounds", isDirectory: true)
+                  try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
+                  for n in ["dalil-rain", "dalil-event"] {
+                      guard let src = Bundle.main.url(forResource: n, withExtension: "caf", subdirectory: "public/sounds") else { NSLog("dalil sound missing: " + n); continue }
+                      let dst = dir.appendingPathComponent(n + ".caf")
+                      try? fm.removeItem(at: dst)
+                      try? fm.copyItem(at: src, to: dst)
+                  }
+              }
+          }
+          '''
+              open(p, "w").write(s)
+          # الصفحة الرئيسية تستخدم DalilVC بدل CAPBridgeViewController (عشان نضيف جسر الموقع قبل تحميل الصفحة)
+          import re
+          sb = "ios/App/App/Base.lproj/Main.storyboard"
+          t = open(sb).read()
+          t2 = re.sub(r'customClass="CAPBridgeViewController"( customModule="Capacitor")?( customModuleProvider="[a-z]+")?', 'customClass="DalilVC" customModule="App" customModuleProvider="target"', t)
+          open(sb, "w").write(t2)
+          print("::notice::Storyboard DalilVC: " + ("OK" if 'customClass="DalilVC"' in t2 else "MISSING"))
+          if 'customClass="DalilVC"' not in t2: raise SystemExit("storyboard class not replaced")
+          print("::notice::Geolocation bridge + sounds: " + ("OK" if "DalilSounds.install()" in open(p).read() and "class DalilGeo" in open(p).read() else "MISSING"))
+          print("::notice::Push to Talk class: " + ("OK" if "DalilPTT.shared.setup()" in open(p).read() else "MISSING"))
+          print("::notice::Native heading: " + ("OK" if "DalilHeading.shared.start()" in open(p).read() else "MISSING"))
+          print("::notice::Universal links hook: " + ("OK" if "userActivity.webpageURL" in open(p).read() else "MISSING"))
+          print("::notice::Background location + links: " + ("OK" if "DalilBg.shared.openURL(url)" in open(p).read() and "DalilBg.shared.start()" in open(p).read() else "MISSING"))
+          PY
+
+      - name: Build check (unsigned)
+        if: env.DO_UPLOAD != 'true'
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" OTHER_LDFLAGS='$(inherited) -weak_framework PushToTalk' \
+            TARGETED_DEVICE_FAMILY=1 CODE_SIGNING_ALLOWED=NO \
+            build > "$RUNNER_TEMP/build.log" 2>&1 || { grep -E "error:|warning: .*fail" "$RUNNER_TEMP/build.log" | head -20; echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/build.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/build.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/build.log"
+
+      - name: Verify App Store Connect key
+        if: env.DO_UPLOAD == 'true'
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          # فحص المفتاح قبل البناء: يطبع الشكل فقط (بدون القيم السرية) ونتيجة الاتصال بأبل
+          python3 -m pip install --quiet --break-system-packages pyjwt cryptography >/dev/null 2>&1 || python3 -m pip install --quiet pyjwt cryptography
+          python3 - <<'PY'
+          import os, re, time, base64, json, urllib.request, urllib.error, jwt
+          kid=os.environ["KEY_ID"].strip(); iss=os.environ["ISSUER_ID"].strip(); raw=os.environ["KEY_P8"]
+          if "BEGIN PRIVATE KEY" not in raw:
+              body="".join(raw.split())
+              try:
+                  dec=base64.b64decode(body)
+                  if dec[:1]==b"0": raw="-----BEGIN PRIVATE KEY-----\n"+"\n".join(body[i:i+64] for i in range(0,len(body),64))+"\n-----END PRIVATE KEY-----\n"   # نص المفتاح بدون سطري BEGIN/END
+                  else: raw=dec.decode()
+              except Exception: pass
+          def shape(v):
+              v=v or ""
+              return f"len={len(v)} dashes={v.count('-')} spaces={sum(c.isspace() for c in v)} upper={sum(c.isupper() for c in v)} looksUUID={bool(re.search(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',v))} looksP8={'PRIVATE KEY' in v}"
+          print("::notice::ISSUER shape: "+shape(iss)); print("::notice::P8 shape: "+shape(raw if len(raw)<80 else raw[:0]+'x'*len(raw)) if 'PRIVATE KEY' not in raw else "::notice::P8 shape: looksP8=True len="+str(len(raw)))
+          m=re.search(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',iss)
+          if m: iss=m.group(0).lower()
+          notes=[]
+          notes.append(f"KEY_ID: {len(kid)} chars, {'OK' if re.fullmatch(r'[A-Z0-9]{10}',kid) else 'BAD format (expected 10 uppercase letters/digits)'}")
+          notes.append(f"ISSUER_ID: {'OK uuid' if re.fullmatch(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}',iss) else 'BAD format (expected uuid)'}")
+          notes.append(f"P8: {'has BEGIN/END' if ('BEGIN PRIVATE KEY' in raw and 'END PRIVATE KEY' in raw) else 'MISSING BEGIN/END lines'}")
+          status="not tried"
+          try:
+              tok=jwt.encode({"iss":iss,"iat":int(time.time()),"exp":int(time.time())+600,"aud":"appstoreconnect-v1"},raw,algorithm="ES256",headers={"kid":kid,"typ":"JWT"})
+              req=urllib.request.Request("https://api.appstoreconnect.apple.com/v1/apps?fields[apps]=bundleId,name",headers={"Authorization":"Bearer "+tok})
+              try:
+                  r=urllib.request.urlopen(req,timeout=30); d=json.load(r)
+                  status="HTTP 200 apps="+",".join(a["attributes"]["bundleId"] for a in d.get("data",[]))
+              except urllib.error.HTTPError as e:
+                  status=f"HTTP {e.code} {e.read()[:300].decode(errors='ignore')}"
+          except Exception as e:
+              status="key error: "+type(e).__name__+" "+str(e)[:150]
+          msg=" | ".join(notes+["Apple API: "+status])
+          print(msg)
+          print(("::notice::" if status.startswith("HTTP 200") else "::error::")+msg)
+          if not status.startswith("HTTP 200"): raise SystemExit(1)
+          PY
+
+      - name: Register device
+        env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+          UDID: ${{ inputs.udid }}
+          DEV_NAME: ${{ inputs.device_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re, time, base64, json, urllib.request, urllib.error, jwt
+          kid=os.environ["KEY_ID"].strip(); raw=os.environ["KEY_P8"]
+          iss=re.search(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',os.environ["ISSUER_ID"]).group(0).lower()
+          if "BEGIN PRIVATE KEY" not in raw:
+              body="".join(raw.split()); dec=base64.b64decode(body)
+              raw=("-----BEGIN PRIVATE KEY-----\n"+"\n".join(body[i:i+64] for i in range(0,len(body),64))+"\n-----END PRIVATE KEY-----\n") if dec[:1]==b"0" else dec.decode()
+          udid=os.environ["UDID"].strip().upper()
+          if not re.fullmatch(r'[0-9A-F]{8}-[0-9A-F]{16}|[0-9A-F]{40}', udid): raise SystemExit("::error::UDID format looks wrong")
+          tok=jwt.encode({"iss":iss,"iat":int(time.time()),"exp":int(time.time())+600,"aud":"appstoreconnect-v1"},raw,algorithm="ES256",headers={"kid":kid,"typ":"JWT"})
+          H={"Authorization":"Bearer "+tok,"Content-Type":"application/json"}
+          q=urllib.request.Request("https://api.appstoreconnect.apple.com/v1/devices?filter[udid]="+udid,headers=H)
+          d=json.load(urllib.request.urlopen(q,timeout=30))
+          if d.get("data"):
+              a=d["data"][0]["attributes"]; print(f"::notice::Device already registered: {a.get('name')} status={a.get('status')}")
+          else:
+              body=json.dumps({"data":{"type":"devices","attributes":{"name":os.environ["DEV_NAME"][:50],"udid":udid,"platform":"IOS"}}}).encode()
+              try:
+                  r=json.load(urllib.request.urlopen(urllib.request.Request("https://api.appstoreconnect.apple.com/v1/devices",data=body,headers=H,method="POST"),timeout=30))
+                  print("::notice::Device registered: "+r["data"]["attributes"]["name"])
+              except urllib.error.HTTPError as e:
+                  raise SystemExit("::error::register failed HTTP %d %s" % (e.code, e.read()[:300].decode(errors="ignore")))
+          PY
+
+      - name: Archive
+        if: env.DO_UPLOAD == 'true'
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+        run: |
+          set -e
+          for v in TEAM_ID KEY_ID ISSUER_ID KEY_P8; do
+            if [ -z "${!v}" ]; then echo "::error::السر $v غير موجود في إعدادات المستودع (Settings → Secrets → Actions)"; exit 1; fi
+          done
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          # يقبل نص الملف كما هو (BEGIN PRIVATE KEY) أو بصيغة Base64
+          if printf '%s' "$KEY_P8" | grep -q "BEGIN PRIVATE KEY"; then printf '%s\n' "$KEY_P8" > "$KEY_PATH"
+          else
+            BODY="$(printf '%s' "$KEY_P8" | tr -d ' \r\n\t')"
+            if printf '%s' "$BODY" | base64 --decode 2>/dev/null | head -c1 | grep -q '0'; then
+              { echo "-----BEGIN PRIVATE KEY-----"; printf '%s' "$BODY" | fold -w 64; echo; echo "-----END PRIVATE KEY-----"; } > "$KEY_PATH"
+            else printf '%s' "$BODY" | base64 --decode > "$KEY_PATH"; fi
+          fi
+          echo "KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Dalil.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="$MARKETING_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" OTHER_LDFLAGS='$(inherited) -weak_framework PushToTalk' \
+            TARGETED_DEVICE_FAMILY=1 \
+            archive > "$RUNNER_TEMP/archive.log" 2>&1 || { echo "::error::$(grep -E 'error:' "$RUNNER_TEMP/archive.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/archive.log"; exit 1; }
+          tail -5 "$RUNNER_TEMP/archive.log"
+          # الأرشيف غير موقّع؛ نوقّعه توقيعًا مؤقتًا مع الصلاحيات حتى يحتفظ بها التوقيع السحابي عند التصدير
+          APP="$RUNNER_TEMP/Dalil.xcarchive/Products/Applications/App.app"
+          for f in "$APP"/Frameworks/*; do [ -e "$f" ] && codesign --force --sign - --timestamp=none "$f"; done
+          codesign --force --sign - --entitlements ios/App/App/App.entitlements --timestamp=none "$APP"
+          echo "::notice::archive entitlements: $(codesign -d --entitlements :- "$APP" 2>/dev/null | tr -d '\n\t ' | grep -o 'aps-environment</key><string>[a-z]*' || echo NONE)"
+
+      - name: Export Ad Hoc
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -e
+          cat > "$RUNNER_TEMP/ExportAdHoc.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>release-testing</string>
+            <key>destination</key><string>export</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>thinning</key><string>&lt;none&gt;</string>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Dalil.xcarchive" -exportOptionsPlist "$RUNNER_TEMP/ExportAdHoc.plist" \
+            -exportPath "$RUNNER_TEMP/adhoc" -allowProvisioningUpdates \
+            -authenticationKeyPath "$KEY_PATH" -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER_ID" \
+            > "$RUNNER_TEMP/adhoc.log" 2>&1 || { echo "::error::$(grep -iE 'error|fail' "$RUNNER_TEMP/adhoc.log" | head -12 | paste -sd '|' -)"; tail -60 "$RUNNER_TEMP/adhoc.log"; exit 1; }
+          ls -la "$RUNNER_TEMP/adhoc"
+          IPA="$(ls "$RUNNER_TEMP"/adhoc/*.ipa | head -1)"; cp "$IPA" "$RUNNER_TEMP/Dalil.ipa"
+          cd "$RUNNER_TEMP" && rm -rf chk && mkdir chk && cd chk && unzip -q ../Dalil.ipa
+          E=$(codesign -d --entitlements :- Payload/App.app 2>/dev/null | tr -d '\n\t ')
+          echo "::notice::adhoc entitlements: $(echo "$E" | grep -o 'aps-environment</key><string>[a-z]*') push-to-talk=$(echo "$E" | grep -c push-to-talk)"
+          security cms -D -i Payload/App.app/embedded.mobileprovision > prof.plist
+          echo "::notice::profile: $(/usr/libexec/PlistBuddy -c 'Print :Name' prof.plist) devices=$(/usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' prof.plist | grep -c -- '-')"
+
+      - name: Publish install page
+        working-directory: ${{ runner.temp }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+          TAG="adhoc-$MARKETING_VERSION-$GITHUB_RUN_NUMBER"
+          gh release create "$TAG" Dalil.ipa --repo "$REPO" --prerelease --target main --title "تجريبي Ad Hoc $MARKETING_VERSION ($BUILD_NUMBER)" --notes "نسخة تجريبية للأجهزة المسجّلة فقط — ما تنثبت على غيرها."
+          IPA_URL="https://github.com/$REPO/releases/download/$TAG/Dalil.ipa"
+          PAGES="https://f10f100a-debug.github.io/dalil-app"
+          git clone --depth 1 "https://x-access-token:$GH_TOKEN@github.com/$REPO.git" site
+          mkdir -p site/adhoc
+          cat > site/adhoc/manifest.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict><key>items</key><array><dict>
+            <key>assets</key><array>
+              <dict><key>kind</key><string>software-package</string><key>url</key><string>$IPA_URL</string></dict>
+              <dict><key>kind</key><string>display-image</string><key>url</key><string>$PAGES/assets/icon-512.png</string></dict>
+              <dict><key>kind</key><string>full-size-image</string><key>url</key><string>$PAGES/assets/icon-512.png</string></dict>
+            </array>
+            <key>metadata</key><dict>
+              <key>bundle-identifier</key><string>com.alluhaybi.dalil</string>
+              <key>bundle-version</key><string>$BUILD_NUMBER</string>
+              <key>kind</key><string>software</string>
+              <key>title</key><string>دليل $MARKETING_VERSION تجريبي</string>
+            </dict>
+          </dict></array></dict></plist>
+          EOF
+          cat > site/adhoc/index.html <<EOF
+          <!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+          <title>دليل — نسخة تجريبية</title>
+          <style>body{font-family:-apple-system,system-ui,sans-serif;background:#f3efe7;color:#222;margin:0;padding:28px 18px;text-align:center}.c{max-width:420px;margin:0 auto;background:#fff;border-radius:22px;padding:24px;border:1px solid #e6dfd2}img{width:96px;border-radius:22px}a.b{display:block;background:#c8792a;color:#fff;text-decoration:none;font-weight:700;font-size:19px;padding:15px;border-radius:14px;margin:18px 0 8px}p{color:#6b6357;line-height:1.7;font-size:15px}</style></head>
+          <body><div class="c"><img src="../assets/icon-192.png" alt=""><h2>دليل $MARKETING_VERSION ($BUILD_NUMBER)</h2>
+          <a class="b" href="itms-services://?action=download-manifest&amp;url=$PAGES/adhoc/manifest.plist">تثبيت</a>
+          <p>افتح الصفحة من <b>سفاري</b>. بعد «تثبيت» اقفل سفاري وشوف الشاشة الرئيسية — الأيقونة تحمّل.<br>تنثبت فوق نسخة المتجر وبياناتك تبقى. للأجهزة المسجّلة فقط.</p></div></body></html>
+          EOF
+          cd site && git config user.name "github-actions" && git config user.email "github-actions@users.noreply.github.com"
+          git add adhoc && git commit -qm "Ad Hoc install page $MARKETING_VERSION ($BUILD_NUMBER)" && git push -q origin HEAD:main
+          echo "::notice::صفحة التثبيت: $PAGES/adhoc/"
