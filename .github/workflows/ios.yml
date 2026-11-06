@@ -621,10 +621,11 @@ jobs:
           // الآن navigator.geolocation في الصفحة يأخذ الموقع من النظام عن طريق التطبيق (إذن واحد باسم «دليل»)
           final class DalilVC: CAPBridgeViewController {
               private var proxy: DalilUIProxy?
-              override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
-                  let c = super.webViewConfiguration(for: instanceConfiguration)
-                  DalilGeo.shared.install(c.userContentController)
-                  return c
+              // Capacitor 7 يبدّل userContentController بعد webViewConfiguration(for:) (prepareWebView)، فكان الجسر ينمسح.
+              // نركّبه هنا: الإعدادات النهائية قبل إنشاء الصفحة مباشرة.
+              override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
+                  DalilGeo.shared.install(configuration.userContentController)
+                  return super.webView(with: frame, configuration: configuration)
               }
               override func capacitorDidLoad() {
                   super.capacitorDidLoad()
