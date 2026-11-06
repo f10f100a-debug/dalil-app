@@ -241,6 +241,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .hl-pill{font-size:11.5px;padding:3px 9px;border-radius:99px;background:#EDE6FB;color:#5B42A6;white-space:nowrap} .hl-pill.ok{background:#E3F2E0;color:#2F6F22}
   :is(html[data-theme=dark],html[data-theme=red]) .hl-pill{background:#2a2240;color:#cbb8ff} :is(html[data-theme=dark],html[data-theme=red]) .hl-pill.ok{background:#1f3324;color:#9fd38a}
   .hl-note{font-size:11.5px;color:var(--text-faint);line-height:1.6;margin-top:6px}
+  .ra-card h3{margin:0 0 4px} .ra-sub{font-size:13.5px;color:var(--text-faint);line-height:1.6}
+  .ra-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .ra-btns button{border:1px solid var(--line);background:var(--panel-2,#f6f2ea);border-radius:14px;padding:10px 2px;font:inherit;font-size:13.5px;color:inherit;cursor:pointer;line-height:1.35}
+  .ra-btns button span{display:block;font-size:22px} .ra-btns button.on{border-color:#1E5FA8;background:#E4EEF9;font-weight:700}
+  :is(html[data-theme=dark],html[data-theme=red]) .ra-btns button{background:#221e19} :is(html[data-theme=dark],html[data-theme=red]) .ra-btns button.on{background:#17263a;border-color:#5AB4E8}
+  .ra-done{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px} .ra-done button{background:none;border:0;color:var(--accent,#B8741A);font:inherit;font-size:13px;cursor:pointer}
   .track-map-frame{width:100%; height:min(60dvh,560px); min-height:420px; display:block; border:0; border-radius:10px;}
   #trackSvg{display:none;}
   .pl-more{display:block;width:100%;margin:2px 0 12px;padding:11px;border:1px dashed var(--line);border-radius:14px;background:transparent;color:var(--sand);font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
@@ -1346,7 +1352,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261104-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1420,6 +1426,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
+      <div class="cp-card ra-card" id="rainAskCard" hidden></div>
       <div class="cp-card al-card" id="alertsCard" hidden></div>
       <div class="cp-card al-card hl-card" id="hailCard" hidden></div>
       <button type="button" class="wxo-btn" id="wxoBtn">🔎 طقس مكان ثاني</button>
@@ -6600,7 +6607,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(e.target.closest('[data-al-more]')){ alAll = !alAll; renderAlerts(); return; }
     if(e.target.closest('[data-al-radar]')){ const b = document.getElementById('openRadarBtn'); if(b) b.click(); }
   });
-  window.__dalilShowAlerts = ()=>{ loadAlerts(false).then(renderAlerts); loadHail(false).then(renderHail); };
+  window.__dalilShowAlerts = ()=>{ loadAlerts(false).then(renderAlerts); loadHail(false).then(renderHail); loadRainAsk(); };
   // ---------- «🧊 وين نزل البرد اليوم؟»: رادار ≥55 مع برق (آخر 24 ساعة) + بلاغات الناس «برد» ----------
   const HL = {list:null, at:0, busy:null}; let hlAll = false;
   function hlName(lat, lng){
@@ -6650,6 +6657,57 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.getElementById('hailCard').addEventListener('click', e=>{
     if(e.target.closest('[data-hl-more]')){ hlAll = !hlAll; renderHail(); return; }
     const b = e.target.closest('[data-hl]'); if(b) openPlaceSheet('hl:' + b.dataset.hl);
+  });
+  // ---------- «🌧️ نزل عندك مطر؟»: إذا الرادار شاف مطر حولك اليوم (≥1 ملم)، جواب بضغطة يصحح الرادار ----------
+  // نرسل موقع تقريبي (حدود 5 كم) + الجواب، وجهاز واحد = جواب واحد باليوم (يقدر يعدّله).
+  const RA = {at:0, busy:null, mm:0, day:null, editing:false};
+  const RA_OPTS = [[0,'☀️','لا ما نزل'],[1,'🌦️','خفيف'],[2,'🌧️','غزير'],[3,'🌊','سيل']];
+  function raToday(){ return new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10); }
+  function raSaved(){ try{ const v = JSON.parse(localStorage.getItem('dalil_rain_ans') || 'null'); return v && v.day === raToday() ? v : null; }catch(e){ return null; } }
+  function raDev(){
+    try{ let id = localStorage.getItem('dalil_device_id'); if(!id){ id = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); localStorage.setItem('dalil_device_id', id); } return id; }catch(e){ return 'nodev-' + Date.now(); }
+  }
+  function loadRainAsk(){
+    const p = state.pos; if(!p || !Number.isFinite(p.lat)){ if((RA.wait = (RA.wait || 0) + 1) <= 6) setTimeout(loadRainAsk, 5000); return Promise.resolve(); }
+    if(RA.busy) return RA.busy;
+    if(Date.now() - RA.at < 10 * 60e3){ renderRainAsk(); return Promise.resolve(); }
+    RA.busy = fetch(DALIL_SB + '/rest/v1/rpc/rain_near_today', {method:'POST', cache:'no-store',
+      headers:{'Content-Type':'application/json', apikey:DALIL_KEY, authorization:'Bearer ' + DALIL_KEY}, body:JSON.stringify({p_lat:p.lat, p_lng:p.lng})})
+      .then(r=>r.ok ? r.json() : null).then(j=>{ if(j){ RA.mm = +j.mm || 0; RA.day = j.day || null; RA.at = Date.now(); } renderRainAsk(); })
+      .catch(()=>{}).finally(()=>{ RA.busy = null; });
+    return RA.busy;
+  }
+  function renderRainAsk(){
+    const card = document.getElementById('rainAskCard'); if(!card) return;
+    const saved = raSaved();
+    if(RA.mm < 1 && !saved){ card.hidden = true; return; }
+    const when = RA.day && RA.day !== raToday() ? 'أمس' : 'اليوم';
+    if(saved && !RA.editing){
+      const o = RA_OPTS.find(x=>x[0] === saved.ans) || RA_OPTS[0];
+      card.innerHTML = '<div class="ra-done"><span>' + o[1] + ' شكرًا! قلت: <b>' + o[2] + '</b> — جوابك يساعدنا نصحح الرادار.</span><button type="button" data-ra-edit>تعديل</button></div>';
+      card.hidden = false; return;
+    }
+    card.innerHTML = '<h3>🌧️ نزل عندك مطر ' + when + '؟</h3>' +
+      '<div class="ra-sub">الرادار شاف مطر حولك ' + when + ' (حوالي ' + iso(RA.mm < 10 ? RA.mm.toFixed(1) : Math.round(RA.mm)) + ' ملم). جوابك يساعدنا نصحح الرادار ونضبط أرقام الفقع والفياض.</div>' +
+      '<div class="ra-btns">' + RA_OPTS.map(o=>'<button type="button" data-ra="' + o[0] + '"' + (saved && saved.ans === o[0] ? ' class="on"' : '') + '><span>' + o[1] + '</span>' + o[2] + '</button>').join('') + '</div>' +
+      '<div class="hl-note">نحفظ موقعك تقريبي (حدود 5 كم) والجواب بس، بدون اسم.</div>';
+    card.hidden = false;
+  }
+  document.getElementById('rainAskCard').addEventListener('click', async e=>{
+    if(e.target.closest('[data-ra-edit]')){ RA.editing = true; renderRainAsk(); return; }
+    const b = e.target.closest('[data-ra]'); if(!b) return;
+    const p = state.pos; if(!p){ toast('بانتظار موقعك…'); return; }
+    const ans = +b.dataset.ra;
+    b.disabled = true;
+    try{
+      const r = await fetch(DALIL_SB + '/rest/v1/rpc/answer_rain', {method:'POST', cache:'no-store',
+        headers:{'Content-Type':'application/json', apikey:DALIL_KEY, authorization:'Bearer ' + DALIL_KEY},
+        body:JSON.stringify({p_lat:p.lat, p_lng:p.lng, p_ans:ans, p_dev:raDev(), p_src:'card'})});
+      const j = await r.json().catch(()=>({}));
+      if(!r.ok || !j.ok){ toast(j && j.error === 'limit' ? 'وصلنا أجوبة كثيرة من شبكتك اليوم — شكرًا لك' : 'تعذّر الإرسال — تأكد من الاتصال'); b.disabled = false; return; }
+      try{ localStorage.setItem('dalil_rain_ans', JSON.stringify({day:raToday(), ans})); }catch(err){}
+      RA.editing = false; renderRainAsk();
+    }catch(err){ toast('تعذّر الإرسال — تأكد من الاتصال'); b.disabled = false; }
   });
   function showAlertBanner(title, body, at){
     const el = document.getElementById('alertBanner'); if(!el || !title) return;

@@ -1,5 +1,5 @@
 // «نبّهني حسب موقعي» — التجربة الصامتة (pg_cron كل 10 دقايق).
-// 1) يحذف المواقع اللي مر عليها 24 ساعة (near_watch) والسجل الأقدم من 30 يوم.
+// 1) يحذف المواقع اللي مر عليها 24 ساعة (near_watch) والسجل الأقدم من 30 يوم، وأجوبة «نزل عندك مطر؟» بعد 9 شهور.
 // 2) للإطار الجديد من الرادار: مين من المشتركين في الخيار كانت بتجيه عاصفة أو برد «متجه نحوه» (near_hits)
 //    ويسجّله في near_dry_log ببصمة مختصرة — بدون أي إرسال، لين نراجع النتائج ونعتمد الإرسال.
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -22,6 +22,8 @@ Deno.serve(async (req) => {
     const now = Date.now();
     await sb.from("near_watch").delete().lt("updated_at", new Date(now - 24 * 3600e3).toISOString());
     if (Math.random() < 0.05) await sb.from("near_dry_log").delete().lt("at", new Date(now - 30 * 86400e3).toISOString());
+    // أجوبة «نزل عندك مطر؟» تنحذف بعد الموسم (9 شهور)
+    if (Math.random() < 0.02) await sb.from("rain_answers").delete().lt("at", new Date(now - 270 * 86400e3).toISOString());
     const { data: lastRow } = await sb.from("near_dry_log").select("frame").order("frame", { ascending: false }).limit(1).maybeSingle();
     const { data: newRow } = await sb.from("wx_trial_cells").select("frame").order("frame", { ascending: false }).limit(1).maybeSingle();
     const fLast = lastRow?.frame || new Date(now - 20 * 60e3).toISOString(), fNew = newRow?.frame;
