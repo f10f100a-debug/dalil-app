@@ -160,9 +160,9 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
 </style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script><script>window.addEventListener('error',function(e){try{parent!==window&&parent.__dalilReport&&parent.__dalilReport(e.message,'map.html:'+e.lineno+':'+e.colno)}catch(_){}});</script>
 <style>
 /* شريط الوقت سطرين */
-#rainTime{display:flex;flex-direction:column;line-height:1.3}#rainTime .rt-m{font-weight:800}#rainTime .rt-s{font-size:11px;font-weight:700;color:#4E6585}#rainTime .rt-s[hidden]{display:none}
+#rainTime{display:flex;flex-direction:column;line-height:1.3}#rainTime .rt-m{font-weight:800}#rainTime .rt-s{font-size:11px;font-weight:700;color:#4E6585;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}.rt-m{white-space:nowrap}#rainTime{min-width:0;overflow:hidden}#rainTime .rt-s[hidden]{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) #rainTime .rt-s{color:#9DB6D3}
-#rlMotion{display:none!important}
+#rlMotion{font-size:12px;font-weight:700;margin-top:4px}.radar-legend:not(.rl-open) #rlMotion{display:none!important}
 /* الخريطة المصغّرة: الطبقات صف تحت الخريطة، وبطاقة النقطة فوقه (خارج الخريطة) */
 body.embed:not(.fs){--qh:53px}
 body.embed:not(.fs) #plus,body.embed:not(.fs) #minus{display:none!important}
@@ -430,7 +430,9 @@ function radarLegendSync(){const lg=$('#radarLegend');if(!lg)return;const on=!!L
 addEventListener('resize',()=>{if(LP.radar)radarLegendSync()});
 // حركة المطر محسوبة في صفحة البوصلة (من لقطتين للرادار) وتصلنا هنا
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_RAIN_MOTION')return;const m=$('#rlMotion');if(!m)return;const v=e.data;
-  m.hidden=true;rvMotionTxt=(!v||!Number.isFinite(v.kmh)||v.kmh<5)?'':'يتجه '+v.dir+' '+v.kmh+' كم/س';refreshRainText()});
+  const ok=v&&Number.isFinite(v.kmh)&&v.kmh>=5,AR={'شمال':'↑','شمال شرق':'↗','شرق':'→','جنوب شرق':'↘','جنوب':'↓','جنوب غرب':'↙','غرب':'←','شمال غرب':'↖'};
+  // في الشريط مختصر (سهم + سرعة) عشان ما ينكسر على الشاشات الصغيرة، والجملة كاملة في دليل الألوان (ⓘ)
+  rvMotionTxt=ok?(AR[v.dir]||'')+'\u00A0'+v.kmh+'\u00A0كم/س':'';m.textContent=ok?'المطر يتجه '+v.dir+' بسرعة '+v.kmh+' كم/س':'';m.hidden=!ok;refreshRainText()});
 // بلاغات المستخدمين: «مطر عندي الآن» (آخر 3 ساعات) كنقاط على الخريطة
 const RR_URL='https://penhpgvjtxytgyrhmetg.supabase.co',RR_KEY='sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';let rrAt=0;
 async function loadRainReports(force){if(!glReady||(!force&&Date.now()-rrAt<120e3))return;rrAt=Date.now();
