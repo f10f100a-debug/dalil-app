@@ -6251,7 +6251,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
-      fetch('data/fayd-sites.json?v=1').then(r=>r.ok ? r.json() : null)
+      fetch('data/fayd-sites.json?v=2').then(r=>r.ok ? r.json() : null)
     ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
