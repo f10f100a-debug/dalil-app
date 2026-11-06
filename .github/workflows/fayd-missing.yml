@@ -1,0 +1,12 @@
+name: Fayd missing
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  m:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/fayd/missing.py
+      - run: |
+          git config user.email ci@dalil && git config user.name ci
+          git add data/fayd-missing.json && git commit -qm "Fayd missing candidates" && git pull -q --rebase && git push -q
