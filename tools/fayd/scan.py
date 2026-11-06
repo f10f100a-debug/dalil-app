@@ -98,14 +98,15 @@ def composite(items, how):
         nd, w, tr, crs = r
         if geo is None:
             geo = (tr, crs); water = w
-            v = nd; v2 = np.full_like(nd, np.nan) if how == "min" else None; continue
+            v = nd; v2 = np.full_like(nd, np.nan) if how == "min" else None; cnt = np.isfinite(nd).astype("uint8"); continue
         water |= w
         if how == "min":
             f1 = np.isnan(v) & np.isfinite(nd); f2 = ~f1 & np.isnan(v2) & np.isfinite(nd)
             v[f1] = nd[f1]; v2[f2] = nd[f2]
             if np.isfinite(v2).mean() > 0.97: break
         else:
-            v = np.fmax(v, nd)
+            v = np.fmax(v, nd); cnt += np.isfinite(nd)
+            if (cnt >= 2).mean() > 0.95: break
         del nd
     if v is None: return None, None, None
     if how == "min": v = np.where(np.isfinite(v2), np.fmin(v, v2), np.nan).astype("float32")
@@ -142,7 +143,7 @@ def near_named(la, lo, r=2.0):
 def do_tile(tile, now_items, dry_items):
     now, water, geo = composite(now_items[:5], "min")
     if now is None: return []
-    dry, w2, g2 = composite(dry_items[:4], "max")
+    dry, w2, g2 = composite(dry_items[:10], "max")
     if dry is None: return []
     tr, crs = geo
     ok = np.isfinite(now) & np.isfinite(dry) & ~water & ~w2
@@ -157,7 +158,7 @@ def do_tile(tile, now_items, dry_items):
         frac = np.where(vc >= 13, gc / np.maximum(vc, 1), 0)
     m = (frac >= FRAC) & ~np.isin(wc, (40, 50, 80, 90, 95))
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
-    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:5]]} dry {[i['properties']['datetime'][:10] for i in dry_items[:4]]}", flush=True)
+    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:5]]} ", flush=True)
     if TEST:
         for la, lo in [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]:
             xx, yy = wtransform("EPSG:4326", crs, [lo], [la]); c_, r_ = ~tr * (xx[0], yy[0]); c_, r_ = int(c_), int(r_)
