@@ -14,7 +14,7 @@ from scipy import ndimage
 sys.path.insert(0, os.path.dirname(__file__))
 import s2
 
-BBOX = [37.5, 24.5, 50.0, 32.3]
+BBOX = [38.0, 24.5, 50.0, 32.3]   # شرق 38: نتجنب الساحل والجزر (جزيرة المقيطع طلعت خضرة شاطئ)
 TEST = os.environ.get("SCAN_ONLY", "")   # نقاط lat:lng للتجربة: نمسح البلاطات اللي تغطيها بس          # الجوف والشمال وحائل والقصيم والشرقية وشمال الرياض
 PX = 2745                                # 10980/4 → 40 م
 C = 5                                    # المربع = 5×5 بكسل = 200 م
@@ -231,7 +231,7 @@ def main():
     try: prev = json.load(open("data/fayd-new.json"))
     except Exception: prev = None
     pn = prev["n"] if prev else 0
-    held = "publish" not in sys.argv[1:] and (prev is None or (max(pn, len(out)) >= 10 and abs(len(out) - pn) > 0.5 * max(pn, 1)))
+    held = TEST or lim or "publish" not in sys.argv[1:] and (prev is None or (max(pn, len(out)) >= 10 and abs(len(out) - pn) > 0.5 * max(pn, 1)))
     fn = "data/fayd-new-pending.json" if held else "data/fayd-new.json"
     json.dump(res, open(fn, "w"), ensure_ascii=False, separators=(",", ":"))
     if held:
