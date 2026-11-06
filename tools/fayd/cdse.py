@@ -40,6 +40,7 @@ def _one(idx, lat, lng, start, end):
             r = urllib.request.Request(STATS_URL, data=json.dumps(req).encode(), headers={"content-type": "application/json", "authorization": "Bearer " + token()})
             with urllib.request.urlopen(r, timeout=90) as resp: j = json.load(resp)
             best = None
+            if os.environ.get("CDSE_DEBUG"): print("cdse raw", idx, [(it["interval"]["from"][:10], it.get("outputs",{}).get("ndvi",{}).get("bands",{}).get("B0",{}).get("stats",{})) for it in j.get("data", [])], flush=True)
             for it in j.get("data", []):
                 o = it.get("outputs", {}); nd = o.get("ndvi", {}).get("bands", {}).get("B0", {}).get("stats", {})
                 gr = o.get("green", {}).get("bands", {}).get("B0", {}).get("stats", {})
