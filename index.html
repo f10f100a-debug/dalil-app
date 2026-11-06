@@ -910,6 +910,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .track-tools-toggle .tt-dot + .tt-lbl{margin-inline-start:0;}
   #screen-track .track-tools-toggle.rec{background:rgba(192,57,43,.10); border-color:rgba(192,57,43,.7); color:#8E1E17;}
   .track-tools-toggle.rec .tt-dot{animation:ttPulse 1.4s ease-in-out infinite;}
+  /* زر التسجيل والإيقاف ظاهر تحت الخريطة مباشرة (قبل: لازم تفتح الأدوات وتنزل تحت) */
+  #recPill{display:none !important;}
+  #screen-track .tt-bar{display:flex; gap:8px; margin-top:10px; align-items:stretch;}
+  #screen-track .tt-bar .track-tools-toggle{margin-top:0; flex:0 0 auto; width:auto; padding:0 14px; gap:6px;}
+  #screen-track .tt-bar .track-tools-toggle .tt-ch{margin-inline-start:0;}
+  .tt-rec{flex:1; display:flex; align-items:center; justify-content:center; gap:9px; min-height:52px; border-radius:14px; border:1.5px solid #B8802F; background:#C9964F; color:#2B1A05; font:inherit; font-weight:800; font-size:15.5px; cursor:pointer; padding:0 10px;}
+  .tt-rec .d{width:12px; height:12px; border-radius:50%; background:#C0392B; box-shadow:0 0 0 3px rgba(255,255,255,.45); flex:0 0 auto;}
+  .tt-rec.rec{background:rgba(192,57,43,.10); border-color:rgba(192,57,43,.75); color:#8E1E17;}
+  .tt-rec.rec .d{border-radius:3px; box-shadow:0 0 0 3px rgba(192,57,43,.18); animation:ttPulse 1.4s ease-in-out infinite;}
+  .tt-rec.retr{background:rgba(46,125,82,.12); border-color:rgba(46,125,82,.6); color:#1F5C3A;}
+  .tt-confirm{flex:1; display:flex; align-items:center; gap:8px; min-height:52px; box-sizing:border-box; padding:6px 10px; border-radius:14px; background:#FBE9E5; border:1px solid rgba(192,57,43,.35); font-weight:700; font-size:14px; color:#8E1E17;}
+  .tt-confirm[hidden]{display:none;}
+  #screen-track .tt-bar.confirm > .tt-rec, #screen-track .tt-bar.confirm > .track-tools-toggle{display:none;}
+  .tt-confirm span{flex:1;}
+  .tt-confirm button{border:0; border-radius:10px; padding:9px 12px; font:inherit; font-weight:800; font-size:14px; cursor:pointer;}
+  .tt-confirm .tt-yes{background:#C0392B; color:#fff;} .tt-confirm .tt-no{background:#fff; color:#3a2a18; border:1px solid var(--line);}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .tt-rec.rec{background:rgba(192,57,43,.18); color:#F2A69C;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .tt-confirm{background:#3A1F1B; color:#F2A69C;}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .tt-confirm .tt-no{background:#221E18; color:var(--sand-dim);}
+  body.map-fs .tt-bar, body.map-fs #ttConfirm{visibility:hidden;}
   @keyframes ttPulse{50%{box-shadow:0 0 0 7px rgba(192,57,43,0);}}
   :is(html[data-theme="dark"], html[data-theme="red"]) #screen-track .track-tools-toggle{background:rgba(201,150,79,.14); color:var(--sand-dim);}
   :is(html[data-theme="dark"], html[data-theme="red"]) #screen-track .track-tools-toggle.rec{background:rgba(192,57,43,.18); color:#F3A398;}
@@ -1352,11 +1372,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
-      <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false"><span class="tt-dot" aria-hidden="true"></span><span class="tt-lbl">تسجيل المسار وأدواته</span><span class="tt-ch" aria-hidden="true">⌃</span></button>
+      <div class="tt-bar" id="ttBar">
+        <button type="button" class="tt-rec" id="trackQuickBtn"><span class="d" aria-hidden="true"></span><span class="q">ابدأ التسجيل</span></button>
+        <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false" aria-label="أدوات المسار"><span class="tt-lbl">الأدوات</span><span class="tt-ch" aria-hidden="true">⌃</span></button>
+        <div class="tt-confirm" id="ttConfirm" hidden><span>توقف وتحفظ المسار؟</span><button type="button" class="tt-yes" id="ttStopYes">■ إيقاف وحفظ</button><button type="button" class="tt-no" id="ttStopNo">كمّل</button></div>
+      </div>
       <div class="track-tools-panel" id="trackToolsPanel">
       <div class="stat-grid" style="grid-template-columns:repeat(4,1fr); margin-top:12px;">
         <div class="stat"><div class="v" id="trkDist">0.0</div><div class="l">كم</div></div>
@@ -5360,15 +5384,36 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.querySelectorAll('.tab[data-screen="track"]').forEach(t=>t.addEventListener('click', startTrackFrame));
   const trackToolsPanel=document.getElementById('trackToolsPanel');
   const trackToolsToggle=document.getElementById('trackToolsToggle');
+  const trackQuickBtn = document.getElementById('trackQuickBtn'), ttConfirm = document.getElementById('ttConfirm');
   function renderToolsToggle(){
     const open = trackToolsPanel.classList.contains('open'), rec = !!state.tracking && !!state.trackStart;
-    trackToolsToggle.classList.toggle('rec', rec);
-    const lbl = rec ? 'جارٍ التسجيل · ' + (trackDistance(state.trackPoints) / 1000).toFixed(1) + ' كم · ' + fmtDuration(Date.now() - state.trackStart)
-      : open ? 'إخفاء أدوات المسار' : 'تسجيل المسار وأدواته';
+    const lbl = open ? 'إخفاء' : 'الأدوات';
     const l = trackToolsToggle.querySelector('.tt-lbl'), c = trackToolsToggle.querySelector('.tt-ch');
     if(l && l.textContent !== lbl) l.textContent = lbl;
     if(c) c.textContent = open ? '⌄' : '⌃';
+    const q = rec ? 'إيقاف وحفظ · ' + (trackDistance(state.trackPoints) / 1000).toFixed(1) + ' كم · ' + fmtDuration(Date.now() - state.trackStart)
+      : state.retracing ? '↩ جارٍ الرجوع من نفس المسار' : 'ابدأ التسجيل';
+    const qe = trackQuickBtn.querySelector('.q'); if(qe.textContent !== q) qe.textContent = q;
+    trackQuickBtn.classList.toggle('rec', rec); trackQuickBtn.classList.toggle('retr', !rec && !!state.retracing);
+    if(!rec) ttConfirm.hidden = true;
+    document.getElementById('ttBar').classList.toggle('confirm', !ttConfirm.hidden);
   }
+  // البدء بضغطة؛ الإيقاف يسأل أول (عشان ما ينقطع المسار من لمسة بالغلط)
+  function quickTrack(action){
+    const rec = !!state.tracking;
+    if(action === 'start' && !rec && !state.retracing) document.getElementById('trackToggleBtn').click();
+    else if(action === 'stop' && rec){ ttConfirm.hidden = true; document.getElementById('trackToggleBtn').click(); }
+    renderToolsToggle();
+  }
+  trackQuickBtn.addEventListener('click', ()=>{
+    if(state.retracing){ if(!trackToolsPanel.classList.contains('open')) trackToolsToggle.click(); return; }
+    if(!state.tracking) return quickTrack('start');
+    ttConfirm.hidden = false; renderToolsToggle();
+  });
+  document.getElementById('ttStopYes').addEventListener('click', ()=>quickTrack('stop'));
+  document.getElementById('ttStopNo').addEventListener('click', ()=>{ ttConfirm.hidden = true; renderToolsToggle(); });
+  // من الخريطة وهي ملء الشاشة (تأكيد الإيقاف يصير داخل الخريطة بضغطتين)
+  window.addEventListener('message', e=>{ if(e.origin === location.origin && e.data && e.data.type === 'DALIL_TRACK_TOGGLE') quickTrack(e.data.action); });
   trackToolsToggle.addEventListener('click',()=>{
     const open=trackToolsPanel.classList.toggle('open');
     trackToolsToggle.setAttribute('aria-expanded',String(open));
@@ -5390,7 +5435,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const scrolled = window.scrollY || 0;
     const frameTop = f.getBoundingClientRect().top + scrolled;   // موضعها والصفحة في الأعلى
     const bottom = Math.max(bar.getBoundingClientRect().top, vh - bar.offsetHeight);
-    const h = Math.max(320, Math.round(bottom - frameTop - trackToolsToggle.offsetHeight - 30));
+    const h = Math.max(320, Math.round(bottom - frameTop - (document.getElementById('ttBar').offsetHeight || trackToolsToggle.offsetHeight) - 30));
     if(Math.abs((parseFloat(f.style.height) || 0) - h) > 2) f.style.height = h + 'px';
   }
   // ملء الشاشة للخريطة: الزر داخل الخريطة يطلب، والرجوع (سحب/زر الجوال) يقفله
