@@ -44,6 +44,16 @@ if(navigator.sendBeacon)navigator.sendBeacon(U,new Blob([b],{type:'text/plain'})
 window.addEventListener('error',function(e){window.__dalilReport(e.message,String(e.filename||'').split('/').pop()+':'+e.lineno+':'+e.colno)});
 window.addEventListener('unhandledrejection',function(e){var r=e.reason;window.__dalilReport('promise: '+(r&&(r.message||r.name)||r),r&&r.stack?String(r.stack).split('\n')[1]:'')});})();
 </script>
+<script>/* فحص مؤقت لجسر الموقع في نسخة الآيفون 1.8: هل الصفحة تاخذ الموقع من التطبيق ولا تطلبه بنفسها؟ (بدون موقع ولا بيانات شخصية) */
+(function(){try{if(!/DalilApp\/(1\.(8|9)|[2-9])/.test(navigator.userAgent))return;
+var R=function(m,s){try{var f=window.__dalilReport||(window.parent!==window&&window.parent.__dalilReport);if(f)f(m,s)}catch(e){}};
+var where=window===window.top?'top':'frame';
+function st(){var h=!!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.dalilgeo),api=window.__dalilGeoApi;if(!api)try{api=window.top.__dalilGeoApi}catch(e){}
+return 'h='+(h?1:0)+' api='+(api?1:0)+' same='+(api&&navigator.geolocation===api?1:0)+' own='+(Object.prototype.hasOwnProperty.call(navigator,'geolocation')?1:0)+' st='+(window.__dalilGeoState||'-')}
+R('geo-diag start '+where+' '+st(),'diag '+(location.pathname.split('/').pop()||'index'));
+var GP=window.Geolocation&&Geolocation.prototype;if(GP)['getCurrentPosition','watchPosition'].forEach(function(m){var o=GP[m];if(typeof o!=='function')return;
+GP[m]=function(){var s=String(new Error().stack||'').split('\n').slice(0,4).map(function(x){return x.trim().replace(/https?:\/\/[^\/]+\//,'').slice(0,50)}).join('|');R('geo-diag REAL '+m+' '+where+' '+st(),s.slice(0,160));return o.apply(this,arguments)}});
+}catch(e){}})();</script>
 <style>.in-app #installHelpBtn,.in-app #installOverlay,.in-app #frameWarning,.in-app:not(.native-push) #pushTitle,.in-app:not(.native-push) #pushBox,.in-app:not(.native-push) #pushAsk{display:none!important}</style>
 <script>
 // تطبيق المظهر قبل رسم الصفحة لتجنّب الوميض الأبيض ليلًا.
@@ -1352,7 +1362,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-2" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
