@@ -1,0 +1,13 @@
+name: S2 list
+on:
+  workflow_dispatch:
+    inputs:
+      bbox: { type: string, default: "41.6,30.0,41.8,30.1" }
+      dt: { type: string, default: "2026-10-28T00:00:00Z/2026-11-07T00:00:00Z" }
+jobs:
+  l:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "== CDSE"; curl -s "https://catalogue.dataspace.copernicus.eu/stac/collections/sentinel-2-l2a/items?bbox=${{ inputs.bbox }}&datetime=${{ inputs.dt }}&limit=30" | python3 -c "import sys,json;j=json.load(sys.stdin);[print('::notice::CDSE',f['id'][:70],f['properties'].get('datetime'),f['properties'].get('eo:cloud_cover')) for f in j.get('features',[])] or print('::notice::CDSE none', str(j)[:200])"
+          echo "== PC"; curl -s -X POST https://planetarycomputer.microsoft.com/api/stac/v1/search -H 'content-type: application/json' -d '{"collections":["sentinel-2-l2a"],"bbox":['"${{ inputs.bbox }}"'],"datetime":"${{ inputs.dt }}","limit":30}' | python3 -c "import sys,json;j=json.load(sys.stdin);[print('::notice::PC',f['id'][:70],f['properties'].get('datetime'),f['properties'].get('eo:cloud_cover')) for f in j.get('features',[])]"
