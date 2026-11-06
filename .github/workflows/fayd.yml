@@ -1,7 +1,7 @@
-# حالة الفياض: تحديث مرتين بالأسبوع من Sentinel-2 (10 م) وMODIS (Planetary Computer) → data/fayd.json
+# حالة الفياض: تحديث يومي (من 6 نوفمبر؛ قبل مرتين بالأسبوع) من Sentinel-2 (10 م) وMODIS (Planetary Computer) → data/fayd.json
 name: Fayd
 on:
-  schedule: [{ cron: "17 3 * * 2,5" }]
+  schedule: [{ cron: "17 3 * * *" }]
   workflow_dispatch:
     inputs:
       mode: { description: "baseline أو s2base أو force (ينشر حتى لو تغيّر كثير) أو فاضي للتحديث", type: string, default: "" }

@@ -541,7 +541,7 @@ for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],[
   if(key==='radar'&&LP.radar){status.textContent=navigator.onLine?'رادار الأمطار: الأزرق خفيف والأصفر والأحمر غزير — اضغط ▶ لترى اتجاه المطر لآخر ساعتين':'الرادار يحتاج اتصالًا بالإنترنت';if(z>10){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=9;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='lightning'&&LP.lightning)status.textContent=navigator.onLine?'البرق: مناطق الصواعق في آخر دقائق — ابتعد عن الأودية والمرتفعات إذا كانت قريبة منك':'طبقة البرق تحتاج اتصالًا بالإنترنت';
   if(key==='water'&&LP.water)status.textContent=navigator.onLine?'مياه السيول: الأزرق الفاتح أماكن يتجمّع فيها الماء عادة (غدران وروض وسدود)، والأزرق الغامق مياه رصدها القمر آخر يومين':'طبقة المياه تحتاج اتصالًا بالإنترنت';
-  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: 🟢 فيضة خضراء مؤكدة · 🟡 تحتاج تأكيد (قمر Sentinel، تتحدث مرتين بالأسبوع). والتظليل الأخضر من NASA متأخر أسبوع تقريبًا':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
+  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: 🟢 فيضة خضراء مؤكدة · 🟡 تحتاج تأكيد (قمر Sentinel، تتحدث يوميًا). والتظليل الأخضر من NASA متأخر أسبوع تقريبًا':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
@@ -1198,7 +1198,7 @@ gl.on('load',async()=>{
   syncRegions();
   addUserMaps();
 });
-// الفياض الخضراء من قائمة دليل نفسها (Sentinel-2، دقة 10 م، تتحدث مرتين بالأسبوع) — تظهر مع طبقة «الربيع»
+// الفياض الخضراء من قائمة دليل نفسها (Sentinel-2، دقة 10 م، تتحدث يوميًا) — تظهر مع طبقة «الربيع»
 // أخضر = مؤكدة · أصفر = «تحتاج تأكيد» · الحجم حسب الخضرة. الضغط عليها يحددها كوجهة باسمها
 let FY=[],fyLoaded=false;
 async function loadFaydLayer(){

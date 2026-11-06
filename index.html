@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-6" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1828,6 +1828,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         <button type="button" class="cp-sheet-item" id="placeSheetWadi" hidden><span class="cp-ic" data-ico="nav"></span><span><b>توجّه إلى أقرب نقطة من الوادي</b><small id="placeSheetWadiSub"></small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetWx"><span class="cp-ic" data-ico="partly"></span><span><b>طقس هذا المكان</b><small>متى المطر والأيام السبعة والرياح</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetGmaps"><span class="cp-ic" data-ico="map"></span><span><b>خرائط Google</b><small>طريق السيارة</small></span></button>
+        <button type="button" class="cp-sheet-item" id="placeSheetSat" hidden><span class="cp-ic" data-ico="leaf"></span><span><b>🛰️ صورة القمر الصناعي اليوم</b><small>خضرة المكان من Sentinel-2 (Copernicus) — آخر 10 أيام</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetSpring" hidden><span class="cp-ic" data-ico="leaf"></span><span><b>تفاصيل الربيع</b><small>الاخضرار والأمطار حولها</small></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetShare"><span class="cp-ic" data-ico="send"></span><span><b>مشاركة الموقع</b></span></button>
         <button type="button" class="cp-sheet-item" id="placeSheetCopy"><span class="cp-ic" data-ico="copy"></span><span><b>نسخ الإحداثيات</b></span></button>
@@ -4730,6 +4731,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('placeSheetRename').hidden = isCar || isCatalog;
     document.getElementById('placeSheetSave').hidden = !isCatalog;
     document.getElementById('placeSheetSpring').hidden = !place.spring;
+    document.getElementById('placeSheetSat').hidden = !(String(id).startsWith('fy:') || place.spring);
     document.getElementById('placeSheetDelete').hidden = isCatalog;
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
     updateWadiButton(place);
@@ -4827,6 +4829,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const place = findPlace(sheetPlaceId);
     closePlaceSheet();
     if(place) window.open('https://www.google.com/maps/dir/?api=1&destination=' + place.lat.toFixed(6) + ',' + place.lng.toFixed(6), '_blank', 'noopener');
+  });
+  // الخضرة في صور Sentinel-2 الأصلية (نفس القمر اللي نحسب منه الفياض) — عشان المستخدم يتأكد بعينه
+  document.getElementById('placeSheetSat').addEventListener('click', ()=>{
+    const place = findPlace(sheetPlaceId);
+    closePlaceSheet();
+    if(!place) return;
+    const d = new Date(), from = new Date(Date.now() - 10 * 86400e3), day = x=>x.toISOString().slice(0, 10);
+    const q = new URLSearchParams({zoom:'14', lat:place.lat.toFixed(5), lng:place.lng.toFixed(5), themeId:'DEFAULT-THEME', datasetId:'S2_L2A_CDAS',
+      fromTime:day(from) + 'T00:00:00.000Z', toTime:day(d) + 'T23:59:59.999Z', layerId:'3_NDVI', cloudCoverage:'30', dateMode:'MOSAIC'});
+    window.open('https://browser.dataspace.copernicus.eu/?' + q.toString(), '_blank', 'noopener');
   });
   document.getElementById('placeSheetSpring').addEventListener('click', ()=>{
     const place = findPlace(sheetPlaceId);
