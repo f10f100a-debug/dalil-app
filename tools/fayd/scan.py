@@ -189,7 +189,11 @@ def main():
     dryi = s2.search(BBOX, f"{y}-08-25T00:00:00Z/{y}-10-05T23:59:59Z", 10)
     g = lambda its: {t: sorted([i for i in its if i["properties"].get("s2:mgrs_tile") == t], key=lambda i: (i["properties"]["eo:cloud_cover"] > 5, i["properties"]["datetime"]), reverse=False) for t in {i["properties"].get("s2:mgrs_tile") for i in its}}
     N = {t: sorted(v, key=lambda i: i["properties"]["datetime"], reverse=True) for t, v in g(nowi).items()}
-    D = {t: sorted(v, key=lambda i: i["properties"]["eo:cloud_cover"]) for t, v in g(dryi).items()}
+    # الجفاف: الصور الكاملة أول (المدار الجانبي يغطي جزء من البلاطة بس — s2:nodata_pixel_percentage)
+    D = {t: sorted(v, key=lambda i: (i["properties"]["eo:cloud_cover"] > 3, i["properties"].get("s2:nodata_pixel_percentage", 0) > 5, i["properties"]["eo:cloud_cover"])) for t, v in g(dryi).items()}
+    for t in D:   # ونخلط بين المدارات: نضمن وجود صور جزئية بعد الكاملة عشان تنغطى كل الأجزاء
+        full = [i for i in D[t] if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5]; part = [i for i in D[t] if i not in full]
+        D[t] = full[:4] + part[:6] + full[4:]
     tiles = sorted(set(N) & set(D))
     lim = int(os.environ.get("SCAN_TILES", "0") or 0)
     if TEST:   # نقاط lat:lng → البلاطات اللي تغطيها
