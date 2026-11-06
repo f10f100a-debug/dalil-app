@@ -292,7 +292,7 @@ function onHeadingChanged(){
     const h=currentHeading();
     if(dot.classList.contains('has-heading')!==(h!==null))dot.classList.toggle('has-heading',h!==null);
     if(h!==null)dot.style.setProperty('--hdg',h.toFixed(1));
-    if(view==='heading'&&h!==null){const wasRotated=isRotated();setRot(h);if(!wasRotated)render()}
+    if(view==='heading'&&h!==null){if(!isRotated()){rotTarget=h;setRot(h);render()}else smoothRot(h)}
     updateNavigation()});
 }
 // اتجاه الجوال من التطبيق نفسه (البوصلة اللي في الصفحة الرئيسية): في آيفون الخريطة المضمّنة ما تقدر تطلب إذن المستشعر
@@ -593,7 +593,7 @@ function openCluster(c){let limit=mapMode==='online'?maxZ:maxLocalZ,n=Math.min(l
 function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
 function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
 function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
-  if(trackPoints.length){let pts=trackPoints.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${line}" fill="none" stroke="#E0231B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6.5" fill="#1C1A17" stroke="#fff" stroke-width="2.2"/>`}
+  if(trackPoints.length){const st=Math.ceil(trackPoints.length/700),src=st>1?trackPoints.filter((p,i)=>i%st===0||i===trackPoints.length-1):trackPoints;let pts=src.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];shapes+=`<polyline points="${line}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${line}" fill="none" stroke="#E0231B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6.5" fill="#1C1A17" stroke="#fff" stroke-width="2.2"/>`}
   if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
   trackOverlay.innerHTML=shapes}
 function detailZ(){return mapMode==='online'?16:14}
@@ -636,8 +636,28 @@ $('#plus').onclick=()=>{if(view==='fit')releaseView();zoomTo(z+1)};$('#minus').o
 
 // ---------- GPS ----------
 function statusForPosition(){const acc=Number.isFinite(gps.acc)?' — دقة GPS '+iso('±'+Math.round(gps.acc))+' م':'';return navigationActive?'التوجيه على الخريطة نشط'+acc:iso(fmtCoords(gps.lat,gps.lng))+acc}
+// حركة ناعمة أثناء التتبع: بدل ما تنط الخريطة والسهم لكل موقع جديد (كل ثانية تقريبًا = ~33 م على 120 كم/س)،
+// ينزلقون من الموضع الحالي للجديد خلال الفترة بين القراءتين، كل إطار (60 مرة في الثانية). أكثر من 300 م = قفزة مباشرة.
+let glideRAF=0,glideFrom=null,glideTo=null,glideT0=0,glideDur=1000,lastFixAt=0;
+function gapM(a,b){const k=111320,dx=(b.lng-a.lng)*k*Math.cos(a.lat*Math.PI/180),dy=(b.lat-a.lat)*k;return Math.hypot(dx,dy)}
+function setGpsSmooth(next){
+  const now=performance.now(),gap=now-lastFixAt;lastFixAt=now;
+  if(!gps||document.hidden||!(view==='follow'||view==='heading')||gapM(gps,next)>300){glideTo=null;gps=next;return}
+  glideFrom={lat:gps.lat,lng:gps.lng};glideTo=next;glideT0=now;glideDur=Math.min(1600,Math.max(350,gap||1000));
+  gps={...next,lat:gps.lat,lng:gps.lng};
+  if(!glideRAF)glideRAF=requestAnimationFrame(glideStep);
+}
+let glideLast=0;
+function glideStep(t){glideRAF=0;if(!glideTo||!gps)return;if(t-glideLast<28&&t-glideT0<glideDur){glideRAF=requestAnimationFrame(glideStep);return}glideLast=t;const k=Math.min(1,Math.max(0,(t-glideT0)/glideDur));
+  gps.lat=glideFrom.lat+(glideTo.lat-glideFrom.lat)*k;gps.lng=glideFrom.lng+(glideTo.lng-glideFrom.lng)*k;
+  if(view==='follow'||view==='heading')centerOnGps();render();
+  if(k<1)glideRAF=requestAnimationFrame(glideStep);else{glideTo=null;updateNavigation()}}
+// دوران ناعم مع اتجاه السيارة (يتجاهل الرجفات الصغيرة)
+let rotTarget=null,rotRAF=0;
+function smoothRot(h){if(rotTarget!==null&&Math.abs(((h-rotTarget)%360+540)%360-180)<1.5)return;rotTarget=h;if(!rotRAF)rotRAF=requestAnimationFrame(rotStep)}
+function rotStep(){rotRAF=0;if(rotTarget===null||view!=='heading')return;const d=((rotTarget-rot)%360+540)%360-180;if(Math.abs(d)<0.4){setRot(rotTarget);return}setRot(rot+d*0.16);rotRAF=requestAnimationFrame(rotStep)}
 function acceptPosition(p,center=true){
-  const c=p.coords;ownGpsAt=Date.now();gps={lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null};
+  const c=p.coords;ownGpsAt=Date.now();setGpsSmooth({lat:c.latitude,lng:c.longitude,acc:c.accuracy,speed:Number.isFinite(c.speed)?c.speed:null});
   if(typeof c.heading==='number'&&Number.isFinite(c.heading)&&c.heading>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){
     gpsCourse=c.heading;gpsCourseAt=Date.now();
     if(deviceHeading!==null&&Date.now()-deviceHeadingAt<2000){const m=angleDiff(gpsCourse,deviceHeading);courseOffset=courseOffset===null||Math.abs(angleDiff(m,courseOffset))>45?m:norm360(courseOffset+.35*angleDiff(m,courseOffset))}
@@ -693,7 +713,7 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
   let pos=e.data.position,mode=e.data.mode||'view';
   // موقع التطبيق يُعتمد إذا الخريطة ما عندها GPS خاص حديث (في آيفون GPS الإطار المضمّن أحيانًا ما يشتغل)
   if(pos&&Number.isFinite(pos.lat)&&Number.isFinite(pos.lng)&&(geoWatch===null||Date.now()-ownGpsAt>8000)){
-    gps={lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:Number.isFinite(pos.speed)?pos.speed:null};
+    setGpsSmooth({lat:pos.lat,lng:pos.lng,acc:pos.accuracy,speed:Number.isFinite(pos.speed)?pos.speed:null});
     // اتجاه الحركة من GPS التطبيق (وضع «اتجاه الحركة» و«تلقائي» أثناء القيادة)
     if(Number.isFinite(pos.course)&&pos.course>=0&&gps.speed!==null&&gps.speed*3.6>GPS_COURSE_MIN_KMH){gpsCourse=pos.course;gpsCourseAt=Date.now()}
     if(view==='follow'&&orientMode==='auto'&&headingPref!=='north'&&isDriving()&&!manualRot)enterHeading();
