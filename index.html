@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-10" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261106-11" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6251,7 +6251,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
-      fetch('data/fayd-sites.json?v=3').then(r=>r.ok ? r.json() : null)
+      fetch('data/fayd-sites.json?v=4').then(r=>r.ok ? r.json() : null)
     ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
@@ -6297,7 +6297,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}</span>${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}</span>${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------

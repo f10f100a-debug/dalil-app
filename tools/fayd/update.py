@@ -162,10 +162,11 @@ s2dates = []
 farm = []          # فياض فيها زراعة (خضراء وقت الجفاف بالقمر الدقيق) — ما نقدر نقيس ربيعها
 # MODIS بديل فقط إذا صورته حديثة (كانت تُستخدم صور عمرها شهر وتنعرض كأنها «آخر صورة 29 أكتوبر»)
 modis_fresh = bool(dates) and (today - dtm.date.fromisoformat(dates[-1])).days <= 16
+SKIP = {1703}      # «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع)
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
     b = base[i]; v = [r[i] for r in res.values() if i in r]
-    if not b: continue
+    if not b or i in SKIP: continue
     dry, med, top = b
     if dry > 0.25: continue                          # خضراء حتى في الصيف = مزارع أو شجر كثيف
     span = max(0.03, med - dry)
@@ -181,6 +182,10 @@ for i, s in enumerate(SITES):
         st_ = 0 if not started else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
         check = 1 if g > JUMP else 0
         if check: st_ = 1                            # ما ننبّه عنها ولا نقول «أخضر من المعتاد» لين تتأكد ميدانيًا
+        # 6 نوفمبر (فياض قور الارانب): الفيضة الجرداء جدًا أي زيادة صغيرة تطلعها «4» — الدرجة لازم تعكس المساحة اللي خضرت فعلًا
+        gf = max(0, gain_frac) * 100
+        if st_ >= 2 and gf < 10: st_ = 1; check = 4      # بداية خفيفة (أقل من 10% من المساحة) → «تحتاج تأكيد» بدون تنبيه
+        elif st_ >= 2: st_ = min(st_, 2 if gf < 25 else 3 if gf < 50 else 4)
         rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1, check, d8]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
     elif v and modis_fresh:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
