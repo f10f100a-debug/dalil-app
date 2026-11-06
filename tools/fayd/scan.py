@@ -122,6 +122,12 @@ def label(la, lo):
     ang = (math.degrees(math.atan2((lo - b) * math.cos(math.radians(la)), la - a)) + 360) % 360
     return f"خضرة جديدة · {round(d)} كم {DIRS[int((ang + 22.5) // 45) % 8]} {nm}", nm
 
+G = json.load(open("data/region-grid.json"))
+def in_ksa(la, lo):
+    i = int((la - G["lat0"]) // G["r"]); j = int((lo - G["lng0"]) // G["r"])
+    if i < 0 or j < 0 or i >= G["rows"] or j >= G["cols"]: return False
+    return 0 <= ord(G["g"][i * G["cols"] + j]) - 97 < len(G["regions"])
+
 def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
@@ -178,7 +184,7 @@ def main():
     found.sort(key=lambda r: -r[2] * r[3])
     rows = []
     for r in found:
-        if near_named(r[0], r[1]): continue
+        if not in_ksa(r[0], r[1]) or near_named(r[0], r[1]): continue
         if any(km(r[0], r[1], q[0], q[1]) < 2 for q in rows): continue
         rows.append(r)
     rows = rows[:400]
