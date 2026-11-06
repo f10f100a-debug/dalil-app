@@ -133,7 +133,7 @@ def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
 def do_tile(tile, now_items, dry_items):
-    now, water, geo = composite(now_items[:3], "min")
+    now, water, geo = composite(now_items[:2], "min")   # أحدث صورتين (الثالثة تكون قبل بداية الخضرة غالبًا)
     if now is None: return []
     dry, w2, g2 = composite(dry_items[:4], "max")
     if dry is None: return []
