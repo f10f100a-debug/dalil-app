@@ -17,6 +17,8 @@ TEST = os.environ.get("SCAN_ONLY", "")   # نقاط lat:lng للتجربة: نم
 PX = 1372                                # 10980/8 → 80 م
 HA = 0.64                                # مساحة البكسل بالهكتار
 MIN_HA = 20
+NOW_MIN = float(os.environ.get("SCAN_NOW") or 0.13)   # بداية الربيع: NDVI ‏0.13–0.2 على 80 م
+D_MIN = float(os.environ.get("SCAN_D") or 0.05)
 T0 = time.time()
 today = dtm.date.today()
 y = today.year if today.month >= 8 else today.year - 1
@@ -131,9 +133,10 @@ def do_tile(tile, now_items, dry_items):
     tr, crs = geo
     wc = worldcover(tr, crs)
     d = now - dry
-    m = (now >= 0.16) & (d >= 0.07) & (dry < 0.2) & ~water & ~w2 & ~np.isin(wc, (40, 50, 80, 90, 95))
+    m = (now >= NOW_MIN) & (d >= D_MIN) & (dry < 0.2) & ~water & ~w2 & ~np.isin(wc, (40, 50, 80, 90, 95))
     m = ndimage.binary_opening(m, iterations=1)
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
+    print(f"::notice::tile {tile}: valid {int(np.isfinite(now).sum())} new-green px {int(m.sum())} patches {n}", flush=True)
     if not n: return []
     idx = np.arange(1, n + 1)
     cnt = ndimage.sum(m, lab, idx)
