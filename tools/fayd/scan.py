@@ -150,7 +150,13 @@ def do_tile(tile, now_items, dry_items):
         frac = np.where(vc >= 13, gc / np.maximum(vc, 1), 0)
     m = (frac >= FRAC) & ~np.isin(wc, (40, 50, 80, 90, 95))
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
-    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n}", flush=True)
+    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:2]]} dry {[i['properties']['datetime'][:10] for i in dry_items[:4]]}", flush=True)
+    if TEST:
+        for la, lo in [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]:
+            xx, yy = wtransform("EPSG:4326", crs, [lo], [la]); c_, r_ = ~tr * (xx[0], yy[0]); c_, r_ = int(c_), int(r_)
+            if 3 <= r_ < PX - 3 and 3 <= c_ < PX - 3:
+                sl = (slice(r_ - 3, r_ + 4), slice(c_ - 3, c_ + 4))
+                print(f"DBG {la},{lo} in {tile}: now {np.round(np.nanmax(now[sl]), 3)} med {np.round(np.nanmedian(now[sl]), 3)} dry {np.round(np.nanmedian(dry[sl]), 3)} green px {int(g[sl].sum())}/49 valid {int(ok[sl].sum())}", flush=True)
     if not n: return []
     idx = np.arange(1, n + 1)
     area = ndimage.sum(gc * m, lab, idx) * HA
