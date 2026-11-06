@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 STATS_URL = "https://sh.dataspace.copernicus.eu/api/v1/statistics"
-HALF_M = 205
+HALF_M = int(os.environ.get("CDSE_HALF_M", "205"))
 EVAL = """//VERSION=3
 function setup(){return{input:[{bands:["B04","B08","SCL","dataMask"]}],output:[{id:"ndvi",bands:1,sampleType:"FLOAT32"},{id:"green",bands:1,sampleType:"FLOAT32"},{id:"dataMask",bands:1}]}}
 function evaluatePixel(s){var ok=s.dataMask==1&&(s.SCL==4||s.SCL==5||s.SCL==6)&&s.B04>0&&s.B08>0;var n=(s.B08-s.B04)/(s.B08+s.B04);
@@ -33,7 +33,7 @@ def _one(idx, lat, lng, start, end):
                      "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 80}}]},
            "aggregation": {"timeRange": {"from": start + "T00:00:00Z", "to": end + "T23:59:59Z"}, "aggregationInterval": {"of": "P1D"},
                            "evalscript": EVAL, "resx": 0.00009, "resy": 0.00009},
-           "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [75]}}}}}}
+           "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [75, 95]}}}}}}
     for k in range(4):
         try:
             calls += 1

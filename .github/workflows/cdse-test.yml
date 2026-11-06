@@ -5,6 +5,7 @@ on:
     inputs:
       sites: { description: "أرقام الفياض مفصولة بفواصل", type: string, default: "368,384" }
       days: { description: "كم يوم للخلف", type: string, default: "12" }
+      half_m: { description: "نصف عرض المربع بالمتر", type: string, default: "205" }
 jobs:
   t:
     runs-on: ubuntu-latest
@@ -16,6 +17,7 @@ jobs:
           SITES: ${{ inputs.sites }}
           DAYS: ${{ inputs.days }}
           CDSE_DEBUG: '1'
+          CDSE_HALF_M: ${{ inputs.half_m }}
         run: |
           cd tools/fayd && python3 - <<'PY'
           import json, os, datetime as dt, cdse
