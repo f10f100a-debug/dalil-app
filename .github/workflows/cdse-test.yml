@@ -1,0 +1,33 @@
+# تجربة Copernicus (Sentinel Hub) على فياض محددة ومقارنتها بالمصدر الحالي
+name: CDSE test
+on:
+  workflow_dispatch:
+    inputs:
+      sites: { description: "أرقام الفياض مفصولة بفواصل", type: string, default: "368,384" }
+      days: { description: "كم يوم للخلف", type: string, default: "12" }
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
+          CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+          SITES: ${{ inputs.sites }}
+          DAYS: ${{ inputs.days }}
+        run: |
+          cd tools/fayd && python3 - <<'PY'
+          import json, os, datetime as dt, cdse
+          if not cdse.available(): raise SystemExit("::error::CDSE secrets missing")
+          S = json.load(open("../../data/fayd-sites.json")); F = json.load(open("../../data/fayd.json"))
+          sb = json.load(open("../../data/fayd-s2base.json"))["base"]
+          row = {r[0]: r for r in F["rows"]}
+          ids = [int(x) for x in os.environ["SITES"].split(",") if x.strip()]
+          end = dt.date.today(); start = end - dt.timedelta(days=int(os.environ["DAYS"]))
+          res = cdse.sample([(i, S[i][1], S[i][2]) for i in ids], start.isoformat(), end.isoformat())
+          for i in ids:
+              c = res.get(i, [None])[0]; b = sb[i]; r = row.get(i)
+              g = round((c[1] - b[0]) * 1000) if c and b else None
+              print(f"::notice::{S[i][0]} ({S[i][3]}): Copernicus {c} → خضرة {g} | المنشور عندنا {r[1] if r else '-'} صورة {r[6] if r else '-'}")
+          print(f"::notice::requests {cdse.calls}")
+          PY
