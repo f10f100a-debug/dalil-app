@@ -155,6 +155,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
 .rl-report{all:unset;pointer-events:auto;cursor:pointer;background:#fff;border:1px solid #cfdcea;color:#1E5FA8;border-radius:999px;padding:4px 12px;font-size:12px;font-weight:700;box-shadow:0 2px 8px #0002}
 .rain-sheet{position:fixed;z-index:80;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 16px);background:#fff;border-radius:18px;padding:14px;box-shadow:0 10px 30px #0004;display:flex;flex-direction:column;gap:8px;text-align:center;direction:rtl;color:#2A241C}.rain-sheet[hidden]{display:none}.rain-sheet small{color:#7A6E60;font-size:12px}
 .rs-row{display:flex;gap:8px}.rs-row button{flex:1;border:1px solid #cfdcea;background:#F2F7FC;border-radius:12px;padding:10px 4px;font:inherit;font-weight:700;font-size:13.5px;color:#1E3A5F}.rs-x{border:0;background:none;font:inherit;color:#7A6E60;padding:6px}
+.nav-fayd{font-size:12.5px;font-weight:800;margin-top:3px;color:#2E7D46}.nav-fayd.chk{color:#A87B10}.nav-fayd.dry{color:#7A6A55}.nav-fayd[hidden],.sat-nav[hidden]{display:none!important}.sat-nav{all:unset;box-sizing:border-box;display:block;width:100%;margin-top:8px;height:40px;line-height:40px;text-align:center;border-radius:12px;background:#EAF3EC;color:#1F5A33;border:1px solid #BFD8C6;font-size:13px;font-weight:800;cursor:pointer;pointer-events:auto}.nav-card.mini .sat-nav,.nav-card.mini .nav-fayd{display:none!important}:is(html[data-theme=dark],html[data-theme=red]) .sat-nav{background:#1F2A22;color:#A9D8B5;border-color:#2F4436}:is(html[data-theme=dark],html[data-theme=red]) .nav-fayd{color:#8FD0A0}:is(html[data-theme=dark],html[data-theme=red]) .nav-fayd.chk{color:#E7C25A}:is(html[data-theme=dark],html[data-theme=red]) .nav-fayd.dry{color:#BBAA90}
 .nav-rain{font-size:12.5px;font-weight:700;margin-top:3px;color:#1E5FA8}.nav-rain[hidden]{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) .rl-scale,:is(html[data-theme=dark],html[data-theme=red]) .rl-report,:is(html[data-theme=dark],html[data-theme=red]) .rain-sheet{background:#221D17;color:#E8DCC8;border-color:#3A3128}:is(html[data-theme=dark],html[data-theme=red]) .rs-row button{background:#2C251D;color:#E8DCC8;border-color:#3A3128}:is(html[data-theme=dark],html[data-theme=red]) .nav-rain{color:#7FB6F0}
 </style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script><script>window.addEventListener('error',function(e){try{parent!==window&&parent.__dalilReport&&parent.__dalilReport(e.message,'map.html:'+e.lineno+':'+e.colno)}catch(_){}});</script>
@@ -221,7 +222,7 @@ body.embed.fs.has-target .ctrl,body.embed.fs.has-target .badge{bottom:calc(var(-
   <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
-<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div><div id="navRain" class="nav-rain" hidden></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div></div>
+<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div><div id="navRain" class="nav-rain" hidden></div><div id="navFayd" class="nav-fayd" hidden></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button></div><button id="satNav" type="button" class="sat-nav" hidden>🛰️ صورة القمر الصناعي اليوم</button></div>
 <script>
 const query=new URLSearchParams(location.search);
 // زر الرجوع يعيدك للشاشة اللي فتحت منها الخريطة (الأماكن/الأجواء…) بدل البوصلة دائمًا
@@ -310,6 +311,7 @@ function updateNavigation(){
   try{navCloseGlyph()}catch(e){}
   if(!navCard.classList.contains('show')){navCard.classList.add('show');document.body.classList.add('has-target');syncNavCardSpace()}
   setText(navCoords,fmtCoords(targetPoint.lat,targetPoint.lng));
+  updateFaydCard();
   if(!gps){setText(navInfo,'جارٍ تحديد موقعك وحساب المسافة…');setText(navEta,'');return}
   const d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),h=currentHeading();
   setText(navInfo,'يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b));
@@ -689,6 +691,7 @@ function openGoogleMap(){
 }
 function openGoogle(){let point=targetPoint||gps;if(!point){status.textContent='حدد موقعًا أولًا لفتحه في خرائط Google';return}if(!navigator.onLine){status.textContent='خرائط Google تحتاج اتصالًا بالإنترنت';return}const url='https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(point.lat+','+point.lng);if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url}
 $('#googleNav').onclick=openGoogle;
+$('#satNav').onclick=e=>{e.stopPropagation();openSat()};
 startNav.onclick=async()=>{
   if(!targetPoint)return;
   if(!navigator.geolocation){status.textContent='تحديد الموقع غير مدعوم على هذا الجهاز';return}
@@ -1202,11 +1205,30 @@ gl.on('load',async()=>{
 });
 // الفياض الخضراء من قائمة دليل نفسها (Sentinel-2، دقة 10 م، تتحدث يوميًا) — تظهر مع طبقة «الربيع»
 // أخضر = مؤكدة · أصفر = «تحتاج تأكيد» · الحجم حسب الخضرة. الضغط عليها يحددها كوجهة باسمها
-let FY=[],fyLoaded=false;
+let FY=[],fyLoaded=false,FYD=null;
+function faydData(){if(!FYD){const t=Math.floor(Date.now()/36e5);
+  FYD=Promise.all([fetch('data/fayd.json?h='+t).then(r=>r.json()),fetch('data/fayd-sites.json?h='+t).then(r=>r.json())]).then(([f,sites])=>({f,sites,row:new Map((f.rows||[]).map(r=>[r[0],r])),farm:new Set(f.farm||[])})).catch(e=>{FYD=null;throw e})}
+  return FYD}
+// بطاقة الوجهة: إذا الوجهة فيضة/روضة من القائمة (خلال 1.5 كم) نعرض حالتها + زر صورة القمر الصناعي اليوم
+let fyKey='',satPoint=null;
+function fyDate(d){try{return new Date(d+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'})}catch(e){return d}}
+function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)return;const p=targetPoint;const key=p?p.lat.toFixed(4)+','+p.lng.toFixed(4):'';if(key===fyKey)return;fyKey=key;el.hidden=true;b.hidden=true;satPoint=null;if(!p)return;
+  faydData().then(D=>{if(fyKey!==key)return;let best=1.5,hit=-1;const k=Math.cos(p.lat*Math.PI/180);
+    D.sites.forEach((s,i)=>{if(!s||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
+    if(hit<0)return;const r=D.row.get(hit);let t,c='';
+    if(D.farm.has(hit)){t='🌾 فيها زراعة — خضرتها ما تنقاس ربيع';c='dry'}
+    else if(r&&r[2]>0){t=(r[5]?'🟡 خضرة تحتاج تأكيد من الميدان':'🌱 خضراء — بدأ فيها الربيع')+(r[3]?' · زادت الخضرة '+r[3]+'%':'');c=r[5]?'chk':''}
+    else if(r){t='🏜️ ما فيها خضرة جديدة حتى الآن';c='dry'}
+    else{t='🏜️ ما عندنا قراءة حديثة لها';c='dry'}
+    if(r&&r[6])t+=' · صورة '+fyDate(r[6]);
+    el.textContent=t;el.className='nav-fayd'+(c?' '+c:'');el.hidden=false;satPoint={lat:D.sites[hit][1],lng:D.sites[hit][2]};b.hidden=false;try{syncNavCardSpace()}catch(e){}}).catch(()=>{})}
+function openSat(){const p=satPoint||targetPoint;if(!p)return;if(!navigator.onLine){status.textContent='صورة القمر الصناعي تحتاج اتصالًا بالإنترنت';return}
+  const day=x=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh',year:'numeric',month:'2-digit',day:'2-digit'}).format(x);
+  const q=new URLSearchParams({zoom:'14',lat:p.lat.toFixed(5),lng:p.lng.toFixed(5),themeId:'DEFAULT-THEME',datasetId:'S2_L2A_CDAS',fromTime:day(new Date(Date.now()-10*864e5))+'T00:00:00.000Z',toTime:day(new Date())+'T23:59:59.999Z',layerId:'3_NDVI',cloudCoverage:'30',dateMode:'MOSAIC'});
+  const url='https://browser.dataspace.copernicus.eu/?'+q.toString();if(isEmbedded)window.open(url,'_blank','noopener');else location.href=url}
 async function loadFaydLayer(){
   if(fyLoaded||!glOk())return;fyLoaded=true;
-  try{const t=Math.floor(Date.now()/36e5);
-    const [f,sites]=await Promise.all([fetch('data/fayd.json?h='+t).then(r=>r.json()),fetch('data/fayd-sites.json?h='+t).then(r=>r.json())]);
+  try{const {f,sites}=await faydData();
     FY=(f.rows||[]).filter(r=>r[2]>0&&sites[r[0]]).map(r=>({name:sites[r[0]][0],lat:sites[r[0]][1],lng:sites[r[0]][2],region:sites[r[0]][3]||'',g:r[1],chk:r[5]||0,d:r[6]||''}));
     const fc={type:'FeatureCollection',features:FY.map(x=>({type:'Feature',properties:{g:x.g,chk:x.chk?1:0},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))};
     gl.addSource('fayd-pts',{type:'geojson',data:fc});
