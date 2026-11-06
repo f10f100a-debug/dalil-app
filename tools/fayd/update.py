@@ -231,12 +231,36 @@ dropped = []
 #   أقل من 3 ملم: تنشال (غالبًا خضرة كاذبة أو زراعة) إلا الخضرة القوية تبقى «تحتاج تأكيد»
 #   3–8 ملم: تبقى ظاهرة مع «مطر قليل — تحتاج تأكيد» (check=3) وبدون تنبيه (st=1)
 light = []
+# 6 نوفمبر: قبل ما نشيل فيضة خضراء بدون مطر، نشوف قصة خضرتها من بداية الموسم (Copernicus، طلب واحد لكل فيضة):
+#   خضراء من الصيف (نسبة الخضرة قبل 15 أكتوبر ≥ 25%) = مزرعة → تنخفى
+#   كانت جرداء ثابتة وخضرت فجأة (+15% فأكثر) = ربيع فاته المطر عندنا (مثل روضة محرقة) → تبقى «تحتاج تأكيد» بدون تنبيه
+#   غير كذا (خضرتها تطلع وتنزل من الصيف) → تنشال مثل قبل
+story = {}
+cand = [r[0] for r in rows if r[2] > 0 and rain.get(r[0], 0) < 3][:40]
+try:
+    import cdse
+    if cand and cdse.available():
+        y0 = today.year if today.month >= 8 else today.year - 1
+        sr = cdse.series([(i, SITES[i][1], SITES[i][2]) for i in cand], f"{y0}-08-20", today.isoformat())
+        cut = f"{y0}-10-15"
+        for i, v in sr.items():
+            pre = [x[4] for x in v if x[0] <= cut]; now_ = [x[4] for x in v if x[0] > cut][-2:]
+            if len(pre) < 4 or not now_: continue
+            pre.sort(); med = pre[len(pre) // 2]; top = max(pre); cur_ = max(now_)
+            story[i] = "farm" if med >= 0.25 else "sudden" if top <= 0.10 and cur_ - top >= 0.15 else "noisy"
+        print("::notice::green-without-rain story: " + " · ".join(f"{SITES[i][0]} ({SITES[i][3]}) {k}" for i, k in story.items())[:1500], flush=True)
+except Exception as e:
+    print("::warning::story failed: " + str(e)[:150], flush=True)
 for r in rows:
     mm = rain.get(r[0], 0)
     if r[2] > 0 and mm < 3:
-        dropped.append(f"{SITES[r[0]][0]} ({SITES[r[0]][3]}) خضرة {r[1]} مطر {mm:.0f}")
-        # خضرة قوية من القمر الصناعي دليل بحد ذاته (مطر محلي ما لقطته المحطات) → تبقى «تحتاج تأكيد» بدون تنبيه
-        if r[1] >= 60 and not r[5]: r[2] = 1; r[5] = 2
+        k = story.get(r[0])
+        dropped.append(f"{SITES[r[0]][0]} ({SITES[r[0]][3]}) خضرة {r[1]} مطر {mm:.0f}" + (f" [{k}]" if k else ""))
+        if k == "farm":
+            r[2] = 0; r[1] = 0; farm.append(r[0])
+        elif k == "sudden" and not r[5]: r[2] = 1; r[5] = 2
+        # بدون قصة: خضرة قوية من القمر الصناعي دليل بحد ذاته → تبقى «تحتاج تأكيد» بدون تنبيه
+        elif k is None and r[1] >= 60 and not r[5]: r[2] = 1; r[5] = 2
         else: r[2] = 0; r[1] = min(r[1], 15)
     elif r[2] > 0 and mm < 8 and not r[5]:
         light.append(f"{SITES[r[0]][0]} ({SITES[r[0]][3]}) خضرة {r[1]} مطر {mm:.0f}")
