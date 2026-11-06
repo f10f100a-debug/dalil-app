@@ -364,7 +364,7 @@ gpsBtn.onclick=()=>{
 northBtn.onclick=()=>{manualRot=false;setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
-function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
+function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}const fy=hit?null:faydAt(sx,sy);if(fy){targetPoint={lat:fy.lat,lng:fy.lng};navName.textContent=fy.name;updateNavigation();render();status.textContent='🌱 '+fy.name+(fy.region?' ('+fy.region+')':'')+' — خضرة '+fy.g+(fy.chk?' · تحتاج تأكيد من الميدان':' · مؤكدة')+(fy.d?' · صورة '+fy.d.slice(5).replace('-','/'):'');probeRadar(targetPoint);return}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
 function render(){
@@ -499,7 +499,7 @@ function applyPrefs(){
   setText(attribution,(LP.base==='sat'?'Powered by Esri · Esri, Maxar, Earthstar Geographics · Sentinel-2 cloudless 2016 © EOX · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.water?' · المياه: EC JRC/Google Global Surface Water · NASA LANCE MODIS Flood':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':'')+(LP.radar?' · الرادار: المركز الوطني للأرصاد عبر RainViewer':'')+(LP.lightning?' · البرق: © EUMETSAT':''));
   for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
   $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpMine').checked=LP.mine;$('#lpNdvi').checked=LP.ndvi;$('#lpWater').checked=LP.water;
-  if(glReady){vis('ndvi',LP.ndvi);vis('water-hist',LP.water);vis('water-now',LP.water);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain));radarVis();vis('lightning',LP.lightning);if(LP.radar&&!RADAR_FRAMES.length)loadRadarFrames();if(LP.radar&&RADAR_FRAMES.length){Object.keys(radarFix).forEach(k=>{if(!k.endsWith(':t'))delete radarFix[k]});radarWatch()}if(LP.lightning)refreshLightning()}
+  if(glReady){vis('ndvi',LP.ndvi);vis('fayd-halo',LP.ndvi);vis('fayd-pts',LP.ndvi);vis('water-hist',LP.water);vis('water-now',LP.water);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain));radarVis();vis('lightning',LP.lightning);if(LP.radar&&!RADAR_FRAMES.length)loadRadarFrames();if(LP.radar&&RADAR_FRAMES.length){Object.keys(radarFix).forEach(k=>{if(!k.endsWith(':t'))delete radarFix[k]});radarWatch()}if(LP.lightning)refreshLightning()}
   $('#lpClouds').checked=LP.clouds;
   $('#lpRain').checked=LP.rain;$('#lpRadar').checked=LP.radar;$('#lpLightning').checked=LP.lightning;const anim=LP.rain||LP.clouds||LP.radar;$('#rainBar').classList.toggle('show',!!anim);radarLegendSync();stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);showFrame(playSet().frames.length-1)}
 }
@@ -541,7 +541,7 @@ for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],[
   if(key==='radar'&&LP.radar){status.textContent=navigator.onLine?'رادار الأمطار: الأزرق خفيف والأصفر والأحمر غزير — اضغط ▶ لترى اتجاه المطر لآخر ساعتين':'الرادار يحتاج اتصالًا بالإنترنت';if(z>10){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=9;setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}}
   if(key==='lightning'&&LP.lightning)status.textContent=navigator.onLine?'البرق: مناطق الصواعق في آخر دقائق — ابتعد عن الأودية والمرتفعات إذا كانت قريبة منك':'طبقة البرق تحتاج اتصالًا بالإنترنت';
   if(key==='water'&&LP.water)status.textContent=navigator.onLine?'مياه السيول: الأزرق الفاتح أماكن يتجمّع فيها الماء عادة (غدران وروض وسدود)، والأزرق الغامق مياه رصدها القمر آخر يومين':'طبقة المياه تحتاج اتصالًا بالإنترنت';
-  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: الأخضر حيث يوجد نبات (صور NASA كل 8 أيام بدقة 250 م) — صغّر الخريطة لترى الروض والشعبان':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
+  if(key==='ndvi'&&LP.ndvi)status.textContent=navigator.onLine?'الربيع: 🟢 فيضة خضراء مؤكدة · 🟡 تحتاج تأكيد (قمر Sentinel، تتحدث مرتين بالأسبوع). والتظليل الأخضر من NASA متأخر أسبوع تقريبًا':'طبقة الربيع تحتاج اتصالًا بالإنترنت'};
 $('#lpHsOp').oninput=e=>{LP.hsOp=Number(e.target.value);saveLP();applyPrefs()};
 $('#lp3d').onclick=()=>{
   if(!navigator.onLine){status.textContent='العرض الثلاثي يحتاج اتصالًا بالإنترنت';return}
@@ -812,7 +812,7 @@ maplibregl.addProtocol('ndvi',async params=>{
       if(!r.ok)break;
       const bm=await createImageBitmap(await r.blob());ctx.drawImage(bm,0,0,256,256);bm.close&&bm.close();
       const im=ctx.getImageData(0,0,256,256),d=im.data;
-      for(let k=0;k<d.length;k+=4){const g=d[k+1]-Math.max(d[k],d[k+2]);d[k+3]=g>6?Math.min(255,d[k+3]*Math.min(1,(g+20)/70)):0}
+      for(let k=0;k<d.length;k+=4){const R=d[k],G=d[k+1],B=d[k+2],g=G-Math.max(R,B),y=Math.min(R,G)-B;if(g>6){d[k+3]=Math.min(255,d[k+3]*Math.min(1,(g+20)/70))}else if(y>45&&G>=R*.82&&R+G>230){d[k]=150;d[k+1]=205;d[k+2]=90;d[k+3]=Math.min(150,d[k+3])}else d[k+3]=0}
       ctx.putImageData(im,0,0);break;
     }catch(e){break}
   }
@@ -1192,11 +1192,30 @@ gl.on('load',async()=>{
   gl.addSource('water-now',{type:'raster',tiles:['waternow://'+fd+'/{z}/{x}/{y}'],tileSize:256,minzoom:1,maxzoom:9});
   gl.addLayer({id:'water-hist',type:'raster',source:'water-hist',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.9,'raster-fade-duration':0}},'slot:dalil');
   gl.addLayer({id:'water-now',type:'raster',source:'water-now',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.95,'raster-fade-duration':0}},'slot:dalil');
-  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.6,11,.45,13,.25,15,.12],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
+  gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.65,12,.5,15,.35],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
+  loadFaydLayer();
   applyPrefs();
   syncRegions();
   addUserMaps();
 });
+// الفياض الخضراء من قائمة دليل نفسها (Sentinel-2، دقة 10 م، تتحدث مرتين بالأسبوع) — تظهر مع طبقة «الربيع»
+// أخضر = مؤكدة · أصفر = «تحتاج تأكيد» · الحجم حسب الخضرة. الضغط عليها يحددها كوجهة باسمها
+let FY=[],fyLoaded=false;
+async function loadFaydLayer(){
+  if(fyLoaded||!glOk())return;fyLoaded=true;
+  try{const t=Math.floor(Date.now()/36e5);
+    const [f,sites]=await Promise.all([fetch('data/fayd.json?h='+t).then(r=>r.json()),fetch('data/fayd-sites.json?h='+t).then(r=>r.json())]);
+    FY=(f.rows||[]).filter(r=>r[2]>0&&sites[r[0]]).map(r=>({name:sites[r[0]][0],lat:sites[r[0]][1],lng:sites[r[0]][2],region:sites[r[0]][3]||'',g:r[1],chk:r[5]||0,d:r[6]||''}));
+    const fc={type:'FeatureCollection',features:FY.map(x=>({type:'Feature',properties:{g:x.g,chk:x.chk?1:0},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))};
+    gl.addSource('fayd-pts',{type:'geojson',data:fc});
+    const col=['case',['==',['get','chk'],1],'#E0A526','#2E9E4F'];
+    gl.addLayer({id:'fayd-halo',type:'circle',source:'fayd-pts',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':col,'circle-opacity':.22,
+      'circle-radius':['interpolate',['linear'],['zoom'],5,['interpolate',['linear'],['get','g'],20,7,150,14],10,['interpolate',['linear'],['get','g'],20,16,150,30],14,['interpolate',['linear'],['get','g'],20,34,150,60]]}});
+    gl.addLayer({id:'fayd-pts',type:'circle',source:'fayd-pts',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':col,'circle-radius':['interpolate',['linear'],['zoom'],5,3.5,10,6,14,8],'circle-stroke-color':'#fff','circle-stroke-width':2}});
+  }catch(e){fyLoaded=false}
+}
+function faydAt(sx,sy){if(!LP.ndvi||!FY.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=30;
+  for(const x of FY){const p=world(x.lat,x.lng),d=Math.hypot(p[0]+ox-sx,p[1]+oy-sy);if(d<best){best=d;hit=x}}return hit}
 
 // ---------- start ----------
 const queryLat=Number(query.get('lat')),queryLng=Number(query.get('lng'));
