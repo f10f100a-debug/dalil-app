@@ -1,0 +1,4697 @@
+{
+"osm_total": 2120,
+"n": 563,
+"rows": [
+{
+"name": "فيضة الريشية",
+"lat": 25.0523,
+"lng": 42.387,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فياض الجفن",
+"lat": 28.9017,
+"lng": 43.8394,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة الشعب",
+"lat": 25.4681,
+"lng": 42.6858,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة المسلح",
+"lat": 22.5025,
+"lng": 40.7669,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روض العبد",
+"lat": 27.9,
+"lng": 35.35,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "روضة الأصيل",
+"lat": 21.4348,
+"lng": 39.8481,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "روضة العكرشية",
+"lat": 25.3568,
+"lng": 45.3453,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "روضة المذرع",
+"lat": 17.8463,
+"lng": 41.8526,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "روضة مليحة",
+"lat": 25.1931,
+"lng": 45.4317,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة مغيراء",
+"lat": 23.4132,
+"lng": 41.9158,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضه طلطل",
+"lat": 27.4337,
+"lng": 40.8595,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "فيضة المخازن",
+"lat": 28.5575,
+"lng": 45.186,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة القاعيه",
+"lat": 26.3717,
+"lng": 44.6083,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "روضة المسكة",
+"lat": 25.2037,
+"lng": 37.3509,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة الرغلية",
+"lat": 29.9995,
+"lng": 39.5479,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة السلمات",
+"lat": 25.589,
+"lng": 42.8192,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روضة عسعس",
+"lat": 24.5501,
+"lng": 42.9568,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة الماكر",
+"lat": 30.0954,
+"lng": 41.7705,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الطليحة",
+"lat": 27.4087,
+"lng": 43.2516,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روضة الحقنة",
+"lat": 25.827,
+"lng": 40.1412,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "رياض قناء",
+"lat": 26.0426,
+"lng": 44.1343,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "رياض أبو عِشَر",
+"lat": 26.5497,
+"lng": 43.8369,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"place": "locality"
+}
+},
+{
+"name": "فيضة العوس",
+"lat": 29.95,
+"lng": 40.0327,
+"src": "osm",
+"tags": {
+"place": "farm"
+}
+},
+{
+"name": "فيضة أم عَمائِر",
+"lat": 27.1992,
+"lng": 43.2879,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض العِصفِرِيَّات",
+"lat": 26.6673,
+"lng": 43.8514,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "فيضة البرقاء",
+"lat": 29.9552,
+"lng": 40.1396,
+"src": "osm",
+"tags": {
+"place": "farm"
+}
+},
+{
+"name": "روضة النِّهابَة",
+"lat": 26.6745,
+"lng": 43.8196,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"place": "locality"
+}
+},
+{
+"name": "فياض الخوابي",
+"lat": 26.1337,
+"lng": 46.4468,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"water": "lake"
+}
+},
+{
+"name": "فياض قليّب خضر",
+"lat": 30.7945,
+"lng": 37.8612,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "روضة الزرع",
+"lat": 25.784,
+"lng": 44.2545,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فياض الشعراء",
+"lat": 24.2422,
+"lng": 44.1691,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة الراغوث",
+"lat": 29.7864,
+"lng": 43.8774,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ابن البحة",
+"lat": 27.7603,
+"lng": 46.7853,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الشيح",
+"lat": 27.3079,
+"lng": 40.0737,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الشُّقَيِّقَة",
+"lat": 25.6402,
+"lng": 44.1788,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فياض مانع",
+"lat": 29.8507,
+"lng": 40.1941,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة الرميثي",
+"lat": 24.2133,
+"lng": 43.3165,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة الحمادة",
+"lat": 24.2731,
+"lng": 42.8543,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة ذيبان",
+"lat": 25.8784,
+"lng": 41.9185,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روض الشقيق",
+"lat": 27.1649,
+"lng": 40.9165,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "فيضة الدارة",
+"lat": 25.5242,
+"lng": 42.168,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روضة ريمان",
+"lat": 25.1129,
+"lng": 42.6907,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روضة مصودعة",
+"lat": 24.3694,
+"lng": 42.9575,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "روضة مهنا",
+"lat": 26.4779,
+"lng": 44.3641,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "روضة ام الخفاس",
+"lat": 24.8034,
+"lng": 45.8269,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة المزيريب",
+"lat": 29.9855,
+"lng": 42.1316,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة السلمانية",
+"lat": 29.8514,
+"lng": 42.1498,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "الروضة الشريفة",
+"lat": 24.4676,
+"lng": 39.6112,
+"src": "osm",
+"tags": {
+"place": "square"
+}
+},
+{
+"name": "روضة مريزيق",
+"lat": 21.4546,
+"lng": 39.7835,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "روضة أرينبة",
+"lat": 24.3817,
+"lng": 43.1398,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعيب دخان",
+"lat": 27.7778,
+"lng": 44.1313,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة القرين",
+"lat": 25.2041,
+"lng": 39.4322,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الأسفعية",
+"lat": 24.8754,
+"lng": 38.0246,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الرحى",
+"lat": 25.4372,
+"lng": 45.7608,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة خريم",
+"lat": 25.364,
+"lng": 47.3124,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أبا الورود",
+"lat": 27.03,
+"lng": 44.087,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الخليج",
+"lat": 26.2292,
+"lng": 45.6365,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة خشم السحق",
+"lat": 25.7549,
+"lng": 46.0468,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أبوعويشقة",
+"lat": 25.4318,
+"lng": 46.3713,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة جرساء",
+"lat": 29.8408,
+"lng": 41.1163,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الهوامل",
+"lat": 25.5285,
+"lng": 45.7414,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة العنانية",
+"lat": 25.5516,
+"lng": 45.5748,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أمرة",
+"lat": 25.3936,
+"lng": 43.3716,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة أم لي",
+"lat": 25.3537,
+"lng": 44.3631,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة وثيلان",
+"lat": 25.5104,
+"lng": 44.4185,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "روضة القرعاء",
+"lat": 24.7902,
+"lng": 45.6425,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام هشيم",
+"lat": 27.1137,
+"lng": 44.9487,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الرحبة",
+"lat": 26.9009,
+"lng": 45.1086,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحرير",
+"lat": 28.2636,
+"lng": 44.0651,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعيب البسيتين",
+"lat": 28.4291,
+"lng": 43.6193,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعيب البسيتين",
+"lat": 28.4253,
+"lng": 43.6504,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعيب البسيتين",
+"lat": 28.4156,
+"lng": 43.6701,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة النبقية",
+"lat": 26.5002,
+"lng": 44.2999,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض اللميماء",
+"lat": 30.4247,
+"lng": 42.4534,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة غدفا الشويمس",
+"lat": 26.2832,
+"lng": 40.1535,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الحفيرة الشمالية",
+"lat": 29.055,
+"lng": 43.8394,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض البقرة",
+"lat": 31.7964,
+"lng": 39.1707,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض البقرة",
+"lat": 31.8124,
+"lng": 39.2249,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض البقرة",
+"lat": 31.7858,
+"lng": 39.2111,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المصندق",
+"lat": 29.318,
+"lng": 43.8639,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض امهات غربان",
+"lat": 28.8059,
+"lng": 43.8227,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض امهات قدور",
+"lat": 28.9113,
+"lng": 43.9338,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العوجاء",
+"lat": 30.4381,
+"lng": 39.9706,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العوجاء",
+"lat": 30.3967,
+"lng": 39.9564,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العوجاء",
+"lat": 30.4191,
+"lng": 39.9733,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الفسقانات",
+"lat": 30.3591,
+"lng": 40.4634,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الفسقانات",
+"lat": 30.4052,
+"lng": 40.4542,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام غدير",
+"lat": 30.291,
+"lng": 41.0015,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سعدى",
+"lat": 28.3792,
+"lng": 44.4711,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سعدى",
+"lat": 28.3488,
+"lng": 44.4545,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الدوى",
+"lat": 28.3917,
+"lng": 44.4924,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضه الجريبانية",
+"lat": 28.3876,
+"lng": 44.4216,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سعدى",
+"lat": 28.3465,
+"lng": 44.473,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سعدى",
+"lat": 28.3346,
+"lng": 44.4426,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سعدى",
+"lat": 28.3549,
+"lng": 44.4375,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الدوى",
+"lat": 28.4093,
+"lng": 44.4934,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سالم",
+"lat": 28.4809,
+"lng": 44.4506,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سالم",
+"lat": 28.4686,
+"lng": 44.4633,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام تليل",
+"lat": 30.2927,
+"lng": 41.0622,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرغلية",
+"lat": 30.2296,
+"lng": 41.0992,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرغلية",
+"lat": 30.2412,
+"lng": 41.0288,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرغلية",
+"lat": 30.2327,
+"lng": 41.1183,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض نومان",
+"lat": 30.0739,
+"lng": 40.995,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض نومان",
+"lat": 30.063,
+"lng": 41.033,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض خش الثور",
+"lat": 30.0393,
+"lng": 41.1288,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشمالية",
+"lat": 30.0379,
+"lng": 41.0488,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة عمرو الغربية",
+"lat": 30.1181,
+"lng": 41.0966,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشمالية",
+"lat": 30.0421,
+"lng": 41.0651,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشمالية",
+"lat": 30.0171,
+"lng": 41.0364,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشمالية",
+"lat": 30.016,
+"lng": 41.063,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الغربيه",
+"lat": 29.9828,
+"lng": 41.0045,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الغربيه",
+"lat": 29.9986,
+"lng": 41.0218,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الجنوبية",
+"lat": 29.9473,
+"lng": 41.0253,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشرقيه",
+"lat": 29.9705,
+"lng": 41.0844,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الجنوبية",
+"lat": 29.9489,
+"lng": 41.0714,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشرقيه",
+"lat": 29.977,
+"lng": 41.0989,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الشرقيه",
+"lat": 29.9959,
+"lng": 41.0913,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض كبد الجنوبية",
+"lat": 29.9611,
+"lng": 41.0611,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام غدير",
+"lat": 29.9557,
+"lng": 41.1486,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.6136,
+"lng": 41.5166,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رغوة",
+"lat": 28.6663,
+"lng": 44.0907,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رغوة",
+"lat": 28.7004,
+"lng": 44.1226,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رغوة",
+"lat": 28.6814,
+"lng": 44.0885,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة قليب المروب",
+"lat": 28.633,
+"lng": 44.1344,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض مطربة",
+"lat": 28.7318,
+"lng": 44.0419,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.6041,
+"lng": 41.4571,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.6198,
+"lng": 41.4952,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.5834,
+"lng": 41.4763,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.5805,
+"lng": 41.4579,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض بيوض",
+"lat": 30.598,
+"lng": 41.4815,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أم نخيلة",
+"lat": 30.3397,
+"lng": 41.3152,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة مصبة البويتات",
+"lat": 30.0325,
+"lng": 41.1723,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام نغرة",
+"lat": 29.9624,
+"lng": 41.2064,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصنع",
+"lat": 30.0409,
+"lng": 41.3548,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصنع",
+"lat": 30.038,
+"lng": 41.336,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1017,
+"lng": 41.2687,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1107,
+"lng": 41.2822,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1249,
+"lng": 41.2664,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1044,
+"lng": 41.3023,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الغرقانة",
+"lat": 30.1303,
+"lng": 41.3024,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1356,
+"lng": 41.3207,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.125,
+"lng": 41.3529,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1468,
+"lng": 41.307,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1018,
+"lng": 41.3205,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام خشيم",
+"lat": 30.1438,
+"lng": 41.3406,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1456,
+"lng": 41.3881,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.1304,
+"lng": 41.3689,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصنع",
+"lat": 30.0549,
+"lng": 41.3641,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.0766,
+"lng": 41.3731,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الضبيب",
+"lat": 30.3125,
+"lng": 41.5627,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الضبيب",
+"lat": 30.3063,
+"lng": 41.5188,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الضبيب",
+"lat": 30.2856,
+"lng": 41.514,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة بريبك اللقطة",
+"lat": 30.2658,
+"lng": 41.4975,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة حمراء أم رجوم",
+"lat": 30.26,
+"lng": 41.5602,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة المنقوري",
+"lat": 30.375,
+"lng": 41.6008,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخر",
+"lat": 27.5357,
+"lng": 43.1717,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض مريحات",
+"lat": 27.4749,
+"lng": 42.4287,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ابن طواله",
+"lat": 28.8386,
+"lng": 44.5245,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض مريحات",
+"lat": 27.516,
+"lng": 42.3849,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام هشيم",
+"lat": 30.1952,
+"lng": 43.3238,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة العين",
+"lat": 25.4316,
+"lng": 44.4877,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض حطابة",
+"lat": 25.9738,
+"lng": 45.175,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض حطابة",
+"lat": 25.9419,
+"lng": 45.1838,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الكدرة",
+"lat": 23.3959,
+"lng": 46.0434,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الجابية",
+"lat": 23.4175,
+"lng": 38.9613,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعبه الجلاعدة",
+"lat": 30.0889,
+"lng": 43.2343,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعبه الجلاعدة",
+"lat": 30.0759,
+"lng": 43.2616,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعبه الجلاعدة",
+"lat": 30.1093,
+"lng": 43.243,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام الارسان",
+"lat": 27.6479,
+"lng": 40.4872,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض هليل",
+"lat": 25.9563,
+"lng": 45.9999,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشفلحية",
+"lat": 29.9117,
+"lng": 43.3365,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشفلحية",
+"lat": 29.9118,
+"lng": 43.2707,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشفلحية",
+"lat": 29.9262,
+"lng": 43.266,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشفلحية",
+"lat": 29.9018,
+"lng": 43.2488,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشفلحية",
+"lat": 29.9085,
+"lng": 43.2327,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض بادي",
+"lat": 26.0314,
+"lng": 45.7787,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض بادي",
+"lat": 26.0137,
+"lng": 45.7806,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة سمليل",
+"lat": 26.0126,
+"lng": 45.8386,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة المبلط",
+"lat": 29.8359,
+"lng": 43.1043,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة لقطان",
+"lat": 29.8053,
+"lng": 43.2569,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صور",
+"lat": 28.9983,
+"lng": 44.4282,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صور",
+"lat": 29.0304,
+"lng": 44.388,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صور",
+"lat": 29.0111,
+"lng": 44.4003,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صور",
+"lat": 29.0266,
+"lng": 44.407,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صور",
+"lat": 29.0129,
+"lng": 44.4211,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض محرقة",
+"lat": 27.9603,
+"lng": 47.1026,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض محرقة",
+"lat": 27.9762,
+"lng": 47.1028,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض امهات قيصوم",
+"lat": 27.8528,
+"lng": 47.2112,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض امهات قيصوم",
+"lat": 27.8706,
+"lng": 47.2215,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض امهات قيصوم",
+"lat": 27.8801,
+"lng": 47.2094,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الكثير",
+"lat": 25.0742,
+"lng": 45.6732,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الداخلية",
+"lat": 24.8833,
+"lng": 45.7674,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة عكيرا",
+"lat": 29.1928,
+"lng": 44.0895,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة العكرشية",
+"lat": 25.3456,
+"lng": 45.3737,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قور الارانب",
+"lat": 30.3312,
+"lng": 41.9097,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قور الارانب",
+"lat": 30.3407,
+"lng": 41.9235,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قور الارانب",
+"lat": 30.3111,
+"lng": 41.9207,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قور الارانب",
+"lat": 30.3238,
+"lng": 41.9279,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أم الذيابة",
+"lat": 26.7205,
+"lng": 45.3951,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.929,
+"lng": 46.8098,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.9121,
+"lng": 46.8061,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المليحاء",
+"lat": 29.4686,
+"lng": 44.1325,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المليحاء",
+"lat": 29.4851,
+"lng": 44.1355,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.8477,
+"lng": 46.7869,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.8483,
+"lng": 46.8153,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض غنوما",
+"lat": 25.9732,
+"lng": 39.7482,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض غنوما",
+"lat": 25.969,
+"lng": 39.7647,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة النظيم",
+"lat": 29.653,
+"lng": 44.0563,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.9374,
+"lng": 46.7627,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.926,
+"lng": 46.7859,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.9052,
+"lng": 46.769,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.874,
+"lng": 46.7235,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 27.8672,
+"lng": 46.7485,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخديد",
+"lat": 29.6735,
+"lng": 42.7348,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخديد",
+"lat": 29.6883,
+"lng": 42.6964,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخديد",
+"lat": 29.6765,
+"lng": 42.7054,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام نغور",
+"lat": 29.0512,
+"lng": 44.6356,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المصندق",
+"lat": 29.3185,
+"lng": 43.8882,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام نغور",
+"lat": 29.0131,
+"lng": 44.6797,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الزفراوية",
+"lat": 29.7171,
+"lng": 42.7754,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام نغور",
+"lat": 29.0767,
+"lng": 44.7055,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام نغور",
+"lat": 29.0843,
+"lng": 44.6813,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الزمل",
+"lat": 29.2774,
+"lng": 43.9684,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الغزلانيات",
+"lat": 27.0234,
+"lng": 45.988,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الغزلانيات",
+"lat": 27.0186,
+"lng": 45.9702,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الغزلانيات",
+"lat": 26.9986,
+"lng": 46.0007,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخشيبي",
+"lat": 29.289,
+"lng": 43.9914,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام شبرم",
+"lat": 26.7565,
+"lng": 47.3382,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة العقيلة",
+"lat": 29.979,
+"lng": 41.8597,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الزفراوية",
+"lat": 29.7256,
+"lng": 42.753,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الغزلانيات",
+"lat": 27.0398,
+"lng": 45.9683,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام قيصوم",
+"lat": 26.6773,
+"lng": 47.2857,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9311,
+"lng": 44.9643,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9691,
+"lng": 44.9341,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9976,
+"lng": 44.9669,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9804,
+"lng": 44.9584,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9875,
+"lng": 44.9788,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 29.0056,
+"lng": 44.9469,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9644,
+"lng": 44.9703,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام نصلة",
+"lat": 26.6526,
+"lng": 47.178,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة المفضل",
+"lat": 29.191,
+"lng": 43.911,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة طرفاء",
+"lat": 30.0629,
+"lng": 41.7,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أبو سعيرة",
+"lat": 28.9701,
+"lng": 43.8996,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العرفجيات",
+"lat": 29.8551,
+"lng": 42.8277,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام رويثه",
+"lat": 28.9187,
+"lng": 44.1082,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العرفجيات",
+"lat": 29.8315,
+"lng": 42.8557,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض مبهل",
+"lat": 26.7128,
+"lng": 47.588,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة قلبان ابوشظاظ",
+"lat": 28.8123,
+"lng": 44.2757,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة فراج الغربي",
+"lat": 28.9406,
+"lng": 43.5608,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المسعري",
+"lat": 28.635,
+"lng": 44.18,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المسعري",
+"lat": 28.6371,
+"lng": 44.1967,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 26.9679,
+"lng": 47.3256,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 26.9816,
+"lng": 47.3116,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.0729,
+"lng": 43.3369,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.0829,
+"lng": 43.3668,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.0583,
+"lng": 43.3316,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض ام الهوشات",
+"lat": 27.0278,
+"lng": 47.2983,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض النغوريات",
+"lat": 29.8085,
+"lng": 42.8214,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض النغوريات",
+"lat": 29.7924,
+"lng": 42.8288,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صفاة",
+"lat": 30.1209,
+"lng": 41.4508,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام رضمة",
+"lat": 28.6747,
+"lng": 44.6738,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام رضمة",
+"lat": 28.6557,
+"lng": 44.6822,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض النغوريات",
+"lat": 29.8085,
+"lng": 42.7943,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض خنيفسان",
+"lat": 27.4762,
+"lng": 45.5635,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض النغوريات",
+"lat": 29.8106,
+"lng": 42.7754,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام رضمه",
+"lat": 28.7243,
+"lng": 44.6855,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الحقاقة",
+"lat": 25.7745,
+"lng": 46.1748,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعين",
+"lat": 30.046,
+"lng": 41.4732,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صفاة",
+"lat": 30.1044,
+"lng": 41.4588,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابو صفاة",
+"lat": 30.0955,
+"lng": 41.4709,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أمّ شفلّح",
+"lat": 28.1943,
+"lng": 45.7517,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض وشيحاء",
+"lat": 27.2627,
+"lng": 47.1068,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.3043,
+"lng": 45.9867,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.2862,
+"lng": 45.9661,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.2737,
+"lng": 46.008,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.2657,
+"lng": 45.9032,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.284,
+"lng": 45.9937,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.2604,
+"lng": 45.9316,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القويصمات",
+"lat": 28.2711,
+"lng": 45.9883,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعيل",
+"lat": 29.2364,
+"lng": 43.3731,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة مديسيس",
+"lat": 29.3138,
+"lng": 43.4847,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القراين",
+"lat": 28.3398,
+"lng": 45.6324,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عمي نحيط",
+"lat": 27.1433,
+"lng": 46.8751,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض اللميماء",
+"lat": 30.4773,
+"lng": 42.4649,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرواق الجنوبية",
+"lat": 27.0784,
+"lng": 46.6122,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرواق الشمالية",
+"lat": 27.1122,
+"lng": 46.5939,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عرفة",
+"lat": 29.9668,
+"lng": 41.4261,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عرفة",
+"lat": 29.9885,
+"lng": 41.4069,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قراين الجميلي",
+"lat": 27.1857,
+"lng": 46.6381,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قراين الجميلي",
+"lat": 27.1559,
+"lng": 46.6286,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابن زريبان الشرقية",
+"lat": 27.1431,
+"lng": 46.6591,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحاصبيات",
+"lat": 27.4734,
+"lng": 46.2001,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحاصبيات",
+"lat": 27.4816,
+"lng": 46.1832,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحاصبيات",
+"lat": 27.4973,
+"lng": 46.1843,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحاصبيات",
+"lat": 27.4838,
+"lng": 46.2449,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحيفيرات",
+"lat": 26.5878,
+"lng": 47.2544,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحيفيرات",
+"lat": 26.606,
+"lng": 47.2297,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رجم شبلي",
+"lat": 29.9914,
+"lng": 41.4841,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الرعين",
+"lat": 30.0284,
+"lng": 41.4812,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعين",
+"lat": 30.0165,
+"lng": 41.5,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عمي نحيط",
+"lat": 27.1486,
+"lng": 46.849,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قرائن الجميلي",
+"lat": 27.1463,
+"lng": 46.6966,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام الحيران",
+"lat": 29.1273,
+"lng": 45.118,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام الحيران",
+"lat": 29.1142,
+"lng": 45.1605,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحيفيرات",
+"lat": 26.555,
+"lng": 47.2684,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحيفيرات",
+"lat": 26.5938,
+"lng": 47.2736,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحيفيرات",
+"lat": 26.5592,
+"lng": 47.2445,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعين",
+"lat": 30.0265,
+"lng": 41.5174,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قدر",
+"lat": 29.6862,
+"lng": 43.4263,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قرائن الخمة",
+"lat": 27.1305,
+"lng": 46.6818,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ابن زريبان الشرقية",
+"lat": 27.1242,
+"lng": 46.651,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعين",
+"lat": 30.0539,
+"lng": 41.5481,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرعين",
+"lat": 30.047,
+"lng": 41.5334,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عمرة",
+"lat": 29.9757,
+"lng": 41.5662,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عمرة",
+"lat": 29.9784,
+"lng": 41.5974,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عمرة",
+"lat": 29.9626,
+"lng": 41.5761,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قرائن الخمة",
+"lat": 27.137,
+"lng": 46.7128,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المركوز",
+"lat": 28.9627,
+"lng": 44.9953,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام خروج",
+"lat": 28.3911,
+"lng": 44.7788,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الهبن",
+"lat": 30.438,
+"lng": 42.3019,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شهباء الحمض",
+"lat": 30.013,
+"lng": 42.5258,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ام تلول",
+"lat": 30.0416,
+"lng": 42.5574,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام اذن",
+"lat": 29.7314,
+"lng": 43.1292,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الهبن",
+"lat": 30.4211,
+"lng": 42.3132,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض التجار",
+"lat": 29.6409,
+"lng": 43.2585,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض التجار",
+"lat": 29.6601,
+"lng": 43.253,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شهباء الحمض",
+"lat": 30.0102,
+"lng": 42.4658,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شهباء الحمض",
+"lat": 29.991,
+"lng": 42.4924,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شهباء الحمض",
+"lat": 29.9928,
+"lng": 42.4741,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض التجار",
+"lat": 29.6238,
+"lng": 43.3159,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العوشزيات الشمالية",
+"lat": 26.3922,
+"lng": 47.4821,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العوشزيات الشمالية",
+"lat": 26.343,
+"lng": 47.5444,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض منوخ",
+"lat": 27.1334,
+"lng": 46.8254,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.9801,
+"lng": 41.657,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.9836,
+"lng": 41.6369,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الرديفة",
+"lat": 29.9974,
+"lng": 41.6746,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض التجار",
+"lat": 29.6462,
+"lng": 43.2798,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة درب الابل",
+"lat": 28.6456,
+"lng": 45.3474,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الجواري",
+"lat": 29.9868,
+"lng": 41.7434,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عيده",
+"lat": 28.1999,
+"lng": 44.8624,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض عيده",
+"lat": 28.2204,
+"lng": 44.8992,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض أم حزاء",
+"lat": 27.2537,
+"lng": 46.9274,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة بن عمعوم",
+"lat": 27.875,
+"lng": 44.9381,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الفريدة",
+"lat": 29.8757,
+"lng": 41.5391,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الافضخ",
+"lat": 29.9716,
+"lng": 42.0954,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5232,
+"lng": 47.0981,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5396,
+"lng": 47.1023,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5177,
+"lng": 47.0699,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض أم حزاء",
+"lat": 27.2684,
+"lng": 46.9076,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5777,
+"lng": 47.0904,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5671,
+"lng": 47.0717,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5662,
+"lng": 47.1383,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الفريدة",
+"lat": 29.8718,
+"lng": 41.5179,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "رياض أم حزاء",
+"lat": 27.2686,
+"lng": 46.931,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الفريدة",
+"lat": 29.8793,
+"lng": 41.5042,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الطراق",
+"lat": 27.3655,
+"lng": 44.4612,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ذريع الجنوبي",
+"lat": 29.8399,
+"lng": 41.4552,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ذريع الشمالي",
+"lat": 29.877,
+"lng": 41.4784,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ذريع الشمالي",
+"lat": 29.8861,
+"lng": 41.4562,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الشيحيات",
+"lat": 27.5355,
+"lng": 47.0256,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فياض الصحين",
+"lat": 30.3087,
+"lng": 42.096,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصحين",
+"lat": 30.3362,
+"lng": 42.1067,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصحين",
+"lat": 30.3396,
+"lng": 42.0628,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة أم أحمر",
+"lat": 23.4732,
+"lng": 39.6393,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ذريع الجنوبي",
+"lat": 29.8196,
+"lng": 41.4441,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة العاقولة",
+"lat": 29.8182,
+"lng": 41.6682,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ذريع الجنوبي",
+"lat": 29.8179,
+"lng": 41.4634,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض ام سروج",
+"lat": 27.5996,
+"lng": 44.4099,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الكدر",
+"lat": 27.6681,
+"lng": 44.0324,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض قور الارانب",
+"lat": 30.3381,
+"lng": 41.9459,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الهبن",
+"lat": 29.6962,
+"lng": 41.5685,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القوعي",
+"lat": 27.696,
+"lng": 44.3163,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سنار الشرقية",
+"lat": 29.6923,
+"lng": 41.7663,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سنار الشرقية",
+"lat": 29.6891,
+"lng": 41.7233,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سنار الشرقية",
+"lat": 29.6987,
+"lng": 41.7457,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخشناء",
+"lat": 30.3077,
+"lng": 41.9827,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخشناء",
+"lat": 30.3026,
+"lng": 41.9661,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "فياض القوعي",
+"lat": 27.7502,
+"lng": 44.337,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض سنار الشرقية",
+"lat": 29.681,
+"lng": 41.7837,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الخشناء",
+"lat": 30.2897,
+"lng": 41.9968,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المغر الشماليات",
+"lat": 26.1284,
+"lng": 44.5635,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المغر الشماليات",
+"lat": 26.1094,
+"lng": 44.608,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المغر الجنوبيات",
+"lat": 26.0399,
+"lng": 44.6505,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصحين",
+"lat": 30.3049,
+"lng": 42.026,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة رويان",
+"lat": 29.8098,
+"lng": 39.6688,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الحرير",
+"lat": 28.2851,
+"lng": 44.0423,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة بطحاء",
+"lat": 30.2644,
+"lng": 42.0411,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة دغيم",
+"lat": 26.9976,
+"lng": 46.6905,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الخيل",
+"lat": 27.1235,
+"lng": 48.3368,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الضرعية",
+"lat": 26.8147,
+"lng": 48.4789,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الصنع",
+"lat": 30.0438,
+"lng": 41.3086,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة قطن",
+"lat": 25.959,
+"lng": 42.3211,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الحمدان",
+"lat": 26.5507,
+"lng": 45.3247,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة النغيق",
+"lat": 26.5973,
+"lng": 45.2552,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضه رميثان",
+"lat": 26.4889,
+"lng": 45.147,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الصاع",
+"lat": 27.0378,
+"lng": 42.2916,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة المنفهق",
+"lat": 31.5118,
+"lng": 40.4184,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة فداغة",
+"lat": 26.2751,
+"lng": 41.2953,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة المرزوقية",
+"lat": 25.7608,
+"lng": 39.7702,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة البعايث",
+"lat": 26.0953,
+"lng": 41.8055,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "الرياض إكسبو 2030",
+"lat": 24.8849,
+"lng": 46.7083,
+"src": "osm",
+"tags": {
+"landuse": "construction"
+}
+},
+{
+"name": "روضة جريبيع",
+"lat": 25.9992,
+"lng": 40.0774,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض أمهات غريس",
+"lat": 28.8649,
+"lng": 43.9727,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض أمهات غريس",
+"lat": 28.8707,
+"lng": 43.9549,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رغوه الجنوبيه",
+"lat": 28.6534,
+"lng": 44.0798,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض رغوه الجنوبيه",
+"lat": 28.6482,
+"lng": 44.0649,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الفيضة",
+"lat": 27.2555,
+"lng": 45.949,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الفيافي",
+"lat": 27.2921,
+"lng": 45.962,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة امريكيز",
+"lat": 27.0165,
+"lng": 45.9228,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة مجيز",
+"lat": 25.7164,
+"lng": 43.6429,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أم قطيف",
+"lat": 29.4449,
+"lng": 37.1337,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة أم المجالس",
+"lat": 25.217,
+"lng": 44.5318,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضه المشاحنه",
+"lat": 30.0104,
+"lng": 40.9605,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة سواج",
+"lat": 25.1419,
+"lng": 43.2837,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة الرشرشية",
+"lat": 31.419,
+"lng": 37.3498,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة القاع",
+"lat": 23.3549,
+"lng": 46.7669,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة بوضة",
+"lat": 24.8847,
+"lng": 46.2251,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة العاذرية",
+"lat": 25.2846,
+"lng": 46.4982,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أم طليحة",
+"lat": 26.0221,
+"lng": 44.4367,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة مناهل الربيعان",
+"lat": 26.1588,
+"lng": 44.3328,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الحمودية",
+"lat": 25.2262,
+"lng": 44.5457,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة عين بن فهيد",
+"lat": 26.7735,
+"lng": 44.179,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الجفرة",
+"lat": 26.8174,
+"lng": 44.1519,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة هانا",
+"lat": 18.9603,
+"lng": 42.3554,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة غسله",
+"lat": 25.2606,
+"lng": 45.3361,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة روضة",
+"lat": 26.8392,
+"lng": 45.2758,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض القليب",
+"lat": 30.0749,
+"lng": 41.3459,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شعيب الخرش",
+"lat": 28.6079,
+"lng": 43.2328,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة غنيم",
+"lat": 28.5809,
+"lng": 44.3267,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة القصور",
+"lat": 25.2679,
+"lng": 45.3144,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "روضة الكسر",
+"lat": 26.4358,
+"lng": 44.914,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة التنهاة",
+"lat": 26.0241,
+"lng": 46.442,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة أم الشقوق",
+"lat": 25.7958,
+"lng": 45.9212,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض نقذة",
+"lat": 29.7865,
+"lng": 43.3671,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض التُّلول",
+"lat": 29.8225,
+"lng": 42.5844,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة بن عناز",
+"lat": 29.0892,
+"lng": 43.749,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض المحولة",
+"lat": 28.6017,
+"lng": 42.7399,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض العريمضيه",
+"lat": 29.7817,
+"lng": 42.6813,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض أعيشة",
+"lat": 30.1468,
+"lng": 42.2957,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض شبلي",
+"lat": 29.9561,
+"lng": 41.5141,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض الاجلال",
+"lat": 29.9353,
+"lng": 41.1972,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض فاج الاصفر",
+"lat": 30.2163,
+"lng": 41.9393,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فياض فاج القليب",
+"lat": 30.1832,
+"lng": 41.4347,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "فيضة ركاد",
+"lat": 27.2455,
+"lng": 45.9288,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "الروضة الجنوبية",
+"lat": 17.5025,
+"lng": 47.1062,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "فيضة الفوازين",
+"lat": 24.3383,
+"lng": 43.7534,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "الروض",
+"lat": 26.1474,
+"lng": 40.638,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروض",
+"lat": 28.0285,
+"lng": 41.1325,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 26.8005,
+"lng": 41.6834,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "رياض البويب",
+"lat": 26.2514,
+"lng": 40.3816,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة ابن سويلم",
+"lat": 27.1587,
+"lng": 40.6237,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فياض الاحامرية",
+"lat": 25.9078,
+"lng": 40.9297,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة ابن هباس",
+"lat": 29.1494,
+"lng": 44.3128,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفياض",
+"lat": 30.0288,
+"lng": 40.037,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "الفياض",
+"lat": 30.6025,
+"lng": 38.1074,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفياض",
+"lat": 29.9788,
+"lng": 40.0883,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 18.741,
+"lng": 43.1913,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة جاش",
+"lat": 19.4111,
+"lng": 43.4509,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضه الجديده",
+"lat": 21.9628,
+"lng": 39.3825,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "الفيضه القديمه",
+"lat": 21.9807,
+"lng": 39.3883,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "الروضة",
+"lat": 22.313,
+"lng": 39.4931,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "الروضة",
+"lat": 21.567,
+"lng": 39.8958,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 20.8239,
+"lng": 40.8578,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة الشمالية",
+"lat": 21.7303,
+"lng": 39.976,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 24.2706,
+"lng": 39.5336,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "روضة ام البقر",
+"lat": 24.185,
+"lng": 39.1458,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة مصلح",
+"lat": 24.7413,
+"lng": 38.9789,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.9542,
+"lng": 43.8582,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.5502,
+"lng": 42.7005,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 25.3688,
+"lng": 42.1003,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 26.6333,
+"lng": 42.6767,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روض الجوا",
+"lat": 26.5293,
+"lng": 43.574,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة الحسو",
+"lat": 25.8098,
+"lng": 44.3185,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة الوسق",
+"lat": 25.4689,
+"lng": 42.8584,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة اللواف",
+"lat": 25.9452,
+"lng": 44.2655,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة عتيق",
+"lat": 25.9158,
+"lng": 44.2088,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة قرادان",
+"lat": 25.9086,
+"lng": 42.8828,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "رياض الخبراء",
+"lat": 26.0579,
+"lng": 43.5634,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الحمر",
+"lat": 25.8214,
+"lng": 43.1255,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة ام عمائر",
+"lat": 27.1956,
+"lng": 43.3139,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة سلام",
+"lat": 24.7822,
+"lng": 43.1417,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة سواج",
+"lat": 25.1204,
+"lng": 43.2383,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة يكلب",
+"lat": 26.8854,
+"lng": 43.1495,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الاخيضر",
+"lat": 25.5255,
+"lng": 42.8815,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 26.2797,
+"lng": 44.8119,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "الرياض",
+"lat": 24.7614,
+"lng": 46.6469,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 24.2117,
+"lng": 42.9191,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 24.2876,
+"lng": 43.3821,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 23.7471,
+"lng": 44.7892,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.9468,
+"lng": 45.3556,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 22.2094,
+"lng": 46.6938,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 23.902,
+"lng": 42.8558,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 22.5458,
+"lng": 44.3368,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 23.728,
+"lng": 44.8212,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 23.8599,
+"lng": 45.424,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 24.3909,
+"lng": 45.3336,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة ابن حباب",
+"lat": 24.7962,
+"lng": 43.7246,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة ابو سنون",
+"lat": 24.7789,
+"lng": 43.2367,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة الفرس",
+"lat": 24.6231,
+"lng": 45.3618,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة القوازين",
+"lat": 24.4366,
+"lng": 43.7711,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة المحرق",
+"lat": 24.7855,
+"lng": 43.2637,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة ام سواد",
+"lat": 25.1112,
+"lng": 44.6103,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة بلاعيس",
+"lat": 24.8185,
+"lng": 44.6898,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "روضة جهام",
+"lat": 24.4846,
+"lng": 43.6839,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة ابن سعيدان",
+"lat": 23.7876,
+"lng": 45.3353,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الحار",
+"lat": 24.056,
+"lng": 43.4502,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الريشية",
+"lat": 24.1962,
+"lng": 43.5169,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة السر",
+"lat": 25.3355,
+"lng": 44.4675,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة العبسي",
+"lat": 24.5468,
+"lng": 43.632,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة المفص",
+"lat": 24.3415,
+"lng": 44.8078,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الهييشة",
+"lat": 25.0548,
+"lng": 43.7518,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة جريسة",
+"lat": 24.4362,
+"lng": 44.2407,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة خف",
+"lat": 24.9397,
+"lng": 44.7087,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة سالم",
+"lat": 24.7632,
+"lng": 43.1956,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة غول",
+"lat": 24.8653,
+"lng": 43.3283,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة منية",
+"lat": 24.994,
+"lng": 43.4517,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة نومان",
+"lat": 24.4534,
+"lng": 42.9323,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.619,
+"lng": 40.3862,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة أثقب",
+"lat": 26.0406,
+"lng": 40.6222,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة السمار",
+"lat": 26.217,
+"lng": 41.7996,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 18.9176,
+"lng": 43.5881,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 19.3421,
+"lng": 43.9633,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة السريب",
+"lat": 18.1253,
+"lng": 43.4466,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة بن نورة",
+"lat": 18.424,
+"lng": 43.4028,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الرياض",
+"lat": 20.111,
+"lng": 40.3152,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 21.8551,
+"lng": 40.3301,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 23.1081,
+"lng": 41.0683,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روض البهم",
+"lat": 24.074,
+"lng": 39.6024,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فياض الضحايا",
+"lat": 26.1578,
+"lng": 39.9507,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 26.2175,
+"lng": 43.6531,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة العوازم",
+"lat": 25.592,
+"lng": 42.7765,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة فردة",
+"lat": 25.6099,
+"lng": 43.9945,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة أبان الأحمر",
+"lat": 25.4441,
+"lng": 42.8548,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة دخنة",
+"lat": 25.398,
+"lng": 43.6378,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة ساحوق",
+"lat": 25.349,
+"lng": 42.108,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 24.5567,
+"lng": 46.2321,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة القديمة",
+"lat": 23.1556,
+"lng": 45.2186,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 24.6367,
+"lng": 43.5146,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضة",
+"lat": 24.4747,
+"lng": 46.3738,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة دعيج",
+"lat": 25.241,
+"lng": 45.3723,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة شبيرمه",
+"lat": 24.6628,
+"lng": 43.5292,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة الجمش",
+"lat": 24.6767,
+"lng": 43.6894,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فيضة غثاة",
+"lat": 24.3562,
+"lng": 43.3621,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.9067,
+"lng": 44.1572,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفيضه",
+"lat": 21.9134,
+"lng": 39.3965,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 25.5237,
+"lng": 42.6993,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "فياض الغزلانيات",
+"lat": 27.1115,
+"lng": 43.2926,
+"src": "open-places.json:معلم"
+},
+{
+"name": "الفيضة",
+"lat": 24.4666,
+"lng": 46.4121,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "روضة الزرع",
+"lat": 25.7633,
+"lng": 44.225,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفياض",
+"lat": 29.9358,
+"lng": 40.045,
+"src": "open-places.json:معلم"
+},
+{
+"name": "الروضة",
+"lat": 24.7341,
+"lng": 46.7672,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 21.5642,
+"lng": 39.1579,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 26.7075,
+"lng": 50.0704,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 26.4168,
+"lng": 43.8782,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 16.9111,
+"lng": 42.5649,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 18.0798,
+"lng": 43.1305,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 19.7067,
+"lng": 43.5123,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "رياض بن غنام",
+"lat": 20.6906,
+"lng": 42.0157,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 19.1438,
+"lng": 41.9265,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 17.6637,
+"lng": 43.759,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الروضة",
+"lat": 19.5712,
+"lng": 41.9817,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الفياض",
+"lat": 30.022,
+"lng": 40.0666,
+"src": "open-places.json:معلم"
+},
+{
+"name": "الفياض",
+"lat": 29.9862,
+"lng": 40.0659,
+"src": "open-places.json:معلم"
+}
+]
+}
