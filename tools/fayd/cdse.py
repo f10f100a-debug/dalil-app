@@ -33,7 +33,7 @@ def _one(idx, lat, lng, start, end):
                      "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": int(os.environ.get("CDSE_MAXCC", "100"))}}]},
            "aggregation": {"timeRange": {"from": start + "T00:00:00Z", "to": end + "T23:59:59Z"}, "aggregationInterval": {"of": "P1D", "lastIntervalBehavior": "EXTEND"},
                            "evalscript": EVAL, "resx": 0.00009, "resy": 0.00009},
-           "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [75, 95]}}}}}}
+           "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [75, 95, 99]}}}}}}
     for k in range(4):
         try:
             calls += 1
