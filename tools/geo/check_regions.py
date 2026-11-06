@@ -7,7 +7,7 @@ gj = json.load(urllib.request.urlopen(api["gjDownloadURL"], timeout=120))
 # أسماء geoBoundaries (إنجليزي) ← أسماء التطبيق
 AR = {"riyadh": "الرياض", "makkah": "مكة", "mecca": "مكة", "madinah": "المدينة", "medina": "المدينة", "al madinah": "المدينة",
       "qassim": "القصيم", "al qasim": "القصيم", "eastern": "الشرقية", "ash sharqiyah": "الشرقية", "asir": "عسير", "tabuk": "تبوك",
-      "hail": "حائل", "ha'il": "حائل", "northern borders": "الحدود الشمالية", "al hudud ash shamaliyah": "الحدود الشمالية",
+      "hail": "حائل", "ha'il": "حائل", "hayel": "حائل", "hayil": "حائل", "northern borders": "الحدود الشمالية", "al hudud ash shamaliyah": "الحدود الشمالية",
       "jazan": "جازان", "jizan": "جازان", "najran": "نجران", "al bahah": "الباحة", "baha": "الباحة", "al jawf": "الجوف", "jawf": "الجوف"}
 def ar(name):
     n = name.lower().replace("province", "").replace("region", "").replace("-", " ").strip()
