@@ -138,6 +138,23 @@ def in_ksa(la, lo):
     if i < 0 or j < 0 or i >= G["rows"] or j >= G["cols"]: return False
     return 0 <= ord(G["g"][i * G["cols"] + j]) - 97 < len(G["regions"])
 
+def rain75(pts):
+    import urllib.request, urllib.parse
+    out = []
+    for k in range(0, len(pts), 80):
+        part = pts[k:k + 80]
+        q = urllib.parse.urlencode({"latitude": ",".join(str(a) for a, b in part), "longitude": ",".join(str(b) for a, b in part),
+                                    "daily": "precipitation_sum", "past_days": 75, "forecast_days": 1, "timezone": "Asia/Riyadh"})
+        j = None
+        for t in range(4):
+            try:
+                with urllib.request.urlopen(urllib.request.Request("https://api.open-meteo.com/v1/forecast?" + q, headers=s2.UA), timeout=120) as r: j = json.load(r); break
+            except Exception as e:
+                print("rain retry", str(e)[:80], flush=True); time.sleep(20 * (t + 1))
+        if j is None: out += [None] * len(part); continue
+        for loc in (j if isinstance(j, list) else [j]): out.append(sum(v or 0 for v in loc["daily"]["precipitation_sum"]))
+    return out
+
 def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
@@ -242,7 +259,12 @@ def main():
         if not in_ksa(r[0], r[1]) or near_named(r[0], r[1]): continue
         if any(km(r[0], r[1], q[0], q[1]) < 2 for q in rows): continue
         rows.append(r)
-    rows = rows[:400]
+    # بدون مطر = سقي (محاور جديدة في طبرجل وعريفج والشمال) مو ربيع: نطلب 8 ملم فأكثر آخر 75 يوم (Open-Meteo)
+    rows = rows[:900]
+    mm = rain75([(r[0], r[1]) for r in rows])
+    kept = [r for r, m in zip(rows, mm) if m is None or m >= 8]
+    print(f"::notice::rain check: {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < 8 mm)", flush=True)
+    rows = kept[:400]
     out = []
     for la, lo, ha, pct, ncell, hf, tile in rows:
         lb, ref = label(la, lo)
