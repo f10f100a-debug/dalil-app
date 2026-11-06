@@ -282,6 +282,25 @@ def main():
     kept = [r for r, m in zip(rows, mm) if m is None or m >= 8]
     print(f"::notice::rain check: {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < 8 mm)", flush=True)
     rows = kept[:400]
+    # فحص أخير بدقة 10 م (Copernicus، طلب لكل بقعة): المزرعة تفضحها قمم NDVI عالية (≥ 0.8) الحين أو بالموسم الماضي، أو خضرة بالصيف
+    try:
+        os.environ.setdefault("CDSE_HALF_M", "150")
+        import cdse
+        if cdse.available() and rows:
+            sr = cdse.series([(k, r[0], r[1]) for k, r in enumerate(rows)], f"{y}-01-01", today.isoformat(), workers=3)
+            cut_now = (today - dtm.timedelta(days=16)).isoformat(); farm_n = 0; kept = []
+            for k, r in enumerate(rows):
+                v = sr.get(k)
+                if not v: kept.append(r); continue
+                now99 = max([x[3] for x in v if x[0] >= cut_now] or [0])
+                last99 = max([x[3] for x in v if f"{y}-01-01" <= x[0] <= f"{y}-05-31"] or [0])
+                summer = max([x[4] for x in v if f"{y}-06-01" <= x[0] <= f"{y}-09-30"] or [0])
+                if now99 >= 0.8 or last99 >= 0.85 or summer >= 0.3: farm_n += 1; continue
+                kept.append(r)
+            print(f"::notice::copernicus farm check: {len(rows)} → {len(kept)} (farms {farm_n}, requests {cdse.calls})", flush=True)
+            rows = kept
+    except Exception as e:
+        print("::warning::copernicus check skipped: " + str(e)[:150], flush=True)
     out = []
     for la, lo, ha, pct, ncell, hf, tile in rows:
         lb, ref = label(la, lo)
