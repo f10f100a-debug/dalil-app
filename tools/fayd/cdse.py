@@ -25,7 +25,7 @@ def token():
         _tok[0] = json.load(r)["access_token"]; _tok[1] = time.time()
     return _tok[0]
 
-def _one(idx, lat, lng, start, end):
+def _one(idx, lat, lng, start, end, series=False):
     global calls
     dla = HALF_M / 111320; dlo = dla / max(0.2, math.cos(math.radians(lat)))
     poly = [[lng - dlo, lat - dla], [lng + dlo, lat - dla], [lng + dlo, lat + dla], [lng - dlo, lat + dla], [lng - dlo, lat - dla]]
@@ -39,7 +39,7 @@ def _one(idx, lat, lng, start, end):
             calls += 1
             r = urllib.request.Request(STATS_URL, data=json.dumps(req).encode(), headers={"content-type": "application/json", "authorization": "Bearer " + token()})
             with urllib.request.urlopen(r, timeout=90) as resp: j = json.load(resp)
-            best = None
+            best = None; ser = []
             if os.environ.get("CDSE_DEBUG"): print("cdse raw", idx, [(it["interval"]["from"][:10], it.get("outputs",{}).get("ndvi",{}).get("bands",{}).get("B0",{}).get("stats",{})) for it in j.get("data", [])], flush=True)
             for it in j.get("data", []):
                 o = it.get("outputs", {}); nd = o.get("ndvi", {}).get("bands", {}).get("B0", {}).get("stats", {})
@@ -51,8 +51,10 @@ def _one(idx, lat, lng, start, end):
                 d = it["interval"]["from"][:10]
                 p75 = nd.get("percentiles", {}).get("75.0")
                 v = (d, round(float(p75), 3), round(float(nd["mean"]), 3), round(float(gr.get("mean", 0)), 3), round(valid, 2))
+                pc = nd.get("percentiles", {})
+                ser.append((d, v[1], round(float(pc.get("95.0") or 0), 3), round(float(pc.get("99.0") or 0), 3), v[3]))
                 if not best or d > best[0]: best = v
-            return idx, best
+            return idx, (sorted(ser) if series else best)
         except urllib.error.HTTPError as e:
             if e.code == 429: time.sleep(10 * (k + 1)); continue
             print("cdse http", e.code, e.read()[:200], flush=True); return idx, None
@@ -66,4 +68,12 @@ def sample(sites, start, end, workers=2):
     with ThreadPoolExecutor(workers) as ex:
         for idx, v in ex.map(lambda s: _one(s[0], s[1], s[2], start, end), sites):
             if v: out[idx] = [v]
+    return out
+
+def series(sites, start, end, workers=2):
+    """sites: [(idx, lat, lng)] → {idx: [(date, p75, p95, p99, gfrac)]} لكل صورة صافية بالفترة (طلب واحد لكل فيضة)"""
+    out = {}
+    with ThreadPoolExecutor(workers) as ex:
+        for idx, v in ex.map(lambda s: _one(s[0], s[1], s[2], start, end, True), sites):
+            if v: out[idx] = v
     return out
