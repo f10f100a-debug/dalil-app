@@ -157,16 +157,7 @@ body.embed #saveCard{top:54px;left:8px;right:8px;font-size:12px;padding:8px 10px
 .rs-row{display:flex;gap:8px}.rs-row button{flex:1;border:1px solid #cfdcea;background:#F2F7FC;border-radius:12px;padding:10px 4px;font:inherit;font-weight:700;font-size:13.5px;color:#1E3A5F}.rs-x{border:0;background:none;font:inherit;color:#7A6E60;padding:6px}
 .nav-rain{font-size:12.5px;font-weight:700;margin-top:3px;color:#1E5FA8}.nav-rain[hidden]{display:none}
 :is(html[data-theme=dark],html[data-theme=red]) .rl-scale,:is(html[data-theme=dark],html[data-theme=red]) .rl-report,:is(html[data-theme=dark],html[data-theme=red]) .rain-sheet{background:#221D17;color:#E8DCC8;border-color:#3A3128}:is(html[data-theme=dark],html[data-theme=red]) .rs-row button{background:#2C251D;color:#E8DCC8;border-color:#3A3128}:is(html[data-theme=dark],html[data-theme=red]) .nav-rain{color:#7FB6F0}
-</style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script><script>window.addEventListener('error',function(e){try{parent!==window&&parent.__dalilReport&&parent.__dalilReport(e.message,'map.html:'+e.lineno+':'+e.colno)}catch(_){}});</script><script>/* فحص مؤقت لجسر الموقع في نسخة الآيفون 1.8: هل الصفحة تاخذ الموقع من التطبيق ولا تطلبه بنفسها؟ (بدون موقع ولا بيانات شخصية) */
-(function(){try{if(!/DalilApp\/(1\.(8|9)|[2-9])/.test(navigator.userAgent))return;
-var R=function(m,s){try{var f=window.__dalilReport||(window.parent!==window&&window.parent.__dalilReport);if(f)f(m,s)}catch(e){}};
-var where=window===window.top?'top':'frame';
-function st(){var h=!!(window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.dalilgeo),api=window.__dalilGeoApi;if(!api)try{api=window.top.__dalilGeoApi}catch(e){}
-return 'h='+(h?1:0)+' api='+(api?1:0)+' same='+(api&&navigator.geolocation===api?1:0)+' own='+(Object.prototype.hasOwnProperty.call(navigator,'geolocation')?1:0)+' st='+(window.__dalilGeoState||'-')}
-R('geo-diag start '+where+' '+st(),'diag '+(location.pathname.split('/').pop()||'index'));
-var GP=window.Geolocation&&Geolocation.prototype;if(GP)['getCurrentPosition','watchPosition'].forEach(function(m){var o=GP[m];if(typeof o!=='function')return;
-GP[m]=function(){var s=String(new Error().stack||'').split('\n').slice(0,4).map(function(x){return x.trim().replace(/https?:\/\/[^\/]+\//,'').slice(0,50)}).join('|');R('geo-diag REAL '+m+' '+where+' '+st(),s.slice(0,160));return o.apply(this,arguments)}});
-}catch(e){}})();</script>
+</style><script src="vendor/maplibre-gl-csp.js"></script><script src="vendor/pmtiles.js"></script><script>window.addEventListener('error',function(e){try{parent!==window&&parent.__dalilReport&&parent.__dalilReport(e.message,'map.html:'+e.lineno+':'+e.colno)}catch(_){}});</script>
 <style>
 /* شريط الوقت سطرين */
 #rainTime{display:flex;flex-direction:column;line-height:1.3}#rainTime .rt-m{font-weight:800}#rainTime .rt-s{font-size:11px;font-weight:700;color:#4E6585}#rainTime .rt-s[hidden]{display:none}
