@@ -22,6 +22,7 @@ jobs:
           CDSE_HALF_M: ${{ inputs.half_m }}
           POINTS: ${{ inputs.points }}
           SERIES: ${{ inputs.series }}
+          SDAYS: ${{ inputs.days }}
         run: |
           cd tools/fayd && python3 - <<'PY'
           import json, os, datetime as dt, cdse
@@ -41,7 +42,7 @@ jobs:
               r2 = cdse.sample([(1000000 + k, la, lo) for k, (la, lo) in enumerate(pts)], start.isoformat(), end.isoformat())
               for k, (la, lo) in enumerate(pts): print(f"::notice::نقطة {la},{lo}: {r2.get(1000000 + k, [None])[0]}")
               if os.environ.get("SERIES"):
-                  sp = cdse.series([(1000000 + k, la, lo) for k, (la, lo) in enumerate(pts)], (end - dt.timedelta(days=75)).isoformat(), end.isoformat())
+                  sp = cdse.series([(1000000 + k, la, lo) for k, (la, lo) in enumerate(pts)], (end - dt.timedelta(days=int(os.environ.get("SDAYS") or 75))).isoformat(), end.isoformat())
                   for k, (la, lo) in enumerate(pts):
                       print(f"PSER {la},{lo} | " + " ".join(f"{d[5:]}:{a}/{e}/{g}" for d, a, c, e, g in sp.get(1000000 + k, [])))
           if os.environ.get("SERIES"):
