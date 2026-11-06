@@ -144,14 +144,14 @@ def near_named(la, lo, r=2.0):
 def do_tile(tile, now_items, dry_items, last_items=None):
     now, water, geo = composite(now_items[:5], "min")
     if now is None: return []
-    dry, w2, g2 = composite(dry_items[:10], "max")
+    dry, w2, g2 = composite(dry_items[:12], "max", True)
     if dry is None: return []
     tr, crs = geo
-    # الموسم الماضي (نوفمبر–يوليو): أي بكسل وصل NDVI ‏0.6 = زراعة (محاور قمح/برسيم) — الربيع الطبيعي على 40 م ما يوصلها
+    # الموسم الماضي (يناير–مايو): أي بكسل وصل NDVI ‏0.7 = زراعة (محاور قمح/برسيم) — الربيع الطبيعي على 40 م ما يوصلها
     # (7 نوفمبر: أغلب بقع حائل والجوف الكبيرة طلعت محاور خضراء بالشتاء والصيف اللي فات)
     last, _, _ = composite(last_items[:8], "max", True) if last_items else (None, None, None)
-    farm = (last >= 0.6) if last is not None else np.zeros_like(now, bool)
-    if last is not None: farm = ndimage.binary_dilation(farm, iterations=2)     # حواف المحاور
+    farm = (last >= 0.7) if last is not None else np.zeros_like(now, bool)
+    if last is not None: farm = ndimage.binary_dilation(farm, iterations=1)     # حواف المحاور
     ok = np.isfinite(now) & np.isfinite(dry) & ~water & ~w2
     g = ok & (now >= NOW_MIN) & (now - dry >= D_MIN) & (dry < 0.15) & ~farm
     hi = g & (now >= 0.55)
@@ -196,14 +196,21 @@ def do_tile(tile, now_items, dry_items, last_items=None):
 def main():
     print("searching…", flush=True)
     nowi = s2.search(BBOX, f"{(today - dtm.timedelta(days=12)).isoformat()}T00:00:00Z/{today.isoformat()}T23:59:59Z", 30)
-    dryi = s2.search(BBOX, f"{y}-08-25T00:00:00Z/{y}-10-05T23:59:59Z", 10)
+    dryi = s2.search(BBOX, f"{y}-06-01T00:00:00Z/{y}-10-05T23:59:59Z", 10)   # الصيف كله: أي خضرة بالصيف = سقي
     g = lambda its: {t: sorted([i for i in its if i["properties"].get("s2:mgrs_tile") == t], key=lambda i: (i["properties"]["eo:cloud_cover"] > 5, i["properties"]["datetime"]), reverse=False) for t in {i["properties"].get("s2:mgrs_tile") for i in its}}
     N = {t: sorted(v, key=lambda i: i["properties"]["datetime"], reverse=True) for t, v in g(nowi).items()}
-    # الجفاف: الصور الكاملة أول (المدار الجانبي يغطي جزء من البلاطة بس — s2:nodata_pixel_percentage)
-    D = {t: sorted(v, key=lambda i: (i["properties"]["eo:cloud_cover"] > 3, i["properties"].get("s2:nodata_pixel_percentage", 0) > 5, i["properties"]["eo:cloud_cover"])) for t, v in g(dryi).items()}
-    for t in D:   # ونخلط بين المدارات: نضمن وجود صور جزئية بعد الكاملة عشان تنغطى كل الأجزاء
-        full = [i for i in D[t] if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5]; part = [i for i in D[t] if i not in full]
-        D[t] = full[:4] + part[:6] + full[4:]
+    # الجفاف: صور متفرقة على الصيف (وحدة كل ~3 أسابيع، كاملة أول) + صور المدار الثاني عشان تنغطى كل أجزاء البلاطة
+    D = {}
+    for t, v in g(dryi).items():
+        full = sorted([i for i in v if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5], key=lambda i: i["properties"]["datetime"])
+        part = sorted([i for i in v if i not in full], key=lambda i: i["properties"]["datetime"])
+        def spread(xs, gap=20):
+            out, ld = [], ""
+            for i in xs:
+                d = i["properties"]["datetime"][:10]
+                if not ld or d > (dtm.date.fromisoformat(ld) + dtm.timedelta(days=gap)).isoformat(): out.append(i); ld = d
+            return out
+        D[t] = spread(full) + spread(part, 30)
     lasti = s2.search(BBOX, f"{y}-01-10T00:00:00Z/{y}-05-31T23:59:59Z", 5)
     L = {}
     for t, v in g(lasti).items():   # صور متفرقة على الشتاء والربيع (وحدة لكل ~3 أسابيع)
