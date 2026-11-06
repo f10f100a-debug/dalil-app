@@ -1,0 +1,4354 @@
+{
+"osm_total": 555,
+"n": 490,
+"rows": [
+{
+"name": "خبراء الترمس",
+"lat": 27.0594,
+"lng": 43.3769,
+"src": "osm",
+"tags": {
+"landuse": "salt_pond"
+}
+},
+{
+"name": "خبراء الجرذاوية",
+"lat": 25.4208,
+"lng": 42.6453,
+"src": "osm",
+"tags": {
+"landuse": "salt_pond"
+}
+},
+{
+"name": "خبراء ارن",
+"lat": 22.94,
+"lng": 40.6981,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان نجمة",
+"lat": 29.9103,
+"lng": 40.3402,
+"src": "osm",
+"tags": {
+"landuse": "basin"
+}
+},
+{
+"name": "قيعان الكهف",
+"lat": 29.9115,
+"lng": 40.0082,
+"src": "osm",
+"tags": {
+"landuse": "basin"
+}
+},
+{
+"name": "خبرة طوقة",
+"lat": 30.8992,
+"lng": 39.3206,
+"src": "osm",
+"tags": {
+"landuse": "basin"
+}
+},
+{
+"name": "خبراء ام الضيان",
+"lat": 31.0071,
+"lng": 41.9246,
+"src": "osm",
+"tags": {
+"natural": "water",
+"landuse": "salt_pond"
+}
+},
+{
+"name": "قاع الرديفة",
+"lat": 31.1981,
+"lng": 41.5402,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "خبراء مغطية أم سعيرة",
+"lat": 26.9169,
+"lng": 46.8503,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء ام جثجاث",
+"lat": 27.6808,
+"lng": 47.8652,
+"src": "osm",
+"tags": {
+"natural": "water"
+}
+},
+{
+"name": "خبراء آل زرير",
+"lat": 26.1711,
+"lng": 48.0431,
+"src": "osm",
+"tags": {
+"natural": "water"
+}
+},
+{
+"name": "خبراء فراج",
+"lat": 26.2236,
+"lng": 47.8703,
+"src": "osm",
+"tags": {
+"landuse": "basin"
+}
+},
+{
+"name": "قاع طلحاء",
+"lat": 27.6756,
+"lng": 42.9308,
+"src": "osm",
+"tags": {
+"natural": "water",
+"landuse": "salt_pond"
+}
+},
+{
+"name": "خبراء مغيلث",
+"lat": 27.8144,
+"lng": 43.6019,
+"src": "osm",
+"tags": {
+"natural": "water"
+}
+},
+{
+"name": "خبراء الجلعد",
+"lat": 29.2116,
+"lng": 43.3096,
+"src": "osm",
+"tags": {
+"landuse": "basin"
+}
+},
+{
+"name": "قاع مدرج",
+"lat": 27.1677,
+"lng": 43.7442,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبرة عسيلة",
+"lat": 29.8677,
+"lng": 36.8648,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع حجلاء",
+"lat": 26.1476,
+"lng": 41.3814,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "خبراء الحفنة",
+"lat": 22.1668,
+"lng": 45.331,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء المحلية",
+"lat": 24.3715,
+"lng": 46.3694,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء برزات",
+"lat": 23.9672,
+"lng": 45.832,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء الحاج",
+"lat": 25.5103,
+"lng": 41.8948,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء الحاج",
+"lat": 22.6864,
+"lng": 40.7821,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع المزكاء",
+"lat": 26.1372,
+"lng": 40.3769,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع اخضر",
+"lat": 26.711,
+"lng": 38.3295,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع مويسن",
+"lat": 29.8271,
+"lng": 39.9676,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرا الطرودي",
+"lat": 28.8228,
+"lng": 38.9765,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء المصطبغة",
+"lat": 28.4094,
+"lng": 39.7778,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع القطب",
+"lat": 30.1325,
+"lng": 39.3637,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء التحول",
+"lat": 16.972,
+"lng": 42.8105,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "القاع البارد",
+"lat": 25.9601,
+"lng": 43.5651,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع السباق",
+"lat": 26.1275,
+"lng": 39.9394,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الذيابة",
+"lat": 26.0344,
+"lng": 41.8834,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع خرم ضبع",
+"lat": 22.198,
+"lng": 40.7111,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة الأحور",
+"lat": 24.7394,
+"lng": 45.8435,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع أمّ شفلّح",
+"lat": 30.4263,
+"lng": 39.6603,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرديعانيّة",
+"lat": 31.5429,
+"lng": 38.8277,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو قطا",
+"lat": 22.7647,
+"lng": 41.6252,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبلق",
+"lat": 26.5337,
+"lng": 43.7781,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الفسقانات",
+"lat": 30.3598,
+"lng": 40.3884,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الأمحاص",
+"lat": 30.5701,
+"lng": 39.7753,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع الصليح",
+"lat": 21.0504,
+"lng": 41.6515,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع غَربَة",
+"lat": 25.1356,
+"lng": 44.6936,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء عصيماء",
+"lat": 29.3715,
+"lng": 40.0944,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قيعان ليلى",
+"lat": 30.9192,
+"lng": 38.7025,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع عضيّان",
+"lat": 22.1604,
+"lng": 40.5096,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع اللويمي",
+"lat": 28.233,
+"lng": 40.8681,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع التربة",
+"lat": 30.778,
+"lng": 38.9687,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة النوق",
+"lat": 31.9587,
+"lng": 39.1027,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"place": "locality"
+}
+},
+{
+"name": "قاع خبراء المنقّى",
+"lat": 22.3634,
+"lng": 40.5487,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع عَبلا",
+"lat": 25.6429,
+"lng": 43.7693,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العاقر",
+"lat": 22.0683,
+"lng": 40.352,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الأرنبيّات",
+"lat": 30.8516,
+"lng": 39.4867,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان عسيلة",
+"lat": 22.9651,
+"lng": 40.5708,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "خبرة محمّلة",
+"lat": 30.467,
+"lng": 39.9634,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع ريمان",
+"lat": 22.8403,
+"lng": 41.0833,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الطّرائف",
+"lat": 27.3854,
+"lng": 39.343,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان مجدل",
+"lat": 27.2336,
+"lng": 40.9313,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أميغر",
+"lat": 25.4935,
+"lng": 45.2387,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع وعد",
+"lat": 27.2601,
+"lng": 44.4744,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع الزرار",
+"lat": 26.7126,
+"lng": 43.4789,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع المُزَيريرة",
+"lat": 27.1476,
+"lng": 43.1961,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرغليَّة",
+"lat": 29.961,
+"lng": 39.5807,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخفق",
+"lat": 25.1589,
+"lng": 43.1164,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المَسَد",
+"lat": 26.0914,
+"lng": 44.107,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع حاضا",
+"lat": 22.733,
+"lng": 40.6273,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة غرق",
+"lat": 30.5185,
+"lng": 39.6991,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع العرفج",
+"lat": 20.9606,
+"lng": 41.6945,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع تركي",
+"lat": 22.1415,
+"lng": 40.5755,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع شرورا",
+"lat": 28.6008,
+"lng": 36.5858,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الفرد",
+"lat": 22.02,
+"lng": 40.4718,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القُصَير",
+"lat": 26.6615,
+"lng": 43.9866,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الأكادر",
+"lat": 27.1053,
+"lng": 40.3831,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع هَوبان",
+"lat": 27.8942,
+"lng": 42.4497,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع عُوَيجان",
+"lat": 27.7302,
+"lng": 42.3654,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العصودة",
+"lat": 26.5126,
+"lng": 43.4402,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المشيطيّة",
+"lat": 29.2209,
+"lng": 36.1971,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع السحق",
+"lat": 26.605,
+"lng": 43.3797,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القُوَيرة",
+"lat": 27.9564,
+"lng": 42.4411,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القاحة",
+"lat": 21.0333,
+"lng": 41.7209,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قيعان الحشّابي",
+"lat": 30.3502,
+"lng": 38.7025,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع إبن بصيص",
+"lat": 25.6644,
+"lng": 45.0266,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخرماء",
+"lat": 25.5666,
+"lng": 44.0807,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع الحصاة",
+"lat": 30.8942,
+"lng": 37.7517,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أمّ أذن",
+"lat": 30.1296,
+"lng": 40.206,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبرة عتيق",
+"lat": 29.63,
+"lng": 38.0284,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع السادّة",
+"lat": 31.1136,
+"lng": 38.6105,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الشداد",
+"lat": 31.0395,
+"lng": 38.2477,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السَّمح",
+"lat": 27.112,
+"lng": 43.1494,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحمر",
+"lat": 20.8919,
+"lng": 41.5547,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع قَنَّاص",
+"lat": 26.2962,
+"lng": 44.0831,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبرة أم جثجاث",
+"lat": 29.4004,
+"lng": 38.8357,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع النقيب",
+"lat": 22.7549,
+"lng": 40.58,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع كتيفة",
+"lat": 31.5685,
+"lng": 38.5447,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحَنانيَة",
+"lat": 27.2454,
+"lng": 42.9466,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الزبيبات",
+"lat": 31.7982,
+"lng": 38.8428,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخيمة",
+"lat": 25.8498,
+"lng": 42.3881,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الكدرة",
+"lat": 24.0371,
+"lng": 45.78,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء أم أذن",
+"lat": 27.454,
+"lng": 40.4274,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع بلقع",
+"lat": 22.8958,
+"lng": 40.5262,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع النباج",
+"lat": 30.4433,
+"lng": 38.4569,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الضَعويَّة",
+"lat": 26.8962,
+"lng": 44.2544,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الفرَيسيَّة",
+"lat": 27.4166,
+"lng": 43.064,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المكمن",
+"lat": 30.9462,
+"lng": 38.5345,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العصيب",
+"lat": 22.352,
+"lng": 40.6135,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحفنة",
+"lat": 22.7929,
+"lng": 41.5972,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القرارة السفلى",
+"lat": 22.1946,
+"lng": 40.6433,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو سليليات",
+"lat": 30.6587,
+"lng": 38.5632,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الرصيف",
+"lat": 30.3256,
+"lng": 40.4091,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخمس",
+"lat": 20.9249,
+"lng": 41.5425,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع الحقنة",
+"lat": 29.8458,
+"lng": 40.0676,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الغريس",
+"lat": 29.9524,
+"lng": 40.2748,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "قيعان العجرميّات",
+"lat": 30.4158,
+"lng": 39.8555,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء فاران",
+"lat": 24.2481,
+"lng": 46.0404,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "قاع قران",
+"lat": 25.6589,
+"lng": 39.3077,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المندسة",
+"lat": 27.996,
+"lng": 41.9789,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ام شفلح",
+"lat": 26.5706,
+"lng": 43.4861,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو بريقة",
+"lat": 24.9881,
+"lng": 39.8304,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الكسر",
+"lat": 27.8944,
+"lng": 41.7029,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهلالي",
+"lat": 26.8922,
+"lng": 42.2934,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الصهوة",
+"lat": 24.9021,
+"lng": 39.772,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرِّغليَّة",
+"lat": 27.4278,
+"lng": 42.5467,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع جاسم",
+"lat": 27.2938,
+"lng": 39.6531,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان المحاص",
+"lat": 30.4006,
+"lng": 39.6417,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرغل",
+"lat": 22.1608,
+"lng": 40.6381,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخويل",
+"lat": 27.9928,
+"lng": 41.845,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع صبيح",
+"lat": 22.6943,
+"lng": 41.7741,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو سليم",
+"lat": 25.6286,
+"lng": 45.0472,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهاشر",
+"lat": 21.1223,
+"lng": 41.6667,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "خبراء الباردة",
+"lat": 27.4192,
+"lng": 40.2811,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الجِثياثة",
+"lat": 27.6946,
+"lng": 42.6756,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحاج",
+"lat": 25.9213,
+"lng": 44.0354,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع معلث",
+"lat": 27.0328,
+"lng": 44.4283,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع نفجان",
+"lat": 22.1636,
+"lng": 40.6647,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع البغيثي",
+"lat": 27.8804,
+"lng": 41.825,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو صروة",
+"lat": 21.2538,
+"lng": 41.8032,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قيعان لسّ",
+"lat": 31.2009,
+"lng": 38.656,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع قُوَيرَة صبيح",
+"lat": 26.0814,
+"lng": 44.0629,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحفنة",
+"lat": 28.0068,
+"lng": 43.5965,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العجرد",
+"lat": 20.9638,
+"lng": 41.7215,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع الطوسيّة",
+"lat": 30.6997,
+"lng": 39.8346,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع شَهوان",
+"lat": 27.4349,
+"lng": 43.1449,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء الكدرة",
+"lat": 24.4659,
+"lng": 45.4315,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العزبة",
+"lat": 26.2788,
+"lng": 42.1398,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أم كهف",
+"lat": 29.7865,
+"lng": 39.6664,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع سالِم",
+"lat": 25.8817,
+"lng": 44.19,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء حرب",
+"lat": 22.0735,
+"lng": 40.525,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الريتين",
+"lat": 30.0832,
+"lng": 39.6619,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الضبين",
+"lat": 20.7583,
+"lng": 41.8918,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قيعان العويقر",
+"lat": 27.2796,
+"lng": 41.0174,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع قُصيباء",
+"lat": 26.8834,
+"lng": 43.5833,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الذيع",
+"lat": 31.7124,
+"lng": 39.0389,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الضبيب",
+"lat": 27.4235,
+"lng": 41.1139,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان خنصر",
+"lat": 29.0192,
+"lng": 38.7947,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع أمّ العرين",
+"lat": 22.4141,
+"lng": 40.618,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء المنجوره",
+"lat": 28.9333,
+"lng": 44.4502,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع العائلَة",
+"lat": 26.3813,
+"lng": 44.1596,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع حَمَّاد",
+"lat": 26.095,
+"lng": 44.2173,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع التومان",
+"lat": 27.6029,
+"lng": 42.5706,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ودي موة البوبهي",
+"lat": 30.6292,
+"lng": 39.3461,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع النهيّ",
+"lat": 22.2538,
+"lng": 40.6887,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع حظوظاء",
+"lat": 24.3497,
+"lng": 40.0693,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع الفرّيدة",
+"lat": 30.3194,
+"lng": 40.2706,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع النُّظَيِّم",
+"lat": 25.1044,
+"lng": 44.3292,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العِلب",
+"lat": 27.7361,
+"lng": 42.2379,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الرويكة",
+"lat": 21.1301,
+"lng": 41.7334,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع أمّ خبر",
+"lat": 30.4654,
+"lng": 39.0202,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحَنَادِر",
+"lat": 26.4533,
+"lng": 43.516,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الكِهَفة",
+"lat": 27.0653,
+"lng": 43.0675,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو طرفاء",
+"lat": 28.9244,
+"lng": 36.1415,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الملبد",
+"lat": 20.9338,
+"lng": 41.902,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "قاع ضبيعة",
+"lat": 22.2289,
+"lng": 40.6876,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخفق",
+"lat": 24.2614,
+"lng": 39.6568,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع حقي",
+"lat": 26.7248,
+"lng": 43.2949,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القُتَلاء",
+"lat": 26.1116,
+"lng": 43.8336,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع البَخَتريَّة",
+"lat": 26.2133,
+"lng": 44.0815,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الظِّفيريَّة",
+"lat": 27.6021,
+"lng": 42.2409,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرشيدة",
+"lat": 30.4227,
+"lng": 38.597,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع قبر دحّام",
+"lat": 31.4248,
+"lng": 38.5443,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان النازية",
+"lat": 27.0879,
+"lng": 44.085,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع غَري",
+"lat": 25.9874,
+"lng": 44.0313,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء كحيليلة",
+"lat": 26.6392,
+"lng": 47.7161,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مسحة",
+"lat": 30.7042,
+"lng": 39.4167,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع البراق",
+"lat": 22.8344,
+"lng": 41.5703,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المالحة",
+"lat": 27.4266,
+"lng": 44.2508,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "قاع الشبكة",
+"lat": 28.1083,
+"lng": 39.2833,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الخطيمي",
+"lat": 31.368,
+"lng": 38.6307,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الوُطاة",
+"lat": 26.4931,
+"lng": 43.9419,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع النجيلة",
+"lat": 28.897,
+"lng": 35.6008,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع عمم",
+"lat": 28.6549,
+"lng": 35.6484,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع عمم",
+"lat": 28.6685,
+"lng": 35.6419,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع المحرق",
+"lat": 28.7216,
+"lng": 35.8917,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع أم سلي",
+"lat": 28.5146,
+"lng": 35.7129,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع بني مر",
+"lat": 28.3197,
+"lng": 35.8154,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع أم جلف",
+"lat": 28.1607,
+"lng": 35.851,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع الكمايم",
+"lat": 28.1279,
+"lng": 35.8981,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "قاع الشكاعة",
+"lat": 28.3704,
+"lng": 36.1747,
+"src": "osm",
+"tags": {
+"place": "locality"
+}
+},
+{
+"name": "خبراء البويب",
+"lat": 26.2831,
+"lng": 40.3789,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "خبراء شمر الشريهة",
+"lat": 27.88,
+"lng": 42.1804,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "خبراء شمر الشيفان",
+"lat": 27.8946,
+"lng": 42.1294,
+"src": "osm",
+"tags": {
+"place": "hamlet"
+}
+},
+{
+"name": "خبراء النغير",
+"lat": 26.1763,
+"lng": 40.3123,
+"src": "osm",
+"tags": {
+"natural": "valley"
+}
+},
+{
+"name": "قاع أم إذن",
+"lat": 27.8089,
+"lng": 40.0361,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "خبراء ام غماره",
+"lat": 31.8234,
+"lng": 38.8331,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرة عظامان",
+"lat": 31.7671,
+"lng": 38.1366,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء ام طرفاة",
+"lat": 30.0175,
+"lng": 41.7669,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الجفجف",
+"lat": 20.9142,
+"lng": 41.6719,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء الهماج",
+"lat": 23.9838,
+"lng": 45.8102,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"place": "locality"
+}
+},
+{
+"name": "خبراء أم الحمير",
+"lat": 26.4787,
+"lng": 45.5256,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الصحن",
+"lat": 26.2667,
+"lng": 45.9377,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع المحص الشمالي",
+"lat": 30.5624,
+"lng": 39.6841,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أم طرفاء",
+"lat": 30.1443,
+"lng": 39.6441,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرة المعي",
+"lat": 29.5646,
+"lng": 39.378,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة الباردة",
+"lat": 29.5142,
+"lng": 39.35,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة ابرق الهيق",
+"lat": 29.4685,
+"lng": 38.6049,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبرة الشعيره",
+"lat": 29.4755,
+"lng": 39.5448,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم قرين",
+"lat": 26.9547,
+"lng": 46.8157,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء زعير",
+"lat": 27.3884,
+"lng": 46.7128,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم الطين",
+"lat": 27.3877,
+"lng": 46.2439,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم غرسة",
+"lat": 27.4118,
+"lng": 46.229,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم قرو",
+"lat": 27.4307,
+"lng": 46.2059,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء العودة",
+"lat": 27.5051,
+"lng": 46.1554,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الشيخ",
+"lat": 27.3805,
+"lng": 46.2276,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء زلاقة",
+"lat": 31.2748,
+"lng": 38.7731,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع جريد",
+"lat": 27.9018,
+"lng": 43.6994,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المجمع",
+"lat": 27.9973,
+"lng": 43.6168,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع و خبراء صفاقة",
+"lat": 28.0173,
+"lng": 43.4946,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ام جرابيب",
+"lat": 28.157,
+"lng": 43.3244,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء ابن شرار",
+"lat": 26.9257,
+"lng": 45.143,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الفغم",
+"lat": 26.8144,
+"lng": 45.2613,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع السيب",
+"lat": 30.2434,
+"lng": 39.5335,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرديفة",
+"lat": 30.2038,
+"lng": 39.5747,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع روية الجنوبي",
+"lat": 29.9593,
+"lng": 39.7047,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع روية الشمالي",
+"lat": 30.0068,
+"lng": 39.6884,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المريشدية",
+"lat": 29.8497,
+"lng": 37.4519,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المصلّى",
+"lat": 31.4646,
+"lng": 38.32,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع البردويل - عرعر",
+"lat": 31.0191,
+"lng": 41.5795,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ام قحلول",
+"lat": 31.0728,
+"lng": 41.5333,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء أم خنصر",
+"lat": 30.7938,
+"lng": 41.6107,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع حمام",
+"lat": 26.8626,
+"lng": 44.1977,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء النعرة",
+"lat": 29.5814,
+"lng": 42.8491,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"water": "pond"
+}
+},
+{
+"name": "خبراء الثايه",
+"lat": 30.2469,
+"lng": 39.414,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الصليعاء",
+"lat": 26.872,
+"lng": 42.5687,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "الخبراء الخربة",
+"lat": 26.1595,
+"lng": 42.1145,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الصميد",
+"lat": 26.1817,
+"lng": 42.111,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان الهميج",
+"lat": 22.8658,
+"lng": 41.603,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "خبراء الصانع",
+"lat": 29.0057,
+"lng": 44.2102,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المسعري",
+"lat": 28.7313,
+"lng": 44.5406,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع البردويل - طريف",
+"lat": 31.8613,
+"lng": 38.9585,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء الحنو و البرق",
+"lat": 31.4038,
+"lng": 38.457,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا الشديد",
+"lat": 31.6617,
+"lng": 38.8234,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء اخيضر",
+"lat": 31.3578,
+"lng": 37.9482,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الرحى",
+"lat": 30.8205,
+"lng": 39.2391,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء القيق",
+"lat": 30.9459,
+"lng": 39.2866,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء نصلة",
+"lat": 31.316,
+"lng": 39.2482,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الجذوا",
+"lat": 29.7827,
+"lng": 39.462,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء منجورة",
+"lat": 30.9257,
+"lng": 41.4831,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المجدور",
+"lat": 27.9774,
+"lng": 42.3836,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء فارس",
+"lat": 27.2189,
+"lng": 43.0321,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا عجاج",
+"lat": 29.0129,
+"lng": 38.0526,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المصاول",
+"lat": 29.5031,
+"lng": 37.9192,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الشبليات",
+"lat": 29.5216,
+"lng": 38.1687,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء جلهم",
+"lat": 28.8385,
+"lng": 47.5694,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا المكمش",
+"lat": 28.6358,
+"lng": 47.5715,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مرزوقة",
+"lat": 26.8084,
+"lng": 46.5412,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء كحيليلة",
+"lat": 26.8196,
+"lng": 46.4773,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء العبد",
+"lat": 27.3107,
+"lng": 42.0838,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الرديفة",
+"lat": 27.5458,
+"lng": 42.916,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء شمر",
+"lat": 27.7143,
+"lng": 42.8564,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام طوينة",
+"lat": 27.8864,
+"lng": 47.9458,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء طلق",
+"lat": 20.9286,
+"lng": 43.0468,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا فهران",
+"lat": 28.9347,
+"lng": 44.5139,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام عظام",
+"lat": 22.6536,
+"lng": 48.7403,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام الروس",
+"lat": 26.9538,
+"lng": 39.8924,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء العكيفاء",
+"lat": 26.969,
+"lng": 39.9761,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء قرنين",
+"lat": 26.6401,
+"lng": 39.9284,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء صوير",
+"lat": 28.9983,
+"lng": 44.4479,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء دحال",
+"lat": 27.7834,
+"lng": 38.3746,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا الروله",
+"lat": 27.7586,
+"lng": 38.4012,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء هشيم",
+"lat": 26.6106,
+"lng": 39.2954,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام الهشيم",
+"lat": 27.2968,
+"lng": 46.3431,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الثليغاء",
+"lat": 27.3223,
+"lng": 46.3797,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مرعيد",
+"lat": 29.5702,
+"lng": 44.1345,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرة الجريبة",
+"lat": 29.4795,
+"lng": 43.6867,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الحنبلي",
+"lat": 27.3149,
+"lng": 45.0574,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء صقيه",
+"lat": 27.4017,
+"lng": 46.5622,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام المساجد",
+"lat": 24.7489,
+"lng": 49.0206,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام نار",
+"lat": 26.2673,
+"lng": 40.3564,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الخفيسة",
+"lat": 26.674,
+"lng": 46.8925,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الكدرة",
+"lat": 24.8518,
+"lng": 49.1128,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الحاج",
+"lat": 26.5564,
+"lng": 40.0936,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء موزرة",
+"lat": 26.5461,
+"lng": 40.0441,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء رديفة البجادي",
+"lat": 27.2012,
+"lng": 45.9824,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الروثية",
+"lat": 27.2624,
+"lng": 46.6103,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء البخراء",
+"lat": 27.235,
+"lng": 46.6588,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء العودة العوشزيات",
+"lat": 27.2568,
+"lng": 45.8893,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام صفا",
+"lat": 27.2195,
+"lng": 45.9073,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع صلاصل",
+"lat": 26.6961,
+"lng": 43.433,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحنو",
+"lat": 31.1464,
+"lng": 38.3878,
+"src": "osm",
+"tags": {}
+},
+{
+"name": "خبراء الوصفي",
+"lat": 30.1228,
+"lng": 41.5773,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء صفية",
+"lat": 27.0279,
+"lng": 45.8173,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المزوى",
+"lat": 29.7795,
+"lng": 42.4821,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء كحيليلة",
+"lat": 27.1577,
+"lng": 45.8313,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الخابية",
+"lat": 25.5357,
+"lng": 46.4348,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع مرزوقة",
+"lat": 27.7544,
+"lng": 45.9062,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء دليل",
+"lat": 27.1605,
+"lng": 46.3682,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء طياحة",
+"lat": 27.1774,
+"lng": 46.3613,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء لقطة",
+"lat": 28.1825,
+"lng": 45.6383,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء دغيمان",
+"lat": 27.6417,
+"lng": 46.1384,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء كحيليلة",
+"lat": 27.0921,
+"lng": 46.4327,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء اللميماء ام تليل",
+"lat": 30.5588,
+"lng": 42.5366,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرة القيصومة",
+"lat": 28.8816,
+"lng": 45.8572,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الحاج",
+"lat": 27.4889,
+"lng": 46.5814,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ابن رشيد",
+"lat": 28.9894,
+"lng": 45.0825,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء حفيران",
+"lat": 27.4731,
+"lng": 46.5351,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الخمة",
+"lat": 27.0841,
+"lng": 46.7216,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام جثجاث",
+"lat": 27.6542,
+"lng": 47.8283,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبرا ام طليحة",
+"lat": 26.836,
+"lng": 46.8926,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام عشر",
+"lat": 26.8331,
+"lng": 46.9108,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مغطية العودة",
+"lat": 26.8634,
+"lng": 46.8582,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ظلماء",
+"lat": 26.8944,
+"lng": 46.9022,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مغطية الرفحاء",
+"lat": 26.8977,
+"lng": 46.8655,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء اللقطة",
+"lat": 29.9002,
+"lng": 41.744,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام الهشيم",
+"lat": 27.0276,
+"lng": 46.8909,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ظلماء",
+"lat": 27.0219,
+"lng": 46.7506,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء نواظر",
+"lat": 29.6355,
+"lng": 43.1243,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5171,
+"lng": 47.8077,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5198,
+"lng": 47.8482,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء شمر",
+"lat": 30.0939,
+"lng": 42.0658,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5545,
+"lng": 47.8883,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5351,
+"lng": 47.8952,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.522,
+"lng": 47.8719,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5682,
+"lng": 47.8445,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5602,
+"lng": 47.8632,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5476,
+"lng": 47.8129,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5377,
+"lng": 47.8669,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان المغرة",
+"lat": 26.5626,
+"lng": 47.8193,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء رديفة القراين",
+"lat": 26.933,
+"lng": 46.7909,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الروض",
+"lat": 29.7864,
+"lng": 42.582,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم قزيز",
+"lat": 26.8371,
+"lng": 46.8013,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء أم برقة",
+"lat": 26.8045,
+"lng": 46.8224,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المعيقلي",
+"lat": 28.0528,
+"lng": 45.0387,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ال زرير",
+"lat": 26.188,
+"lng": 48.0509,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام عوشز",
+"lat": 26.8865,
+"lng": 46.6957,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء رديفة ام جوي",
+"lat": 26.905,
+"lng": 46.6553,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام جوي",
+"lat": 26.9005,
+"lng": 46.6871,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء مغطية",
+"lat": 27.7055,
+"lng": 45.2666,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام خرجين",
+"lat": 27.7328,
+"lng": 45.2729,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء ام صيهد",
+"lat": 27.6689,
+"lng": 45.2059,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء عروس",
+"lat": 28.6073,
+"lng": 39.0479,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الحصان",
+"lat": 29.247,
+"lng": 39.6866,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الدويرة",
+"lat": 19.8954,
+"lng": 43.4879,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع لعيبيبة",
+"lat": 25.1328,
+"lng": 43.3386,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع أبو جثيا",
+"lat": 25.1452,
+"lng": 43.0961,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحرد",
+"lat": 26.9087,
+"lng": 41.5333,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهتيمة",
+"lat": 27.0143,
+"lng": 42.2325,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الجحفة",
+"lat": 27.056,
+"lng": 42.2609,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع و بحيرة الفتخاء",
+"lat": 27.4374,
+"lng": 41.2807,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ومكان شجر شيح",
+"lat": 27.6437,
+"lng": 41.2428,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"landuse": "forest"
+}
+},
+{
+"name": "قاع الصير",
+"lat": 27.6394,
+"lng": 41.3447,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع حويم",
+"lat": 27.6152,
+"lng": 41.4619,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الويبار",
+"lat": 27.5216,
+"lng": 41.6029,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع زحر",
+"lat": 27.6615,
+"lng": 41.4391,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء شعيب الغريبين",
+"lat": 27.7074,
+"lng": 41.7878,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العقيلة",
+"lat": 27.5602,
+"lng": 42.5175,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الملح الشرقي",
+"lat": 27.8734,
+"lng": 42.3874,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الملح الغربي",
+"lat": 27.8702,
+"lng": 42.3613,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع قويرة حسن",
+"lat": 27.8774,
+"lng": 42.4078,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الأجفر",
+"lat": 27.5094,
+"lng": 43.0374,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قاع صفيّة",
+"lat": 31.6319,
+"lng": 39.0682,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع البوبهي",
+"lat": 31.3897,
+"lng": 39.4215,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهجم",
+"lat": 31.6508,
+"lng": 39.3675,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ام رشاد",
+"lat": 27.4838,
+"lng": 44.2739,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان الجنوبي",
+"lat": 26.8559,
+"lng": 40.2529,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان الشمالي",
+"lat": 27.0984,
+"lng": 40.2498,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع رديفة أم عبيد",
+"lat": 27.4714,
+"lng": 42.8575,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء علي",
+"lat": 27.4668,
+"lng": 41.5383,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع الحوي",
+"lat": 29.2593,
+"lng": 38.1809,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع مشرفة",
+"lat": 26.2012,
+"lng": 40.2394,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو رغلات",
+"lat": 26.1058,
+"lng": 40.4571,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الرقيطاء",
+"lat": 25.9944,
+"lng": 40.4346,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحنو",
+"lat": 30.9933,
+"lng": 38.4336,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المقنع",
+"lat": 31.4366,
+"lng": 39.0342,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع قزيز النعام",
+"lat": 31.3935,
+"lng": 38.8601,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الراهصية",
+"lat": 23.4532,
+"lng": 43.509,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الخبراء",
+"lat": 26.5004,
+"lng": 40.4841,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الحيين",
+"lat": 26.4785,
+"lng": 40.2082,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الأميلس",
+"lat": 26.6597,
+"lng": 39.9968,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الممهى",
+"lat": 26.8171,
+"lng": 40.6861,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الممهى",
+"lat": 26.8191,
+"lng": 40.7245,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع مريبطة",
+"lat": 26.9844,
+"lng": 40.5057,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العمائر",
+"lat": 26.9922,
+"lng": 40.3049,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع سبطر",
+"lat": 26.91,
+"lng": 40.2694,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان خنصر",
+"lat": 28.9885,
+"lng": 38.7992,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان العهين",
+"lat": 26.8838,
+"lng": 40.2476,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السمحة",
+"lat": 27.1708,
+"lng": 40.5651,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الربعة",
+"lat": 27.126,
+"lng": 40.9087,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ابن فرحان",
+"lat": 27.7358,
+"lng": 38.2901,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع غريف جريداء",
+"lat": 27.637,
+"lng": 38.2076,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الأمسح",
+"lat": 27.5826,
+"lng": 37.8106,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع هيف",
+"lat": 26.9441,
+"lng": 40.9056,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع خبة الرطيل",
+"lat": 27.4252,
+"lng": 37.6661,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهند",
+"lat": 27.5969,
+"lng": 37.2543,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع المصول",
+"lat": 27.6993,
+"lng": 37.5977,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الغويرات",
+"lat": 27.6738,
+"lng": 37.6312,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع مفلح",
+"lat": 27.662,
+"lng": 37.6637,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أم قويع",
+"lat": 27.6856,
+"lng": 37.2034,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الكعبات",
+"lat": 27.1588,
+"lng": 42.1826,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع عريفجان",
+"lat": 25.3658,
+"lng": 42.0706,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الثغرة",
+"lat": 28.5866,
+"lng": 36.0709,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع أبو دماس",
+"lat": 28.6076,
+"lng": 36.1465,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع شرورا",
+"lat": 28.6835,
+"lng": 36.4426,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع دبل",
+"lat": 28.9156,
+"lng": 36.5825,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع العقيلة",
+"lat": 29.0468,
+"lng": 36.2603,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع واردات",
+"lat": 28.9714,
+"lng": 36.2795,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع عاجات",
+"lat": 28.9526,
+"lng": 36.2792,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع النيل",
+"lat": 28.9079,
+"lng": 36.2198,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الوطام",
+"lat": 28.8011,
+"lng": 36.2293,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قيعان المشيطية",
+"lat": 29.1933,
+"lng": 36.2129,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قيعان المشيطية",
+"lat": 29.2003,
+"lng": 36.2529,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قيعان المشيطية",
+"lat": 29.178,
+"lng": 36.2101,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قيعان الخشة",
+"lat": 29.2805,
+"lng": 36.2809,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الخشة",
+"lat": 29.265,
+"lng": 36.2708,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان",
+"lat": 29.2461,
+"lng": 36.9758,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قاع الكفوف",
+"lat": 29.1959,
+"lng": 37.0953,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قيعان المريشدية",
+"lat": 29.8508,
+"lng": 37.3372,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء عتيق",
+"lat": 29.5466,
+"lng": 37.9759,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المصاول",
+"lat": 29.5193,
+"lng": 37.9245,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء المكتبة",
+"lat": 29.5324,
+"lng": 37.7744,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قاع البديعة",
+"lat": 29.4022,
+"lng": 37.6876,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الشبليات",
+"lat": 29.5062,
+"lng": 38.1453,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الشبليات",
+"lat": 29.5259,
+"lng": 38.1329,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الشبليات",
+"lat": 29.4887,
+"lng": 38.1348,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الشبليات",
+"lat": 29.4761,
+"lng": 38.1283,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان الشبليات",
+"lat": 29.483,
+"lng": 38.1074,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ثنية الريلان",
+"lat": 29.6043,
+"lng": 38.2242,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قاع فرتاج",
+"lat": 26.6683,
+"lng": 41.8068,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السرحان",
+"lat": 31.3164,
+"lng": 37.5473,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السرحان",
+"lat": 31.3334,
+"lng": 37.5248,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السرحان",
+"lat": 31.3331,
+"lng": 37.5742,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان",
+"lat": 31.4555,
+"lng": 37.5881,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان",
+"lat": 31.4895,
+"lng": 37.6139,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بوهان",
+"lat": 31.4615,
+"lng": 37.6043,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الناعم",
+"lat": 31.6723,
+"lng": 37.7484,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع دوقرا",
+"lat": 31.6362,
+"lng": 38.3391,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قاع قصيباء",
+"lat": 26.894,
+"lng": 43.5693,
+"src": "osm",
+"tags": {
+"natural": "wetland",
+"wetland": "marsh"
+}
+},
+{
+"name": "قاع الجفيرات",
+"lat": 31.1978,
+"lng": 37.7289,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قيعان الناصفة",
+"lat": 31.0907,
+"lng": 37.5393,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قيعان الناصفة",
+"lat": 31.1125,
+"lng": 37.5263,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قيعان الناصفة",
+"lat": 31.1276,
+"lng": 37.5381,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قيعان الناصفة",
+"lat": 31.073,
+"lng": 37.54,
+"src": "osm",
+"tags": {
+"natural": "grassland"
+}
+},
+{
+"name": "قاع أم شفلح",
+"lat": 30.7057,
+"lng": 38.4383,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الهوية",
+"lat": 27.2041,
+"lng": 37.405,
+"src": "osm",
+"tags": {
+"natural": "mud"
+}
+},
+{
+"name": "قاع مضرب نجم",
+"lat": 27.2353,
+"lng": 37.5855,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع مكمن المتاهة",
+"lat": 30.9733,
+"lng": 38.6637,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع ثغيب ضمينة",
+"lat": 25.2531,
+"lng": 42.7184,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع نفود الميسرية الغربي",
+"lat": 25.654,
+"lng": 42.7538,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء اللبدي",
+"lat": 29.7553,
+"lng": 40.4816,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء الحُسنه",
+"lat": 29.4865,
+"lng": 37.6458,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "خبراء علي",
+"lat": 28.9959,
+"lng": 43.339,
+"src": "osm",
+"tags": {
+"natural": "scrub",
+"landuse": "salt_pond"
+}
+},
+{
+"name": "قاع الخور",
+"lat": 31.2205,
+"lng": 39.329,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "خبراء أم المواضيح",
+"lat": 28.9883,
+"lng": 38.937,
+"src": "osm",
+"tags": {
+"natural": "scrub"
+}
+},
+{
+"name": "قيعان السنانيات",
+"lat": 27.3784,
+"lng": 38.7508,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع بولان",
+"lat": 26.3402,
+"lng": 44.1717,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع السرحان",
+"lat": 31.3433,
+"lng": 37.4547,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع قراقر",
+"lat": 31.2408,
+"lng": 37.7619,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع الجفيرات",
+"lat": 31.1849,
+"lng": 37.7471,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القعيدات",
+"lat": 31.1006,
+"lng": 37.8507,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع القعيدات",
+"lat": 31.1179,
+"lng": 37.8383,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قاع مسيفرة",
+"lat": 27.2575,
+"lng": 37.6717,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "قيعان المتاهة",
+"lat": 31.1052,
+"lng": 38.6567,
+"src": "osm",
+"tags": {
+"natural": "wetland"
+}
+},
+{
+"name": "القاع",
+"lat": 17.734,
+"lng": 42.0709,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 17.2903,
+"lng": 42.9652,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "خبرة",
+"lat": 19.0656,
+"lng": 41.6994,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "القاع",
+"lat": 19.2702,
+"lng": 42.8618,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "القاع البراق",
+"lat": 21.4197,
+"lng": 41.9812,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "القاع",
+"lat": 22.2169,
+"lng": 40.1102,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 21.2212,
+"lng": 40.7269,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 19.1596,
+"lng": 41.1707,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الخبرة",
+"lat": 27.0162,
+"lng": 48.4006,
+"src": "desert-places.json:معلم"
+},
+{
+"name": "قاع ابن فرحان",
+"lat": 27.7182,
+"lng": 38.2396,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الخبراء",
+"lat": 26.0667,
+"lng": 43.6278,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "الخبراء",
+"lat": 24.1193,
+"lng": 45.9221,
+"src": "desert-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 17.3174,
+"lng": 42.4891,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "القيعان",
+"lat": 27.2324,
+"lng": 40.9506,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الخبراء",
+"lat": 21.817,
+"lng": 42.3557,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 20.4034,
+"lng": 41.12,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الخبراء",
+"lat": 23.9112,
+"lng": 42.7582,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 25.8349,
+"lng": 44.2016,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "الخبراء",
+"lat": 17.67,
+"lng": 42.6326,
+"src": "open-places.json:معلم رئيسي"
+},
+{
+"name": "القاع",
+"lat": 19.2234,
+"lng": 42.9019,
+"src": "open-places.json:معلم رئيسي"
+}
+]
+}
