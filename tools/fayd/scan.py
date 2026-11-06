@@ -88,7 +88,7 @@ def worldcover(tr, crs, n):
         print("worldcover skipped", str(e)[:150], flush=True)
     return out
 
-def composite(items, how):
+def composite(items, how, full=False):
     """how=min: لكل بكسل أحدث قراءتين صافيتين (من أي صور، المدارات تغطي أجزاء مختلفة) وناخذ الأقل —
                بقعة تخضر بصورة وحدة = غالبًا غبار/صخر بركاني مو نبات
        how=max: أعلى قيمة من كل صور الجفاف (أي خضرة بالصيف = مزرعة/شجر/صخر يتذبذب)"""
@@ -107,7 +107,7 @@ def composite(items, how):
             if np.isfinite(v2).mean() > 0.97: break
         else:
             v = np.fmax(v, nd); cnt += np.isfinite(nd)
-            if (cnt >= 2).mean() > 0.95: break
+            if not full and (cnt >= 2).mean() > 0.95: break
         del nd
     if v is None: return None, None, None
     if how == "min": v = np.where(np.isfinite(v2), np.fmin(v, v2), np.nan).astype("float32")
@@ -141,15 +141,20 @@ def in_ksa(la, lo):
 def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
-def do_tile(tile, now_items, dry_items):
+def do_tile(tile, now_items, dry_items, last_items=None):
     now, water, geo = composite(now_items[:5], "min")
     if now is None: return []
     dry, w2, g2 = composite(dry_items[:10], "max")
     if dry is None: return []
     tr, crs = geo
+    # الموسم الماضي (نوفمبر–يوليو): أي بكسل وصل NDVI ‏0.6 = زراعة (محاور قمح/برسيم) — الربيع الطبيعي على 40 م ما يوصلها
+    # (7 نوفمبر: أغلب بقع حائل والجوف الكبيرة طلعت محاور خضراء بالشتاء والصيف اللي فات)
+    last, _, _ = composite(last_items[:8], "max", True) if last_items else (None, None, None)
+    farm = (last >= 0.6) if last is not None else np.zeros_like(now, bool)
+    if last is not None: farm = ndimage.binary_dilation(farm, iterations=2)     # حواف المحاور
     ok = np.isfinite(now) & np.isfinite(dry) & ~water & ~w2
-    g = ok & (now >= NOW_MIN) & (now - dry >= D_MIN) & (dry < 0.15)
-    hi = g & (now >= 0.45)
+    g = ok & (now >= NOW_MIN) & (now - dry >= D_MIN) & (dry < 0.15) & ~farm
+    hi = g & (now >= 0.55)
     n2 = NC * C
     blk = lambda a: a[:n2, :n2].reshape(NC, C, NC, C).sum((1, 3))
     gc, vc, hc = blk(g), blk(ok), blk(hi)
@@ -178,7 +183,7 @@ def do_tile(tile, now_items, dry_items):
             continue
         sel = lab == k
         ncell = int(sel.sum()); mf = float(frac[sel].mean()); hf = float(hc[sel].sum() / max(1, gc[sel].sum()))
-        if ncell >= 12 and mf >= 0.75 and hf >= 0.3: continue      # مربعات خضراء كاملة وقوية = مزرعة جديدة (محاور قمح)
+        if hf >= 0.25: continue      # ربعها خضرة قوية (NDVI ≥ 0.55 على 40 م) بأول الموسم = مزرعة جديدة مو ربيع
         rr, cc = np.nonzero(sel); w = gc[sel].astype(float)
         r0 = float((rr * w).sum() / w.sum()); c0 = float((cc * w).sum() / w.sum())
         # أقرب مربع أخضر فعلي للمركز (الشعيب ممكن يكون منحني والمركز خارجه)
@@ -199,6 +204,15 @@ def main():
     for t in D:   # ونخلط بين المدارات: نضمن وجود صور جزئية بعد الكاملة عشان تنغطى كل الأجزاء
         full = [i for i in D[t] if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5]; part = [i for i in D[t] if i not in full]
         D[t] = full[:4] + part[:6] + full[4:]
+    lasti = s2.search(BBOX, f"{y}-01-10T00:00:00Z/{y}-05-31T23:59:59Z", 5)
+    L = {}
+    for t, v in g(lasti).items():   # صور متفرقة على الشتاء والربيع (وحدة لكل ~3 أسابيع)
+        v = sorted(v, key=lambda i: i["properties"]["datetime"]); pick = []; last_d = ""
+        for i in v:
+            d = i["properties"]["datetime"][:10]
+            if not last_d or d > (dtm.date.fromisoformat(last_d) + dtm.timedelta(days=20)).isoformat(): pick.append(i); last_d = d
+        L[t] = pick
+    print(f"last-season items {len(lasti)}", flush=True)
     tiles = sorted(set(N) & set(D))
     lim = int(os.environ.get("SCAN_TILES", "0") or 0)
     if TEST:   # نقاط lat:lng → البلاطات اللي تغطيها
@@ -209,7 +223,7 @@ def main():
     print(f"::notice::scan tiles {len(tiles)} (now items {len(nowi)}, dry items {len(dryi)})", flush=True)
     found = []
     with ThreadPoolExecutor(6) as ex:
-        for k, res in enumerate(ex.map(lambda t: (t, do_tile(t, N[t], D[t])), tiles)):
+        for k, res in enumerate(ex.map(lambda t: (t, do_tile(t, N[t], D[t], L.get(t))), tiles)):
             t, r = res; found += r
             if k % 10 == 0: print("tile", k, "/", len(tiles), t, len(r), round(time.time() - T0), "s", flush=True)
     # دمج المكرر بين البلاطات + شيل القريب من فيضة لها اسم
