@@ -5483,6 +5483,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   // حالة أزرار المسار من مكان واحد: تسجيل / عرض مسار / لا شيء
   function updateTrackButtons(){
+    try{ renderToolsToggle(); }catch(e){}   // شريط «جارٍ التسجيل» كان يبقى بعد الإيقاف بأرقام واقفة
     const toggle = document.getElementById('trackToggleBtn');
     const clear = document.getElementById('clearTrackBtn');
     toggle.textContent = state.tracking ? '⏹ إيقاف وحفظ المسار' : '▶ بدء تسجيل مسار جديد';
@@ -5592,6 +5593,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         releaseTrackWakeLock();
         document.getElementById('trackToggleBtn').textContent='▶ بدء تسجيل المسار';
         document.getElementById('recPill').style.display='none';
+        try{ renderToolsToggle(); }catch(e){}
         return toast('توقف التسجيل لأن مساحة الحفظ ممتلئة. صدّر نسخة احتياطية ثم احذف بعض المسارات.');
       }
       const acc = state.pos.accuracy != null ? Math.round(state.pos.accuracy) : null;
