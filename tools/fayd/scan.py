@@ -262,6 +262,23 @@ def main():
     # بدون مطر = سقي (محاور جديدة في طبرجل وعريفج والشمال) مو ربيع: نطلب 8 ملم فأكثر آخر 75 يوم (Open-Meteo)
     rows = rows[:900]
     mm = rain75([(r[0], r[1]) for r in rows])
+    # + الرادار والمحطات (نفس طريقة تحديث الفياض — Open-Meteo يفوّت مطر الشمال كثير)
+    try:
+        import radar, rainqc, synop
+        since75 = (today - dtm.timedelta(days=75)).isoformat()
+        SY = json.load(open(synop.FILE)) if os.path.exists(synop.FILE) else None
+        R = radar.load(since75); Q = rainqc.QC(R, SY)
+        for n_, r in enumerate(rows):
+            gq = Q.gauge(r[0], r[1], max_km=50); gd = gq[1] if gq else {}
+            rr = 0.0
+            for day in R:
+                v, _ = Q.radar(day, r[0], r[1])
+                if v is None: continue
+                rr += rainqc.cap(v, gd.get(day)) if day in gd else v
+            gt = sum(v for d, v in gd.items() if d >= since75)
+            mm[n_] = max(mm[n_] or 0, rr, gt)
+    except Exception as e:
+        print("::warning::radar rain skipped: " + str(e)[:150], flush=True)
     kept = [r for r, m in zip(rows, mm) if m is None or m >= 8]
     print(f"::notice::rain check: {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < 8 mm)", flush=True)
     rows = kept[:400]
