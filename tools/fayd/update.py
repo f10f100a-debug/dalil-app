@@ -137,6 +137,20 @@ except Exception: s2base = [None] * len(SITES)
 today = dtm.date.today()
 cur = s2.sample(SITES, (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=1)
 print(f"::notice::s2 current {len(cur)}/{len(SITES)} t={round(time.time() - T0)}s", flush=True)
+# Copernicus (Sentinel Hub): الصور توصل فيه أول (Planetary Computer أحيانًا يتأخر أو يفوّت صورة كاملة — 6 نوفمبر: صورة الجوف ما وصلته)
+# نطلب بس الفياض اللي صورتها قديمة (أكثر من يومين) عشان نبقى تحت الحد المجاني (30 ألف طلب بالشهر)
+try:
+    import cdse
+    if cdse.available():
+        lim = (today - dtm.timedelta(days=2)).isoformat()
+        stale = sorted([i for i in range(len(SITES)) if not cur.get(i) or cur[i][0][0] < lim], key=lambda i: cur[i][0][0] if cur.get(i) else "")[:700]
+        got = cdse.sample([(i, SITES[i][1], SITES[i][2]) for i in stale], (today - dtm.timedelta(days=12)).isoformat(), today.isoformat())
+        newer = 0
+        for i, v in got.items():
+            if not cur.get(i) or v[0][0] > cur[i][0][0]: cur[i] = v; newer += 1
+        print(f"::notice::copernicus: asked {len(stale)}, newer {newer}, requests {cdse.calls} t={round(time.time() - T0)}s", flush=True)
+except Exception as e:
+    print("::warning::copernicus failed: " + str(e)[:150], flush=True)
 now = time.time()
 items = search(time.strftime("%Y-%m-%dT00:00:00Z", time.gmtime(now - 40 * 86400)) + "/" + time.strftime("%Y-%m-%dT23:59:59Z", time.gmtime(now)))
 groups = by_date(items)
