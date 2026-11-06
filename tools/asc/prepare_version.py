@@ -52,6 +52,9 @@ if not cur:
 else:
     asc.note("Create version", f"exists {VERSION} state={cur['attributes'].get('appStoreState')}")
 vid = cur["id"]
+# من 1.8: إصدار يدوي — بعد موافقة أبل ما ينزل للناس إلا لما يضغط المطوّر «نشر»
+if VERSION.startswith("1.8") and cur["attributes"].get("releaseType") != "MANUAL":
+    asc.note("Release type", asc.patch(f"/v1/appStoreVersions/{vid}", {"data": {"type": "appStoreVersions", "id": vid, "attributes": {"releaseType": "MANUAL"}}}))
 
 WHATS_NEW_13 = """جديد في هذا التحديث:
 • تسجيل المسار يستمر والجوال مقفل، وتُضاف النقاط تلقائيًا عند فتحه.
@@ -107,11 +110,26 @@ NEW IN 1.6:
 - The audio session is configured as .playAndRecord in channelDescriptor(restoredChannelUUID:), and the voice file download starts immediately in incomingPushResult, as recommended in Apple Developer Forums for PushToTalk apps.
 - UIBackgroundModes now includes "audio" (in addition to push-to-talk and location) so the received walkie-talkie message can finish playing while the phone is locked. Audio is only played for incoming trip-room voice messages.
 - To test: same as 1.4/1.5 - two devices in one room; on device B swipe the app away (terminate it) and lock the phone; hold the talk button on device A - B plays the message without opening the app."""
+WHATS_NEW_18 = """الجديد في دليل 1.8:
+• نغمات خاصة لدليل: طنّة صافية لتنبيهات المطر، ونقرتين لصور الأحداث — تعرف نوع التنبيه من صوته.
+• إذن موقع واحد باسم «دليل» بدل إذنين، وبدء أسرع من أول فتحة.
+• تسجيل المسار أوثق والجوال مقفل، وزر «ابدأ التسجيل / إيقاف وحفظ» صار تحت الخريطة مباشرة.
+• حركة الخريطة أنعم وأنت تسوق، ودورانها مع اتجاه السيارة بالتدريج.
+• «🧊 وين نزل البرد اليوم؟» في الأجواء، مع التوجّه لأي موقع بضغطة.
+• «🌧️ نزل عندك مطر؟» — جاوب بضغطة وساعدنا نصحح الرادار وأرقام الفقع والفياض.
+• تحسينات في غرفة الرحلة والرسائل الصوتية، وإصلاحات عامة."""
+NOTES_18 = """
+
+NEW IN 1.8:
+- Custom notification sounds bundled in the app (Library/Sounds: dalil-rain.caf for rain alerts, dalil-event.caf for event photos). No new permission.
+- Location: the web content now receives the device location from Core Location through a native bridge (WKScriptMessageHandler), so the user sees only the app's own When-In-Use prompt instead of a second WebKit prompt for the site. No Always permission is requested; background location is still used only while recording a track or inside a trip room (unchanged from 1.3).
+- Camera/microphone prompts inside the app are covered by the app's existing permission strings (microphone only while holding the talk button in a trip room).
+- To test: fresh install -> tap "تفعيل الموقع" on the welcome screen -> only one system location prompt appears; Map tab -> "ابدأ التسجيل" records a track with the phone locked."""
 # ما الجديد (كل اللغات الموجودة؛ العربية بالنص العربي والإنجليزية بملخص)
 locs = asc.get(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
 for l in locs:
     loc = l["attributes"]["locale"]
-    text = (WHATS_NEW_16 if VERSION.startswith("1.6") else WHATS_NEW_15 if VERSION.startswith("1.5") else WHATS_NEW_14 if VERSION.startswith("1.4") else WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New: the walkie-talkie now plays your group's voice messages even when the app is closed, a steadier in-app talk button, more accurate rain alerts that tell real rain from clouds that will likely stay dry, alert region set automatically from your location, and a smoother compass arrow while driving." if VERSION.startswith("1.6") else "New: more reliable walkie-talkie (lock-screen Talk button no longer sticks or cuts out), instant in-app talk button, 'heard by' receipts for voice messages, short invite links that open the app, and smarter rain alerts that tell whether rain is heading to you or passing by, plus nearby-lightning warnings." if VERSION.startswith("1.5") else "New: real walkie-talkie — trip room voice plays on the lock screen and you can reply with the system Talk button; invite links open the app; faster launch on weak networks; auto-updating rain radar." if VERSION.startswith("1.4") else "New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
+    text = (WHATS_NEW_18 if VERSION.startswith("1.8") else WHATS_NEW_16 if VERSION.startswith("1.6") else WHATS_NEW_15 if VERSION.startswith("1.5") else WHATS_NEW_14 if VERSION.startswith("1.4") else WHATS_NEW_13 if VERSION.startswith("1.3") else WHATS_NEW_12 if VERSION.startswith("1.2") else WHATS_NEW) if loc.startswith("ar") else ("New in 1.8: Dalil's own notification tones (a clear chime for rain alerts, a double click for event photos), a single location permission and faster first launch, more reliable track recording with the phone locked and a record/stop button right under the map, smoother map movement while driving, 'where did hail fall today', and a one-tap 'did it rain near you?' answer that helps correct the radar." if VERSION.startswith("1.8") else "New: the walkie-talkie now plays your group's voice messages even when the app is closed, a steadier in-app talk button, more accurate rain alerts that tell real rain from clouds that will likely stay dry, alert region set automatically from your location, and a smoother compass arrow while driving." if VERSION.startswith("1.6") else "New: more reliable walkie-talkie (lock-screen Talk button no longer sticks or cuts out), instant in-app talk button, 'heard by' receipts for voice messages, short invite links that open the app, and smarter rain alerts that tell whether rain is heading to you or passing by, plus nearby-lightning warnings." if VERSION.startswith("1.5") else "New: real walkie-talkie — trip room voice plays on the lock screen and you can reply with the system Talk button; invite links open the app; faster launch on weak networks; auto-updating rain radar." if VERSION.startswith("1.4") else "New: track recording continues with the phone locked; your trip-room position stays visible to your group in the background; invite links open the room directly in the app; faster room voice with walkie-talkie tones." if VERSION.startswith("1.3") else "New: optional push alerts for rain, floods and events in your region; native compass that works instantly; high-resolution satellite imagery and 3D navigation with road routing; offline prayer times." if VERSION.startswith("1.2") else "New: Trip room — push-to-talk voice for your group (up to 15), members' live distance and direction, rally point, convoy alert and SOS. Also: live rain radar and lightning layers, and design improvements.")
     asc.note("What's New " + loc, asc.patch(f"/v1/appStoreVersionLocalizations/{l['id']}", {"data": {"type": "appStoreVersionLocalizations", "id": l["id"], "attributes": {"whatsNew": text}}}))
 
 # ربط البناء
@@ -128,8 +146,8 @@ prev = asc.get(f"/v1/appStoreVersions/{old['id']}/appStoreReviewDetail").get("da
 pa = prev["attributes"] if prev else {}
 base = (pa.get("notes") or "").split("\n\nNEW IN")[0]   # ملاحظات المراجع الأساسية بدون أقسام الإصدارات
 attrs = {k: pa.get(k) for k in ["contactFirstName", "contactLastName", "contactPhone", "contactEmail", "demoAccountRequired"] if pa.get(k) is not None}
-cur_notes = NOTES_16 if VERSION.startswith("1.6") else NOTES_15 if VERSION.startswith("1.5") else NOTES_14 if VERSION.startswith("1.4") else NOTES_13 if VERSION.startswith("1.3") else NOTES_12 if VERSION.startswith("1.2") else ""
-older = [n for n in (NOTES_15, NOTES_14, NOTES_13, NOTES_12) if n != cur_notes]
+cur_notes = NOTES_18 if VERSION.startswith("1.8") else NOTES_16 if VERSION.startswith("1.6") else NOTES_15 if VERSION.startswith("1.5") else NOTES_14 if VERSION.startswith("1.4") else NOTES_13 if VERSION.startswith("1.3") else NOTES_12 if VERSION.startswith("1.2") else ""
+older = [n for n in (NOTES_16, NOTES_15, NOTES_14, NOTES_13, NOTES_12) if n != cur_notes]
 attrs["notes"] = (base + cur_notes + "".join(older) + NOTES_11)[:4000]   # الإصدار الحالي أولًا حتى لا يُقص
 rd = asc.get(f"/v1/appStoreVersions/{vid}/appStoreReviewDetail").get("data")
 if rd:
