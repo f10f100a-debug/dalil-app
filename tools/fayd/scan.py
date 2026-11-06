@@ -1,6 +1,8 @@
 """فياض بدون اسم: مسح أسبوعي بصور Sentinel-2 (Planetary Computer، مجاني) للبقع اللي خضرت هالموسم وما حولها فيضة من القائمة.
 لكل بلاطة (110 كم): صورة «الحين» (آخر 12 يوم، دمج أحدث صورتين صافيتين) مقابل «الجفاف» (25 أغسطس–5 أكتوبر، أعلى خضرة من صورتين).
-بكسل 80 م. البقعة الجديدة: NDVI الحين ≥ 0.16 وزاد 0.07 فأكثر، وكانت جرداء بالجفاف (< 0.2).
+بكسل 40 م، ونقيس «نسبة الأرض اللي خضرت» في كل مربع 200 م (5×5) — كذا تنلقط خضرة الشعبان والمجاري الضيقة
+(7 نوفمبر: فيديو قرب فيضة كسر صفية — خط أخضر بشعيب، 19% من المكان، فاته المسح على 80 م).
+البكسل الجديد: NDVI الحين ≥ 0.16، زاد 0.06 فأكثر، وكان جرداء بالجفاف (< 0.15). المربع: 15% من أرضه خضرت.
 نشيل: المزارع والعمران والمياه (ESA WorldCover)، البقع الخضراء جدًا الحين (مزارع قمح جديدة)، وأي بقعة خلال 2 كم من فيضة لها اسم.
 يكتب data/fayd-new.json (أو fayd-new-pending.json إذا تغيّر العدد كثير — للمراجعة)."""
 import json, math, os, sys, time, datetime as dtm
@@ -14,11 +16,14 @@ import s2
 
 BBOX = [37.5, 24.5, 50.0, 32.3]
 TEST = os.environ.get("SCAN_ONLY", "")   # نقاط lat:lng للتجربة: نمسح البلاطات اللي تغطيها بس          # الجوف والشمال وحائل والقصيم والشرقية وشمال الرياض
-PX = 1372                                # 10980/8 → 80 م
-HA = 0.64                                # مساحة البكسل بالهكتار
-MIN_HA = 20
-NOW_MIN = float(os.environ.get("SCAN_NOW") or 0.13)   # بداية الربيع: NDVI ‏0.13–0.2 على 80 م
-D_MIN = float(os.environ.get("SCAN_D") or 0.05)
+PX = 2745                                # 10980/4 → 40 م
+C = 5                                    # المربع = 5×5 بكسل = 200 م
+NC = PX // C                             # 549
+HA = 0.16                                # مساحة البكسل بالهكتار
+MIN_HA = float(os.environ.get("SCAN_MINHA") or 4)     # أقل مساحة خضراء فعلية بالبقعة
+NOW_MIN = float(os.environ.get("SCAN_NOW") or 0.16)
+D_MIN = float(os.environ.get("SCAN_D") or 0.06)
+FRAC = float(os.environ.get("SCAN_FRAC") or 0.15)
 T0 = time.time()
 today = dtm.date.today()
 y = today.year if today.month >= 8 else today.year - 1
@@ -47,16 +52,16 @@ def read_ndvi(it):
             print("read retry", it["id"], str(e)[:120], flush=True); time.sleep(5 * (k + 1))
     return None
 
-def worldcover(tr, crs):
+def worldcover(tr, crs, n):
     """فئات ESA WorldCover على نفس شبكة البلاطة (40 زراعة، 50 عمران، 80 مياه، 90 أراضي رطبة)"""
     import urllib.request
     from rasterio.windows import from_bounds
-    cols, rows = np.meshgrid(np.arange(PX) + .5, np.arange(PX) + .5)
+    cols, rows = np.meshgrid(np.arange(n) + .5, np.arange(n) + .5)
     xs = tr.c + tr.a * cols; ys = tr.f + tr.e * rows
     lo, la = wtransform(crs, "EPSG:4326", xs.ravel().tolist(), ys.ravel().tolist())
-    lo = np.array(lo).reshape(PX, PX); la = np.array(la).reshape(PX, PX)
+    lo = np.array(lo).reshape(n, n); la = np.array(la).reshape(n, n)
     bb = [float(lo.min()), float(la.min()), float(lo.max()), float(la.max())]
-    out = np.zeros((PX, PX), "uint8")
+    out = np.zeros((n, n), "uint8")
     try:
         body = {"collections": ["esa-worldcover"], "bbox": bb, "limit": 20, "sortby": [{"field": "datetime", "direction": "desc"}]}
         with urllib.request.urlopen(urllib.request.Request(s2.STAC, data=json.dumps(body).encode(), headers={"content-type": "application/json", **s2.UA}), timeout=120) as r:
@@ -85,22 +90,18 @@ def worldcover(tr, crs):
 def composite(items, how):
     """how=min: أقل قيمة من صورتين صافيتين على الأقل (بقعة تخضر بصورة وحدة = غالبًا غبار/صخر بركاني مو نبات)
        how=max: أعلى قيمة من كل صور الجفاف (أي خضرة بالصيف = مزرعة/شجر/صخر يتذبذب)"""
-    stack = []; water = None; geo = None
+    v = None; cnt = None; water = None; geo = None
     for it in items:
         r = read_ndvi(it)
         if r is None: continue
         nd, w, tr, crs = r
-        if geo is None: geo = (tr, crs)
-        stack.append(nd); water = w if water is None else (water | w)
-    if not stack: return None, None, None
-    A = np.stack(stack)
-    import warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        if how == "min":
-            v = np.nanmin(A, 0); v[np.isfinite(A).sum(0) < 2] = np.nan
-        else:
-            v = np.nanmax(A, 0)
+        if geo is None:
+            geo = (tr, crs); v = nd; cnt = np.isfinite(nd).astype("uint8"); water = w; continue
+        v = np.fmin(v, nd) if how == "min" else np.fmax(v, nd)
+        cnt += np.isfinite(nd); water |= w
+        del nd
+    if v is None: return None, None, None
+    if how == "min": v[cnt < 2] = np.nan
     return v, water, geo
 
 SITES = json.load(open("data/fayd-sites.json"))
@@ -137,27 +138,35 @@ def do_tile(tile, now_items, dry_items):
     dry, w2, g2 = composite(dry_items[:4], "max")
     if dry is None: return []
     tr, crs = geo
-    wc = worldcover(tr, crs)
-    d = now - dry
-    m = (now >= NOW_MIN) & (d >= D_MIN) & (dry < 0.2) & ~water & ~w2 & ~np.isin(wc, (40, 50, 80, 90, 95))
-    m = ndimage.binary_opening(m, iterations=1)
+    ok = np.isfinite(now) & np.isfinite(dry) & ~water & ~w2
+    g = ok & (now >= NOW_MIN) & (now - dry >= D_MIN) & (dry < 0.15)
+    hi = g & (now >= 0.45)
+    n2 = NC * C
+    blk = lambda a: a[:n2, :n2].reshape(NC, C, NC, C).sum((1, 3))
+    gc, vc, hc = blk(g), blk(ok), blk(hi)
+    trc = tr * tr.scale(C, C)
+    wc = worldcover(trc, crs, NC)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        frac = np.where(vc >= 13, gc / np.maximum(vc, 1), 0)
+    m = (frac >= FRAC) & ~np.isin(wc, (40, 50, 80, 90, 95))
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
-    print(f"::notice::tile {tile}: valid {int(np.isfinite(now).sum())} new-green px {int(m.sum())} patches {n}", flush=True)
+    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n}", flush=True)
     if not n: return []
     idx = np.arange(1, n + 1)
-    cnt = ndimage.sum(m, lab, idx)
+    area = ndimage.sum(gc * m, lab, idx) * HA
     out = []
-    for k in idx[cnt * HA >= MIN_HA]:
+    for k, a in zip(idx, area):
+        if a < MIN_HA: continue
         sel = lab == k
-        vals = now[sel]
-        p95 = float(np.nanpercentile(vals, 95))
-        if p95 > 0.45: continue                       # خضرة قوية مبكرة = زراعة جديدة غالبًا
-        rr, cc = np.nonzero(sel)
-        ww = d[sel]
-        r0 = float((rr * ww).sum() / ww.sum()); c0 = float((cc * ww).sum() / ww.sum())
-        x, yv = tr * (c0 + .5, r0 + .5)
+        ncell = int(sel.sum()); mf = float(frac[sel].mean()); hf = float(hc[sel].sum() / max(1, gc[sel].sum()))
+        if ncell >= 12 and mf >= 0.75 and hf >= 0.3: continue      # مربعات خضراء كاملة وقوية = مزرعة جديدة (محاور قمح)
+        rr, cc = np.nonzero(sel); w = gc[sel].astype(float)
+        r0 = float((rr * w).sum() / w.sum()); c0 = float((cc * w).sum() / w.sum())
+        # أقرب مربع أخضر فعلي للمركز (الشعيب ممكن يكون منحني والمركز خارجه)
+        j = int(np.argmin((rr - r0) ** 2 + (cc - c0) ** 2)); r0, c0 = rr[j], cc[j]
+        x, yv = trc * (c0 + .5, r0 + .5)
         lo, la = wtransform(crs, "EPSG:4326", [x], [yv]); lo, la = lo[0], la[0]
-        out.append([round(la, 4), round(lo, 4), round(float(sel.sum()) * HA), round(float(np.nanmean(ww)) * 1000), round(float(np.nanmean(vals)), 3), round(p95, 3), tile])
+        out.append([round(la, 4), round(lo, 4), round(a, 1), round(mf * 100), ncell, round(hf, 2), tile])
     return out
 
 def main():
@@ -171,7 +180,7 @@ def main():
     lim = int(os.environ.get("SCAN_TILES", "0") or 0)
     if TEST:   # نقاط lat:lng → البلاطات اللي تغطيها
         pts = [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]
-        cov = lambda t: any(i["bbox"][0] + .05 <= lo <= i["bbox"][2] - .05 and i["bbox"][1] + .05 <= la <= i["bbox"][3] - .05 for i in N[t][:1] for la, lo in pts)
+        cov = lambda t: any(i["bbox"][0] <= lo <= i["bbox"][2] and i["bbox"][1] <= la <= i["bbox"][3] for i in N[t] for la, lo in pts)
         tiles = [t for t in tiles if cov(t)]
     elif lim: tiles = tiles[:lim]
     print(f"::notice::scan tiles {len(tiles)} (now items {len(nowi)}, dry items {len(dryi)})", flush=True)
@@ -189,9 +198,9 @@ def main():
         rows.append(r)
     rows = rows[:400]
     out = []
-    for la, lo, ha, dg, mean, p95, tile in rows:
+    for la, lo, ha, pct, ncell, hf, tile in rows:
         lb, ref = label(la, lo)
-        out.append([la, lo, ha, dg, lb])
+        out.append([la, lo, round(ha), pct, lb])                  # [lat, lng, هكتار أخضر, % من أرض البقعة, الاسم]
     nowdate = max((i["properties"]["datetime"][:10] for i in nowi), default=today.isoformat())
     res = {"asof": nowdate, "made": today.isoformat(), "n": len(out), "rows": out}
     try: prev = json.load(open("data/fayd-new.json"))
@@ -201,7 +210,7 @@ def main():
     fn = "data/fayd-new-pending.json" if held else "data/fayd-new.json"
     json.dump(res, open(fn, "w"), ensure_ascii=False, separators=(",", ":"))
     if held:
-        open("data/fayd-new-qa.md", "w").write(f"فياض بدون اسم {nowdate}: العدد {pn} → {len(out)} — انحفظ في {fn} للمراجعة.\n\n" + "\n".join(f"- {r[4]} · {r[2]} هكتار · زيادة {r[3]} · {r[0]},{r[1]}" for r in out[:80]))
+        open("data/fayd-new-qa.md", "w").write(f"فياض بدون اسم {nowdate}: العدد {pn} → {len(out)} — انحفظ في {fn} للمراجعة.\n\n" + "\n".join(f"- {r[4]} · {r[2]} هكتار خضراء · {r[3]}% من أرضها · {r[0]},{r[1]}" for r in out[:80]))
     print(f"::notice::new green patches {len(out)} (raw {len(found)}) → {fn} t={round(time.time() - T0)}s", flush=True)
     from collections import Counter
     print("::notice::top: " + " · ".join(f"{r[4]} ({r[2]} ه)" for r in out[:40])[:3000], flush=True)
