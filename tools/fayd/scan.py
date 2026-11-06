@@ -88,20 +88,27 @@ def worldcover(tr, crs, n):
     return out
 
 def composite(items, how):
-    """how=min: أقل قيمة من صورتين صافيتين على الأقل (بقعة تخضر بصورة وحدة = غالبًا غبار/صخر بركاني مو نبات)
+    """how=min: لكل بكسل أحدث قراءتين صافيتين (من أي صور، المدارات تغطي أجزاء مختلفة) وناخذ الأقل —
+               بقعة تخضر بصورة وحدة = غالبًا غبار/صخر بركاني مو نبات
        how=max: أعلى قيمة من كل صور الجفاف (أي خضرة بالصيف = مزرعة/شجر/صخر يتذبذب)"""
-    v = None; cnt = None; water = None; geo = None
+    v = None; v2 = None; water = None; geo = None
     for it in items:
         r = read_ndvi(it)
         if r is None: continue
         nd, w, tr, crs = r
         if geo is None:
-            geo = (tr, crs); v = nd; cnt = np.isfinite(nd).astype("uint8"); water = w; continue
-        v = np.fmin(v, nd) if how == "min" else np.fmax(v, nd)
-        cnt += np.isfinite(nd); water |= w
+            geo = (tr, crs); water = w
+            v = nd; v2 = np.full_like(nd, np.nan) if how == "min" else None; continue
+        water |= w
+        if how == "min":
+            f1 = np.isnan(v) & np.isfinite(nd); f2 = ~f1 & np.isnan(v2) & np.isfinite(nd)
+            v[f1] = nd[f1]; v2[f2] = nd[f2]
+            if np.isfinite(v2).mean() > 0.97: break
+        else:
+            v = np.fmax(v, nd)
         del nd
     if v is None: return None, None, None
-    if how == "min": v[cnt < 2] = np.nan
+    if how == "min": v = np.where(np.isfinite(v2), np.fmin(v, v2), np.nan).astype("float32")
     return v, water, geo
 
 SITES = json.load(open("data/fayd-sites.json"))
@@ -133,7 +140,7 @@ def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
 def do_tile(tile, now_items, dry_items):
-    now, water, geo = composite(now_items[:2], "min")   # أحدث صورتين (الثالثة تكون قبل بداية الخضرة غالبًا)
+    now, water, geo = composite(now_items[:5], "min")
     if now is None: return []
     dry, w2, g2 = composite(dry_items[:4], "max")
     if dry is None: return []
@@ -150,7 +157,7 @@ def do_tile(tile, now_items, dry_items):
         frac = np.where(vc >= 13, gc / np.maximum(vc, 1), 0)
     m = (frac >= FRAC) & ~np.isin(wc, (40, 50, 80, 90, 95))
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
-    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:2]]} dry {[i['properties']['datetime'][:10] for i in dry_items[:4]]}", flush=True)
+    print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:5]]} dry {[i['properties']['datetime'][:10] for i in dry_items[:4]]}", flush=True)
     if TEST:
         for la, lo in [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]:
             xx, yy = wtransform("EPSG:4326", crs, [lo], [la]); c_, r_ = ~tr * (xx[0], yy[0]); c_, r_ = int(c_), int(r_)
