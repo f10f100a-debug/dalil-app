@@ -30,7 +30,7 @@ def _one(idx, lat, lng, start, end):
     dla = HALF_M / 111320; dlo = dla / max(0.2, math.cos(math.radians(lat)))
     poly = [[lng - dlo, lat - dla], [lng + dlo, lat - dla], [lng + dlo, lat + dla], [lng - dlo, lat + dla], [lng - dlo, lat - dla]]
     req = {"input": {"bounds": {"geometry": {"type": "Polygon", "coordinates": [poly]}, "properties": {"crs": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"}},
-                     "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": 80}}]},
+                     "data": [{"type": "sentinel-2-l2a", "dataFilter": {"maxCloudCoverage": int(os.environ.get("CDSE_MAXCC", "100"))}}]},
            "aggregation": {"timeRange": {"from": start + "T00:00:00Z", "to": end + "T23:59:59Z"}, "aggregationInterval": {"of": "P1D"},
                            "evalscript": EVAL, "resx": 0.00009, "resy": 0.00009},
            "calculations": {"ndvi": {"statistics": {"default": {"percentiles": {"k": [75, 95]}}}}}}
