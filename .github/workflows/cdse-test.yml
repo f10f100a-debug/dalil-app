@@ -18,7 +18,7 @@ jobs:
           CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
           SITES: ${{ inputs.sites }}
           DAYS: ${{ inputs.days }}
-          CDSE_DEBUG: ${{ inputs.series == '' && '1' || '' }}
+          CDSE_DEBUG: ''
           CDSE_HALF_M: ${{ inputs.half_m }}
           POINTS: ${{ inputs.points }}
           SERIES: ${{ inputs.series }}
@@ -40,6 +40,10 @@ jobs:
           if pts:
               r2 = cdse.sample([(1000000 + k, la, lo) for k, (la, lo) in enumerate(pts)], start.isoformat(), end.isoformat())
               for k, (la, lo) in enumerate(pts): print(f"::notice::نقطة {la},{lo}: {r2.get(1000000 + k, [None])[0]}")
+              if os.environ.get("SERIES"):
+                  sp = cdse.series([(1000000 + k, la, lo) for k, (la, lo) in enumerate(pts)], (end - dt.timedelta(days=75)).isoformat(), end.isoformat())
+                  for k, (la, lo) in enumerate(pts):
+                      print(f"PSER {la},{lo} | " + " ".join(f"{d[5:]}:{a}/{e}/{g}" for d, a, c, e, g in sp.get(1000000 + k, [])))
           if os.environ.get("SERIES"):
               sr = cdse.series([(i, S[i][1], S[i][2]) for i in ids], start.isoformat(), end.isoformat())
               for i in ids:
