@@ -143,7 +143,7 @@ try:
     import cdse
     if cdse.available():
         lim = (today - dtm.timedelta(days=2)).isoformat()
-        stale = sorted([i for i in range(len(SITES)) if not cur.get(i) or cur[i][0][0] < lim], key=lambda i: cur[i][0][0] if cur.get(i) else "")[:700]
+        stale = sorted([i for i in range(len(SITES)) if not cur.get(i) or cur[i][0][0] < lim], key=lambda i: cur[i][0][0] if cur.get(i) else "")[:450]
         got = cdse.sample([(i, SITES[i][1], SITES[i][2]) for i in stale], (today - dtm.timedelta(days=12)).isoformat(), today.isoformat())
         newer = 0
         for i, v in got.items():

@@ -60,7 +60,7 @@ def _one(idx, lat, lng, start, end):
             print("cdse retry", str(e)[:120], flush=True); time.sleep(5 * (k + 1))
     return idx, None
 
-def sample(sites, start, end, workers=4):
+def sample(sites, start, end, workers=2):
     """sites: [(idx, lat, lng)] → {idx: [(date, p75, mean, gfrac, valid)]} لأحدث صورة صافية (نفس شكل s2.sample)"""
     out = {}
     with ThreadPoolExecutor(workers) as ex:
