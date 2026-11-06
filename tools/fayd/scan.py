@@ -170,7 +170,11 @@ def do_tile(tile, now_items, dry_items):
     area = ndimage.sum(gc * m, lab, idx) * HA
     out = []
     for k, a in zip(idx, area):
-        if a < MIN_HA: continue
+        if a < MIN_HA:
+            if TEST and a >= 1.5:
+                rr, cc = np.nonzero(lab == k); x, yv = trc * (cc.mean() + .5, rr.mean() + .5); lo, la = wtransform(crs, "EPSG:4326", [x], [yv])
+                if abs(la[0] - 29.955) < .03 and abs(lo[0] - 41.385) < .03: print("SMALL", round(la[0], 4), round(lo[0], 4), round(a, 1), flush=True)
+            continue
         sel = lab == k
         ncell = int(sel.sum()); mf = float(frac[sel].mean()); hf = float(hc[sel].sum() / max(1, gc[sel].sum()))
         if ncell >= 12 and mf >= 0.75 and hf >= 0.3: continue      # مربعات خضراء كاملة وقوية = مزرعة جديدة (محاور قمح)
@@ -209,6 +213,8 @@ def main():
             if k % 10 == 0: print("tile", k, "/", len(tiles), t, len(r), round(time.time() - T0), "s", flush=True)
     # دمج المكرر بين البلاطات + شيل القريب من فيضة لها اسم
     found.sort(key=lambda r: -r[2] * r[3])
+    if TEST:
+        for r in found: print("RAW", r, "named<2km" if near_named(r[0], r[1]) else "", flush=True)
     rows = []
     for r in found:
         if not in_ksa(r[0], r[1]) or near_named(r[0], r[1]): continue
