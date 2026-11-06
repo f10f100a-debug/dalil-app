@@ -12,7 +12,8 @@ from scipy import ndimage
 sys.path.insert(0, os.path.dirname(__file__))
 import s2
 
-BBOX = [37.5, 24.5, 50.0, 32.3]          # الجوف والشمال وحائل والقصيم والشرقية وشمال الرياض
+BBOX = [37.5, 24.5, 50.0, 32.3]
+TEST = os.environ.get("SCAN_ONLY", "")   # نقاط lat:lng للتجربة: نمسح البلاطات اللي تغطيها بس          # الجوف والشمال وحائل والقصيم والشرقية وشمال الرياض
 PX = 1372                                # 10980/8 → 80 م
 HA = 0.64                                # مساحة البكسل بالهكتار
 MIN_HA = 20
@@ -80,16 +81,25 @@ def worldcover(tr, crs):
     return out
 
 def composite(items, how):
-    arr = None; water = None; geo = None
+    """how=min: أقل قيمة من صورتين صافيتين على الأقل (بقعة تخضر بصورة وحدة = غالبًا غبار/صخر بركاني مو نبات)
+       how=max: أعلى قيمة من كل صور الجفاف (أي خضرة بالصيف = مزرعة/شجر/صخر يتذبذب)"""
+    stack = []; water = None; geo = None
     for it in items:
         r = read_ndvi(it)
         if r is None: continue
         nd, w, tr, crs = r
-        if geo is None: geo = (tr, crs); arr = nd; water = w; continue
-        if how == "fill": arr = np.where(np.isnan(arr), nd, arr)
-        else: arr = np.fmax(arr, nd)
-        water |= w
-    return arr, water, geo
+        if geo is None: geo = (tr, crs)
+        stack.append(nd); water = w if water is None else (water | w)
+    if not stack: return None, None, None
+    A = np.stack(stack)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if how == "min":
+            v = np.nanmin(A, 0); v[np.isfinite(A).sum(0) < 2] = np.nan
+        else:
+            v = np.nanmax(A, 0)
+    return v, water, geo
 
 SITES = json.load(open("data/fayd-sites.json"))
 DP = json.load(open("data/desert-places.json"))
@@ -114,9 +124,9 @@ def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
 def do_tile(tile, now_items, dry_items):
-    now, water, geo = composite(now_items[:2], "fill")
+    now, water, geo = composite(now_items[:3], "min")
     if now is None: return []
-    dry, w2, g2 = composite(dry_items[:2], "max")
+    dry, w2, g2 = composite(dry_items[:4], "max")
     if dry is None: return []
     tr, crs = geo
     wc = worldcover(tr, crs)
@@ -150,7 +160,11 @@ def main():
     D = {t: sorted(v, key=lambda i: i["properties"]["eo:cloud_cover"]) for t, v in g(dryi).items()}
     tiles = sorted(set(N) & set(D))
     lim = int(os.environ.get("SCAN_TILES", "0") or 0)
-    if lim: tiles = tiles[:lim]
+    if TEST:   # نقاط lat:lng → البلاطات اللي تغطيها
+        pts = [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]
+        cov = lambda t: any(i["bbox"][0] + .05 <= lo <= i["bbox"][2] - .05 and i["bbox"][1] + .05 <= la <= i["bbox"][3] - .05 for i in N[t][:1] for la, lo in pts)
+        tiles = [t for t in tiles if cov(t)]
+    elif lim: tiles = tiles[:lim]
     print(f"::notice::scan tiles {len(tiles)} (now items {len(nowi)}, dry items {len(dryi)})", flush=True)
     found = []
     with ThreadPoolExecutor(6) as ex:

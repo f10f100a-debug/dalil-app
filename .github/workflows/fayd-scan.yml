@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       mode: { description: "publish = ينشر حتى لو تغيّر العدد كثير", type: string, default: "" }
+      only: { description: "بلاطات محددة للتجربة", type: string, default: "" }
       tiles: { description: "حد عدد البلاطات للتجربة (0 = الكل)", type: string, default: "0" }
 jobs:
   scan:
@@ -15,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: pip install --quiet rasterio numpy scipy
       - run: python3 tools/fayd/scan.py ${{ inputs.mode }}
-        env: { SCAN_TILES: "${{ inputs.tiles }}" }
+        env: { SCAN_TILES: "${{ inputs.tiles }}", SCAN_ONLY: "${{ inputs.only }}" }
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
