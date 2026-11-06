@@ -1,0 +1,33 @@
+# فياض بدون اسم: مسح أسبوعي (السبت) بصور Sentinel-2 للبقع اللي خضرت هالموسم → data/fayd-new.json
+name: Fayd scan
+on:
+  schedule: [{ cron: "41 4 * * 6" }]
+  workflow_dispatch:
+    inputs:
+      mode: { description: "publish = ينشر حتى لو تغيّر العدد كثير", type: string, default: "" }
+      tiles: { description: "حد عدد البلاطات للتجربة (0 = الكل)", type: string, default: "0" }
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions: { contents: write, issues: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy scipy
+      - run: python3 tools/fayd/scan.py ${{ inputs.mode }}
+        env: { SCAN_TILES: "${{ inputs.tiles }}" }
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add -A data/fayd-new*.json data/fayd-new-qa.md 2>/dev/null || git add -A data/fayd-new*.json
+          git diff --cached --quiet && exit 0
+          git commit -qm "فياض بدون اسم: مسح أسبوعي"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+      - name: Alert developer if held
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          [ -f data/fayd-new-qa.md ] || exit 0
+          T="⚠️ فحص الفياض بدون اسم $(date -u +%F)"
+          gh issue list --state open --search "$T in:title" --json number -q '.[0].number' | grep -q . && exit 0
+          gh issue create --title "$T" --body-file data/fayd-new-qa.md
