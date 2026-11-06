@@ -20,7 +20,7 @@ PX = 2745                                # 10980/4 → 40 م
 C = 5                                    # المربع = 5×5 بكسل = 200 م
 NC = PX // C                             # 549
 HA = 0.16                                # مساحة البكسل بالهكتار
-MIN_HA = float(os.environ.get("SCAN_MINHA") or 4)     # أقل مساحة خضراء فعلية بالبقعة
+MIN_HA = float(os.environ.get("SCAN_MINHA") or 2.5)     # أقل مساحة خضراء فعلية بالبقعة
 NOW_MIN = float(os.environ.get("SCAN_NOW") or 0.16)
 D_MIN = float(os.environ.get("SCAN_D") or 0.06)
 FRAC = float(os.environ.get("SCAN_FRAC") or 0.15)
@@ -45,6 +45,7 @@ def read_ndvi(it):
                     tr = r.transform * r.transform.scale(r.width / PX, r.height / PX); crs = r.crs
             ok = np.isin(S, (4, 5)) & (R > 0) & (N > 0)
             R = np.clip(R - off, 1, None); N = np.clip(N - off, 1, None)
+            ok &= (R + N) >= 1800       # الصخر البركاني الأسود (الحرّات): انعكاسه ضعيف و NDVI يتذبذب عليه — ما نقيسه (القيعان داخل الحرة فاتحة وتنقاس)
             nd = np.where(ok, (N - R) / (N + R), np.nan).astype("float32")
             water = S == 6
             return nd, water, tr, crs
