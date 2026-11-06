@@ -1,0 +1,17 @@
+# فحص مناطق الفياض مقابل الحدود الإدارية الرسمية (geoBoundaries). mode=fix يصحح ويحفظ
+name: Check fayd regions
+on:
+  workflow_dispatch:
+    inputs:
+      mode: { description: "فاضي = تقرير فقط، fix = تصحيح", type: string, default: "" }
+permissions: { contents: write }
+jobs:
+  r:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/geo/check_regions.py ${{ inputs.mode }}
+      - run: |
+          git config user.email ci@dalil && git config user.name ci
+          git add data/fayd-regions-report.json data/fayd-sites.json
+          git diff --cached --quiet || (git commit -m "Fayd regions check ${{ inputs.mode }}" && git pull --rebase -q && git push)
