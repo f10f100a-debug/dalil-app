@@ -1,5 +1,8 @@
 name: Fayd missing
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      extra: { description: "أسماء إضافية (خبراء/قاع)", type: string, default: "" }
 permissions: { contents: write }
 jobs:
   m:
@@ -7,6 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 tools/fayd/missing.py
+        env: { EXTRA: "${{ inputs.extra }}" }
       - run: |
           git config user.email ci@dalil && git config user.name ci
-          git add data/fayd-missing.json && git commit -qm "Fayd missing candidates" && git pull -q --rebase && git push -q
+          git add data/fayd-missing*.json && git commit -qm "Fayd missing candidates" && git pull -q --rebase && git push -q

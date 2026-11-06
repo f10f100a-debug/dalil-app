@@ -1,8 +1,10 @@
 """يدوّر على فياض/رياض ناقصة من قائمة دليل: من OpenStreetMap (Overpass) + الفئات اللي انشالت من بياناتنا.
 يكتب data/fayd-missing.json للمراجعة (ما يعدّل القائمة)."""
-import json, math, re, urllib.request, urllib.parse
+import json, math, os, re, urllib.request, urllib.parse
 S = json.load(open("data/fayd-sites.json"))
-NAME = re.compile(r"^(ال)?(روضة|روضه|روض|فيضة|فيضه|فياض|رياض)\s")
+# EXTRA=1: أسماء المنخفضات اللي يطلع فيها الربيع بالمناطق الثانية (خبراء القصيم وحائل، قيعان تبوك والحماد)
+WORDS = "خبراء|خبرا|خبرة|خبره|قاع|قيعان" if os.environ.get("EXTRA") else "روضة|روضه|روض|فيضة|فيضه|فياض|رياض"
+NAME = re.compile(r"^(ال)?(" + WORDS + r")\s")
 BAD = re.compile(r"سد|قرية|مركز|مزرعة|مزارع|استراحة|محطة|حي |مخطط|شارع|طريق|مدرسة|مسجد|قصر|فندق|مستوصف|بلدية|سوق|مطعم|منتزه|حديقة")
 def near(la, lo, km=1.5):
     for s in S:
@@ -12,7 +14,7 @@ def near(la, lo, km=1.5):
 cand = {}
 # 1) OSM عبر Overpass: أي عنصر اسمه يبدأ بفيضة/روضة/فياض داخل السعودية
 q = """[out:json][timeout:180];area["ISO3166-1"="SA"][admin_level=2]->.sa;
-(node(area.sa)["name"~"^(ال)?(روضة|روضه|روض|فيضة|فيضه|فياض|رياض) "];way(area.sa)["name"~"^(ال)?(روضة|روضه|روض|فيضة|فيضه|فياض|رياض) "];relation(area.sa)["name"~"^(ال)?(روضة|روضه|روض|فيضة|فيضه|فياض|رياض) "];);out center tags;"""
+(node(area.sa)["name"~"^(ال)?(""" + WORDS + """) "];way(area.sa)["name"~"^(ال)?(""" + WORDS + """) "];relation(area.sa)["name"~"^(ال)?(""" + WORDS + """) "];);out center tags;"""
 for url in ("https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"):
     try:
         j = json.load(urllib.request.urlopen(urllib.request.Request(url, data=urllib.parse.urlencode({"data": q}).encode(), headers={"User-Agent": "dalil-app/1.0"}), timeout=240)); break
@@ -42,6 +44,15 @@ out = []
 for c in cand.values():
     if any(math.hypot((o["lat"] - c["lat"]) * 111, (o["lng"] - c["lng"]) * 96) < 1.5 for o in out): continue
     out.append(c)
-json.dump({"osm_total": osm, "n": len(out), "rows": out}, open("data/fayd-missing.json", "w"), ensure_ascii=False, indent=0)
+json.dump({"osm_total": osm, "n": len(out), "rows": out}, open("data/fayd-missing2.json" if os.environ.get("EXTRA") else "data/fayd-missing.json", "w"), ensure_ascii=False, indent=0)
 print(f"::notice::OSM fayd-like {osm}, missing from list {len(out)} (osm {sum(o['src']=='osm' for o in out)})")
-print("::notice::" + " · ".join(o["name"] for o in out if "صفا" in o["name"])[:500])
+G = json.load(open("data/region-grid.json"))
+def reg(la, lo):
+    i = int((la - G["lat0"]) // G["r"]); j = int((lo - G["lng0"]) // G["r"])
+    if i < 0 or j < 0 or i >= G["rows"] or j >= G["cols"]: return "?"
+    c = ord(G["g"][i * G["cols"] + j]) - 97
+    return G["regions"][c] if 0 <= c < len(G["regions"]) else "?"
+from collections import defaultdict
+by = defaultdict(list)
+for o in out: by[reg(o["lat"], o["lng"])].append(o["name"] + ("" if o["src"] != "osm" else "·" + ",".join(f"{k}={v}" for k, v in o.get("tags", {}).items())))
+for k, v in sorted(by.items(), key=lambda x: -len(x[1])): print(f"::notice::{k} {len(v)}: " + " · ".join(v)[:900])
