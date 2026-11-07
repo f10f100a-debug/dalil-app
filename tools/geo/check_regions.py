@@ -38,6 +38,14 @@ for i, s in enumerate(S):
     if not s: continue
     r = region(s[1], s[2])
     if r and len(s) > 3 and r != s[3]: bad.append({"i": i, "name": s[0], "lat": s[1], "lng": s[2], "was": s[3], "is": r})
+# خارج كل المناطق (= خارج المملكة حسب geoBoundaries)
+out = [(i, s[0], s[1], s[2]) for i, s in enumerate(S) if s and region(s[1], s[2]) is None]
+print(f"::notice::sites outside KSA (geoBoundaries): {len(out)} — " + " · ".join(f"{i} {n} {a},{b}" for i, n, a, b in out)[:1500])
+try:
+    NW = json.load(open("data/fayd-new.json"))["rows"]
+    no = [r for r in NW if region(r[0], r[1]) is None]
+    print(f"::notice::unnamed patches outside KSA: {len(no)}/{len(NW)} — " + " · ".join(f"{r[0]},{r[1]}" for r in no)[:800])
+except Exception as e: print("new check skipped", e)
 json.dump({"n": len(S), "wrong": len(bad), "rows": bad}, open("data/fayd-regions-report.json", "w"), ensure_ascii=False, indent=0)
 print(f"::notice::fayd sites {len(S)}, wrong region {len(bad)}")
 from collections import Counter
