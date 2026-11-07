@@ -133,10 +133,28 @@ def label(la, lo):
     return f"خضرة جديدة · {round(d)} كم {DIRS[int((ang + 22.5) // 45) % 8]} {nm}", nm
 
 G = json.load(open("data/region-grid.json"))
+# 7 نوفمبر: الشبكة (0.25°) كانت تحسب مربعات الحدود سعودية كلها → طلعت 73 بقعة بالأردن والعراق. الحين خط الحدود نفسه + هامش 1 كم
+BND = [p[0] for p in json.load(open("data/sau-boundary.json"))["coordinates"]]
+def _inside(la, lo):
+    for ring in BND:
+        c = False
+        for i in range(len(ring)):
+            x1, y1 = ring[i]; x2, y2 = ring[i - 1]
+            if (y1 > la) != (y2 > la) and lo < (x2 - x1) * (la - y1) / (y2 - y1) + x1: c = not c
+        if c: return True
+    return False
+def _edge_km(la, lo):
+    best = 1e9; k = math.cos(math.radians(la))
+    for ring in BND:
+        for i in range(len(ring)):
+            x1, y1 = ring[i - 1]; x2, y2 = ring[i]
+            if abs(y1 - la) > .2 and abs(y2 - la) > .2: continue
+            ax, ay = (x1 - lo) * 111 * k, (y1 - la) * 111; bx, by = (x2 - lo) * 111 * k, (y2 - la) * 111
+            dx, dy = bx - ax, by - ay; t = max(0, min(1, -(ax * dx + ay * dy) / ((dx * dx + dy * dy) or 1)))
+            best = min(best, math.hypot(ax + t * dx, ay + t * dy))
+    return best
 def in_ksa(la, lo):
-    i = int((la - G["lat0"]) // G["r"]); j = int((lo - G["lng0"]) // G["r"])
-    if i < 0 or j < 0 or i >= G["rows"] or j >= G["cols"]: return False
-    return 0 <= ord(G["g"][i * G["cols"] + j]) - 97 < len(G["regions"])
+    return _inside(la, lo) and _edge_km(la, lo) >= 1.0
 
 def rain75(pts):
     import urllib.request, urllib.parse
