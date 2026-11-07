@@ -6321,7 +6321,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       const conf = r.green ? `<span class="fq-when" style="display:block;color:#2F6F22">✓ اخضرّت ${r.green === 1 ? 'فيضة' : r.green === 2 ? 'فيضتين' : r.green + ' ' + (r.green <= 10 ? 'فياض' : 'فيضة')} حولها — تأكيد إن المطر كان كافي</span>` : '';
       const chk = r.check ? `<span class="fq-when" style="display:block;color:#8A6A3A">⚠️ الرقم ما تأكده محطة أرصاد — نراجعه</span>` : '';
       const est = r.est ? `<span class="fq-when" style="display:block;color:var(--text-faint)">📡 تقدير رادار — ما فيه محطة أرصاد قريبة تأكده</span>` : '';
-      const pre = r.pre >= 3 ? `<span class="fq-when" style="display:block;color:var(--text-faint)">مطر قبل الوسم ${r.pre} ملم — ما ينحسب للفقع</span>` : '';
+      const pre = r.pre >= 3 ? `<span class="fq-when fq-pre" data-fq-pre style="display:block;color:var(--text-faint)">🕓 نزل ${r.pre} ملم قبل الوسم (قبل 16 أكتوبر) — بدري على الفقع، ما دخلت في الرقم <u>ليش؟</u></span><span class="fq-when fq-pre-why" hidden style="color:var(--text-faint)">الفقع يحتاج مطر الوسم (من منتصف أكتوبر). المطر اللي قبله يساعد الأرض بس ما يطلّع فقع.</span>` : '';
       const when = chk + (r.check ? '' : est) + pre + (!r.check && r.window ? `<span class="fq-when" style="display:block">📅 يُتوقع يطلع: <b>${fqDay(r.window[0])} – ${fqDay(r.window[1])}</b></span>` + conf
         : r.fc7 >= 5 ? `<span class="fq-when" style="display:block">🌧️ متوقع مطر خلال أسبوع: ${r.fc7} ملم</span>` : '');
       return `<button type="button" class="fy-row" data-fq-i="${fqData.rows.indexOf(fqData.rows.find(x=>x.name === r.name))}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.mm} ملم${r.km != null ? ' · ' + Math.round(r.km) + ' كم' : ''}</span><span class="fy-bar fq-bar" style="display:block"><i style="width:${Math.max(4, Math.min(100, r.mm / max * 100))}%"></i></span>${when}</span><span class="fy-pill ${r.check ? 'fy-p0' : ST[r.st][1]}">${r.check ? 'تحتاج تأكيد' : ST[r.st][0]}</span></button>`;
@@ -6417,6 +6417,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   });
   document.getElementById('fqList').addEventListener('click', e=>{
     if(e.target.closest('[data-fq-more]')){ faydMore = !faydMore; renderFq(); return; }
+    const pw = e.target.closest('[data-fq-pre]'); if(pw){ e.stopPropagation(); const w = pw.nextElementSibling; if(w){ w.hidden = !w.hidden; w.style.display = w.hidden ? '' : 'block'; } return; }
     const b = e.target.closest('[data-fq-i]'); if(!b || !fqData) return;
     if(!fqData.rows[+b.dataset.fqI]) return;
     openPlaceSheet('fq:' + b.dataset.fqI);
