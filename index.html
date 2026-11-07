@@ -2695,13 +2695,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           if(gpsOffset !== null){
             state.heading = smoothHeading(state.headingSource === 'fused' ? state.heading : null, norm360(raw + gpsOffset));
             state.headingSource = 'fused';
-            renderCompassScreen();
+            onHeadingSample();
           }
           return;
         }
         gpsOffset = null;
         trackCompassStability(raw, e.webkitCompassAccuracy);
-        state.heading = smoothHeading(state.headingSource === 'compass' ? state.heading : null, raw);
+        // بوصلة الآيفون الأصلية: القراءة دقيقة ومفلترة من النظام (كل 1°) → نستخدمها كما هي والنعومة من حركة القرص؛ الأندرويد ينعّم
+        state.heading = e.type === 'native' ? raw : smoothHeading(state.headingSource === 'compass' ? state.heading : null, raw);
         state.headingSource = 'compass';
         if(!compassSeenOnce){
           compassSeenOnce = true;
@@ -2709,7 +2710,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           document.getElementById('diagBanner').style.display = 'none';
           updateNavActivation();
         }
-        renderCompassScreen();
+        onHeadingSample();
       }
     }
     compassOrientationHandler = handleOrientation;
@@ -2986,9 +2987,45 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   let lastAligned = false;
   let lastMarks = '';
   function renderCompassScreen(){
+    if(!animRaf && state.heading !== null && state.heading !== undefined && dispHeading !== state.heading) animRaf = requestAnimationFrame(headingTick);
     if(renderQueued) return;
     renderQueued = true;
-    requestAnimationFrame(()=>{ renderQueued = false; drawCompassScreen(); });
+    requestAnimationFrame(()=>{ renderQueued = false; lastFullDraw = performance.now(); drawCompassScreen(); });
+  }
+  // 7 نوفمبر: القرص كان ينط مع كل قراءة (الآيفون يرسل كل 1°). الحين: القراءة تحدد «الهدف»، والقرص يتحرك له بنعومة 60 مرة بالثانية
+  // (يوصل خلال ~عُشر ثانية)، وباقي الشاشة (المسافة والنصوص) تتحدث 5 مرات بالثانية بس.
+  var dispHeading = null, animRaf = 0, animLast = 0, lastFullDraw = 0, fullTimer = 0;
+  var cpCache = {qb:null, brg:null};
+  function onHeadingSample(){
+    if(!animRaf) animRaf = requestAnimationFrame(headingTick);
+    const since = performance.now() - lastFullDraw;
+    if(since >= 200) renderCompassScreen();
+    else if(!fullTimer) fullTimer = setTimeout(()=>{ fullTimer = 0; renderCompassScreen(); }, 200 - since);
+  }
+  function headingTick(ts){
+    animRaf = 0;
+    const tgt = state.heading;
+    if(tgt === null || tgt === undefined){ animLast = 0; return; }
+    if(dispHeading === null){ dispHeading = tgt; }
+    const dt = animLast ? Math.min(100, ts - animLast) : 16; animLast = ts;
+    const d = ((tgt - dispHeading + 540) % 360) - 180;
+    if(Math.abs(d) < 0.05) dispHeading = tgt;
+    else dispHeading = (dispHeading + d * (1 - Math.exp(-dt / 90)) + 360) % 360;
+    applyHeadingVisual(dispHeading);
+    if(Math.abs(d) >= 0.05) animRaf = requestAnimationFrame(headingTick); else animLast = 0;
+  }
+  function applyHeadingVisual(heading){
+    dialRotEl.style.transform = `rotate(${(-heading).toFixed(1)}deg)`;
+    letterEls.forEach(({el, angle})=>{
+      const [x,y] = dialPoint(angle - heading, 98);
+      el.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px)`;
+    });
+    if(cpCache.qb !== null && !qiblaEl.hidden){
+      const [qx,qy] = dialPoint(cpCache.qb - heading, 126);
+      qiblaEl.style.transform = `translate(${qx.toFixed(1)}px,${qy.toFixed(1)}px)`;
+    }
+    if(cpCache.brg !== null && targetArrowEl.style.display === 'block')
+      targetArrowEl.style.transform = `rotate(${((cpCache.brg - heading + 360) % 360).toFixed(1)}deg)`;
   }
 
   function drawCompassScreen(){
@@ -2999,7 +3036,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function drawCompassScreenInner(){
     const pos = state.pos;
     const haveHeading = state.heading !== null && state.heading !== undefined;
-    const heading = haveHeading ? state.heading : 0;
+    if(!haveHeading) dispHeading = null;
+    else if(dispHeading === null) dispHeading = state.heading;
+    const heading = haveHeading ? dispHeading : 0;
     evaluateGuidance();
     const t = state.navTarget;
     if(t) state.arrival = null;
@@ -3041,6 +3080,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
     // الكعبة: عنصر مستقل يتحرك على حلقة القرص ويبقى معتدلًا، ويتوهّج عند مواجهة القبلة (±5°).
+    cpCache.qb = qb;
     if(qb === null){ if(!qiblaEl.hidden) qiblaEl.hidden = true; }
     else{
       if(qiblaEl.hidden) qiblaEl.hidden = false;
@@ -3059,13 +3099,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         acc: Number(pos.accuracy)
       };
       near = !!state.nearLatched;
+      cpCache.brg = haveHeading ? nav.brg : null;
       const rel = haveHeading ? (nav.brg - heading + 360) % 360 : nav.brg;
       if(targetArrowEl.style.display !== 'block') targetArrowEl.style.display = 'block';
       targetArrowEl.style.transform = `rotate(${rel.toFixed(1)}deg)`;
       const diff = Math.abs(((nav.brg - heading + 540) % 360) - 180);
       aligned = haveHeading && !near && diff <= 10;
-    }else if(targetArrowEl.style.display !== 'none'){
-      targetArrowEl.style.display = 'none';
+    }else{
+      cpCache.brg = null;
+      if(targetArrowEl.style.display !== 'none') targetArrowEl.style.display = 'none';
     }
     if(compassEl.classList.contains('aligned') !== aligned) compassEl.classList.toggle('aligned', aligned);
     if(compassEl.classList.contains('near') !== near) compassEl.classList.toggle('near', near);
