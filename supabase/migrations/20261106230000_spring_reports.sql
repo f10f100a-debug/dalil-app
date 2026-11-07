@@ -39,3 +39,15 @@ returns json language sql stable security definer set search_path = public as $$
   from (select lat, lng, level, at from spring_reports where at > now() - interval '72 hours' order by at desc limit 1000) x
 $$;
 grant execute on function public.spring_reports_recent() to anon, authenticated;
+
+-- مناطق تأكد فيها الربيع من الميدان: خانة ~5 كم (0.05°) فيها بلاغ «ربيع» (بداية فأكثر) من جهازين مختلفين على الأقل خلال آخر p_days يوم
+create or replace function public.spring_field_points(p_days int default 10)
+returns json language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('lat', la, 'lng', lo, 'level', lv, 'n', n, 'at', at)), '[]')
+  from (select round(avg(lat), 3) la, round(avg(lng), 3) lo, max(level) lv, count(distinct dev) n, max(at) at
+        from spring_reports
+        where level >= 1 and at > now() - make_interval(days => least(greatest(coalesce(p_days, 10), 1), 30))
+        group by round(lat * 20), round(lng * 20)
+        having count(distinct dev) >= 2) x
+$$;
+grant execute on function public.spring_field_points(int) to anon, authenticated;

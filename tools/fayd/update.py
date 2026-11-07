@@ -3,7 +3,7 @@
 #   python3 update.py baseline   ← مرة وحدة (أو سنويًا): المعتاد لكل فيضة → data/fayd-base.json
 #   python3 update.py s2base     ← مرة كل موسم (قبل الأمطار): خضرة الصيف لكل فيضة بدقة 10 م من Sentinel-2 → data/fayd-s2base.json
 #   python3 update.py            ← مرتين بالأسبوع: آخر صور Sentinel-2 (10 م، بدون غيم) + MODIS للمقارنة بالمعتاد → data/fayd.json
-import json, sys, os, time, datetime as dtm, statistics as st, urllib.request, urllib.parse
+import json, sys, os, math, time, datetime as dtm, statistics as st, urllib.request, urllib.parse
 sys.path.insert(0, os.path.dirname(__file__))
 import s2, radar, synop, rainqc
 from concurrent.futures import ThreadPoolExecutor
@@ -274,6 +274,37 @@ print("::notice::light rain (kept, needs confirmation) " + str(len(light)) + ": 
 # سجل: الفياض اللي بانت خضراء وشالها فلتر المطر (نراجعها: ربيع فاتته المصادر ولا مزارع مسقية؟)
 print("::notice::dropped " + str(len(dropped)) + ": " + " · ".join(dropped)[:3500], flush=True)
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
+# ---- تأكيد من الميدان (7 نوفمبر): القمر الصناعي يتأخر بأول أسبوعين (العشب قصير والتراب غالب من فوق) ----
+# فيضة حولها (5 كم) نقطة مؤكدة من الميدان — من data/fayd-field.json أو بلاغات «ربيع عندك؟» من جهازين فأكثر —
+# والقمر يشوف فيها بداية خضرة (3% فأكثر من مساحتها) → «بداية ربيع — مؤكدة من الميدان» (check=5)
+FIELD = []
+try: FIELD += [(r[0], r[1]) for r in json.load(open("data/fayd-field.json"))["rows"]]
+except Exception as e: print("field file", e)
+try:
+    q = urllib.request.Request(radar.SB + "/rest/v1/rpc/spring_field_points", data=b'{"p_days":10}',
+                               headers={"apikey": radar.KEY, "authorization": "Bearer " + radar.KEY, "content-type": "application/json"})
+    with urllib.request.urlopen(q, timeout=60) as r: FIELD += [(float(x["lat"]), float(x["lng"])) for x in json.load(r) or []]
+except Exception as e: print("field reports", e)
+fieldn = 0
+if FIELD:
+    for r in rows:
+        la, lo = SITES[r[0]][1], SITES[r[0]][2]
+        near = any(abs(a - la) < .06 and abs(b - lo) < .07 and math.hypot((a - la) * 111, (b - lo) * 111 * math.cos(math.radians(la))) <= 5 for a, b in FIELD)
+        if near and r[4] == 1 and (r[3] or 0) >= 3 and (r[2] <= 1) and r[5] != 1 and r[0] not in farm:
+            r[2] = 2; r[5] = 5; fieldn += 1
+    print(f"::notice::field-confirmed: {fieldn} fayd near {len(FIELD)} field points", flush=True)
+# ---- متابعة نقاط الميدان: سجل خضرتها من القمر الصناعي (نعرف بعد كم يوم يبين الربيع من فوق) ----
+try:
+    W = json.load(open("data/fayd-field-watch.json"))
+except Exception: W = {}
+try:
+    fr = json.load(open("data/fayd-field.json"))["rows"]
+    got = s2.sample([[x[2], x[0], x[1], ""] for x in fr], (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=3)
+    for k, x in enumerate(fr):
+        key = f"{x[0]},{x[1]}"; hist = W.setdefault(key, {"name": x[2], "seen": x[3], "obs": {}})
+        for d8, p75, mean, gfrac, valid in got.get(k, []): hist["obs"][d8] = [p75, gfrac]
+    json.dump(W, open("data/fayd-field-watch.json", "w"), ensure_ascii=False, separators=(",", ":"))
+except Exception as e: print("field watch", e)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
 # ---- بوابة النشر: إذا عدد الفياض الخضراء تغيّر أكثر من 30% عن المنشور → ما ننشر، نحفظه للمراجعة وننبّه المطوّر ----

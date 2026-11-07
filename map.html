@@ -366,7 +366,7 @@ gpsBtn.onclick=()=>{
 northBtn.onclick=()=>{manualRot=false;setHeadingPref('north');setRot(0);if(view==='heading')setView('follow');else updateOrigin();if(view==='follow')centerOnGps();render()};
 
 // ---------- rendering ----------
-function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}const fn=hit?null:newAt(sx,sy),fy0=hit?null:faydAt(sx,sy);if(fn&&!fy0){targetPoint={lat:fn.lat,lng:fn.lng};navName.textContent=fn.name;updateNavigation();render();status.textContent='🛰️ '+fn.name+' — '+fn.ha+' هكتار · تحتاج تأكيد من الميدان';probeRadar(targetPoint);return}const fy=fy0;if(fy){targetPoint={lat:fy.lat,lng:fy.lng};navName.textContent=fy.name;updateNavigation();render();status.textContent='🌱 '+fy.name+(fy.region?' ('+fy.region+')':'')+' — خضرة '+fy.g+(fy.chk?' · تحتاج تأكيد من الميدان':' · مؤكدة')+(fy.d?' · صورة '+fy.d.slice(5).replace('-','/'):'');probeRadar(targetPoint);return}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
+function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}const ffh=hit?null:fieldAt(sx,sy);if(ffh){targetPoint={lat:ffh.lat,lng:ffh.lng};navName.textContent=ffh.name;updateNavigation();render();status.textContent='🌱 '+ffh.name+(ffh.d?' · '+fyDate(ffh.d):'');probeRadar(targetPoint);return}const fn=hit?null:newAt(sx,sy),fy0=hit?null:faydAt(sx,sy);if(fn&&!fy0){targetPoint={lat:fn.lat,lng:fn.lng};navName.textContent=fn.name;updateNavigation();render();status.textContent='🛰️ '+fn.name+' — '+fn.ha+' هكتار · تحتاج تأكيد من الميدان';probeRadar(targetPoint);return}const fy=fy0;if(fy){targetPoint={lat:fy.lat,lng:fy.lng};navName.textContent=fy.name;updateNavigation();render();status.textContent='🌱 '+fy.name+(fy.region?' ('+fy.region+')':'')+' — خضرة '+fy.g+(fy.chk?' · تحتاج تأكيد من الميدان':' · مؤكدة')+(fy.d?' · صورة '+fy.d.slice(5).replace('-','/'):'');probeRadar(targetPoint);return}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
 function render(){
@@ -522,7 +522,7 @@ function applyPrefs(){
   setText(attribution,(LP.base==='sat'?'Powered by Esri · Esri, Maxar, Earthstar Geographics · Sentinel-2 cloudless 2016 © EOX · © مساهمو OpenStreetMap':LP.base==='osm'?'© مساهمو OpenStreetMap':'© مساهمو OpenStreetMap · Copernicus DEM')+(LP.ndvi?' · الغطاء النباتي: NASA GIBS / MODIS':'')+(LP.water?' · المياه: EC JRC/Google Global Surface Water · NASA LANCE MODIS Flood':'')+(LP.rain?' · المطر: NASA GPM IMERG':'')+(LP.clouds?' · السحب: © EUMETSAT':'')+(LP.radar?' · الرادار: المركز الوطني للأرصاد عبر RainViewer':'')+(LP.lightning?' · البرق: © EUMETSAT':''));
   for(const b of document.querySelectorAll('#lpBase button'))b.classList.toggle('active',b.dataset.base===LP.base);
   $('#lpHs').checked=LP.hs;$('#lpHsOp').value=LP.hsOp;$('#lpContour').checked=LP.contour;$('#lpWadi').checked=LP.wadi;$('#lpDalil').checked=LP.dalil;$('#lpMine').checked=LP.mine;$('#lpNdvi').checked=LP.ndvi;$('#lpWater').checked=LP.water;
-  if(glReady){vis('ndvi',LP.ndvi);vis('fayd-halo',LP.ndvi);vis('fayd-pts',LP.ndvi);vis('fayd-new',LP.ndvi);vis('spring-reports',LP.ndvi);vis('water-hist',LP.water);vis('water-now',LP.water);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain));radarVis();vis('lightning',LP.lightning);if(LP.radar&&!RADAR_FRAMES.length)loadRadarFrames();if(LP.radar&&RADAR_FRAMES.length){Object.keys(radarFix).forEach(k=>{if(!k.endsWith(':t'))delete radarFix[k]});radarWatch()}if(LP.lightning)refreshLightning()}
+  if(glReady){vis('ndvi',LP.ndvi);vis('fayd-halo',LP.ndvi);vis('fayd-pts',LP.ndvi);vis('fayd-new',LP.ndvi);vis('spring-reports',LP.ndvi);vis('fayd-field',LP.ndvi);vis('water-hist',LP.water);vis('water-now',LP.water);CLOUD_FRAMES.forEach((t,k)=>vis('clouds-'+k,LP.clouds));RAIN_FRAMES.forEach((t,k)=>vis('rain-'+k,LP.rain));radarVis();vis('lightning',LP.lightning);if(LP.radar&&!RADAR_FRAMES.length)loadRadarFrames();if(LP.radar&&RADAR_FRAMES.length){Object.keys(radarFix).forEach(k=>{if(!k.endsWith(':t'))delete radarFix[k]});radarWatch()}if(LP.lightning)refreshLightning()}
   $('#lpClouds').checked=LP.clouds;
   $('#lpRain').checked=LP.rain;$('#lpRadar').checked=LP.radar;$('#lpLightning').checked=LP.lightning;const anim=LP.rain||LP.clouds||LP.radar;$('#rainBar').classList.toggle('show',!!anim);radarLegendSync();try{springBarSync()}catch(e){}stopRain();if(anim&&glReady){showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);showFrame(playSet().frames.length-1)}
 }
@@ -1228,7 +1228,7 @@ gl.on('load',async()=>{
   gl.addLayer({id:'water-hist',type:'raster',source:'water-hist',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.9,'raster-fade-duration':0}},'slot:dalil');
   gl.addLayer({id:'water-now',type:'raster',source:'water-now',layout:{visibility:LP.water?'visible':'none'},paint:{'raster-opacity':.95,'raster-fade-duration':0}},'slot:dalil');
   gl.addLayer({id:'ndvi',type:'raster',source:'ndvi',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':['interpolate',['linear'],['zoom'],9,.65,12,.5,15,.35],'raster-fade-duration':0}},'slot:dalil');   // تخفّ عند التكبير: دقتها 250 م لا تصلح حدودًا
-  loadFaydLayer();loadNewFayd();try{springBarSync()}catch(e){}
+  loadFaydLayer();loadNewFayd();loadFieldFayd();try{springBarSync()}catch(e){}
   applyPrefs();
   syncRegions();
   addUserMaps();
@@ -1249,10 +1249,22 @@ async function loadNewFayd(){if(fnLoaded)return;fnLoaded=true;try{const t=Math.f
   if(glOk()&&FN.length&&!gl.getSource('fayd-new')){gl.addSource('fayd-new',{type:'geojson',data:{type:'FeatureCollection',features:FN.map(x=>({type:'Feature',properties:{ha:x.ha},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
     gl.addLayer({id:'fayd-new',type:'circle',source:'fayd-new',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':'#7BC67E','circle-opacity':.10,'circle-stroke-color':'#4FA35A','circle-stroke-width':2,'circle-stroke-opacity':.9,
       'circle-radius':['interpolate',['linear'],['zoom'],5,['interpolate',['linear'],['get','ha'],20,4,300,9],10,['interpolate',['linear'],['get','ha'],20,10,300,22],14,['interpolate',['linear'],['get','ha'],20,26,300,50]]}})}}catch(e){fnLoaded=false}}
+// «مؤكدة من الميدان»: نقاط تأكد فيها الربيع على الأرض (ملف مراجَع + بلاغات من جهازين فأكثر) — علامة خضراء بإطار ذهبي
+let FF=[],ffLoaded=false;
+async function loadFieldFayd(){if(ffLoaded)return;ffLoaded=true;try{const t=Math.floor(Date.now()/36e5);
+  const a=await fetch('data/fayd-field.json?h='+t).then(r=>r.ok?r.json():{rows:[]}).catch(()=>({rows:[]}));
+  FF=(a.rows||[]).map(r=>({lat:r[0],lng:r[1],name:r[2],d:r[3],src:r[4]}));
+  try{const r=await fetch(RR_URL+'/rest/v1/rpc/spring_field_points',{method:'POST',headers:{apikey:RR_KEY,'content-type':'application/json'},body:'{"p_days":10}',cache:'no-store'});if(r.ok){const j=await r.json();(j||[]).forEach(x=>FF.push({lat:+x.lat,lng:+x.lng,name:'ربيع مؤكد من بلاغات الناس',d:String(x.at||'').slice(0,10),src:x.n+' بلاغات من أجهزة مختلفة'}))}}catch(e){}
+  if(glOk()&&FF.length&&!gl.getSource('fayd-field')){gl.addSource('fayd-field',{type:'geojson',data:{type:'FeatureCollection',features:FF.map(x=>({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
+    gl.addLayer({id:'fayd-field',type:'circle',source:'fayd-field',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':'#1F7A3A','circle-radius':['interpolate',['linear'],['zoom'],5,5,10,8,14,10],'circle-stroke-color':'#F2C14E','circle-stroke-width':3}})}}catch(e){ffLoaded=false}}
+function fieldNear(p,km){let best=km||0.7,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FF){const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
+function fieldAt(sx,sy){if(!LP.ndvi||!FF.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=24;
+  for(const x of FF){const q=world(x.lat,x.lng),d=Math.hypot(q[0]+ox-sx,q[1]+oy-sy);if(d<best){best=d;hit=x}}return hit}
 function newNear(p){let best=1,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FN){if(Math.abs(x.lat-p.lat)>.02)continue;const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
 function newAt(sx,sy){if(!LP.ndvi||!FN.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=26;
   for(const x of FN){const q=world(x.lat,x.lng),d=Math.hypot(q[0]+ox-sx,q[1]+oy-sy);if(d<best){best=d;hit=x}}return hit}
 function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)return;const p=targetPoint;const key=p?p.lat.toFixed(4)+','+p.lng.toFixed(4):'';if(key===fyKey)return;fyKey=key;el.hidden=true;b.hidden=true;satPoint=null;namePoint=null;$('#nameNav').hidden=true;$('#nameRow').hidden=true;if(!p)return;
+  const ff=fieldNear(p);if(ff){el.textContent='🌱 ربيع مؤكد من الميدان'+(ff.d?' · '+fyDate(ff.d):'')+(ff.src?' · '+ff.src:'');el.className='nav-fayd';el.hidden=false;satPoint={lat:ff.lat,lng:ff.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}return}
   faydData().then(D=>{if(fyKey!==key)return;let best=1.5,hit=-1;const k=Math.cos(p.lat*Math.PI/180);
     D.sites.forEach((s,i)=>{if(!s||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
     if(hit<0){const nw=newNear(p);if(!nw)return;
@@ -1260,7 +1272,7 @@ function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)retur
       satPoint={lat:nw.lat,lng:nw.lng};namePoint=satPoint;b.hidden=false;$('#nameNav').hidden=false;try{syncNavCardSpace()}catch(e){}return}
     const r=D.row.get(hit);let t,c='';
     if(D.farm.has(hit)){t='🌾 فيها زراعة — خضرتها ما تنقاس ربيع';c='dry'}
-    else if(r&&r[2]>0){t=(r[5]===4?'🟡 بداية خضرة خفيفة — تحتاج تأكيد':r[5]?'🟡 خضرة تحتاج تأكيد من الميدان':'🌱 خضراء — بدأ فيها الربيع')+(r[3]?' · زادت الخضرة '+r[3]+'%':'');c=r[5]?'chk':''}
+    else if(r&&r[2]>0){t=(r[5]===5?'🌱 بداية ربيع — أكدها الميدان':r[5]===4?'🟡 بداية خضرة خفيفة — تحتاج تأكيد':r[5]?'🟡 خضرة تحتاج تأكيد من الميدان':'🌱 خضراء — بدأ فيها الربيع')+(r[3]?' · زادت الخضرة '+r[3]+'%':'');c=r[5]&&r[5]!==5?'chk':''}
     else if(r){t='🏜️ ما فيها خضرة جديدة حتى الآن';c='dry'}
     else{t='🏜️ ما عندنا قراءة حديثة لها';c='dry'}
     if(r&&r[6])t+=' · صورة '+fyDate(r[6]);
@@ -1272,7 +1284,7 @@ function openSat(){const p=satPoint||targetPoint;if(!p)return;if(!navigator.onLi
 async function loadFaydLayer(){
   if(fyLoaded||!glOk())return;fyLoaded=true;
   try{const {f,sites}=await faydData();
-    FY=(f.rows||[]).filter(r=>r[2]>0&&sites[r[0]]).map(r=>({name:sites[r[0]][0],lat:sites[r[0]][1],lng:sites[r[0]][2],region:sites[r[0]][3]||'',g:r[1],chk:r[5]||0,d:r[6]||''}));
+    FY=(f.rows||[]).filter(r=>r[2]>0&&sites[r[0]]).map(r=>({name:sites[r[0]][0],lat:sites[r[0]][1],lng:sites[r[0]][2],region:sites[r[0]][3]||'',g:r[1],chk:r[5]===5?0:(r[5]||0),d:r[6]||''}));
     const fc={type:'FeatureCollection',features:FY.map(x=>({type:'Feature',properties:{g:x.g,chk:x.chk?1:0},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))};
     gl.addSource('fayd-pts',{type:'geojson',data:fc});
     const col=['case',['==',['get','chk'],1],'#E0A526','#2E9E4F'];
