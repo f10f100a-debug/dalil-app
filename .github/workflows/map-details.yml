@@ -1,0 +1,29 @@
+# تفاصيل البر (تجربة على فرع map-details): فحص المتوفر في المصادر المفتوحة، وبناء منطقة تجريبية.
+# الناتج يُحفظ «Artifact» خاص في GitHub فقط — ما يُنشر في التطبيق.
+name: Map details
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/map-details.yml", "tools/mapbuild/**"]
+  workflow_dispatch:
+    inputs:
+      mode: { description: "probe أو build", type: string, default: "probe" }
+      region: { description: "slug:اسم المنطقة", type: string, default: "northern:الحدود الشمالية" }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyarrow shapely pyproj mapbox-vector-tile pmtiles rasterio scipy matplotlib pillow
+      - name: Probe
+        if: ${{ github.event_name == 'push' || inputs.mode == 'probe' }}
+        run: python3 tools/mapbuild/probe_classes.py out-probe.json
+      - name: Build region
+        if: ${{ github.event_name == 'push' || inputs.mode == 'build' }}
+        run: |
+          R="${{ inputs.region || 'northern:الحدود الشمالية' }}"
+          JOBS=4 python3 tools/mapbuild/build_region.py "${R%%:*}" "${R#*:}" out/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: map-details, path: "out*", retention-days: 7, if-no-files-found: ignore }
