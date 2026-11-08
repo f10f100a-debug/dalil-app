@@ -1,0 +1,28 @@
+# فحص فيديو حدث (للتشخيص): نوع الحاوية، المدة، والأجزاء (fragmented MP4)
+name: Video probe
+on:
+  workflow_dispatch:
+    inputs:
+      ids: { description: "أرقام الأحداث مفصولة بفواصل", type: string }
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - run: sudo apt-get install -y ffmpeg >/dev/null 2>&1 || true
+      - env: { IDS: "${{ inputs.ids }}" }
+        run: |
+          for id in ${IDS//,/ }; do
+            curl -sfL -o v.mp4 "https://penhpgvjtxytgyrhmetg.supabase.co/storage/v1/object/public/events/$id.mp4" || { echo "::notice::$id download failed"; continue; }
+            boxes=$(python3 -c "
+          import struct,sys
+          d=open('v.mp4','rb').read();i=0;out=[]
+          while i+8<=len(d):
+              n,t=struct.unpack('>I4s',d[i:i+8]);t=t.decode('latin1')
+              if n==1: n=struct.unpack('>Q',d[i+8:i+16])[0]
+              if n<8: break
+              out.append(t);i+=n
+          from collections import Counter;c=Counter(out);print(' '.join(out[:6]),'...',dict(c))")
+            info=$(ffprobe -v error -show_entries format=duration,format_name:stream=codec_name,codec_type,duration,nb_frames,avg_frame_rate -of compact v.mp4 | tr '\n' ' ')
+            dec=$(ffmpeg -v error -i v.mp4 -f null - 2>&1 | head -3 | tr '\n' ' ')
+            echo "::notice::$id size=$(stat -c%s v.mp4) boxes: $boxes | $info | decode errors: ${dec:-none}"
+          done
