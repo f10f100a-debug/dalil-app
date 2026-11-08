@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261108-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261108-2" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -4549,7 +4549,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     try{
       const c = await caches.open('dalil-offline-maps-v1'), keys = await c.keys();
       if(keys.length){
-        const man = await (await fetch('data/maps.json?v=1')).json();
+        const man = await (await fetch('data/maps.json?v=2')).json();
         for(const r of man.regions || []) if(keys.some(k=>k.url.includes('/maps/' + r.id + '.pmtiles'))){ regions += (r.vt || 0) + (r.hs || 0); n++; }
       }
     }catch(e){}
@@ -6227,7 +6227,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   let springCache = null;
   // المكان: موقعي، السيارة، أماكني، مراكز المناطق، أو مكان من البحث
   let springCustom = null, springRegions = [];
-  fetch('data/maps.json?v=1').then(r=>r.json()).then(j=>{ springRegions = (j.regions || []).map(r=>({key:'r:' + r.id, name:'منطقة ' + r.name, lat:(r.bbox[1] + r.bbox[3]) / 2, lng:(r.bbox[0] + r.bbox[2]) / 2})); fillSpringLoc(); }).catch(()=>{});
+  fetch('data/maps.json?v=2').then(r=>r.json()).then(j=>{ springRegions = (j.regions || []).map(r=>({key:'r:' + r.id, name:'منطقة ' + r.name, lat:(r.bbox[1] + r.bbox[3]) / 2, lng:(r.bbox[0] + r.bbox[2]) / 2})); fillSpringLoc(); }).catch(()=>{});
   function springPlaces(){ return [...windPlaces(), ...springRegions, ...(springCustom ? [springCustom] : [])]; }
   function fillSpringLoc(){
     const sel = document.getElementById('springLoc'), cur = sel.value || 'here', list = springPlaces();

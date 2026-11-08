@@ -26,7 +26,7 @@ python3 build_hillshade.py riyadh-hillshade.pmtiles
 ```sh
 python3 build_region.py riyadh الرياض out/     # → out/riyadh.pmtiles (z6–13) و out/riyadh-hs.pmtiles (z6–11) و out/riyadh.json
 # بعد بناء المناطق كلها:
-MAPS_V=1 python3 make_manifest.py out/ ../..    # ينسخ الخرائط إلى maps/ ويكتب data/maps.json
+MAPS_V=2 python3 make_manifest.py out/ ../..    # ينسخ الخرائط إلى maps/ ويكتب data/maps.json
 ```
 
 ارفع `MAPS_V` عند إعادة البناء حتى تُنزَّل النسخة الجديدة بدل المحفوظة في الأجهزة.
