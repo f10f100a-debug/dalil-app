@@ -9,6 +9,7 @@ on:
     inputs:
       mode: { description: "probe أو build", type: string, default: "probe" }
       region: { description: "slug:اسم المنطقة", type: string, default: "northern:الحدود الشمالية" }
+permissions: { contents: write }
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -18,12 +19,18 @@ jobs:
       - run: pip install --quiet pyarrow shapely pyproj mapbox-vector-tile pmtiles rasterio scipy matplotlib pillow
       - name: Probe
         if: ${{ github.event_name == 'push' || inputs.mode == 'probe' }}
-        run: python3 tools/mapbuild/probe_classes.py out-probe.json
+        run: echo skip probe
       - name: Build region
         if: ${{ github.event_name == 'push' || inputs.mode == 'build' }}
         run: |
           R="${{ inputs.region || 'northern:الحدود الشمالية' }}"
           JOBS=4 python3 tools/mapbuild/build_region.py "${R%%:*}" "${R#*:}" out/
+      - name: Save test build to branch map-details-out (not the app)
+        if: ${{ github.event_name == 'push' || inputs.mode == 'build' }}
+        run: |
+          cd out && git init -q -b map-details-out && git add -A
+          git -c user.name=dalil-bot -c user.email=bot@users.noreply.github.com commit -qm "test build $(date -u +%F)"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" map-details-out
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: map-details, path: "out*", retention-days: 7, if-no-files-found: ignore }

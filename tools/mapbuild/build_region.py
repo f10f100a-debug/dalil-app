@@ -56,11 +56,20 @@ def overture(t, cols):
 
 RC = {'motorway': ('motorway', 6), 'trunk': ('trunk', 6), 'primary': ('primary', 7), 'secondary': ('secondary', 9),
       'tertiary': ('tertiary', 10), 'unclassified': ('minor', 12), 'unknown': ('minor', 12), 'residential': ('minor', 13),
-      'living_street': ('minor', 13), 'track': ('track', 11)}
-for r in overture('transportation/type=segment', ['subtype', 'class', 'names', 'geometry']):
+      'living_street': ('minor', 13), 'track': ('track', 11), 'path': ('path', 13)}
+# الطرق الترابية: «minor» سطحها غير معبّد يصير «dirt» (يُرسم متقطعًا مثل المسارات)
+UNP = {'unpaved', 'dirt', 'gravel', 'sand', 'ground', 'compacted', 'fine_gravel', 'earth', 'rock', 'pebblestone', 'mud', 'salt'}
+def surface(r):
+    rs = r.get('road_surface') or []
+    return rs[0].get('value') if rs and isinstance(rs[0], dict) else None
+for r in overture('transportation/type=segment', ['subtype', 'class', 'names', 'geometry', 'road_surface']):
     if r['subtype'] == 'rail': add('roads', wkb.loads(r['geometry']), {'class': 'rail'}, 9); continue
     c = RC.get(r['class'])
-    if c: add('roads', wkb.loads(r['geometry']), {'class': c[0], 'name': arname(r['names'])}, c[1])
+    if not c: continue
+    sf = surface(r); cl, mz = c
+    if cl == 'minor' and sf in UNP: cl = 'dirt'
+    if cl == 'path' and sf not in UNP and sf is not None: continue        # ممرات المدن المرصوفة لا تهم البر
+    add('roads', wkb.loads(r['geometry']), {'class': cl, 'name': arname(r['names'])}, mz)
 log('roads', len(layers['roads']))
 LU = {'residential': 'urban', 'developed': 'urban', 'education': 'urban', 'construction': 'urban', 'military': 'urban',
       'agriculture': 'farm', 'horticulture': 'farm', 'park': 'park', 'managed': 'park', 'recreation': 'park', 'resource_extraction': 'quarry'}
@@ -72,11 +81,38 @@ for r in overture('base/type=water', ['subtype', 'names', 'geometry']):
     if g.geom_type in ('Polygon', 'MultiPolygon'):
         if r['subtype'] != 'human_made': add('water', g, {'name': arname(r['names'])}, 6 if g.area > 0.05 else 10)
     elif r['subtype'] in ('stream', 'river'): add('waterway', g, {}, 12)
+# معالم طبيعية مسمّاة (أودية، حزوم، طعوس، عيون، كهوف، فوهات، مطلات، سدود، مخيمات) — نقاط للتسمية
+NAT = {'valley': 'valley', 'ridge': 'ridge', 'saddle': 'saddle', 'plateau': 'plateau', 'dune': 'dune', 'desert': 'desert',
+       'mountain_range': 'range', 'cave_entrance': 'cave', 'meteor_crater': 'crater', 'volcanic_caldera_rim': 'crater',
+       'spring': 'spring', 'hot_spring': 'hotspring', 'geyser': 'hotspring', 'waterfall': 'waterfall',
+       'dam': 'dam', 'weir': 'dam', 'camp_site': 'camp', 'viewpoint': 'view', 'water_well': 'well'}
+NMZ = {'range': 7, 'desert': 7, 'dune': 9, 'plateau': 9, 'valley': 10, 'ridge': 10, 'crater': 9, 'hotspring': 9}
+COVER = {'bare_rock': 'rock', 'scree': 'rock', 'rock': 'rock', 'scrub': 'scrub', 'shrub': 'scrub', 'heath': 'scrub',
+         'wetland': 'wetland', 'grassland': 'grass', 'meadow': 'grass'}
+nat = []
+def natural(g, kind, name):
+    if g.geom_type in ('LineString', 'MultiLineString') and name:
+        add('natline', g, {'kind': kind, 'name': name}, NMZ.get(kind, 11))
+    pt = g if g.geom_type == 'Point' else g.representative_point()
+    if g.geom_type == 'Point' or (name and g.geom_type in ('Polygon', 'MultiPolygon')): nat.append((pt, kind, name))
 for r in overture('base/type=land', ['subtype', 'class', 'names', 'geometry', 'elevation']):
-    g = wkb.loads(r['geometry'])
-    if r['subtype'] == 'sand' and g.geom_type in ('Polygon', 'MultiPolygon'): add('sand', g, {'name': arname(r['names'])}, 7)
-    elif r['class'] in ('peak', 'hill', 'volcano') and g.geom_type == 'Point': add('peaks', g, {'name': arname(r['names']), 'ele': r['elevation']}, 10)
+    g = wkb.loads(r['geometry']); poly = g.geom_type in ('Polygon', 'MultiPolygon')
+    if r['subtype'] == 'sand' and poly: add('sand', g, {'name': arname(r['names'])}, 7)
+    elif r['class'] in ('peak', 'hill', 'volcano') and g.geom_type == 'Point': add('peaks', g, {'name': arname(r['names']), 'ele': r['elevation'], 'kind': 'volcano' if r['class'] == 'volcano' else None}, 10)
     elif r['class'] == 'cliff' and g.geom_type != 'Point': add('cliff', g, {}, 12)
+    elif r['class'] in COVER and poly: add('cover', g, {'kind': COVER[r['class']]}, 9)
+    if r['class'] in NAT: natural(g, NAT[r['class']], arname(r['names']))
+for r in overture('base/type=water', ['class', 'names', 'geometry']):
+    if r['class'] in NAT: natural(wkb.loads(r['geometry']), NAT[r['class']], arname(r['names']))
+for r in overture('base/type=infrastructure', ['class', 'names', 'geometry']):
+    if r['class'] in NAT:
+        n = arname(r['names'])
+        if n or r['class'] == 'water_well': natural(wkb.loads(r['geometry']), NAT[r['class']], n)
+# المحميات: حدود واسم (مهمة للبر: الدخول والصيد)
+for r in overture('base/type=land_use', ['subtype', 'class', 'names', 'geometry']):
+    if r['subtype'] != 'protected': continue
+    g = wkb.loads(r['geometry'])
+    if g.geom_type in ('Polygon', 'MultiPolygon'): add('protected', g, {'name': arname(r['names'])}, 6 if g.area > 0.2 else 9)
 PL = {'city': 6, 'town': 8, 'village': 10, 'hamlet': 11}
 for r in overture('divisions/type=division', ['subtype', 'class', 'names', 'geometry']):
     g = wkb.loads(r['geometry']); n = arname(r['names'])
@@ -95,10 +131,26 @@ for name, parts in W['w']:
         if len(pts) > 1: lines.append(LineString(pts))
     g = MultiLineString(lines)
     if g.intersects(REG): add('wadi', g, {'name': name}, 8)
-for f in ('desert-places.json', 'osm-places.json'):
-    d = json.load(open(APP + f))
-    for x in d['p']:
-        if REG.contains(Point(x[2], x[1])): add('dalil', Point(x[2], x[1]), {'name': x[0], 'kind': d['cats'][x[4]]}, 11)
+# المواقع: المصادر المفتوحة فقط (OpenStreetMap ODbL + GeoNames CC BY 4.0) — بدون أي بيانات خاصة بأحد
+def nk(s):
+    s = TK.sub('', s or ''); s = re.sub('[أإآٱ]', 'ا', s).replace('ة', 'ه').replace('ى', 'ي')
+    return re.sub(r'[^\w]', '', re.sub(r'(^|\s)ال', ' ', s))
+seen = collections.defaultdict(set)
+d = json.load(open(APP + 'open-places.json'))
+for x in d['p']:
+    p = Point(x[2], x[1])
+    if REG.contains(p):
+        add('dalil', p, {'name': x[0], 'kind': d['cats'][x[4]]}, 11)
+        seen[(round(x[1] * 50), round(x[2] * 50))].add(nk(x[0]))
+def dup(pt, name):
+    if not name: return False
+    k = nk(name); a, b = round(pt.y * 50), round(pt.x * 50)
+    return any(k in seen.get((a + i, b + j), ()) for i in (-1, 0, 1) for j in (-1, 0, 1))
+nd = 0
+for pt, kind, name in nat:
+    if dup(pt, name): nd += 1; continue                       # موجود أصلًا في المواقع
+    add('nature', pt, {'kind': kind, 'name': name}, NMZ.get(kind, 11))
+log('nature', len(layers['nature']), 'dup skipped', nd, 'natline', len(layers['natline']), 'cover', len(layers['cover']), 'protected', len(layers['protected']))
 
 # ---------- الارتفاعات: Copernicus DEM مخفّضة إلى ~90 م ----------
 LON0, LAT1 = math.floor(X0), math.ceil(Y1)
@@ -169,7 +221,7 @@ def tiles_for(zr):
                 if REG_M.intersects(box(*tile_bounds(z, x, y))): out.append((z, x, y))
     return out
 TREES = {n: (STRtree([f[0] for f in fs]), fs) for n, fs in layers.items()}
-POLY = {'landuse', 'water', 'sand'}
+POLY = {'landuse', 'water', 'sand', 'cover', 'protected'}
 def vtile(zxy):
     z, x, y = zxy; b = tile_bounds(z, x, y); buf = (b[2] - b[0]) * 64 / 4096
     bb = (b[0] - buf, b[1] - buf, b[2] + buf, b[3] + buf); q = box(*bb); tol = 2 * R / (256 * 2 ** z) * 0.6; tl = []
@@ -230,7 +282,7 @@ if __name__ == '__main__':
         hs = [r for r in pool.imap_unordered(htile, tiles_for(HZ), chunksize=8) if r]
         log('hillshade tiles', len(hs))
     sv = write(os.path.join(OUTDIR, SLUG + '.pmtiles'), vt, TileType.MVT, Compression.GZIP, VZ,
-               {'name': 'دليل — ' + REGION, 'attribution': '© OpenStreetMap contributors · Copernicus DEM',
+               {'name': 'دليل — ' + REGION, 'attribution': '© OpenStreetMap contributors (ODbL) · GeoNames (CC BY 4.0) · Copernicus DEM',
                 'vector_layers': [{'id': n, 'fields': {}} for n in layers]})
     sh = write(os.path.join(OUTDIR, SLUG + '-hs.pmtiles'), hs, TileType.PNG, Compression.NONE, HZ,
                {'name': 'دليل — تضاريس ' + REGION, 'attribution': 'Copernicus DEM GLO-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018, provided under COPERNICUS by the European Union and ESA'})
