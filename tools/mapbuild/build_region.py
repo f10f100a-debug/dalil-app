@@ -103,7 +103,11 @@ for r in overture('base/type=land', ['subtype', 'class', 'names', 'geometry', 'e
     elif r['class'] in COVER and poly: add('cover', g, {'kind': COVER[r['class']]}, 9)
     if r['class'] in NAT: natural(g, NAT[r['class']], arname(r['names']))
 for r in overture('base/type=water', ['class', 'names', 'geometry']):
-    if r['class'] in NAT: natural(wkb.loads(r['geometry']), NAT[r['class']], arname(r['names']))
+    if r['class'] in NAT:
+        n = arname(r['names'])
+        # العيون الحارة في OSM فيها أخطاء تصنيف (مبانٍ ونقاط تفتيش): نقبلها فقط إذا الاسم يدل عليها
+        if NAT[r['class']] == 'hotspring' and not (n and re.search('عين|حم[ةه]|حمام|حار|ينبوع', n)): continue
+        natural(wkb.loads(r['geometry']), NAT[r['class']], n)
 for r in overture('base/type=infrastructure', ['class', 'names', 'geometry']):
     if r['class'] in NAT:
         n = arname(r['names'])
