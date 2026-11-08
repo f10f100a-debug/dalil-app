@@ -1,0 +1,31 @@
+# فحص ضغط فيديو الأحداث في Chrome الحقيقي: الصورة والصوت بنفس الطول، وتوقيتات متزايدة، وMP4 عادي
+name: Video test
+on: workflow_dispatch
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y ffmpeg >/dev/null 2>&1 || true
+      - run: npm i --no-save playwright@1.49.1
+      - name: Test clip (10.5 s, 1280x720, H.264 + AAC)
+        run: ffmpeg -v error -f lavfi -i testsrc2=size=1280x720:rate=30 -f lavfi -i sine=frequency=440:sample_rate=48000 -t 10.5 -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest test-in.mp4
+      - run: (python3 tools/promo/rangeserver.py . >/dev/null 2>&1 &) && sleep 1
+      - run: node tools/test/video.cjs
+      - name: Probe
+        run: |
+          for m in wc old; do
+            [ -f out-$m.mp4 ] || { echo "::notice::$m: no output"; continue; }
+            boxes=$(python3 -c "
+          import struct
+          d=open('out-$m.mp4','rb').read();i=0;o=[]
+          while i+8<=len(d):
+              n,t=struct.unpack('>I4s',d[i:i+8]);t=t.decode('latin1')
+              if n==1: n=struct.unpack('>Q',d[i+8:i+16])[0]
+              if n<8: break
+              o.append(t);i+=n
+          print(' '.join(o[:8]))")
+            info=$(ffprobe -v error -show_entries stream=codec_name,duration,nb_frames:format=duration -count_frames -of compact out-$m.mp4 | tr '\n' ' ')
+            errs=$(ffmpeg -v error -i out-$m.mp4 -f null - 2>&1 | wc -l)
+            echo "::notice::$m size=$(stat -c%s out-$m.mp4) boxes: $boxes | $info | ffmpeg errors: $errs"
+          done

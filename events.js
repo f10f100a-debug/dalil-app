@@ -361,6 +361,104 @@
     stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{});
     return new Blob(parts, {type:'video/mp4'});
   }
+  // 8 نوفمبر: تسجيل الشاشة (MediaRecorder) في أندرويد يطلع ملف مقطّع: الصورة توقف قبل الصوت (7.7 ث مقابل 12.8)
+  // وتوقيتات مكررة، فالمقطع يشتغل شوي ويوقف. الحين: ضغط إطار إطار (WebCodecs) بتوقيت كل إطار الحقيقي،
+  // والصوت من الملف نفسه، في MP4 عادي (fast start). الأجهزة اللي ما تدعمه ترجع للطريقة القديمة.
+  let muxerP = null;
+  function loadMuxer(){
+    if(window.Mp4Muxer) return Promise.resolve(true);
+    if(!muxerP) muxerP = new Promise(res=>{ const sc = document.createElement('script'); sc.src = 'vendor/mp4-muxer.min.js?v=1'; sc.onload = ()=>res(!!window.Mp4Muxer); sc.onerror = ()=>{ muxerP = null; res(false); }; document.head.appendChild(sc); });
+    return muxerP;
+  }
+  async function decodeAudio(file, end){
+    let ac = null;
+    try{
+      const C = window.AudioContext || window.webkitAudioContext; if(!C) return null;
+      try{ ac = new C({sampleRate:48000}); }catch(e){ ac = new C(); }
+      const buf = await new Promise((res, rej)=>{ file.arrayBuffer().then(ab=>{ const p = ac.decodeAudioData(ab, res, rej); if(p && p.then) p.then(res, rej); }, rej); });
+      return buf && buf.length ? buf : null;
+    }catch(e){ return null; }
+    finally{ if(ac && ac.close) ac.close().catch(()=>{}); }
+  }
+  async function pickAudioCodec(sr, ch){
+    if(!window.AudioEncoder) return null;
+    for(const [codec, mux] of [['mp4a.40.2', 'aac'], ['opus', 'opus']]){
+      try{ const r = await AudioEncoder.isConfigSupported({codec, sampleRate:sr, numberOfChannels:ch, bitrate:64000}); if(r && r.supported) return {codec, mux}; }catch(e){}
+    }
+    return null;
+  }
+  async function recompressWC(file, v, dur, onProgress){
+    if(!window.VideoEncoder || !window.VideoFrame || !v.requestVideoFrameCallback) return null;
+    if(!(await loadMuxer())) return null;
+    const end = Math.min(dur, VMAX);
+    const s = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
+    const W = Math.round(v.videoWidth * s / 2) * 2, H = Math.round(v.videoHeight * s / 2) * 2;
+    const vcfg = {codec:'avc1.42E01F', width:W, height:H, bitrate:900000, framerate:24, avc:{format:'avc'}};
+    try{ const r = await VideoEncoder.isConfigSupported(vcfg); if(!r || !r.supported) return null; }catch(e){ return null; }
+    // الصوت: من الملف كامل (ما يعتمد على التشغيل)، ونقصّه على نفس طول الصورة
+    const ab = await decodeAudio(file, end);
+    const ch = ab ? Math.min(2, ab.numberOfChannels) : 0;
+    const acodec = ab ? await pickAudioCodec(ab.sampleRate, ch) : null;
+    if(ab && !acodec) return null;   // فيه صوت والجهاز ما يقدر يضغطه → الطريقة القديمة (صوت السيل مهم)
+    const M = window.Mp4Muxer;
+    const muxer = new M.Muxer({target:new M.ArrayBufferTarget(), fastStart:'in-memory', firstTimestampBehavior:'offset',
+      video:{codec:'avc', width:W, height:H}, ...(acodec ? {audio:{codec:acodec.mux, sampleRate:ab.sampleRate, numberOfChannels:ch}} : {})});
+    let err = null;
+    const venc = new VideoEncoder({output:(c, m)=>muxer.addVideoChunk(c, m), error:e=>{ err = e; }});
+    venc.configure(vcfg);
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    v.muted = true;
+    await seek(v, 0);
+    let lastTs = -1, lastKey = -1e9, frames = 0;
+    await new Promise(res=>{
+      let fin = false;
+      const finish = ()=>{ if(fin) return; fin = true; v.removeEventListener('ended', finish); clearTimeout(guard); res(); };
+      v.addEventListener('ended', finish);
+      const grab = (now, meta)=>{
+        if(fin || err) return finish();
+        const t = meta && Number.isFinite(meta.mediaTime) ? meta.mediaTime : v.currentTime;
+        if(t > end + 0.02){ finish(); return; }
+        const ts = Math.round(t * 1e6);
+        if(ts > lastTs){
+          x.drawImage(v, 0, 0, W, H);
+          const f = new VideoFrame(c, {timestamp:ts});
+          const key = ts - lastKey >= 2e6; if(key) lastKey = ts;
+          // المشفّر متأخر (جوال ضعيف)؟ نتخطى الإطار بدل ما يتكدس — التوقيت يبقى صحيح
+          if(venc.encodeQueueSize < 6 || key) venc.encode(f, {keyFrame:key}); f.close();
+          lastTs = ts; frames++;
+        }
+        onProgress(Math.min(1, t / end));
+        if(t >= end - 0.03 || v.ended){ finish(); return; }
+        v.requestVideoFrameCallback(grab);
+      };
+      v.requestVideoFrameCallback(grab);
+      const guard = setTimeout(finish, (end + 4) * 1000);
+      const p = v.play(); if(p && p.catch) p.catch(()=>finish());
+    });
+    v.pause();
+    await venc.flush(); venc.close();
+    if(err || frames < 3) return null;
+    if(acodec){
+      const sr = ab.sampleRate, n = Math.min(ab.length, Math.round((lastTs / 1e6 + 1 / 24) * sr));
+      const aenc = new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ err = e; }});
+      aenc.configure({codec:acodec.codec, sampleRate:sr, numberOfChannels:ch, bitrate:64000});
+      const chans = [...Array(ch)].map((_, k)=>ab.getChannelData(k));
+      const STEP = 4800;
+      for(let i = 0; i < n && !err; i += STEP){
+        const len = Math.min(STEP, n - i), data = new Float32Array(len * ch);
+        for(let k = 0; k < ch; k++) data.set(chans[k].subarray(i, i + len), k * len);
+        const ad = new AudioData({format:'f32-planar', sampleRate:sr, numberOfFrames:len, numberOfChannels:ch, timestamp:Math.round(i / sr * 1e6), data});
+        aenc.encode(ad); ad.close();
+      }
+      await aenc.flush(); aenc.close();
+      if(err) return null;
+    }
+    muxer.finalize();
+    return new Blob([muxer.target.buffer], {type:'video/mp4'});
+  }
+  // للفحص الآلي فقط (tools/test/video.cjs): يضغط ملف ويرجّع النتيجة بدون رفع
+  window.__dalilVideoTest = async (file, old)=>{ const {v, url} = await loadVideo(file); try{ return old ? await recompress(v, v.duration, ()=>{}) : await recompressWC(file, v, v.duration, ()=>{}); } finally{ v.pause(); v.remove(); URL.revokeObjectURL(url); } };
   async function prepareVideo(file){
     setStatus('جارٍ تجهيز الفيديو…');
     const {v, url} = await loadVideo(file);
@@ -372,7 +470,11 @@
       if(!full.blob || !thumb.blob) throw new Error('encode');
       let vid = null;
       if(/mp4/.test(file.type) && file.size <= VKEEP_BYTES && dur <= VMAX + 0.5) vid = file;   // صغير أصلًا
-      else vid = await recompress(v, dur, p=>setStatus('جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الشاشة مفتوحة', false, p));
+      else {
+        const prog = p=>setStatus('جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الشاشة مفتوحة', false, p);
+        try{ vid = await recompressWC(file, v, dur, prog); }catch(e){ vid = null; if(window.__dalilReport) window.__dalilReport('video wc: ' + (e && (e.message || e.name)), ''); }
+        if(!vid) vid = await recompress(v, dur, prog);
+      }
       if(!vid) throw Object.assign(new Error('nosupport'), {msg:'جهازك لا يدعم ضغط الفيديو. جرّب مقطعًا أقصر (أقل من 3 ميقا) أو أرسل صورة.'});
       if(vid.size > VMAX_BYTES) throw Object.assign(new Error('big'), {msg:'الفيديو كبير بعد الضغط. جرّب مقطعًا أقصر.'});
       dropDraft();
