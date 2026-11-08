@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261107-1" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261108-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -4537,7 +4537,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     // بعد استرجاع نسخة احتياطية على جوال آخر تبقى أسماء الخرائط بلا ملفاتها (الملفات لا تدخل النسخة لكبرها)
     const missing = new Set();
     try{ const c = await caches.open(USER_MAPS_CACHE); for(const m of list){const present=m.bundleVersion===63?await(await loadV63Bundle()).isInstalled(m):!!(await c.match('user-maps/'+m.id));if(!present)missing.add(m.id);} }catch(e){}
-    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${missing.has(m.id) ? '<span style="color:#B3261E">غير موجودة في هذا الجوال — أعد استيراد الملف</span>' : (m.bundleVersion===63?'خريطة متكاملة':m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور') + ' · ' + mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button></div>`).join('') : '';
+    el.innerHTML = list.length ? '<div style="font-weight:700;font-size:13px">خرائطك المستوردة (تظهر في لوحة طبقات الخريطة)</div>' + list.map(m=>`<div class="um-row"><div class="n"><b>${escapeHtml(m.name)}</b><small>${missing.has(m.id) ? '<span style="color:#B3261E">غير موجودة في هذا الجوال — أعد استيراد الملف</span>' : (m.bundleVersion===63?'خريطة متكاملة':m.type === 'vector' ? 'خريطة متجهية' : 'خريطة صور') + ' · ' + mb(m.size)}</small></div><button type="button" class="btn btn-ghost" data-um-del="${escapeHtml(m.id)}">حذف</button>${m.bundleVersion===63 ? `<button type="button" class="btn btn-ghost" data-um-tog="${escapeHtml(m.id)}">${m.on === false ? 'تشغيل' : 'إيقاف'}</button>` : ''}</div>`).join('') + (list.some(m=>m.bundleVersion===63) ? '<small style="display:block;color:var(--text-faint);margin-top:6px">الخريطة المتكاملة تستبدل خريطة دليل وهي شغالة، وما تظهر عليها طبقات الربيع والمطر والفياض. أوقفها ترجع خريطة دليل بدون ما تنحذف.</small>' : '') : '';
     renderStorage(missing);
   }
   // المساحة: خرائط المناطق المحفوظة + الخرائط المستوردة + ما يتيحه الجوال
@@ -4558,6 +4558,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     el.textContent = 'المساحة: خرائط المناطق ' + mb(regions) + (n ? ' (' + n.toLocaleString('ar-SA-u-nu-latn') + ' منطقة)' : '') + ' · الخرائط المستوردة ' + mb(imported) + free;
   }
   document.getElementById('userMapsList').addEventListener('click', async e=>{
+    const tg = e.target.closest('[data-um-tog]');
+    if(tg){ const list = readUserMaps(), m = list.find(x=>x.id === tg.dataset.umTog); if(!m) return;
+      m.on = m.on === false; writeUserMaps(list); renderUserMaps();
+      toast(m.on ? 'شغّلنا «' + m.name + '» — تستبدل خريطة دليل' : 'رجعت خريطة دليل — «' + m.name + '» موقفة ومحفوظة'); return; }
     const b = e.target.closest('[data-um-del]'); if(!b) return;
     const id = b.dataset.umDel, list = readUserMaps(), m = list.find(x=>x.id === id);
     if(!m || !confirm('حذف الخريطة «' + m.name + '» من جوالك؟')) return;
@@ -4598,7 +4602,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(used.has(file)) continue;
       try{
         if(/\.(dlmap|zip)$/.test(name)){
-          try{const bundle=await(await loadV63Bundle()).importFile(file,progress);if(bundle){maps++;continue;}if(name.endsWith('.dlmap'))throw Object.assign(new Error('الملف ليس حزمة خريطة دليل'),{userMessage:'الملف ليس حزمة خريطة دليل'});}
+          try{const bundle=await(await loadV63Bundle()).importFile(file,progress);if(bundle){maps++;setTimeout(()=>toast('هذي خريطة متكاملة تستبدل خريطة دليل — طبقات الربيع والمطر ما تظهر عليها. توقفها من الإعدادات أو زر «↩ خريطة دليل»'),1500);continue;}if(name.endsWith('.dlmap'))throw Object.assign(new Error('الملف ليس حزمة خريطة دليل'),{userMessage:'الملف ليس حزمة خريطة دليل'});}
           catch(error){if(name.endsWith('.dlmap')||error.v63Bundle)throw error;}
         }
         if(/\.osm\.pbf$|\.pbf$/.test(name)){ notes.push('«' + file.name + '» بصيغة PBF المضغوطة غير مدعومة — حوّله إلى ‎.osm أو PMTiles'); failed++; continue; }
