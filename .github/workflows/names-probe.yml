@@ -10,7 +10,5 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - name: NGA links
-        run: curl -sL https://geonames.nga.mil/geonames/GNSData/ | grep -oiE 'href="[^"]+\.(zip|txt)"' | head -40 || true
       - name: Probe
         run: python3 tools/places/probe_names.py
