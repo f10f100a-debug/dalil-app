@@ -114,16 +114,23 @@ maplibregl.addProtocol('pmtiles', protocol.tile);
 
 // ---------- المناطق (data/maps.json) ----------
 let REGIONS = [];
-try{ REGIONS = (await (await fetch('data/maps.json?v=1')).json()).regions; }catch(e){}
+try{ REGIONS = (await (await fetch('data/maps.json?v=2')).json()).regions; }catch(e){}
 const urls = r => [abs('maps/' + r.id + '.pmtiles?v=' + r.v), abs('maps/' + r.id + '-hs.pmtiles?v=' + r.v)];
-const saved = new Set();
-// المناطق المحفوظة تُقرأ من Cache API مباشرة (قبل أن تطلبها الخريطة من الشبكة)
+const saved = new Set(), outdated = new Set(), useUrls = {};
+// كل نسخ ملفي المنطقة المحفوظة في الجهاز (أي رقم نسخة)
+async function regionKeys(c, r){
+  const ks = await c.keys(), f = n => ks.filter(k => new URL(k.url).pathname.endsWith('/maps/' + n));
+  return [f(r.id + '.pmtiles'), f(r.id + '-hs.pmtiles')];
+}
+// المناطق المحفوظة تُقرأ من Cache API مباشرة (قبل أن تطلبها الخريطة من الشبكة).
+// إذا صدرت نسخة أحدث ولم تُنزَّل بعد: تبقى النسخة القديمة شغالة بدون نت، ويظهر زر «تحديث».
 async function attachCached(r){
   try{
-    const c = await caches.open(OFFLINE_CACHE), [u1, u2] = urls(r), a = await c.match(u1), b = await c.match(u2);
-    if(!a || !b) return false;
+    const c = await caches.open(OFFLINE_CACHE); let [u1, u2] = urls(r), a = await c.match(u1), b = await c.match(u2), old = false;
+    if(!a || !b){ const [k1, k2] = await regionKeys(c, r); if(!k1.length || !k2.length) return false;
+      u1 = k1[k1.length - 1].url; u2 = k2[k2.length - 1].url; a = await c.match(u1); b = await c.match(u2); old = true; if(!a || !b) return false; }
     for(const [u, res] of [[u1, a], [u2, b]]) protocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()], u))));
-    saved.add(r.id); return true;
+    useUrls[r.id] = [u1, u2]; saved.add(r.id); if(old) outdated.add(r.id); else outdated.delete(r.id); return true;
   }catch(e){ return false; }
 }
 await Promise.all(REGIONS.map(attachCached));
@@ -205,7 +212,7 @@ const active = new Set();
 const inBox = (b, x, y) => x >= b[0] && x <= b[2] && y >= b[1] && y <= b[3];
 const overlaps = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
 function addRegion(r){
-  const [u1, u2] = urls(r);
+  const [u1, u2] = useUrls[r.id] || urls(r);
   map.addSource('vt-' + r.id, {type:'vector', url:'pmtiles://' + u1});
   map.addSource('hs-' + r.id, {type:'raster', url:'pmtiles://' + u2, tileSize:256});
   for(const t of TPL){
@@ -408,7 +415,8 @@ function updateStatus(){
 function renderList(){
   const c = map.getCenter(), here = myPos ? regionAt(...myPos) : regionAt(c.lng, c.lat);
   const rows = [...REGIONS].sort((a, b) => (b === here) - (a === here) || a.name.localeCompare(b.name, 'ar'));
-  $('list').innerHTML = rows.map(r => `<div class="reg${r === here ? ' here' : ''}"><div class="n"><b>${esc(r.name)}${r === here ? ' · منطقتك' : ''}</b><small>${mb(r.vt + r.hs)}${saved.has(r.id) ? ' · <span class="ok">محفوظة</span>' : ''}</small></div>` +
+  $('list').innerHTML = rows.map(r => `<div class="reg${r === here ? ' here' : ''}"><div class="n"><b>${esc(r.name)}${r === here ? ' · منطقتك' : ''}</b><small>${mb(r.vt + r.hs)}${saved.has(r.id) ? ' · <span class="ok">محفوظة</span>' + (outdated.has(r.id) ? ' · تحديث جديد متوفر' : '') : ''}</small></div>` +
+    (outdated.has(r.id) ? `<button class="btn small" data-get="${r.id}" type="button">تحديث</button>` : '') +
     (saved.has(r.id) ? `<button class="btn ghost small" data-del="${r.id}" type="button">حذف</button>` : `<button class="btn small" data-get="${r.id}" type="button">تنزيل</button>`) + '</div>').join('');
 }
 $('dlOpen').onclick = async () => {
@@ -423,6 +431,8 @@ async function downloadRegion(btn){
     try{ await navigator.storage.persist(); }catch(_){}
     const c = await caches.open(OFFLINE_CACHE);
     for(const u of urls(r)){ const res = await fetch(u, {cache:'no-store'}); if(res.status !== 200) throw new Error(res.status); await c.put(u, res); }
+    const cur = new Set(urls(r));   // النسخة الجديدة محفوظة: نحذف القديمة حتى لا تتكرر المساحة
+    for(const k of (await regionKeys(c, r)).flat()) if(!cur.has(k.url)) await c.delete(k);
     await attachCached(r);
     if(active.has(r.id)){ removeRegion(r.id); syncRegions(); }   // تبدأ القراءة من الملف المحفوظ فورًا
   }catch(err){ btn.disabled = false; btn.textContent = 'تعذّر الحفظ — أعد المحاولة'; return; }
@@ -434,8 +444,8 @@ $('list').onclick = async e => {
   if(g) downloadRegion(g);
   else if(d){
     const r = REGIONS.find(x => x.id === d.dataset.del), c = await caches.open(OFFLINE_CACHE);
-    for(const u of urls(r)) await c.delete(u);
-    saved.delete(r.id); renderList(); updateStatus();
+    for(const k of (await regionKeys(c, r)).flat()) await c.delete(k);
+    saved.delete(r.id); outdated.delete(r.id); delete useUrls[r.id]; renderList(); updateStatus();
   }
 };
 

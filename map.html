@@ -1114,9 +1114,13 @@ const gl=new maplibregl.Map({container:layer,interactive:false,attributionContro
     layers:[{id:'bg',type:'background',paint:{'background-color':'#EFE4CF'}},{id:'sat',type:'raster',source:'sat',layout:{visibility:'none'},paint:{'raster-fade-duration':0,'raster-contrast':.08,'raster-saturation':-.35,'raster-hue-rotate':-8,'raster-brightness-max':.93}},{id:'esri',type:'raster',source:'esri',layout:{visibility:'none'},paint:{'raster-fade-duration':0}},...TPL.map(t=>({id:'slot:'+t.id,type:'background',layout:{visibility:'none'}})),{id:'osm',type:'raster',source:'osm',layout:{visibility:'none'}}]}});
 const regionUrls=r=>[abs('maps/'+r.id+'.pmtiles?v='+r.v),abs('maps/'+r.id+'-hs.pmtiles?v='+r.v)];
 // المناطق المحفوظة (من صفحة «خرائط المناطق») تُقرأ من الجهاز مباشرة بدل الشبكة
-async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS),[u1,u2]=regionUrls(r),a=await c.match(u1),b=await c.match(u2);if(!a||!b)return;
-  for(const[u,res]of[[u1,a],[u2,b]])pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],u))));savedRegions.add(r.id)}catch(e){}}
-function addRegion(r){const[u1,u2]=regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});
+// نسخة أحدث صدرت ولم تُنزَّل بعد؟ تبقى المحفوظة القديمة شغالة بدون نت (ونقترح التحديث)
+const savedUrls={},outdatedRegions=new Set();
+async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS);let[u1,u2]=regionUrls(r),a=await c.match(u1),b=await c.match(u2),old=false;
+  if(!a||!b){const ks=await c.keys(),f=n=>ks.filter(k=>new URL(k.url).pathname.endsWith('/maps/'+n)),k1=f(r.id+'.pmtiles'),k2=f(r.id+'-hs.pmtiles');if(!k1.length||!k2.length)return;
+    u1=k1[k1.length-1].url;u2=k2[k2.length-1].url;a=await c.match(u1);b=await c.match(u2);old=true;if(!a||!b)return}
+  for(const[u,res]of[[u1,a],[u2,b]])pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],u))));savedUrls[r.id]=[u1,u2];savedRegions.add(r.id);if(old)outdatedRegions.add(r.id)}catch(e){}}
+function addRegion(r){const[u1,u2]=savedUrls[r.id]||regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});
   for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id);applyRegionPrefs(r.id)}
 function removeRegion(id){for(const t of TPL)if(gl.getLayer(t.id+'@'+id))gl.removeLayer(t.id+'@'+id);for(const p of['vt-','hs-'])if(gl.getSource(p+id))gl.removeSource(p+id);activeRegions.delete(id)}
 // المنطقة من شبكة المناطق (data/region-grid.json) لا من الصناديق المتداخلة
@@ -1131,17 +1135,17 @@ function syncRegions(){
   if(mapMode!=='local')return;
   const c=stageToLatLng(innerWidth/2,innerHeight/2);
   if(!inOfflineCoverage(c.lat,c.lng)){if(!outsideShown){outsideShown=true;status.textContent='هذه الجهة خارج نطاق خريطة البر — استخدم خريطة الإنترنت عند توفر الشبكة'}}
-  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&!savedRegions.has(r.id)){unsavedShown=true;showSaveCard(r)}}
+  else if(gps&&!unsavedShown){const r=regionAt(gps.lng,gps.lat);if(r&&(!savedRegions.has(r.id)||(outdatedRegions.has(r.id)&&navigator.onLine!==false))){unsavedShown=true;showSaveCard(r,outdatedRegions.has(r.id))}}
 }
 // تنبيه واضح عندما تكون خريطة منطقة المستخدم غير محفوظة: بدونها لا تظهر الخريطة في البر بلا شبكة.
 // «لاحقًا» يؤجّل التنبيه لهذه المنطقة يومًا واحدًا.
 const SNOOZE_KEY='dalil_unsaved_snooze';
 function readSnooze(){try{return JSON.parse(localStorage.getItem(SNOOZE_KEY)||'{}')||{}}catch(e){return{}}}
-function showSaveCard(r){
+function showSaveCard(r,upd){
   if((readSnooze()[r.id]||0)>Date.now())return;
   const online=navigator.onLine!==false;
-  $('#scTitle').textContent='خريطة منطقة '+r.name+' غير محفوظة في جوالك';
-  $('#scText').textContent=online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
+  $('#scTitle').textContent=upd?'تحديث جديد لخريطة منطقة '+r.name:'خريطة منطقة '+r.name+' غير محفوظة في جوالك';
+  $('#scText').textContent=upd?'فيها المحميات والطرق الترابية والعيون والكهوف. المحفوظة عندك تبقى شغالة بدون نت إلى أن تحدّثها ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت، ويُفضّل على واي فاي).':online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
   $('#scSave').hidden=!online;
   $('#saveCard').hidden=false;
   $('#scSave').onclick=()=>{const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
@@ -1226,7 +1230,7 @@ window.addEventListener('storage',e=>{if(e.key==='dalil_map_layers'){try{LP=Obje
 window.addEventListener('storage',e=>{if(e.key==='dalil_user_maps'&&glReady){try{removeUserMaps()}catch(err){}addUserMaps()}});
 $('#lpUser').addEventListener('change',e=>{const cb=e.target.closest('[data-um]');if(!cb)return;const list=readUserMaps(),m=list.find(x=>x.id===cb.dataset.um);if(!m)return;m.on=cb.checked;try{localStorage.setItem('dalil_user_maps',JSON.stringify(list))}catch(err){}userMaps=list;setUserMapVisible(m.id,cb.checked)});
 gl.on('load',async()=>{
-  try{REGIONS=(await(await fetch('data/maps.json?v=1')).json()).regions||[]}catch(e){REGIONS=[]}
+  try{REGIONS=(await(await fetch('data/maps.json?v=2')).json()).regions||[]}catch(e){REGIONS=[]}
   await Promise.all(REGIONS.map(attachSaved));
   glReady=true;try{sessionStorage.removeItem(GL_RETRY)}catch(e){}gl.on('error',e=>{if(e&&e.sourceId&&/^radar-/.test(e.sourceId)){radarErr[e.sourceId]=(radarErr[e.sourceId]||0)+1;radarRetry(e.sourceId)}});
   gl.on('sourcedata',e=>{if(e&&e.tile&&e.sourceId&&/^radar-/.test(e.sourceId)){radarTilesOk[e.sourceId]=(radarTilesOk[e.sourceId]||0)+1;if(e.sourceId===radarShown&&$('#rainTime').dataset.weak){radarNetMsg(false)}}});
