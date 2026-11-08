@@ -1,0 +1,32 @@
+# خرائط البر — بناء منطقة واحدة بذاكرة أقل وإضافتها إلى فرع map-details-out (تجربة فقط، ما يُنشر في التطبيق)
+name: Map build one
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/map-one.yml"]
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    env: { R: "eastern:الشرقية" }
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyarrow shapely pyproj mapbox-vector-tile pmtiles rasterio scipy matplotlib pillow
+      - name: Swap (ذاكرة إضافية)
+        run: sudo fallocate -l 10G /swapfile2 && sudo chmod 600 /swapfile2 && sudo mkswap /swapfile2 && sudo swapon /swapfile2 && free -g
+      - name: Build
+        run: JOBS=2 python3 tools/mapbuild/build_region.py "${R%%:*}" "${R#*:}" out/ 2>&1 | grep -v 'Warning\|ops.transform\|layers\[layer\]\|Mean of empty'
+      - name: Add to map-details-out
+        run: |
+          git fetch -q origin map-details-out && git worktree add -q o origin/map-details-out
+          mkdir -p prev && cp o/data/maps.json prev/ && python3 - <<'PY'
+          import json,glob
+          m=json.load(open('o/data/maps.json')); n=json.load(open(glob.glob('out/*.json')[0])); n['v']=m['v']
+          m['regions']=sorted([r for r in m['regions'] if r['id']!=n['id']]+[n],key=lambda r:r['id'])
+          json.dump(m,open('o/data/maps.json','w'),ensure_ascii=False,separators=(',',':'))
+          print(len(m['regions']),'regions', n['id'], round(n['vt']/1048576,1),'MB +',round(n['hs']/1048576,1))
+          PY
+          cp out/*.pmtiles o/maps/ && cd o && git add -A
+          git -c user.name=dalil-bot -c user.email=bot@users.noreply.github.com commit -qm "add ${R%%:*}"
+          git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:map-details-out
