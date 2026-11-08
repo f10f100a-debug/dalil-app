@@ -62,6 +62,10 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 2) البوصلة
   await shot(p, '02-compass');
   await shot(p, '03-compass-lower', () => p.evaluate(() => document.getElementById('emergencyBtn').scrollIntoView({ block: 'end' })));
+  // البطاقتين تنتظر الموقع والبيانات — نطلب تحميلها ونستنى لين تظهر
+  await p.evaluate(() => window.__dalilShowAlerts && window.__dalilShowAlerts()).catch(() => {});
+  await p.waitForSelector('#rainAskCard:not([hidden])', { timeout: 20000 }).catch(() => log('rain-ask card hidden'));
+  await p.waitForSelector('#hailCard:not([hidden])', { timeout: 20000 }).catch(() => log('hail card hidden'));
   await shot(p, '03b-rain-ask', () => p.evaluate(() => { const e = document.getElementById('rainAskCard'); if (e) e.scrollIntoView({ block: 'center' }); }));
   await shot(p, '03c-hail', () => p.evaluate(() => { const e = document.getElementById('hailCard'); if (e) e.scrollIntoView({ block: 'center' }); }));
   await toTop(p);
