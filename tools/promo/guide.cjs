@@ -22,6 +22,11 @@ async function open(c, o = {}) {
   }, [o.dark ? 'dark' : 'light', !!o.car, !!o.places]);
   await p.route('**/data/fayd.json*', r => r.fulfill({ path: 'tools/promo/sample-fayd.json', contentType: 'application/json' }));
   await p.route('**/data/fq.json*', r => r.fulfill({ path: 'tools/promo/sample-fq.json', contentType: 'application/json' }));
+  // بطاقات «نزل عندك مطر؟» و«وين نزل البرد اليوم؟» تظهر بس إذا فيه مطر/برد — بيانات مثال ثابتة للقطة
+  await p.route('**/rpc/rain_near_today', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ mm: 14, day: new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10) }) }));
+  await p.route('**/rpc/recent_hail', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+    { lat: 27.92, lng: 41.98, t: new Date(Date.now() - 2.5 * 3600e3).toISOString(), dbz: 60, region: 'حائل', rep: 2, src: 'radar' },
+    { lat: 27.31, lng: 42.42, t: new Date(Date.now() - 5 * 3600e3).toISOString(), dbz: 56, region: 'حائل', rep: 0, src: 'radar' }]) }));
   await p.goto('http://localhost:8765/index.html' + (o.q || ''));
   await p.waitForTimeout(1800);
   if (await p.isVisible('#skipPermissionsBtn').catch(() => false)) await p.click('#skipPermissionsBtn');
@@ -57,6 +62,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 2) البوصلة
   await shot(p, '02-compass');
   await shot(p, '03-compass-lower', () => p.evaluate(() => document.getElementById('emergencyBtn').scrollIntoView({ block: 'end' })));
+  await shot(p, '03b-rain-ask', () => p.evaluate(() => { const e = document.getElementById('rainAskCard'); if (e) e.scrollIntoView({ block: 'center' }); }));
+  await shot(p, '03c-hail', () => p.evaluate(() => { const e = document.getElementById('hailCard'); if (e) e.scrollIntoView({ block: 'center' }); }));
   await toTop(p);
 
   // 3) الأماكن
@@ -88,6 +95,12 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await frame(p).locator('#localMode').click().catch(() => {});
   await mapGo(p, 27.6, 41.75, 9); await p.waitForTimeout(1500);
   await shot(p, '11-map-spring', async () => { await frame(p).locator('[data-q="ndvi"]').click(); await p.waitForTimeout(7000); });
+  // بطاقة الفيضة على الخريطة (حالتها + صورة القمر الصناعي اليوم) و«ربيع عندك؟»
+  const mf = () => p.frames().find(f => f.url().includes('map.html'));
+  await shot(p, '11b-map-fayd-card', async () => { await mf().evaluate(() => { targetPoint = { lat: 27.1679, lng: 41.7884 }; navName.textContent = 'روضة ابو نمر'; updateNavigation(); render(); }); await p.waitForTimeout(2500); });
+  await frame(p).locator('#navClose').click().catch(() => {});
+  await shot(p, '11c-map-spring-ask', async () => { await frame(p).locator('#springAsk').click(); await p.waitForTimeout(900); });
+  await frame(p).locator('#springSheet [data-sp="x"]').click().catch(() => {});
   await frame(p).locator('[data-q="ndvi"]').click().catch(() => {});
   await shot(p, '12-map-terrain', async () => { await frame(p).locator('[data-q="topo"]').click(); await mapGo(p, 27.55, 41.62, 12); await p.waitForTimeout(6000); });
   await frame(p).locator('[data-q="topo"]').click().catch(() => {});
@@ -150,6 +163,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await shot(p, '20-settings');
   await shot(p, '21-settings-maps', () => p.evaluate(() => document.getElementById('importCatalogBtn').scrollIntoView({ block: 'center' })));
   await shot(p, '22-settings-push', () => p.evaluate(() => document.getElementById('pushTitle').scrollIntoView({ block: 'start' })));
+  await shot(p, '22b-settings-near', () => p.evaluate(() => { const r = document.getElementById('nearRow'); if (r) { r.hidden = false; r.scrollIntoView({ block: 'center' }); } }));
   await c.close();
 
   // 7) العرض الثلاثي
