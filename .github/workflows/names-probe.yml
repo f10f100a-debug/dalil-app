@@ -1,0 +1,16 @@
+# فحص مصادر أسماء مفتوحة (NGA GNS = ملكية عامة، Wikidata = CC0): عدّ فقط، ما يُنشر شيء
+name: Names probe
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/names-probe.yml", "tools/places/probe_names.py"]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: NGA links
+        run: curl -sL https://geonames.nga.mil/geonames/GNSData/ | grep -oiE 'href="[^"]+\.(zip|txt)"' | head -40 || true
+      - name: Probe
+        run: python3 tools/places/probe_names.py
