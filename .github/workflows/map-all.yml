@@ -1,0 +1,44 @@
+# خرائط البر — بناء كل المناطق (تجربة على فرع map-details). الناتج يُحفظ في فرع map-details-out فقط، ما يُنشر في التطبيق.
+name: Map build all
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/map-all.yml"]
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        region: ["asir:عسير", "baha:الباحة", "eastern:الشرقية", "hail:حائل", "jazan:جازان", "jouf:الجوف", "madinah:المدينة",
+                 "makkah:مكة", "najran:نجران", "northern:الحدود الشمالية", "qassim:القصيم", "riyadh:الرياض", "tabuk:تبوك"]
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet pyarrow shapely pyproj mapbox-vector-tile pmtiles rasterio scipy matplotlib pillow
+      - name: Build
+        run: |
+          R="${{ matrix.region }}"; S="${R%%:*}"
+          JOBS=4 python3 tools/mapbuild/build_region.py "$S" "${R#*:}" out/ 2>&1 | grep -v Warning | grep -v 'ops.transform\|layers\[layer\]\|Mean of empty'
+          echo "S=$S" >> $GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with: { name: "map-${{ env.S }}", path: out/, retention-days: 3 }
+  collect:
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: "map-*", path: built, merge-multiple: true }
+      - name: Manifest + save to branch map-details-out (not the app)
+        run: |
+          ls -la built
+          mkdir -p o/maps o/data
+          MAPS_V=2 python3 tools/mapbuild/make_manifest.py built o
+          python3 -c "import json;[print(r['id'],round(r['vt']/1048576,1),'MB +',round(r['hs']/1048576,1)) for r in json.load(open('o/data/maps.json'))['regions']]"
+          cd o && git init -q -b map-details-out && git add -A
+          git -c user.name=dalil-bot -c user.email=bot@users.noreply.github.com commit -qm "all regions test build $(date -u +%F)"
+          git push -fq "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" map-details-out
