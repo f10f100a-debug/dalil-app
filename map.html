@@ -579,7 +579,7 @@ body.full .lp-g{margin-top:6px;width:100%}
     if(tools)tools.hidden=!on;
     if(on){
       // التوجّه للهدف: لتحت = تصغير (وقت الملاحة)، لفوق/ضغطة = تكبير
-      addGrip(navCard,{down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
+      addGrip(navCard,{zone:'.nav-name,.nav-head',down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
       // دليل الرادار (فوق): المقبض تحت — لتحت = يفتح، لفوق = يطوي
       const rl=$('#radarLegend'),ri=$('#rlInfo');addGrip(rl,{pos:'bottom',down:()=>{if(!rl.classList.contains('rl-open'))ri.click()},up:()=>{if(rl.classList.contains('rl-open'))ri.click()},tap:()=>ri.click()});
       // بطاقات البلاغ: لتحت = تقفل
@@ -1373,13 +1373,22 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 // مقبض سحب للبطاقات: اسحب لتحت = أصغر، لفوق = أكبر، ضغطة = تبديل. pos='top' (البطاقات تحت) أو 'bottom' (البطاقات فوق)
-function addGrip(el,{down,up,tap,pos='top'}){if(!el||el.querySelector(':scope>.grip'))return;const g=document.createElement('div');g.className='grip grip-'+pos;g.setAttribute('aria-hidden','true');
-  pos==='top'?el.insertBefore(g,el.firstChild):el.appendChild(g);let y0=null,moved=false;
-  g.addEventListener('pointerdown',e=>{y0=e.clientY;moved=false;try{g.setPointerCapture(e.pointerId)}catch(err){}e.stopPropagation()});
-  g.addEventListener('pointermove',e=>{if(y0!==null&&Math.abs(e.clientY-y0)>8)moved=true;e.stopPropagation()});
-  g.addEventListener('pointerup',e=>{if(y0===null)return;const dy=e.clientY-y0;y0=null;e.stopPropagation();if(Math.abs(dy)>24)(dy>0?down:up)&&(dy>0?down():up());else if(!moved&&tap)tap()});
+function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':scope>.grip'))return;const g=document.createElement('div');g.className='grip grip-'+pos;g.setAttribute('aria-hidden','true');
+  pos==='top'?el.insertBefore(g,el.firstChild):el.appendChild(g);
+  // اللمس (آيفون وأندرويد): نسحب من المقبض أو من رأس البطاقة (zone)، والبطاقة تمشي مع الإصبع، ونمنع الصفحة/الخريطة تاخذ الحركة
+  let y0=null,dy=0,moved=false,fromZone=false;
+  const inZone=t=>t===g||g.contains(t)||(zone&&t.closest&&t.closest(zone)&&el.contains(t.closest(zone)));
+  const end=()=>{if(y0===null)return;el.style.transition='transform .18s';el.style.transform='';const d=dy;y0=null;
+    if(Math.abs(d)>24){const f=d>0?down:up;f&&f()}else if(!moved&&!fromZone&&tap)tap()};
+  el.addEventListener('touchstart',e=>{if(e.touches.length!==1||!inZone(e.target))return;y0=e.touches[0].clientY;dy=0;moved=false;fromZone=!(e.target===g||g.contains(e.target));el.style.transition='none'},{passive:true});
+  el.addEventListener('touchmove',e=>{if(y0===null)return;dy=e.touches[0].clientY-y0;if(Math.abs(dy)>8)moved=true;if(moved){e.preventDefault();el.style.transform='translateY('+Math.round(dy*0.6)+'px)'}e.stopPropagation()},{passive:false});
+  el.addEventListener('touchend',e=>{if(y0===null)return;const wasMoved=moved;end();if(wasMoved){e.preventDefault();e.stopPropagation()}},{passive:false});
+  el.addEventListener('touchcancel',()=>{if(y0!==null){dy=0;end()}});
+  // الفأرة (للكمبيوتر)
+  let m0=null;g.addEventListener('mousedown',e=>{m0=e.clientY;e.preventDefault()});
+  addEventListener('mouseup',e=>{if(m0===null)return;const d=e.clientY-m0;m0=null;if(Math.abs(d)>24){const f=d>0?down:up;f&&f()}else if(tap)tap()});
   g.addEventListener('click',e=>e.stopPropagation())}
-{const st=document.createElement('style');st.textContent=`.grip{height:22px;margin:-6px -8px 2px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+{const st=document.createElement('style');st.textContent=`.grip{height:28px;margin:-8px -8px 0;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
 .grip::before{content:"";width:38px;height:5px;border-radius:3px;background:#CDBFA8}.grip-bottom{margin:2px -8px -6px}
 :is(html[data-theme=dark],html[data-theme=red]) .grip::before{background:#5A4E3E}`;document.head.appendChild(st)}
 // ---------- مطر الأسبوع (تجربة مخفية — تُفتح من «عن التطبيق» بالضغط 5 مرات على رقم الإصدار) ----------
@@ -1453,7 +1462,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       status.textContent='مطر الأسبوع: اختر اليوم من فوق. الغامق = النماذج متفقة'}
     // لوحة واحدة تحت: الأيام + أقوى مكان (والدليل يظهر لما تفتح «الخمسة») — أعلى الخريطة يبقى فاضي
     panel=document.createElement('div');panel.className='wk-panel';document.body.appendChild(panel);
-    addGrip(panel,{down:()=>setSize(size-1),up:()=>setSize(size+1),tap:()=>setSize(size===2?1:size+1)});
+    addGrip(panel,{zone:'.wk-bar h3,.wk-card .hd',down:()=>setSize(size-1),up:()=>setSize(size+1),tap:()=>setSize(size===2?1:size+1)});
     bar=document.createElement('div');bar.className='wk-bar';panel.appendChild(bar);
     card=document.createElement('div');card.className='wk-card';panel.appendChild(card);
     if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;const[wx,wy]=world(c.lat,c.lng);cx=wx;cy=wy;render()}
