@@ -11,12 +11,12 @@ pts = [(i, j) for i in range(0, NR + 1, 2) for j in range(0, NC + 1, 2)
 MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless']
 P = {m: {} for m in MODELS}; W = {m: {} for m in MODELS}; H = {m: {} for m in MODELS}; days = None
 for m in MODELS:
-    for k in range(0, len(pts), 100):
-        ch = pts[k:k + 100]; d = None
+    for k in range(0, len(pts), 60):
+        ch = pts[k:k + 60]; d = None
         q = {'latitude': ','.join(f'{LA0 + i * R:.2f}' for i, _ in ch), 'longitude': ','.join(f'{LN0 + j * R:.2f}' for _, j in ch),
              'daily': 'precipitation_sum,weather_code', 'hourly': 'precipitation', 'models': m, 'timezone': 'Asia/Riyadh', 'forecast_days': 7}
         for t in range(6):
-            try: d = json.loads(urllib.request.urlopen('https://api.open-meteo.com/v1/forecast?' + urllib.parse.urlencode(q), timeout=90).read()); break
+            try: d = json.loads(urllib.request.urlopen('https://api.open-meteo.com/v1/forecast?' + urllib.parse.urlencode(q), timeout=150).read()); break
             except Exception as e: print('retry', m, k, e, flush=True); time.sleep(30)
         if d is None: raise SystemExit('open-meteo failed')
         d = d if isinstance(d, list) else [d]; days = d[0]['daily']['time']
