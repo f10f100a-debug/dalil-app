@@ -1,0 +1,12 @@
+name: WX day
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/wx-day.yml", "tools/wxtrial/region_day.py"]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/wxtrial/region_day.py "حائل" 2026-11-10
