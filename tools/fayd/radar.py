@@ -21,7 +21,39 @@ def load(since):
         hits = struct.unpack("<%dH" % n, base64.b64decode(row["hits"])[:2 * n].ljust(2 * n, b"\0"))
         fr = max(1, row["frames"])
         out[row["day"]] = {"acc": acc, "hits": hits, "frames": row["frames"], "clutter": [h > 0.6 * fr for h in hits]}
+    chronic_mask(out, since)
     return out
+
+# التشويش المزمن (تحليل التجربة الصامتة 9 نوفمبر): خلايا فيها صدى أغلب الأيام (≥70٪ — المطر الحقيقي ما يتكرر كذا)
+# مثل النعيرية وحفر الباطن والقيصومة (صدى 16–17 يوم من 17، والمحطة 3 ملم). مطرها ينحسب بس في الأيام اللي فيها برق
+# حولها (خلية رادار ≥45 مع برق في نفس الخلية أو المجاورة). وقبل 26 أكتوبر (قبل سجل البرق) ما ينحسب لها مطر.
+LT_FROM = "2026-10-26"
+CHRONIC = set()
+def chronic_mask(days, since):
+    global CHRONIC
+    usable = [d for d in days.values() if d["frames"] >= 60]
+    if len(usable) < 7: return
+    n = RR * RC
+    cnt = [0] * n
+    for d in usable:
+        h = d["hits"]
+        for k in range(n):
+            if h[k] >= 3: cnt[k] += 1
+    CHRONIC = {k for k in range(n) if cnt[k] >= 0.7 * len(usable)}
+    lt = {}
+    try:
+        req = urllib.request.Request(f"{SB}/rest/v1/rpc/radar_lightning_days", data=json.dumps({"p_since": since}).encode(),
+                                     headers={"apikey": KEY, "authorization": "Bearer " + KEY, "content-type": "application/json"})
+        with urllib.request.urlopen(req, timeout=60) as r: lt = {k: set(v) for k, v in (json.load(r) or {}).items()}
+    except Exception as e:
+        print("lightning days failed — chronic cells kept as is", e); return
+    masked = 0
+    for day, d in days.items():
+        ok = lt.get(day, set()) if day >= LT_FROM else set()
+        cl = d["clutter"]
+        for k in CHRONIC:
+            if not cl[k] and k not in ok: cl[k] = True; masked += 1
+    print(f"radar chronic clutter: {len(CHRONIC)} cells, {masked} cell-days masked")
 
 def mm_at(day_rec, lat, lng, radius_cells=1):
     """مطر الرادار (ملم) حول نقطة: متوسط الخلايا ضمن ~20 كم بعد استبعاد التشويش. None إذا اليوم ناقص صور كثير."""
