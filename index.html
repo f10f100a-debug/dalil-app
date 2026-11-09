@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-6" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6611,9 +6611,27 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     br.innerHTML = '<span class="ic" aria-hidden="true">' + (typeof ico === 'function' ? ico('leaf') : '🌱') + '</span>البر'; setTab.parentNode.insertBefore(br, setTab); setTab.style.display = 'none';
     const BARR = ['spring', 'ev'];
     let lastBarr = 'spring';
+    const wxSeg = document.querySelector('.seg-b[data-wxpane]').parentNode, spSeg = document.getElementById('spSeg');
+    // شريط البر الموحّد
+    const bSeg = document.createElement('div'); bSeg.className = 'seg'; bSeg.setAttribute('role', 'tablist'); bSeg.setAttribute('aria-label', 'البر');
+    const BTN = [['fayd', 'الفياض'], ['fq', 'الفقع'], ['birds', 'الطيور'], ['ev', 'الأحداث']];
+    bSeg.innerHTML = BTN.map(([k, t])=>{ const src = k === 'ev' ? document.querySelector('.seg-b[data-wxpane="ev"]') : spSeg && spSeg.querySelector('[data-sp="' + k + '"]');
+      const inner = src ? src.innerHTML : t; return '<button type="button" class="seg-b" role="tab" data-barrb="' + k + '">' + inner + '</button>'; }).join('');
+    wxSeg.parentNode.insertBefore(bSeg, wxSeg.nextSibling);
+    if(spSeg) spSeg.style.display = 'none';
+    bSeg.querySelectorAll('[data-barrb]').forEach(b=>b.addEventListener('click', ()=>{
+      const k = b.dataset.barrb;
+      if(k === 'ev') showWxPane('ev');
+      else{ showWxPane('spring'); const t = spSeg && spSeg.querySelector('[data-sp="' + k + '"]'); if(t) t.click(); }
+      markBarr();
+    }));
+    function markBarr(){ const k = wxPaneShown === 'ev' ? 'ev' : (typeof spView === 'string' ? spView : 'fayd');
+      bSeg.querySelectorAll('[data-barrb]').forEach(b=>{ const on = b.dataset.barrb === k; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); }
     function sync(which){
       const inBarr = BARR.includes(which); if(inBarr) lastBarr = which;
       document.querySelectorAll('.seg-b[data-wxpane]').forEach(b=>{ b.style.display = (BARR.includes(b.dataset.wxpane) === inBarr) ? '' : 'none'; });
+      wxSeg.style.display = inBarr ? 'none' : ''; wxSeg.style.gridTemplateColumns = 'repeat(2,1fr)';
+      bSeg.style.display = inBarr ? '' : 'none'; if(inBarr) markBarr();
       if(document.getElementById('screen-weather').classList.contains('active')){
         wxTab.classList.toggle('active', !inBarr); br.classList.toggle('active', inBarr);
         document.getElementById('screenTitle').textContent = inBarr ? 'البر' : 'الأجواء';
@@ -6665,7 +6683,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     order.filter(t=>!used.has(t)).forEach(t=>blocks[t].forEach(el=>frag.appendChild(el)));
     if(firstTitle) scr.appendChild(frag);
     const st = document.createElement('style');
-    st.textContent = '.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
+    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
     document.head.appendChild(st);
   })();
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{
