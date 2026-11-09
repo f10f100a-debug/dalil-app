@@ -557,6 +557,22 @@ $('#layersBtn').onclick=()=>{layersPanel.classList.toggle('show');applyPrefs()}
   b.onclick=()=>{try{parent.postMessage({type:'DALIL_MAP_FS',on:!on},location.origin)}catch(e){}};
   window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_FS_STATE')return;on=!!e.data.on;document.body.classList.toggle('fs',on);document.documentElement.style.setProperty('--fs-sab',(+e.data.sab||0)+'px');
     $('#fsIcon path').setAttribute('d',on?OUT:IN);b.setAttribute('aria-label',on?'تصغير الخريطة':'تكبير الخريطة لكامل الشاشة');b.title=on?'تصغير':'ملء الشاشة'})})();;
+// تجربة «الخريطة على الشاشة كاملة» (الصفحة الأم ترسل DALIL_MAP_FULL): بدون أنواع الخريطة فوق، بدون تكبير/تصغير (بالأصابع)،
+// زر «سجّل» و«الأدوات» صغار فوق، و«خرائط Google» داخل لوحة الطبقات
+(()=>{if(!document.body.classList.contains('embed')||parent===window)return;let tools=null;
+  const st=document.createElement('style');st.textContent=`
+body.full .map-modes,body.full #fsBtn,body.full #plus,body.full #minus{display:none!important}
+body.full #fsRec{top:calc(env(safe-area-inset-top,0px) + 8px);bottom:auto;left:50%;transform:translateX(-50%);min-width:0;font-size:13px;padding:9px 16px;max-width:52vw}
+body.full #labTools{position:fixed;z-index:61;width:auto;height:auto;white-space:nowrap;top:calc(env(safe-area-inset-top,0px) + 8px);left:12px;font:800 13px system-ui,sans-serif;padding:9px 14px;border-radius:999px;border:1px solid #E4DED3;background:#fffffff2;color:#3A3024;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+body.full .rain-bar{top:calc(env(safe-area-inset-top,0px) + 56px)}
+body.full .lp-g{margin-top:6px;width:100%}
+:is(html[data-theme=dark],html[data-theme=red]) body.full #labTools{background:#1F1B16f2;border-color:#353027;color:#EFE8DC}`;document.head.appendChild(st);
+  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_FULL')return;const on=!!e.data.on;document.body.classList.toggle('full',on);
+    if(on&&!tools){tools=document.createElement('button');tools.id='labTools';tools.type='button';tools.textContent='☰ الأدوات';document.body.appendChild(tools);
+      tools.onclick=()=>{try{parent.postMessage({type:'DALIL_OPEN_TOOLS'},location.origin)}catch(err){}};
+      const g=document.createElement('button');g.type='button';g.className='lp-g';g.textContent='خرائط Google ↗';g.onclick=()=>{try{openGoogleMap()}catch(err){}};
+      const lb=document.getElementById('lpBase');if(lb&&lb.parentNode)lb.parentNode.insertBefore(g,lb.nextSibling)}
+    if(tools)tools.hidden=!on;try{render()}catch(err){}})})();
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
 for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpMine','mine'],['#lpNdvi','ndvi'],['#lpWater','water'],['#lpRain','rain'],['#lpClouds','clouds'],['#lpRadar','radar'],['#lpLightning','lightning']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();

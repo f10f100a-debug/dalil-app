@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-8" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-9" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2184,12 +2184,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)']];
+      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة']];
       const get = k=>{ try{ return localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
         try{ c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_layout'){ toast(c.checked ? 'شغّلنا الترتيب الجديد — يعيد فتح التطبيق' : 'رجّعنا الترتيب الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       v.parentNode.insertBefore(box, v.nextSibling); }); }
@@ -6600,6 +6600,35 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }else if(window.DalilEvents) window.DalilEvents.hide();
   }
   document.querySelectorAll('.seg-b[data-wxpane]').forEach(b=>b.addEventListener('click', ()=>showWxPane(b.dataset.wxpane)));
+  // ---------- تجربة «الخريطة على الشاشة كاملة» (مخفية: dalil_lab_mapfull=1) ----------
+  // صفحة الخريطة: بدون عنوان وبدون صف التسجيل/الأدوات — الخريطة من فوق لين التبويبات، والتسجيل والأدوات أزرار داخلها
+  (function(){
+    let lab = false; try{ lab = localStorage.getItem('dalil_lab_mapfull') === '1'; }catch(e){}
+    if(!lab) return;
+    const st = document.createElement('style');
+    st.textContent = 'body.lab-mapfull.on-track .app-head{display:none}'
+      + 'body.lab-mapfull.on-track #trackMapFrame{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:var(--tabh,64px);width:100%;height:calc(100vh - env(safe-area-inset-top,0px) - var(--tabh,64px))!important;height:calc(100dvh - env(safe-area-inset-top,0px) - var(--tabh,64px))!important;border-radius:0;z-index:40}'
+      + 'body.lab-mapfull.on-track #ttBar,body.lab-mapfull.on-track #recPill,body.lab-mapfull.on-track #alertBanner{display:none!important}'
+      + 'body.lab-mapfull.on-track #trackToolsPanel{display:none}'
+      + 'body.lab-mapfull.on-track #trackToolsPanel.open{display:block;position:fixed;left:0;right:0;bottom:var(--tabh,64px);max-height:72vh;overflow:auto;z-index:45;background:var(--bg,#F3EEE5);border-radius:22px 22px 0 0;padding:6px 16px 18px;box-shadow:0 -8px 30px rgba(0,0,0,.22)}'
+      + '.lab-tools-x{display:block;margin:4px auto 6px;border:0;background:none;font-size:14px;font-weight:800;color:var(--text-dim,#7A6A55);padding:6px 16px}';
+    document.head.appendChild(st);
+    document.body.classList.add('lab-mapfull');
+    const scr = document.getElementById('screen-track'), f = document.getElementById('trackMapFrame'), bar = document.querySelector('.tabbar');
+    const panel = document.getElementById('trackToolsPanel'), tog = document.getElementById('trackToolsToggle');
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'lab-tools-x'; x.textContent = '⌄ إخفاء الأدوات'; x.onclick = ()=>tog.click(); panel.insertBefore(x, panel.firstChild);
+    const tell = ()=>{ const on = scr.classList.contains('active'); document.body.classList.toggle('on-track', on);
+      if(bar) document.documentElement.style.setProperty('--tabh', bar.offsetHeight + 'px');
+      if(!on || !f.contentWindow) return;
+      try{ f.contentWindow.postMessage({type:'DALIL_MAP_FS_STATE', on:true, sab:0}, location.origin); f.contentWindow.postMessage({type:'DALIL_MAP_FULL', on:true}, location.origin); }catch(e){} };
+    new MutationObserver(tell).observe(scr, {attributes:true, attributeFilter:['class']});
+    f.addEventListener('load', ()=>setTimeout(tell, 300));
+    window.addEventListener('resize', ()=>setTimeout(tell, 100));
+    window.addEventListener('message', e=>{ if(e.origin !== location.origin || !e.data) return;
+      if(e.data.type === 'DALIL_OPEN_TOOLS') tog.click();
+      if(e.data.type === 'DALIL_MAP_FS' && scr.classList.contains('active')) setTimeout(tell, 50); });   // زر ملء الشاشة القديم ما يطلّعنا
+    tell();
+  })();
   // ---------- تجربة «الترتيب الجديد» (مخفية — تُشغّل من «عن التطبيق»: 5 ضغطات على رقم الإصدار) ----------
   // تبويب «البر» (الربيع والفياض والفقع والطيور والأحداث) منفصل عن «الأجواء»، والإعدادات من ⚙️ فوق، والتنبيهات أول الإعدادات.
   (function(){
