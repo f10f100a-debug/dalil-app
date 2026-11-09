@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6632,8 +6632,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     sync(wxPaneShown);
     // ⚙️ فوق بدل تبويب الإعدادات
     const gear = ()=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'cp-badge lab-gear'; b.setAttribute('aria-label', 'الإعدادات');
-      b.innerHTML = '<span class="cp-pill" style="font-size:16px">⚙️</span>'; b.onclick = ()=>setTab.click(); return b; };
+      b.innerHTML = '<span class="cp-pill"><span class="cp-ic">' + (typeof ico === 'function' ? ico('sliders') : '⚙️') + '</span></span>'; b.onclick = ()=>setTab.click(); return b; };
     document.querySelectorAll('.app-head .cp-badges, #screen-compass .cp-head .cp-badges').forEach(x=>x.appendChild(gear()));
+    // البوصلة: الحرارة والمطر في زر واحد (الشريط كان مزدحم والمطر ينقص)
+    (function(){
+      const wb = document.getElementById('cpWeatherBadge'), rb = document.getElementById('cpRainBadge'), rt = document.getElementById('cpRainText');
+      if(!wb || !rb || !rt) return;
+      const extra = document.createElement('span'); extra.className = 'lab-rain'; wb.querySelector('.cp-pill').appendChild(extra);
+      const upd = ()=>{ const t = rt.textContent.trim(); const show = !rb.hidden && !!t; extra.textContent = show ? ' · 🌧️ ' + t.split(' · ')[0].replace(':00', '') : ''; rb.style.display = 'none';
+        if(show && wb.hidden){ wb.hidden = false; } };
+      new MutationObserver(upd).observe(rb, {attributes:true, attributeFilter:['hidden']}); new MutationObserver(upd).observe(rt, {childList:true, characterData:true, subtree:true});
+      wb.addEventListener('click', e=>{ if(extra.textContent && e.target === extra){ e.stopPropagation(); rb.click(); } }, true);
+      upd();
+    })();
     // ترتيب الإعدادات: مجموعات، والتنبيهات أول
     const scr = document.getElementById('screen-settings'), blocks = {}, order = [];
     let cur = null;
@@ -6654,7 +6665,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     order.filter(t=>!used.has(t)).forEach(t=>blocks[t].forEach(el=>frag.appendChild(el)));
     if(firstTitle) scr.appendChild(frag);
     const st = document.createElement('style');
-    st.textContent = '.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
+    st.textContent = '.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
     document.head.appendChild(st);
   })();
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{
