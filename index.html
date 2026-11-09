@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-11" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-12" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6229,7 +6229,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=25';
+      sc.src = 'events.js?v=26';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);
@@ -6677,6 +6677,22 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     });
     wxTab.addEventListener('click', ()=>{ showWxPane(['wx', 'wind'].includes(wxPaneShown) ? wxPaneShown : 'wx'); });
     sync(wxPaneShown);
+    // رنتين بدل «طنّة» وحدة: رنة التنبيهات (المطر والعواصف والفياض) ورنة الأحداث
+    (function(){
+      const old = document.getElementById('toneSel'); if(!old) return; const row = old.closest('label'); if(!row) return;
+      const get = k=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+      const base = get('dalil_tone') === '0' ? '0' : '1';
+      const mk = (ic, t, key, kind)=>{ const l = document.createElement('label'); l.className = 'push-row';
+        l.innerHTML = '<span>' + ic + ' ' + t + ' <button type="button" class="lab-play" aria-label="اسمع">▶ اسمع</button></span><select class="text-input" aria-label="' + t + '"><option value="1">تشغيل</option><option value="0">إيقاف</option></select>';
+        const play = ()=>(window.__dalilTone ? Promise.resolve() : loadEvents()).then(()=>window.__dalilTone && window.__dalilTone(kind, true)).catch(()=>{});
+        const sel = l.querySelector('select'); sel.value = get(key) ?? base;
+        sel.addEventListener('change', ()=>{ try{ localStorage.setItem(key, sel.value); }catch(e){} if(sel.value === '1') play(); });
+        l.querySelector('.lab-play').addEventListener('click', e=>{ e.preventDefault(); e.stopPropagation(); play(); });
+        return l; };
+      const a = mk('🔔', 'رنة التنبيهات', 'dalil_tone_alert', 'rain'), b = mk('📸', 'رنة الأحداث', 'dalil_tone_event', 'event');
+      const note = document.createElement('div'); note.className = 'lab-tone-note'; note.textContent = 'الرنة داخل التطبيق وهو مفتوح. لما يكون مقفل، الصوت من إعدادات الجوال ← الإشعارات ← دليل.';
+      row.parentNode.insertBefore(a, row); row.parentNode.insertBefore(b, row); row.parentNode.insertBefore(note, row); row.style.display = 'none';
+    })();
     // ⚙️ فوق بدل تبويب الإعدادات
     const gear = ()=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'cp-badge lab-gear'; b.setAttribute('aria-label', 'الإعدادات');
       b.innerHTML = '<span class="cp-pill"><span class="cp-ic">' + (typeof ico === 'function' ? ico('sliders') : '⚙️') + '</span></span>'; b.onclick = ()=>setTab.click(); return b; };
@@ -6712,7 +6728,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     order.filter(t=>!used.has(t)).forEach(t=>blocks[t].forEach(el=>frag.appendChild(el)));
     if(firstTitle) scr.appendChild(frag);
     const st = document.createElement('style');
-    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
+    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-play{margin-inline-start:6px;font:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:2px 9px;vertical-align:middle}.lab-tone-note{font-size:11.5px;color:var(--text-dim);line-height:1.6;margin:2px 4px 8px}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
     document.head.appendChild(st);
   })();
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{

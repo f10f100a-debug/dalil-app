@@ -26,9 +26,11 @@
   const lsSet = (k, v)=>{ try{ localStorage.setItem(k, v); }catch(e){} };
   // طنّة داخل التطبيق: «نقرتين» لحدث جديد و«طنّة صافية» لتنبيه المطر (تُقفل من الإعدادات)
   const toneAt = {};
-  function tone(kind){
-    if(lsGet('dalil_tone') === '0' || document.visibilityState !== 'visible') return;
-    if(Date.now() - (toneAt[kind] || 0) < 60000) return;   // ما نكرر نفس الطنّة خلال دقيقة
+  // كل نوع له مفتاح (رنة التنبيهات / رنة الأحداث)، وإذا ما انضبط نرجع للإعداد القديم الموحّد dalil_tone
+  const toneOff = kind=>{ const k = lsGet(kind === 'rain' ? 'dalil_tone_alert' : 'dalil_tone_event'); return k !== null ? k === '0' : lsGet('dalil_tone') === '0'; };
+  function tone(kind, test){
+    if(!test && (toneOff(kind) || document.visibilityState !== 'visible')) return;
+    if(!test && Date.now() - (toneAt[kind] || 0) < 60000) return;   // ما نكرر نفس الرنة خلال دقيقة
     toneAt[kind] = Date.now();
     try{ const a = new Audio('assets/sounds/' + (kind === 'rain' ? 'rain' : 'event') + '.m4a'); a.volume = 0.9; a.play().catch(()=>{}); }catch(e){}
   }
