@@ -1,0 +1,12 @@
+name: WX week grid (trial)
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/wx-week.yml", "tools/wxtrial/week_grid.py"]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/wxtrial/week_grid.py
