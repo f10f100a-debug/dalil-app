@@ -9,9 +9,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: cp data/fq.json /tmp/old.json && python3 tools/fayd/fq.py && python3 - <<'PY'
+      - name: Run
+        run: |
+          cp data/fq.json /tmp/old.json
+          python3 tools/fayd/fq.py
+          python3 - <<'PY'
           import json
           o={r['name']:r for r in json.load(open('/tmp/old.json'))['rows']}; n=json.load(open('data/fq.json'))
-          for r in n['rows']: print(r['name'], 'old', o.get(r['name'],{}).get('mm'), 'new', r['mm'], 'st', r['st'], 'gauge', r['gauge'])
-          print(json.load(open('data/fq-qa.json')))
+          for r in n['rows']: print('ROW', r['name'], 'old', o.get(r['name'],{}).get('mm'), 'new', r['mm'], 'st', r['st'], 'gauge', r['gauge'])
+          print('QA', json.load(open('data/fq-qa.json')))
           PY
