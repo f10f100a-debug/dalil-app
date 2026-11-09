@@ -581,7 +581,6 @@ body.full .lp-g{margin-top:6px;width:100%}
       // التوجّه للهدف: لتحت = تصغير (وقت الملاحة)، لفوق/ضغطة = تكبير
       addGrip(navCard,{zone:'.nav-name,.nav-head',down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
       // دليل الرادار (فوق): المقبض تحت — لتحت = يفتح، لفوق = يطوي
-      const rl=$('#radarLegend'),ri=$('#rlInfo');addGrip(rl,{pos:'bottom',down:()=>{if(!rl.classList.contains('rl-open'))ri.click()},up:()=>{if(rl.classList.contains('rl-open'))ri.click()},tap:()=>ri.click()});
       // بطاقات البلاغ: لتحت = تقفل
       for(const id of['#rainSheet','#springSheet']){const sh=$(id);addGrip(sh,{down:()=>{sh.hidden=true}})}
     }
@@ -1402,6 +1401,8 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
 .wk-panel:not(.open) .wk-leg{display:none}
 .wk-panel.s0 .wk-bar{display:none}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{max-height:62vh;overflow:auto}
 .wk-tw{white-space:nowrap}
+.wk-bar h3{align-items:center}.wk-x{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E4DED3;background:#fff;color:#5C4A32;font-size:14px;line-height:1;padding:0}
+:is(html[data-theme=dark],html[data-theme=red]) .wk-x{background:#2C251D;border-color:#353027;color:#EFE8DC}
 body.wk-full #quick{display:none!important}
 
 body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #badge{display:none!important}
@@ -1451,9 +1452,10 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     card.querySelector('.hd').onclick=()=>setSize(open?1:2);
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
-    bar.innerHTML='<h3>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></h3>'+
+    bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
       '<div class="wk-days">'+D.days.map((d,i)=>'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+
       '<div class="wk-leg">ملم <i style="background:#CFE8FB"></i>1 <i style="background:#8CC4F2"></i>3 <i style="background:#4A90D9"></i>7 <i style="background:#2457A6"></i>15 <i style="background:#5B1F86;box-shadow:inset 0 0 0 20px rgba(239,228,207,.25)"></i>25+ · الباهت: النماذج مختلفة · 🟡 رعد</div>';
+    bar.querySelector('.wk-x').onclick=e=>{e.stopPropagation();btn.click()};
     bar.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{day=+b.dataset.d;drawBar();draw();drawCard()})}
   async function start(){
     if(!D){status.textContent='⏳ نجيب توقعات الأسبوع…';
