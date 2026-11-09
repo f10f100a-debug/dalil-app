@@ -9,4 +9,4 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: python3 tools/wxtrial/region_day.py "حائل" 2026-11-10
+      - run: python3 tools/wxtrial/region_day.py "حائل" 2026-11-10 27.18 42.44

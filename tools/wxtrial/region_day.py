@@ -35,3 +35,11 @@ print('median_mm agree5mm thunder hail_codes maxCAPE  lat,lng  [ECMWF,GFS,ICON] 
 for r in rows[:25]:
     n, d = near(*r[5]); print(r[0], r[1], r[2], r[3], round(r[4]), f'{r[5][0]:.2f},{r[5][1]:.2f}', r[6], r[7][:1] + r[7][-1:], n, d, 'km')
 print('cells with any model >=10mm:', sum(max(r[6]) >= 10 for r in rows), ' median>=5:', sum(r[0] >= 5 for r in rows))
+
+if len(sys.argv) > 4:
+    pl, pn = float(sys.argv[3]), float(sys.argv[4])
+    near_rows = sorted(rows, key=lambda r: math.hypot(r[5][0] - pl, (r[5][1] - pn) * math.cos(math.radians(pl))))[:12]
+    print('--- around point', pl, pn)
+    for r in near_rows:
+        dk = round(111 * math.hypot(r[5][0] - pl, (r[5][1] - pn) * math.cos(math.radians(pl))))
+        n, d = near(*r[5]); print(dk, 'km from point |', r[0], r[1], r[2], r[3], round(r[4]), f'{r[5][0]:.2f},{r[5][1]:.2f}', r[6], r[7][:1] + r[7][-1:], n)
