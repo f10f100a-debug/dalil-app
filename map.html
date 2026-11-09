@@ -1351,6 +1351,7 @@ if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serv
   const st=document.createElement('style');st.textContent=`
 .wk-bar{position:fixed;z-index:66;left:10px;right:72px;top:60px;background:#fffffff2;border:1px solid #E4DED3;border-radius:16px;padding:8px 9px 7px;box-shadow:0 4px 16px #0002;direction:rtl}
 body:not(.embed) .wk-bar{top:calc(env(safe-area-inset-top) + 128px)}
+body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend{display:none!important}
 .wk-bar h3{margin:0 3px 6px;font-size:13.5px;color:#2B2116;display:flex;justify-content:space-between;gap:6px}.wk-bar h3 small{font-weight:500;color:#7A6A55;font-size:11px}
 .wk-days{display:flex;gap:4px}.wk-days button{flex:1;min-width:0;font:inherit;font-size:11.5px;padding:6px 1px;border-radius:9px;border:0;background:#F2EBDD;color:#4A3A26;white-space:nowrap;overflow:hidden}
 .wk-days button.on{background:#2457A6;color:#fff;font-weight:700}.wk-days button.far:not(.on){opacity:.55}
@@ -1403,9 +1404,10 @@ body:not(.embed) .wk-bar{top:calc(env(safe-area-inset-top) + 128px)}
       status.textContent='مطر الأسبوع: اختر اليوم من فوق. الغامق = النماذج متفقة'}
     bar=document.createElement('div');bar.className='wk-bar';document.body.appendChild(bar);
     card=document.createElement('div');card.className='wk-card';document.body.appendChild(card);
-    if(z>8){z=7;render()}
+    if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;const[wx,wy]=world(c.lat,c.lng);cx=wx;cy=wy;render()}
+    document.body.classList.add('wk-on');
     drawBar();draw();drawCard()}
-  function stop(){bar&&bar.remove();card&&card.remove();bar=card=null;if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
+  function stop(){document.body.classList.remove('wk-on');bar&&bar.remove();card&&card.remove();bar=card=null;if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
   setInterval(()=>{if(on&&card&&regName()!==lastReg)drawCard()},1200);
 })();
