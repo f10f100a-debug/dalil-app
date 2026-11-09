@@ -578,6 +578,12 @@ body.full .lp-g{margin-top:6px;width:100%}
       const lb=document.getElementById('lpBase');if(lb&&lb.parentNode)lb.parentNode.insertBefore(g,lb.nextSibling)}
     if(tools)tools.hidden=!on;
     if(on){
+      // لوحة الطبقات: العنوان و✕ ثابتين فوق وقت التمرير، مقبض سحب (لتحت = تقفل)، والضغط على الخريطة برّاها يقفلها
+      const lp=layersPanel,hd=lp.querySelector('.lp-head');
+      if(hd&&!lp.dataset.lab){lp.dataset.lab='1';addGrip(lp,{zone:'.lp-head',down:()=>lp.classList.remove('show'),tap:()=>lp.classList.remove('show')});
+        const gp=lp.querySelector(':scope>.grip');
+        const st2=document.createElement('style');st2.textContent='body.full #layersPanel{padding-top:0}body.full #layersPanel>.grip{position:sticky;top:0;z-index:3;background:inherit;margin:0 -14px;padding-top:4px}body.full #layersPanel .lp-head{position:sticky;top:28px;z-index:2;background:#FFFFFFf7;margin:0 -14px 8px;padding:4px 14px 8px;border-bottom:1px solid #EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) body.full #layersPanel .lp-head{background:#1F1B16f7;border-color:#353027}';document.head.appendChild(st2);
+        document.addEventListener('pointerdown',e=>{if(document.body.classList.contains('full')&&lp.classList.contains('show')&&!lp.contains(e.target)&&!e.target.closest('#layersBtn'))lp.classList.remove('show')},true)}
       // التوجّه للهدف: لتحت = تصغير (وقت الملاحة)، لفوق/ضغطة = تكبير
       addGrip(navCard,{zone:'.nav-name,.nav-head',down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
       // دليل الرادار (فوق): المقبض تحت — لتحت = يفتح، لفوق = يطوي
