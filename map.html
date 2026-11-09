@@ -576,7 +576,16 @@ body.full .lp-g{margin-top:6px;width:100%}
       tools.onclick=()=>{try{parent.postMessage({type:'DALIL_OPEN_TOOLS'},location.origin)}catch(err){}};
       const g=document.createElement('button');g.type='button';g.className='lp-g';g.textContent='خرائط Google ↗';g.onclick=()=>{try{openGoogleMap()}catch(err){}};
       const lb=document.getElementById('lpBase');if(lb&&lb.parentNode)lb.parentNode.insertBefore(g,lb.nextSibling)}
-    if(tools)tools.hidden=!on;try{render()}catch(err){}})})();
+    if(tools)tools.hidden=!on;
+    if(on){
+      // التوجّه للهدف: لتحت = تصغير (وقت الملاحة)، لفوق/ضغطة = تكبير
+      addGrip(navCard,{down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
+      // دليل الرادار (فوق): المقبض تحت — لتحت = يفتح، لفوق = يطوي
+      const rl=$('#radarLegend'),ri=$('#rlInfo');addGrip(rl,{pos:'bottom',down:()=>{if(!rl.classList.contains('rl-open'))ri.click()},up:()=>{if(rl.classList.contains('rl-open'))ri.click()},tap:()=>ri.click()});
+      // بطاقات البلاغ: لتحت = تقفل
+      for(const id of['#rainSheet','#springSheet']){const sh=$(id);addGrip(sh,{down:()=>{sh.hidden=true}})}
+    }
+    try{render()}catch(err){}})})();
 $('#lpClose').onclick=()=>layersPanel.classList.remove('show');
 $('#lpBase').onclick=e=>{const b=e.target.closest('[data-base]');if(b)setBase(b.dataset.base)};
 for(const[id,key]of[['#lpHs','hs'],['#lpContour','contour'],['#lpWadi','wadi'],['#lpDalil','dalil'],['#lpMine','mine'],['#lpNdvi','ndvi'],['#lpWater','water'],['#lpRain','rain'],['#lpClouds','clouds'],['#lpRadar','radar'],['#lpLightning','lightning']])$(id).onchange=e=>{LP[key]=e.target.checked;saveLP();applyPrefs();
@@ -1363,6 +1372,16 @@ function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;start
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+// مقبض سحب للبطاقات: اسحب لتحت = أصغر، لفوق = أكبر، ضغطة = تبديل. pos='top' (البطاقات تحت) أو 'bottom' (البطاقات فوق)
+function addGrip(el,{down,up,tap,pos='top'}){if(!el||el.querySelector(':scope>.grip'))return;const g=document.createElement('div');g.className='grip grip-'+pos;g.setAttribute('aria-hidden','true');
+  pos==='top'?el.insertBefore(g,el.firstChild):el.appendChild(g);let y0=null,moved=false;
+  g.addEventListener('pointerdown',e=>{y0=e.clientY;moved=false;try{g.setPointerCapture(e.pointerId)}catch(err){}e.stopPropagation()});
+  g.addEventListener('pointermove',e=>{if(y0!==null&&Math.abs(e.clientY-y0)>8)moved=true;e.stopPropagation()});
+  g.addEventListener('pointerup',e=>{if(y0===null)return;const dy=e.clientY-y0;y0=null;e.stopPropagation();if(Math.abs(dy)>24)(dy>0?down:up)&&(dy>0?down():up());else if(!moved&&tap)tap()});
+  g.addEventListener('click',e=>e.stopPropagation())}
+{const st=document.createElement('style');st.textContent=`.grip{height:22px;margin:-6px -8px 2px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none}
+.grip::before{content:"";width:38px;height:5px;border-radius:3px;background:#CDBFA8}.grip-bottom{margin:2px -8px -6px}
+:is(html[data-theme=dark],html[data-theme=red]) .grip::before{background:#5A4E3E}`;document.head.appendChild(st)}
 // ---------- مطر الأسبوع (تجربة مخفية — تُفتح من «عن التطبيق» بالضغط 5 مرات على رقم الإصدار) ----------
 // data/rain-week.json يُحسب مرتين يوميًا من 3 نماذج (ECMWF, GFS, ICON). التلوين بوسيط النماذج، والشفافية حسب اتفاقها.
 (function(){
@@ -1372,6 +1391,9 @@ if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serv
 .wk-panel{position:fixed;z-index:66;right:10px;left:74px;bottom:calc(var(--qh,0px) + 12px);background:#fffffff4;border:1px solid #E4DED3;border-radius:18px;box-shadow:0 6px 20px #0003;padding:8px 10px 9px;direction:rtl}
 .wk-bar{position:static;padding:0 0 6px;direction:rtl}
 .wk-panel:not(.open) .wk-leg{display:none}
+.wk-panel.s0 .wk-bar{display:none}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{max-height:62vh;overflow:auto}
+.wk-tw{white-space:nowrap}
+body.wk-full #quick{display:none!important}
 
 body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #badge{display:none!important}
 .wk-bar h3{margin:0 3px 4px;font-size:12.5px;align-items:baseline;color:#2B2116;display:flex;justify-content:space-between;gap:6px}.wk-bar h3 small{font-weight:500;color:#8A7A65;font-size:10px}
@@ -1389,7 +1411,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
 :is(html[data-theme=dark],html[data-theme=red]) .wk-row{border-color:#353027}`;document.head.appendChild(st);
   const q=document.getElementById('quick');if(!q)return;
   const btn=document.createElement('button');btn.type='button';btn.dataset.wk='1';btn.innerHTML='<span>🗓️</span><b>الأسبوع</b>';q.appendChild(btn);
-  let D=null,day=1,on=false,open=false,bar=null,card=null,panel=null,lastReg='';
+  let D=null,day=1,on=false,open=false,size=1,bar=null,card=null,panel=null,lastReg='';
   const COL=['step',['get','m'],'rgba(0,0,0,0)',1,'#CFE8FB',3,'#8CC4F2',7,'#4A90D9',15,'#2457A6',25,'#5B1F86'];
   const dayName=(d,i)=>i===0?'اليوم':i===1?'بكرة':new Intl.DateTimeFormat('ar-SA-u-nu-latn',{weekday:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -1408,15 +1430,16 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       gl.addLayer({id:'wkt',type:'circle',source:'wkt',paint:{'circle-radius':5,'circle-color':'#F2C14E','circle-stroke-color':'#5C3A0E','circle-stroke-width':1.5}},'slot:dalil')}
     for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility',on?'visible':'none');render()}
   function regName(){try{const c=stageToLatLng(innerWidth/2,innerHeight/2),r=regionAt(c.lng,c.lat);return r?r.name:''}catch(e){return''}}
-  function drawCard(){if(!card||!D)return;panel&&panel.classList.toggle('open',open);const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
+  function setSize(v){size=Math.max(0,Math.min(2,v));open=size===2;document.body.classList.toggle('wk-full',size===2);drawCard()}
+  function drawCard(){if(!card||!D)return;if(panel){panel.classList.toggle('open',open);panel.classList.toggle('s0',size===0)}const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
     const agree=a=>a===3?'<span class="wk-ok">الثلاثة متفقة</span>':a===2?'<span class="wk-mx">نموذجين من 3</span>':'';
     if(!rn){card.innerHTML='<div class="hd"><span>حرّك الخريطة على منطقة داخل المملكة</span></div>';return}
     if(!L.length){card.innerHTML='<div class="hd"><span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر</span></div>';return}
     const t=L[0];
-    const tw=when(t[6],day);card.innerHTML='<div class="hd"><span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' · 🕐 '+esc(tw):'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
+    const tw=when(t[6],day);card.innerHTML='<div class="hd"><span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
       (open?L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span>'+esc(x[0])+agree(x[2])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">🕐 '+(x[6]>=0&&day<3?'الذروة ':'')+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
         '<div class="wk-note">توقعات نماذج الطقس (الأوروبي والأمريكي والألماني)'+(day>=3?' — بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>':'');
-    card.querySelector('.hd').onclick=()=>{open=!open;drawCard()};
+    card.querySelector('.hd').onclick=()=>setSize(open?1:2);
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
     bar.innerHTML='<h3>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></h3>'+
@@ -1430,12 +1453,13 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       status.textContent='مطر الأسبوع: اختر اليوم من فوق. الغامق = النماذج متفقة'}
     // لوحة واحدة تحت: الأيام + أقوى مكان (والدليل يظهر لما تفتح «الخمسة») — أعلى الخريطة يبقى فاضي
     panel=document.createElement('div');panel.className='wk-panel';document.body.appendChild(panel);
+    addGrip(panel,{down:()=>setSize(size-1),up:()=>setSize(size+1),tap:()=>setSize(size===2?1:size+1)});
     bar=document.createElement('div');bar.className='wk-bar';panel.appendChild(bar);
     card=document.createElement('div');card.className='wk-card';panel.appendChild(card);
     if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;const[wx,wy]=world(c.lat,c.lng);cx=wx;cy=wy;render()}
     document.body.classList.add('wk-on');
     drawBar();draw();drawCard()}
-  function stop(){document.body.classList.remove('wk-on');panel&&panel.remove();panel=bar=card=null;if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
+  function stop(){document.body.classList.remove('wk-on','wk-full');size=1;open=false;panel&&panel.remove();panel=bar=card=null;if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
   setInterval(()=>{if(on&&card&&regName()!==lastReg)drawCard()},1200);
 })();
