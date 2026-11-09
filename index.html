@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2179,12 +2179,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   (function(){
     const ua = navigator.userAgent, ios = ua.match(/DalilApp\/([0-9.]+)/), and = ua.match(/DalilAndroid\/([0-9.]+)/);
     const v = document.getElementById('aboutVer'), u = document.getElementById('aboutUpd');
-    // تجربة مخفية «مطر الأسبوع» في الخريطة: 5 ضغطات على رقم الإصدار تشغّلها/تطفيها لهذا الجوال فقط
+    // تجارب مخفية لهذا الجوال فقط: 5 ضغطات على رقم الإصدار تفتح لوحة التجارب
     if(v){ let taps = 0, tt = 0; v.addEventListener('click', ()=>{ clearTimeout(tt); tt = setTimeout(()=>{ taps = 0; }, 1500);
-      if(++taps < 5) return; taps = 0; let onNow = false;
-      try{ onNow = localStorage.getItem('dalil_lab_week') === '1'; if(onNow) localStorage.removeItem('dalil_lab_week'); else localStorage.setItem('dalil_lab_week', '1'); }catch(e){ return; }
-      toast(onNow ? 'أُطفئت تجربة «مطر الأسبوع»' : '🧪 شغّلنا تجربة «مطر الأسبوع» — افتح الخريطة وتلقى زر 🗓️ الأسبوع');
-      const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }); }
+      if(++taps < 5) return; taps = 0;
+      let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
+      box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
+      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)']];
+      const get = k=>{ try{ return localStorage.getItem(k) === '1'; }catch(e){ return false; } };
+      box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
+      box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
+        try{ c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
+        if(c.dataset.lab === 'dalil_lab_layout'){ toast(c.checked ? 'شغّلنا الترتيب الجديد — يعيد فتح التطبيق' : 'رجّعنا الترتيب الأصلي'); setTimeout(()=>location.reload(), 900); }
+        else{ toast(c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
+      });
+      v.parentNode.insertBefore(box, v.nextSibling); }); }
     if(v) v.textContent = ios ? 'الإصدار ' + ios[1] + ' (آيفون)' : and ? 'الإصدار ' + and[1] + ' (أندرويد)' : 'نسخة الويب';
     const d = new Date(document.lastModified);   // وقت نشر الصفحة على الموقع (يتحدّث تلقائيًا مع كل تعديل)
     if(u && !isNaN(d)) u.textContent = 'آخر تحديث: ' + d.toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long', year:'numeric'}) + ' · ' + d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit', timeZone:'Asia/Riyadh'});
@@ -6592,6 +6600,92 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }else if(window.DalilEvents) window.DalilEvents.hide();
   }
   document.querySelectorAll('.seg-b[data-wxpane]').forEach(b=>b.addEventListener('click', ()=>showWxPane(b.dataset.wxpane)));
+  // ---------- تجربة «الترتيب الجديد» (مخفية — تُشغّل من «عن التطبيق»: 5 ضغطات على رقم الإصدار) ----------
+  // تبويب «البر» (الربيع والفياض والفقع والطيور والأحداث) منفصل عن «الأجواء»، والإعدادات من ⚙️ فوق، والتنبيهات أول الإعدادات.
+  (function(){
+    let lab = false; try{ lab = localStorage.getItem('dalil_lab_layout') === '1'; }catch(e){}
+    if(!lab) return;
+    document.body.classList.add('lab-layout');
+    const wxTab = document.querySelector('.tab[data-screen="weather"]'), setTab = document.querySelector('.tab[data-screen="settings"]');
+    const br = document.createElement('button'); br.type = 'button'; br.className = 'tab'; br.dataset.barr = '1';
+    br.innerHTML = '<span class="ic" aria-hidden="true">' + (typeof ico === 'function' ? ico('leaf') : '🌱') + '</span>البر'; setTab.parentNode.insertBefore(br, setTab); setTab.style.display = 'none';
+    const BARR = ['spring', 'ev'];
+    let lastBarr = 'spring';
+    const wxSeg = document.querySelector('.seg-b[data-wxpane]').parentNode, spSeg = document.getElementById('spSeg');
+    // شريط البر الموحّد
+    const bSeg = document.createElement('div'); bSeg.className = 'seg'; bSeg.setAttribute('role', 'tablist'); bSeg.setAttribute('aria-label', 'البر');
+    const BTN = [['fayd', 'الفياض'], ['fq', 'الفقع'], ['birds', 'الطيور'], ['ev', 'الأحداث']];
+    bSeg.innerHTML = BTN.map(([k, t])=>{ const src = k === 'ev' ? document.querySelector('.seg-b[data-wxpane="ev"]') : spSeg && spSeg.querySelector('[data-sp="' + k + '"]');
+      const inner = src ? src.innerHTML : t; return '<button type="button" class="seg-b" role="tab" data-barrb="' + k + '">' + inner + '</button>'; }).join('');
+    wxSeg.parentNode.insertBefore(bSeg, wxSeg.nextSibling);
+    if(spSeg) spSeg.style.display = 'none';
+    bSeg.querySelectorAll('[data-barrb]').forEach(b=>b.addEventListener('click', ()=>{
+      const k = b.dataset.barrb;
+      if(k === 'ev') showWxPane('ev');
+      else{ showWxPane('spring'); const t = spSeg && spSeg.querySelector('[data-sp="' + k + '"]'); if(t) t.click(); }
+      markBarr();
+    }));
+    function markBarr(){ const k = wxPaneShown === 'ev' ? 'ev' : (typeof spView === 'string' ? spView : 'fayd');
+      bSeg.querySelectorAll('[data-barrb]').forEach(b=>{ const on = b.dataset.barrb === k; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); }
+    function sync(which){
+      const inBarr = BARR.includes(which); if(inBarr) lastBarr = which;
+      document.querySelectorAll('.seg-b[data-wxpane]').forEach(b=>{ b.style.display = (BARR.includes(b.dataset.wxpane) === inBarr) ? '' : 'none'; });
+      wxSeg.style.display = inBarr ? 'none' : ''; wxSeg.style.gridTemplateColumns = 'repeat(2,1fr)';
+      bSeg.style.display = inBarr ? '' : 'none'; if(inBarr) markBarr();
+      if(document.getElementById('screen-weather').classList.contains('active')){
+        wxTab.classList.toggle('active', !inBarr); br.classList.toggle('active', inBarr);
+        document.getElementById('screenTitle').textContent = inBarr ? 'البر' : 'الأجواء';
+      }
+    }
+    const orig = showWxPane; showWxPane = function(w, o){ orig(w, o); sync(w); };
+    br.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));
+      document.getElementById('screen-weather').classList.add('active'); br.classList.add('active');
+      document.body.classList.remove('on-compass');
+      if(window.__dalilShowAlerts) window.__dalilShowAlerts();
+      showWxPane(lastBarr);
+    });
+    wxTab.addEventListener('click', ()=>{ showWxPane(['wx', 'wind'].includes(wxPaneShown) ? wxPaneShown : 'wx'); });
+    sync(wxPaneShown);
+    // ⚙️ فوق بدل تبويب الإعدادات
+    const gear = ()=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'cp-badge lab-gear'; b.setAttribute('aria-label', 'الإعدادات');
+      b.innerHTML = '<span class="cp-pill"><span class="cp-ic">' + (typeof ico === 'function' ? ico('sliders') : '⚙️') + '</span></span>'; b.onclick = ()=>setTab.click(); return b; };
+    document.querySelectorAll('.app-head .cp-badges, #screen-compass .cp-head .cp-badges').forEach(x=>x.appendChild(gear()));
+    // البوصلة: الحرارة والمطر في زر واحد (الشريط كان مزدحم والمطر ينقص)
+    (function(){
+      const wb = document.getElementById('cpWeatherBadge'), rb = document.getElementById('cpRainBadge'), rt = document.getElementById('cpRainText');
+      if(!wb || !rb || !rt) return;
+      const extra = document.createElement('span'); extra.className = 'lab-rain'; wb.querySelector('.cp-pill').appendChild(extra);
+      const upd = ()=>{ const t = rt.textContent.trim(); const show = !rb.hidden && !!t; extra.textContent = show ? ' · 🌧️ ' + t.split(' · ')[0].replace(':00', '') : ''; rb.style.display = 'none';
+        if(show && wb.hidden){ wb.hidden = false; } };
+      new MutationObserver(upd).observe(rb, {attributes:true, attributeFilter:['hidden']}); new MutationObserver(upd).observe(rt, {childList:true, characterData:true, subtree:true});
+      wb.addEventListener('click', e=>{ if(extra.textContent && e.target === extra){ e.stopPropagation(); rb.click(); } }, true);
+      upd();
+    })();
+    // ترتيب الإعدادات: مجموعات، والتنبيهات أول
+    const scr = document.getElementById('screen-settings'), blocks = {}, order = [];
+    let cur = null;
+    [...scr.children].forEach(el=>{
+      if(el.classList.contains('section-title')){ cur = el.textContent.trim(); blocks[cur] = []; order.push(cur); }
+      if(cur) blocks[cur].push(el);
+    });
+    const GROUPS = [['🔔 التنبيهات', ['التنبيهات']],
+      ['🗺️ الخريطة', ['خرائط البر', 'اتجاه الخريطة', 'حجم أسماء الخريطة', 'صيغة الإحداثيات الافتراضية']],
+      ['🎨 المظهر', ['المظهر']],
+      ['🛠️ البيانات والمساعدة', ['قناة الرحلة في Zello', 'النسخة الاحتياطية والبيانات المحلية', 'الأذونات', 'تشخيص سريع', 'المصادر والتراخيص', 'عن التطبيق']]];
+    const firstTitle = scr.querySelector('.section-title'), frag = document.createDocumentFragment(), used = new Set();
+    GROUPS.forEach(([g, list])=>{
+      const h = document.createElement('div'); h.className = 'lab-group'; h.textContent = g; frag.appendChild(h);
+      list.forEach(t=>{ (blocks[t] || []).forEach(el=>frag.appendChild(el)); used.add(t); });
+      if(list.length === 1 && blocks[list[0]]) blocks[list[0]][0].style.display = 'none';   // عنوان مكرر مع اسم المجموعة
+    });
+    order.filter(t=>!used.has(t)).forEach(t=>blocks[t].forEach(el=>frag.appendChild(el)));
+    if(firstTitle) scr.appendChild(frag);
+    const st = document.createElement('style');
+    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
+    document.head.appendChild(st);
+  })();
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{
     if(tab.dataset.screen === 'weather'){ if(wxPaneShown !== 'wx') showWxPane(wxPaneShown); }
     else if(window.DalilEvents) window.DalilEvents.hide();

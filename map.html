@@ -1360,6 +1360,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
 .wk-card .hd{display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer}.wk-card .hd b{color:#2457A6;white-space:nowrap}
 .wk-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid #F0E8DA;cursor:pointer}.wk-row b{color:#2457A6}
 .wk-ok{font-size:10.5px;color:#2E7D4F;background:#E3F2E8;border-radius:8px;padding:1px 6px;margin-inline-start:5px}.wk-mx{font-size:10.5px;color:#8A6A40;background:#F5EBDA;border-radius:8px;padding:1px 6px;margin-inline-start:5px}
+.wk-t{display:block;font-size:11px;color:#7A6A55;margin-top:1px}
 .wk-note{margin-top:6px;font-size:10.5px;color:#7A6A55;line-height:1.5}
 :is(html[data-theme=dark],html[data-theme=red]) :is(.wk-bar,.wk-card){background:#1F1B16f2;border-color:#353027;color:#EFE8DC}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-bar h3{color:#EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) .wk-days button:not(.on){background:#2C261E;color:#EFE8DC}
@@ -1370,6 +1371,9 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   const COL=['step',['get','m'],'rgba(0,0,0,0)',1,'#CFE8FB',3,'#8CC4F2',7,'#4A90D9',15,'#2457A6',25,'#5B1F86'];
   const dayName=(d,i)=>i===0?'اليوم':i===1?'بكرة':new Intl.DateTimeFormat('ar-SA-u-nu-latn',{weekday:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // وقت الذروة: الأيام القريبة بالساعات، والبعيدة فترة عامة (الدقة أقل)
+  const h12=h=>{h=(h+24)%24;return(h%12||12)+(h<12?' ص':' م')};
+  const when=(ph,d)=>ph==null?'':ph<0?'التوقيت غير مؤكد':d<3?h12(ph)+' – '+h12(ph+3):(x=>x>=5&&x<11?'الصبح':x>=11&&x<15?'الظهر':x>=15&&x<18?'العصر':x>=18&&x<23?'الليل':'آخر الليل')((ph+1)%24);
   function fc(){const h=D.r/2,f=[],t=[];for(const c of D.cells){const k=2+day*3,m=c[k]/10,a=c[k+1],th=c[k+2];if(m<1&&a<1)continue;
       const la=D.lat0+(c[0]+.5)*D.r,ln=D.lng0+(c[1]+.5)*D.r;
       f.push({type:'Feature',properties:{m,a},geometry:{type:'Polygon',coordinates:[[[ln-h,la-h],[ln+h,la-h],[ln+h,la+h],[ln-h,la+h],[ln-h,la-h]]]}});
@@ -1387,8 +1391,8 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     if(!rn){card.innerHTML='<div class="hd"><span>حرّك الخريطة على منطقة داخل المملكة</span></div>';return}
     if(!L.length){card.innerHTML='<div class="hd"><span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر</span></div>';return}
     const t=L[0];
-    card.innerHTML='<div class="hd"><span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b></span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
-      (open?L.map((x,i)=>'<div class="wk-row" data-i="'+i+'"><span>'+esc(x[0])+agree(x[2])+(x[3]>=2?' ⚡':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>').join('')+
+    const tw=when(t[6],day);card.innerHTML='<div class="hd"><span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' · 🕐 '+esc(tw):'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
+      (open?L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span>'+esc(x[0])+agree(x[2])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">🕐 '+(x[6]>=0&&day<3?'الذروة ':'')+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
         '<div class="wk-note">توقعات نماذج الطقس (الأوروبي والأمريكي والألماني)'+(day>=3?' — بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>':'');
     card.querySelector('.hd').onclick=()=>{open=!open;drawCard()};
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn});}
