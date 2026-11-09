@@ -35,23 +35,24 @@ def at(m, i, j, day, tab):
 def thund(m, i, j, day):
     return max(W[m].get((a, b), [0] * 7)[day] for a in (i - i % 2, i - i % 2 + 2) for b in (j - j % 2, j - j % 2 + 2)) >= 95
 def peak(i, j, day):
-    # أقوى 3 ساعات متواصلة لكل نموذج فيه ≥2 ملم ذاك اليوم؛ إذا اختلفت بدايات النماذج أكثر من 3 ساعات → -1 (غير مؤكد)
-    starts = []
+    # أقوى 3 ساعات متواصلة من وسيط النماذج ساعة بساعة؛ مؤكد إذا نموذجين على الأقل ذروتهم خلال ±3 ساعات منه، وإلا -1 (غير مؤكد)
+    y, x = i + .5, j + .5; i0, j0 = int(y // 2) * 2, int(x // 2) * 2; fy, fx = (y - i0) / 2, (x - j0) / 2
+    series = {}
     for m in MODELS:
         if at(m, i, j, day, P) < 2: continue
-        y, x = i + .5, j + .5; i0, j0 = int(y // 2) * 2, int(x // 2) * 2; fy, fx = (y - i0) / 2, (x - j0) / 2
         hrs = [0.0] * 24; ws = 0
         for (a, b, w) in ((i0, j0, (1 - fy) * (1 - fx)), (i0 + 2, j0, fy * (1 - fx)), (i0, j0 + 2, (1 - fy) * fx), (i0 + 2, j0 + 2, fy * fx)):
             v = H[m].get((a, b))
             if v is None: continue
             ws += w
             for h in range(24): hrs[h] += v[day * 24 + h] * w
-        if not ws: continue
-        sums = [sum(hrs[h:h + 3]) for h in range(22)]
-        starts.append(max(range(22), key=lambda h: sums[h]))
-    if not starts: return None
-    starts.sort()
-    return starts[len(starts) // 2] if starts[-1] - starts[0] <= 3 else -1
+        if ws: series[m] = hrs
+    if not series: return None
+    w3 = lambda hrs: [sum(hrs[h:h + 3]) for h in range(22)]
+    med = [sorted(series[m][h] for m in series)[len(series) // 2] for h in range(24)]
+    ph = max(range(22), key=lambda h: w3(med)[h])
+    near = sum(abs(max(range(22), key=lambda h: w3(series[m])[h]) - ph) <= 3 for m in series)
+    return ph if near >= min(2, len(series)) else -1
 cells = []; best = {}
 O = json.load(open(A + 'open-places.json')); towns = [x for x in O['p'] if O['cats'][x[4]] == 'معلم رئيسي']
 def near(la, ln): return min(towns, key=lambda x: (x[1] - la) ** 2 + ((x[2] - ln) * math.cos(math.radians(la))) ** 2)[0]
