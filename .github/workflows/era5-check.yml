@@ -1,0 +1,12 @@
+name: ERA5 check (trial)
+on:
+  push:
+    branches: [map-details]
+    paths: [".github/workflows/era5-check.yml", "tools/wxtrial/era5_check.py", "tools/wxtrial/era5_pts.txt"]
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/wxtrial/era5_check.py
