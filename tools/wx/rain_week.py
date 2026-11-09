@@ -9,12 +9,12 @@ reg = lambda i, j: (ord(G['g'][i * NC + j]) - 97) if 0 <= i < NR and 0 <= j < NC
 pts = [(i, j) for i in range(0, NR + 1, 2) for j in range(0, NC + 1, 2)
        if any(reg(i + a, j + b) >= 0 for a in (-2, -1, 0, 1) for b in (-2, -1, 0, 1))]
 MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless']
-P = {m: {} for m in MODELS}; W = {m: {} for m in MODELS}; days = None
+P = {m: {} for m in MODELS}; W = {m: {} for m in MODELS}; H = {m: {} for m in MODELS}; days = None
 for m in MODELS:
     for k in range(0, len(pts), 100):
         ch = pts[k:k + 100]; d = None
         q = {'latitude': ','.join(f'{LA0 + i * R:.2f}' for i, _ in ch), 'longitude': ','.join(f'{LN0 + j * R:.2f}' for _, j in ch),
-             'daily': 'precipitation_sum,weather_code', 'models': m, 'timezone': 'Asia/Riyadh', 'forecast_days': 7}
+             'daily': 'precipitation_sum,weather_code', 'hourly': 'precipitation', 'models': m, 'timezone': 'Asia/Riyadh', 'forecast_days': 7}
         for t in range(6):
             try: d = json.loads(urllib.request.urlopen('https://api.open-meteo.com/v1/forecast?' + urllib.parse.urlencode(q), timeout=90).read()); break
             except Exception as e: print('retry', m, k, e, flush=True); time.sleep(30)
@@ -22,6 +22,7 @@ for m in MODELS:
         d = d if isinstance(d, list) else [d]; days = d[0]['daily']['time']
         for c, x in zip(ch, d):
             P[m][c] = [v or 0 for v in x['daily']['precipitation_sum']]; W[m][c] = [v or 0 for v in x['daily']['weather_code']]
+            H[m][c] = [v or 0 for v in x['hourly']['precipitation']]
         time.sleep(2)
     print(m, 'ok', flush=True)
 def at(m, i, j, day, tab):
@@ -33,6 +34,24 @@ def at(m, i, j, day, tab):
     return s / wsum if wsum else 0
 def thund(m, i, j, day):
     return max(W[m].get((a, b), [0] * 7)[day] for a in (i - i % 2, i - i % 2 + 2) for b in (j - j % 2, j - j % 2 + 2)) >= 95
+def peak(i, j, day):
+    # أقوى 3 ساعات متواصلة لكل نموذج فيه ≥2 ملم ذاك اليوم؛ إذا اختلفت بدايات النماذج أكثر من 3 ساعات → -1 (غير مؤكد)
+    starts = []
+    for m in MODELS:
+        if at(m, i, j, day, P) < 2: continue
+        y, x = i + .5, j + .5; i0, j0 = int(y // 2) * 2, int(x // 2) * 2; fy, fx = (y - i0) / 2, (x - j0) / 2
+        hrs = [0.0] * 24; ws = 0
+        for (a, b, w) in ((i0, j0, (1 - fy) * (1 - fx)), (i0 + 2, j0, fy * (1 - fx)), (i0, j0 + 2, (1 - fy) * fx), (i0 + 2, j0 + 2, fy * fx)):
+            v = H[m].get((a, b))
+            if v is None: continue
+            ws += w
+            for h in range(24): hrs[h] += v[day * 24 + h] * w
+        if not ws: continue
+        sums = [sum(hrs[h:h + 3]) for h in range(22)]
+        starts.append(max(range(22), key=lambda h: sums[h]))
+    if not starts: return None
+    starts.sort()
+    return starts[len(starts) // 2] if starts[-1] - starts[0] <= 3 else -1
 cells = []; best = {}
 O = json.load(open(A + 'open-places.json')); towns = [x for x in O['p'] if O['cats'][x[4]] == 'معلم رئيسي']
 def near(la, ln): return min(towns, key=lambda x: (x[1] - la) ** 2 + ((x[2] - ln) * math.cos(math.radians(la))) ** 2)[0]
@@ -52,7 +71,7 @@ for (rg, day), lst in best.items():
     for ok, med, ag, th, i, j in lst:
         la, ln = LA0 + (i + .5) * R, LN0 + (j + .5) * R; n = near(la, ln)
         if n in used: continue
-        used.add(n); out.append([n, round(med, 1), ag, th, round(la, 2), round(ln, 2)])
+        used.add(n); out.append([n, round(med, 1), ag, th, round(la, 2), round(ln, 2), peak(i, j, day)])
         if len(out) == 5: break
     top.setdefault(G['regions'][rg], [[] for _ in range(7)])[day] = out
 now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3)))
