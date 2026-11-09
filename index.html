@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-16" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261109-17" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2110,6 +2110,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function cardinal(deg){
     const dirs = ['ش','ش.ش.ق','ش.ق','ش.ق.ق','ق','ج.ق.ق','ج.ق','ج.ج.ق','ج','ج.ج.غ','ج.غ','غ.ج.غ','غ','غ.ش.غ','ش.غ','ش.ش.غ'];
+    // الترتيب الجديد: الاتجاه بالكلمة (جنوب غرب) بدل الاختصار
+    if(document.body.classList.contains('lab-layout')) return ['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(deg/45)%8];
     return dirs[Math.round(deg/22.5)%16];
   }
 
@@ -6677,6 +6679,41 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     });
     wxTab.addEventListener('click', ()=>{ showWxPane(['wx', 'wind'].includes(wxPaneShown) ? wxPaneShown : 'wx'); });
     sync(wxPaneShown);
+    // أيقونات ملوّنة للتبويبات
+    const TABIC = {compass:'🧭', places:'📍', track:'🗺️', weather:'🌦️'};
+    document.querySelectorAll('.tab[data-screen]').forEach(t=>{ const e = TABIC[t.dataset.screen], ic = t.querySelector('.ic'); if(e && ic){ ic.textContent = e; ic.classList.add('lab-emo'); } });
+    { const ic = br.querySelector('.ic'); if(ic){ ic.textContent = '🌱'; ic.classList.add('lab-emo'); } }
+    // الأماكن: «حولي» بتصفية سريعة، وبطاقات أصغر بأيقونة لكل نوع
+    (function(){
+      const list = document.getElementById('placesList'), seg = document.getElementById('plSeg'), cnt = document.getElementById('placesCount');
+      const GROUP = [['all','الكل',null],['water','💧 ماء',['مورد ماء','ماء شرب','تجمع مياه','سد']],['fuel','⛽ وقود',['محطة وقود']],
+        ['land','⛰️ معالم',['جبل','معلم','معلم رئيسي','معلم سياحي','آثار','نفود','حرة','سبخة','كهف','دحل','تخييم واستراحة']],['aid','🏥 إسعاف',['إسعاف وصحة','أمن وطوارئ']],['fix','🔧 صيانة',['صيانة سيارات']]];
+      const EMO = {'محطة وقود':'⛽','صيانة سيارات':'🔧','إسعاف وصحة':'🏥','أمن وطوارئ':'🚓','منطقة عسكرية':'⛔','تخييم واستراحة':'⛺','معلم سياحي':'🏛️','سد':'💧','مورد ماء':'💧','ماء شرب':'🚰','تجمع مياه':'🌊','جبل':'⛰️','نفود':'🏜️','آثار':'🏺','كهف':'🕳️','دحل':'🕳️','حرة':'🌋','سبخة':'🧂','معلم رئيسي':'📌','معلم':'📌'};
+      const REG = ['جازان','حائل','الحدود الشمالية','الجوف','عسير','مكة','الشرقية','نجران','الباحة','تبوك','المدينة','القصيم','الرياض'];
+      let f = 'all', busy = false;
+      const chips = document.createElement('div'); chips.className = 'chips lab-nchips';
+      chips.innerHTML = GROUP.map(([k, t])=>'<button type="button" class="chip' + (k === 'all' ? ' active' : '') + '" data-nf="' + k + '">' + t + '</button>').join('');
+      cnt.parentNode.insertBefore(chips, cnt);
+      chips.addEventListener('click', e=>{ const b = e.target.closest('[data-nf]'); if(!b) return; f = b.dataset.nf; chips.querySelectorAll('[data-nf]').forEach(x=>x.classList.toggle('active', x === b)); tidy(); });
+      function tidy(){
+        if(busy) return; busy = true;
+        const near = !seg.hidden && seg.querySelector('[data-pltab="near"]').classList.contains('active');
+        chips.style.display = near ? '' : 'none';
+        const g = GROUP.find(x=>x[0] === f); let shown = 0, total = 0;
+        list.querySelectorAll('.pl-card').forEach(c=>{
+          const m = c.querySelector('.pl-meta'); if(!m) return;
+          if(!m.dataset.kind){ const parts = m.textContent.split(' · '); m.dataset.kind = parts[0];
+            m.textContent = parts.filter(x=>!REG.includes(x)).join(' · ').replace('على بُعد ', '').replace(/(شمال|جنوب) (شرق|غرب)/g, '$1\u00a0$2');
+            const ic = c.querySelector('.pl-ic.cat'), e = EMO[parts[0]]; if(ic && e){ ic.textContent = e; ic.classList.add('lab-emo'); } }
+          if(!near) return; total++;
+          const ok = f === 'all' || (g[2] || []).includes(m.dataset.kind); c.style.display = ok ? '' : 'none'; if(ok) shown++;
+        });
+        if(near && f !== 'all' && total) cnt.textContent = shown ? shown + ' من أقرب ' + total + ' موقع' : 'ما فيه ' + g[1].replace(/^\S+ /, '') + ' بين أقرب ' + total + ' موقع — جرّب البحث';
+        busy = false;
+      }
+      new MutationObserver(tidy).observe(list, {childList:true});
+      tidy();
+    })();
     // رنتين بدل «طنّة» وحدة: رنة التنبيهات (المطر والعواصف والفياض) ورنة الأحداث
     (function(){
       const old = document.getElementById('toneSel'); if(!old) return; const row = old.closest('label'); if(!row) return;
@@ -6728,7 +6765,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     order.filter(t=>!used.has(t)).forEach(t=>blocks[t].forEach(el=>frag.appendChild(el)));
     if(firstTitle) scr.appendChild(frag);
     const st = document.createElement('style');
-    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-play{margin-inline-start:6px;font:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:2px 9px;vertical-align:middle}.lab-tone-note{font-size:11.5px;color:var(--text-dim);line-height:1.6;margin:2px 4px 8px}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
+    st.textContent = '.seg-b[data-barrb]{--tab:#3E9B4F}.seg-b[data-barrb="fq"]{--tab:#B88A5A}.seg-b[data-barrb="birds"]{--tab:#6A9FD4}.seg-b[data-barrb="ev"]{--tab:#D2553F}.lab-play{margin-inline-start:6px;font:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:999px;padding:2px 9px;vertical-align:middle}.lab-tone-note{font-size:11.5px;color:var(--text-dim);line-height:1.6;margin:2px 4px 8px}.lab-rain{font-size:12.5px;font-weight:700;color:#2457A6;white-space:nowrap;max-width:30vw;overflow:hidden;text-overflow:ellipsis}body.lab-layout #plSeg{grid-template-columns:1fr 1fr}.lab-emo{font-size:21px;line-height:1;font-style:normal}.tab .ic.lab-emo{font-size:21px!important;display:inline-flex;align-items:center;justify-content:center;filter:saturate(1.05)}body.lab-layout #placesList .pl-card{padding:9px 11px;gap:9px}body.lab-layout #placesList .pl-meta{line-height:1.45}body.lab-layout #placesList .pl-go{padding:8px 12px;min-height:0}body.lab-layout #placesList .pl-go .cp-ic{display:none}body.lab-layout #placesList .pl-ic.lab-emo{font-size:19px}.lab-nchips{margin-top:8px}.lab-group{margin:22px 4px 4px;font-size:18px;font-weight:900;color:var(--text)}.lab-group:first-of-type{margin-top:8px}.lab-ic{font-size:20px;line-height:1}';
     document.head.appendChild(st);
   })();
   document.querySelectorAll('.tab[data-screen]').forEach(tab=>tab.addEventListener('click', ()=>{
