@@ -77,6 +77,8 @@ for (rg, day), lst in best.items():
     for ok, med, ag, th, i, j in lst:
         la, ln = LA0 + (i + .5) * R, LN0 + (j + .5) * R; n = near(la, ln)
         if n in used: continue
+        # 10 نوفمبر: الخمسة طلعت كلها جنوب حائل وفاتتها بقعاء والعش → نوزعها: بين كل مكانين 40 كم على الأقل
+        if any(((la - o[4]) * 111) ** 2 + ((ln - o[5]) * 111 * math.cos(math.radians(la))) ** 2 < 40 ** 2 for o in out): continue
         used.add(n); out.append([n, round(med, 1), ag, th, round(la, 2), round(ln, 2), peak(i, j, day)])
         if len(out) == 5: break
     top.setdefault(G['regions'][rg], [[] for _ in range(7)])[day] = out
