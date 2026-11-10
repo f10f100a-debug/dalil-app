@@ -176,6 +176,7 @@ Deno.serve(async (req) => {
       publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
       room_reports: ["moderate"], room_report_close: ["moderate"], auto_alerts: ["push"],
       ask_list: ["moderate", "usage"], ask_answer: ["moderate"], ask_dismiss: ["moderate"], ask_kb_delete: ["moderate"],
+      set_kind: ["moderate"],
     };
     if (NEED[action] && !NEED[action].some(can)) return forbidden();
     if (["admins_list", "admin_save", "admin_delete", "log"].includes(action) && !isOwner) return forbidden();
@@ -359,10 +360,22 @@ Deno.serve(async (req) => {
       if (error) throw error;
       let push = null;
       if (body.notify) {
-        push = await sendPush(sb, cfg, ev.region, eventPayload(ev));
+        push = await sendPush(sb, cfg, ev.region, eventPayload({ ...ev, kind: ev.ai_kind && KINDS.includes(ev.ai_kind) ? ev.ai_kind : ev.kind }));
       }
       await log("approve", `${KIND_AR[ev.kind]} ${ev.region} ${ev.caption}`.trim());
       return json(req, { ok: true, push });
+    }
+
+    // تعديل نوع الحدث من الإدارة (10 نوفمبر) — ai_kind معه عشان النشر ما يرجّعه لتصنيف الذكاء الاصطناعي
+    if (action === "set_kind" && validId) {
+      const kind = String(body.kind || "");
+      if (!KINDS.includes(kind)) return json(req, { error: "bad_kind" }, 400);
+      const { data: ev } = await sb.from("events").select("id,kind,region").eq("id", id).maybeSingle();
+      if (!ev) return json(req, { error: "not_found" }, 404);
+      const { error } = await sb.from("events").update({ kind, ai_kind: kind }).eq("id", id);
+      if (error) throw error;
+      await log("set_kind", `${KIND_AR[ev.kind] || ev.kind} → ${KIND_AR[kind]} ${ev.region || ""}`.trim());
+      return json(req, { ok: true });
     }
 
     if (action === "reject" && validId) {

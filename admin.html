@@ -315,6 +315,7 @@
         ${e.ai_verdict ? `<div class="m" style="margin:4px 0">🤖 ${{approve:'نشرها الذكاء الاصطناعي', reject:'رفضها الذكاء الاصطناعي', review:'محتار — يحتاج نظرتك'}[e.ai_verdict] || ''}${e.ai_reason ? ': ' + esc(e.ai_reason) : ''}${e.ai_kind && e.ai_kind !== e.kind ? ' · يقترح النوع «' + esc(KIND[e.ai_kind] || e.ai_kind) + '»' : ''}</div>` : ''}
         ${e.video_url ? `<video src="${esc(safeUrl(e.video_url))}" poster="${esc(safeUrl(e.photo_url))}" controls playsinline preload="metadata" style="width:100%;max-height:320px;background:#000;border-radius:10px;margin:6px 0"></video><div class="m">🎬 فيديو ${e.video_dur ? Math.round(e.video_dur) + ' ث' : ''} — شاهده كاملًا قبل النشر</div>` : ''}
         <div class="m">${esc(when(e.created_at))}${e.nickname ? ' · ' + esc(e.nickname) : ''} · ${loc}</div>
+        ${can('moderate') ? `<label class="m" style="display:flex;align-items:center;gap:6px;margin:6px 0">النوع: <select class="kindSel" style="width:auto">${Object.entries(KIND).map(([k, t])=>`<option value="${k}"${k === (e.ai_kind && KIND[e.ai_kind] && pending ? e.ai_kind : e.kind) ? ' selected' : ''}>${t}</option>`).join('')}</select></label>` : ''}
         ${pending ? `
           ${can('push') ? `<label class="chk"><input type="checkbox" class="notify"${notifyDefault ? ' checked' : ''}> أرسل تنبيهًا لمشتركي ${e.region ? esc(e.region) : 'كل المناطق'}</label>` : ''}
           <div class="row"><button class="gold" data-act="approve">نشر</button><button class="danger" data-act="reject">رفض وحذف</button></div>`
@@ -367,6 +368,13 @@
   $('pass').addEventListener('keydown', e=>{ if(e.key === 'Enter') $('loginBtn').click(); });
   $('logout').addEventListener('click', ()=>{ clearSession(); location.reload(); });
 
+  // تعديل نوع الحدث (مثلًا غبار → مطر): يتغير على طول، وإذا نشرته بعدها يروح التنبيه بالنوع الجديد
+  document.addEventListener('change', async ev=>{
+    const sel = ev.target.closest('select.kindSel'); if(!sel) return;
+    const card = sel.closest('[data-id]'); sel.disabled = true;
+    try{ await api('set_kind', {id:card.dataset.id, kind:sel.value}); const t = card.querySelector('.t'); if(t && t.firstChild) t.firstChild.textContent = KIND[sel.value] + (t.firstChild.textContent.includes(' — ') ? ' — ' + t.firstChild.textContent.split(' — ').slice(1).join(' — ') : ''); }
+    catch(e){ showErr(e); } finally{ sel.disabled = false; }
+  });
   document.addEventListener('click', async ev=>{
     const img = ev.target.closest('img[data-big]');
     if(img && img.dataset.big){ $('big').querySelector('img').src = img.dataset.big; $('big').classList.add('show'); return; }
@@ -711,15 +719,32 @@
         : '<div class="card muted">ما أضفت أجوبة بعد. افتح «ما لقى لها جواب» واكتب جواب لأي سؤال.</div>';
       return;
     }
+    // 10 نوفمبر: الأسئلة المتشابهة مجمّعة (الأكثر تكرارًا أول) — تضغط المجموعة تنفتح، وجواب واحد يحفظ للكل
     const rows = askData.rows || [];
-    box.innerHTML = rows.length ? rows.map(r=>`<div class="card" data-ask="${r.id}">
-      <div style="font-weight:700">${esc(r.q)} ${r.answered ? '' : (r.resolved ? '<span class="badge">تمت</span>' : '<span class="badge warn">ما لقى جواب</span>')}</div>
-      <div class="muted" style="font-size:12px;margin-top:2px">${esc(when(r.at))}${r.screen ? ' · من شاشة ' + esc(SCR_AR[r.screen] || r.screen) : ''}</div>
-      ${r.a ? `<details style="margin-top:6px"><summary class="muted" style="cursor:pointer">رد المساعد</summary><div style="white-space:pre-line;margin-top:4px">${esc(r.a)}</div></details>` : ''}
-      ${r.resolved ? '' : `<label style="margin-top:8px">جوابك (اختياري)</label><textarea class="askA" maxlength="1500" placeholder="اكتب الجواب الصحيح بكلام بسيط…"></textarea>
-      <div class="row" style="margin-top:8px"><button class="gold" data-aact="answer" style="flex:0 0 auto">حفظ الجواب</button>${r.answered ? '' : '<button class="white" data-aact="dismiss" style="flex:0 0 auto">تجاهل</button>'}</div>`}
-      </div>`).join('') : `<div class="card muted">${askView === 'na' ? 'ما فيه أسئلة بدون جواب 👍' : 'ما فيه أسئلة بعد.'}</div>`;
+    const norm = t=>String(t || '').toLowerCase().replace(/[\u064B-\u0652\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+      .replace(/[^\u0600-\u06FFa-z0-9 ]+/g, ' ').split(/\s+/).map(w=>w.replace(/^(وال|بال|لل|ال|و)(?=..)/, '')).filter(w=>w.length > 1 && !['كيف','وش','ايش','هل','ليش','وين','متى','في','من','على','عن','الى','لي','ابي','ابغى','ممكن','يا','دليل'].includes(w));
+    const groups = [];
+    rows.forEach(r=>{
+      const w = new Set(norm(r.q));
+      let best = null, bs = 0;
+      for(const g of groups){ let n = 0; w.forEach(x=>{ if(g.w.has(x)) n++; }); const sc = n / Math.max(1, Math.min(w.size, g.w.size)); if(sc > bs){ bs = sc; best = g; } }
+      if(best && bs >= 0.6 && w.size){ best.rows.push(r); w.forEach(x=>best.w.add(x)); } else groups.push({w, rows:[r]});
+    });
+    groups.sort((a, b)=>b.rows.length - a.rows.length || new Date(b.rows[0].at) - new Date(a.rows[0].at));
+    box.innerHTML = groups.length ? groups.map((g, gi)=>{
+      const open = g.rows.filter(r=>!r.resolved), na = g.rows.some(r=>!r.answered && !r.resolved);
+      return `<details class="card" data-grp="${gi}">
+      <summary style="cursor:pointer;font-weight:700;list-style:none">${esc(g.rows[0].q)} <span class="badge">${g.rows.length} ${g.rows.length === 1 ? 'مرة' : 'مرات'}</span> ${na ? '<span class="badge warn">ما لقى جواب</span>' : (open.length ? '' : '<span class="badge">تمت</span>')}</summary>
+      ${g.rows.map(r=>`<div style="border-top:1px solid var(--line,#eee);margin-top:8px;padding-top:6px">
+        <div>${esc(r.q)} ${r.answered ? '' : (r.resolved ? '<span class="badge">تمت</span>' : '<span class="badge warn">ما لقى جواب</span>')}</div>
+        <div class="muted" style="font-size:12px;margin-top:2px">${esc(when(r.at))}${r.screen ? ' · من شاشة ' + esc(SCR_AR[r.screen] || r.screen) : ''}</div>
+        ${r.a ? `<details style="margin-top:4px"><summary class="muted" style="cursor:pointer">رد المساعد</summary><div style="white-space:pre-line;margin-top:4px">${esc(r.a)}</div></details>` : ''}</div>`).join('')}
+      ${open.length ? `<label style="margin-top:10px">جوابك (يحفظ للمجموعة كلها)</label><textarea class="askA" maxlength="1500" placeholder="اكتب الجواب الصحيح بكلام بسيط…"></textarea>
+      <div class="row" style="margin-top:8px"><button class="gold" data-aact="answer" style="flex:0 0 auto">حفظ الجواب</button><button class="white" data-aact="dismiss" style="flex:0 0 auto">تجاهل الكل</button></div>` : ''}
+      </details>`; }).join('') : `<div class="card muted">${askView === 'na' ? 'ما فيه أسئلة بدون جواب 👍' : 'ما فيه أسئلة بعد.'}</div>`;
+    askGroups = groups;
   }
+  let askGroups = [];
   ['askFNa','askFAll','askFKb'].forEach(id=>$(id).addEventListener('click', ()=>{ askView = {askFNa:'na', askFAll:'all', askFKb:'kb'}[id]; loadAsk().catch(showErr); }));
   $('askToggle').addEventListener('click', async ()=>{
     if(askData.on && !confirm('إيقاف «اسأل دليل» لكل المستخدمين؟')) return;
@@ -735,13 +760,14 @@
         if(!confirm('حذف هذا الجواب من معرفة المساعد؟')) return;
         await api('ask_kb_delete', {kb_id: Number(b.closest('[data-kb]').dataset.kb)});
       }else{
-        const card = b.closest('[data-ask]'), id = Number(card.dataset.ask);
-        const row = askData.rows.find(r=>r.id === id);
-        if(act === 'dismiss') await api('ask_dismiss', {log_id:id});
+        const card = b.closest('[data-grp]'), g = askGroups[Number(card.dataset.grp)], open = g.rows.filter(r=>!r.resolved);
+        if(!open.length) return;
+        if(act === 'dismiss'){ for(const r of open) await api('ask_dismiss', {log_id:r.id}); }
         else{
           const a = card.querySelector('.askA').value.trim();
           if(a.length < 2) return alert('اكتب الجواب أول');
-          await api('ask_answer', {log_id:id, q:row.q, a});
+          await api('ask_answer', {log_id:open[0].id, q:open[0].q, a});
+          for(const r of open.slice(1)) await api('ask_dismiss', {log_id:r.id});   // باقي المجموعة تنعلّم «تمت» (الجواب محفوظ مرة وحدة)
         }
       }
       await loadAsk();
