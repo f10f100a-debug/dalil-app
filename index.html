@@ -2245,6 +2245,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     onboardPermissionNote.classList.remove('error');
     onboardPermissionNote.textContent = window.DALIL_ANDROID ? 'اختر «أثناء استخدام التطبيق».' : NATIVE_HEADING_APP ? 'اختر «السماح أثناء استخدام التطبيق».' : 'قد تظهر رسالتان متتاليتان؛ اختر «سماح» في كلتيهما.';
     const result = await requestPermissions(true, onboardBtn);
+    onboardBtn.disabled = false;
     if(result.locationGranted && result.compassGranted !== false){
       try{ localStorage.setItem(permissionsReadyKey, '1'); }catch(e){}
       document.getElementById('onboard').style.display = 'none';
@@ -2254,8 +2255,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(!result.locationGranted) missing.push('الموقع');
       if(result.compassGranted === false) missing.push('البوصلة');
       onboardPermissionNote.classList.add('error');
-      onboardPermissionNote.textContent = 'لم يُفعّل إذن ' + missing.join(' و') + '. إذا رفضته سابقًا، اسمح به من إعدادات الآيفون ثم اضغط «إعادة المحاولة».';
-      onboardBtn.textContent = '🔄 إعادة محاولة الأذونات';
+      const how = window.DALIL_ANDROID ? 'افتح إعدادات الجوال ← التطبيقات ← دليل ← الأذونات ← الموقع ← «السماح أثناء استخدام التطبيق».'
+        : 'افتح الإعدادات ← دليل ← الموقع ← «أثناء استخدام التطبيق»، وفعّل «الموقع الدقيق». وتأكد إن الخصوصية ← خدمات الموقع مفعّلة.';
+      onboardPermissionNote.textContent = 'لم يُفعّل إذن ' + missing.join(' و') + '. ' + how + ' بعدها ارجع واضغط «🔄 إعادة المحاولة».';
+      onboardBtn.textContent = '🔄 إعادة المحاولة';
       skipPermissionsBtn.style.display = 'block';
     }
   });
@@ -2509,14 +2512,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
     try{
       locationGranted = await requestLocationAccess(forceGeoRestart);
-      toast('اكتمل فحص الأذونات');
+      if(locationGranted === 'nofix'){ document.getElementById('permLoc').textContent = '✅ مفعّل — ننتظر إشارة GPS'; toast('✅ الموقع مفعّل — نبحث عن إشارة GPS، وإذا تأخرت اطلع لمكان مكشوف'); }
+      else toast('اكتمل فحص الأذونات');
     }catch(e){
       document.getElementById('permLoc').textContent = '❌ تعذّر الطلب';
       diagText('تعذّر تشغيل الموقع: ' + (e.message||e));
     }finally{
       window.setTimeout(()=>{
         permissionBtn.disabled = false;
-        permissionBtn.textContent = originalLabel;
+        if(permissionBtn.textContent === 'جارٍ طلب الأذونات…') permissionBtn.textContent = originalLabel;
       }, 700);
     }
     if(locationGranted && compassGranted !== false){
@@ -2537,9 +2541,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     // طلب واحد فقط (watchPosition) بدل getCurrentPosition ثم watchPosition:
     // في تطبيق الآيفون كل طلب كان يطلع رسالة «github.io يرغب في استخدام موقعك» مرة ثانية
+    // النتيجة: true (وصلت قراءة) · 'nofix' (الإذن مفعّل بس الإشارة ما وصلت بعد — داخل مبنى مثلًا) · false (رُفض)
+    // قبل: أي تأخر في الإشارة ينحسب «لم يُفعّل إذن الموقع» حتى لو المستخدم وافق
     return new Promise(resolve=>{
-      let done = false; const fin = v=>{ if(!done){ done = true; resolve(v); } };
-      setTimeout(()=>fin(!!state.pos), 20000);
+      let done = false, poll = 0; const fin = v=>{ if(!done){ done = true; clearInterval(poll); resolve(v); } };
+      const permState = ()=>{ try{ return navigator.permissions && navigator.permissions.query ? navigator.permissions.query({name:'geolocation'}).then(r=>r.state).catch(()=>'') : Promise.resolve(''); }catch(e){ return Promise.resolve(''); } };
+      const t0 = Date.now();
+      poll = setInterval(()=>{ permState().then(st=>{ if(st === 'denied') fin(false); else if(st === 'granted' && Date.now() - t0 > 4000) fin(state.pos ? true : 'nofix'); }); }, 1000);
+      setTimeout(()=>{ permState().then(st=>fin(state.pos ? true : st === 'denied' ? false : 'nofix')); }, 20000);
       try{
         geoWatchId = navigator.geolocation.watchPosition(position=>{
           onPosition(position);
@@ -2547,8 +2556,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         }, err=>{
           onPositionError(err);
           // الرفض: نوقف المراقبة وما نكرر الطلب. ضعف الإشارة: المراقبة تستمر
-          if(err.code === 1){ try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){} geoWatchId = null; }
-          fin(false);
+          if(err.code === 1){ try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){} geoWatchId = null; fin(false); }
+          else fin('nofix');   // ضعف إشارة أو انتهى الوقت: الإذن موجود، والمراقبة تكمل وتلقط الإشارة لاحقًا
         }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
       }catch(e){ fin(false); }
     });
@@ -2605,7 +2614,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const detail = codes[err.code] || err.message || 'خطأ غير معروف';
     lastPositionError='❌ '+detail;
     updateGpsBadge();
-    document.getElementById('permLoc').textContent = '❌ مرفوض/غير متاح';
+    document.getElementById('permLoc').textContent = err.code === 1 ? '❌ مرفوض' : '✅ مفعّل — ننتظر إشارة GPS';
     showDiag('تشخيص الموقع: ' + detail + (err.code===1 ? (window.DALIL_NATIVE ? ' — افتح إعدادات الجوال ← دليل ← الموقع، واختر «أثناء استخدام التطبيق»، ثم أعد فتح دليل.' : ' — افتح إعدادات المتصفح/الموقع لهذا الرابط وفعّل إذن الموقع يدويًا، ثم أعد تحميل الصفحة.') : ''));
     updateDiagnostics();
   }
