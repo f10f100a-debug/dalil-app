@@ -34,6 +34,9 @@ def at(m, i, j, day, tab):
     return s / wsum if wsum else 0
 def thund(m, i, j, day):
     return max(W[m].get((a, b), [0] * 7)[day] for a in (i - i % 2, i - i % 2 + 2) for b in (j - j % 2, j - j % 2 + 2)) >= 95
+# معايرة 10 نوفمبر (حائل والقصيم): وسيط النماذج كان ضعف اللي شافه الرادار تقريبًا → نضرب بـ 0.5
+# (يتراجع بعد مقارنات أكثر). المطر «مؤكد» بنفس الحدود القديمة (≥2 ملم قبل المعايرة) عشان الاتفاق ما يتغير.
+CAL = 0.5
 def peak(i, j, day):
     # أقوى 3 ساعات متواصلة من وسيط النماذج ساعة بساعة؛ مؤكد إذا نموذجين على الأقل ذروتهم خلال ±3 ساعات منه، وإلا -1 (غير مؤكد)
     y, x = i + .5, j + .5; i0, j0 = int(y // 2) * 2, int(x // 2) * 2; fy, fx = (y - i0) / 2, (x - j0) / 2
@@ -52,7 +55,9 @@ def peak(i, j, day):
     med = [sorted(series[m][h] for m in series)[len(series) // 2] for h in range(24)]
     ph = max(range(22), key=lambda h: w3(med)[h])
     near = sum(abs(max(range(22), key=lambda h: w3(series[m])[h]) - ph) <= 3 for m in series)
-    return ph if near >= min(2, len(series)) else -1
+    # 10 نوفمبر: القصيم توقعنا 7 المغرب ونزل الفجر → الوقت مؤكد بس إذا كل النماذج متفقة (±3 ساعات)، ولليوم وبكرة فقط
+    if day > 1: return None
+    return ph if len(series) >= 2 and near == len(series) else -1
 cells = []; best = {}
 O = json.load(open(A + 'open-places.json')); towns = [x for x in O['p'] if O['cats'][x[4]] == 'معلم رئيسي']
 def near(la, ln): return min(towns, key=lambda x: (x[1] - la) ** 2 + ((x[2] - ln) * math.cos(math.radians(la))) ** 2)[0]
@@ -62,9 +67,9 @@ for i in range(NR):
         if rg < 0: continue
         row = [i, j]; anyr = False
         for day in range(7):
-            v = sorted(at(m, i, j, day, P) for m in MODELS); med = v[1]; ag = sum(x >= 2 for x in v); th = sum(thund(m, i, j, day) for m in MODELS)
-            row += [round(med * 10), ag, th]; anyr |= med >= 1 or ag >= 1
-            if med >= 1: best.setdefault((rg, day), []).append((ag >= 2, med, ag, th, i, j))
+            v = sorted(at(m, i, j, day, P) for m in MODELS); med = v[1] * CAL; ag = sum(x >= 2 for x in v); th = sum(thund(m, i, j, day) for m in MODELS)
+            row += [round(med * 10), ag, th]; anyr |= med >= 0.5 or ag >= 1
+            if med >= 0.5: best.setdefault((rg, day), []).append((ag >= 2, med, ag, th, i, j))
         if anyr: cells.append(row)
 top = {}
 for (rg, day), lst in best.items():

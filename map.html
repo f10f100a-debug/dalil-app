@@ -1444,7 +1444,10 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   // وقت الذروة: الأيام القريبة بالساعات، والبعيدة فترة عامة (الدقة أقل)
   const h12=h=>{h=(h+24)%24;return(h%12||12)+(h<12?' ص':' م')};
-  const when=(ph,d)=>ph==null?'':ph<0?'التوقيت غير مؤكد':d<3?h12(ph)+' – '+h12(ph+3):(x=>x>=5&&x<11?'الصبح':x>=11&&x<15?'الظهر':x>=15&&x<18?'العصر':x>=18&&x<23?'الليل':'آخر الليل')((ph+1)%24);
+  // 10 نوفمبر: الوقت فترة واسعة لليوم وبكرة بس (الساعات بالضبط ما طابقت)
+  const when=(ph,d)=>ph==null||d>1?'':ph<0?'التوقيت غير مؤكد':(x=>x>=3&&x<6?'الفجر':x>=6&&x<11?'الصبح':x>=11&&x<15?'الظهر':x>=15&&x<18?'العصر':x>=18&&x<21?'المغرب':'الليل')((ph+1)%24)+' تقريبًا';
+  // الكمية مدى مو رقم (المعايرة تقريبية): نصف الرقم إلى مرة ونص
+  const mmr=v=>{const lo=Math.max(1,Math.round(v*.6)),hi=Math.max(lo+1,Math.round(v*1.5));return lo+'–'+hi+' ملم'};
   function fc(){const h=D.r/2,f=[],t=[];for(const c of D.cells){const k=2+day*3,m=c[k]/10,a=c[k+1],th=c[k+2];if(m<1&&a<1)continue;
       const la=D.lat0+(c[0]+.5)*D.r,ln=D.lng0+(c[1]+.5)*D.r;
       f.push({type:'Feature',properties:{m,a},geometry:{type:'Polygon',coordinates:[[[ln-h,la-h],[ln+h,la-h],[ln+h,la+h],[ln-h,la+h],[ln-h,la-h]]]}});
@@ -1468,12 +1471,12 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     // مفتوحة: قائمة مضغوطة (سطر لكل مكان) بدون تكرار «أقوى مكان»
     card.innerHTML=(open
       ?'<div class="hd">'+xs+'<span>📍 أقوى 5 أماكن في '+esc(rn)+' · '+esc(dn)+'</span>'+tg+'</div>'+
-        L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span><i class="wk-dot a'+x[2]+'"></i>'+esc(x[0])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">'+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
+        L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span><i class="wk-dot a'+x[2]+'"></i>'+esc(x[0])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">'+esc(w)+'</small>':'')+'</span><b>'+mmr(x[1])+'</b></div>'}).join('')+
         '<div class="wk-note"><i class="wk-dot a3"></i>النماذج الثلاثة متفقة · <i class="wk-dot a2"></i>نموذجين من 3'+(day>=3?' · بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>'
-      :'<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span>'+tg+'</div>');
+      :'<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+mmr(t[1])+'</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span>'+tg+'</div>');
     card.querySelector('.wk-tog').onclick=e=>{e.stopPropagation();setSize(open?1:2)};
     bindX();
-    card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn;setSize(1)});}
+    card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;setSize(1)});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
     bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
       '<div class="wk-days">'+D.days.map((d,i)=>'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+
