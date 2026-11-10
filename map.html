@@ -583,7 +583,12 @@ body.full .lp-g{margin-top:6px;width:100%}
       if(hd&&!lp.dataset.lab){lp.dataset.lab='1';addGrip(lp,{zone:'.lp-head',down:()=>lp.classList.remove('show'),tap:()=>lp.classList.remove('show')});
         const gp=lp.querySelector(':scope>.grip');
         const st2=document.createElement('style');st2.textContent='body.full #layersPanel{padding-top:0}body.full #layersPanel>.grip{position:sticky;top:0;z-index:3;background:inherit;margin:0 -14px;padding-top:4px}body.full #layersPanel .lp-head{position:sticky;top:28px;z-index:2;background:#FFFFFFf7;margin:0 -14px 8px;padding:4px 14px 8px;border-bottom:1px solid #EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) body.full #layersPanel .lp-head{background:#1F1B16f7;border-color:#353027}';document.head.appendChild(st2);
-        document.addEventListener('pointerdown',e=>{if(document.body.classList.contains('full')&&lp.classList.contains('show')&&!lp.contains(e.target)&&!e.target.closest('#layersBtn'))lp.classList.remove('show')},true)}
+        let swallowAt=0;const sw=e=>{if(Date.now()-swallowAt<700){e.stopPropagation();e.preventDefault()}};
+        const closeOut=e=>{if(document.body.classList.contains('full')&&lp.classList.contains('show')&&!lp.contains(e.target)&&!e.target.closest('#layersBtn')){lp.classList.remove('show');swallowAt=Date.now();e.stopPropagation();if(e.cancelable)e.preventDefault()}};
+        document.addEventListener('touchstart',closeOut,{capture:true,passive:false});document.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch')closeOut(e)},true);
+        for(const t of['touchend','mousedown','mouseup','click'])document.addEventListener(t,sw,{capture:true,passive:false})}
+      // ضغطة على الخريطة تختار نقطة وتطلع بطاقة التوجّه، فتتحرك الأزرار تحت الإصبع والنقرة اللي يولّدها الجوال بعدها تضغط زر الطبقات بالغلط — نمنع هالنقرة (الخريطة على اللمس تشتغل بـ touchend أصلًا)
+      if(!document.body.dataset.ghost){document.body.dataset.ghost='1';document.addEventListener('touchend',e=>{const t=e.target;if(t&&t.closest&&t.closest('#map')&&!t.closest('button,a,input,select,label')&&e.cancelable)e.preventDefault()},{capture:true,passive:false})}
       // التوجّه للهدف: لتحت = تصغير (وقت الملاحة)، لفوق/ضغطة = تكبير
       addGrip(navCard,{zone:'.nav-name,.nav-head',down:()=>{if(navigationActive&&!navCard.classList.contains('mini'))$('#navClose').click()},up:()=>{if(navCard.classList.contains('mini'))navCard.click()},tap:()=>{if(navCard.classList.contains('mini'))navCard.click();else if(navigationActive)$('#navClose').click()}});
       // دليل الرادار (فوق): المقبض تحت — لتحت = يفتح، لفوق = يطوي
@@ -1405,7 +1410,7 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
 .wk-panel{position:fixed;z-index:66;right:10px;left:74px;bottom:calc(var(--qh,0px) + 12px);background:#fffffff4;border:1px solid #E4DED3;border-radius:18px;box-shadow:0 6px 20px #0003;padding:8px 10px 9px;direction:rtl}
 .wk-bar{position:static;padding:0 0 6px;direction:rtl}
 .wk-panel:not(.open) .wk-leg{display:none}
-.wk-panel.s0 .wk-bar{display:none}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{max-height:62vh;overflow:auto}
+.wk-panel.s0 .wk-bar{display:none}.wk-x0{order:3;margin-inline-start:6px}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{max-height:62vh;overflow:auto}
 .wk-tw{white-space:nowrap}
 .wk-bar h3{align-items:center}.wk-x{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E4DED3;background:#fff;color:#5C4A32;font-size:14px;line-height:1;padding:0}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-x{background:#2C251D;border-color:#353027;color:#EFE8DC}
@@ -1448,14 +1453,17 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   function regName(){try{const c=stageToLatLng(innerWidth/2,innerHeight/2),r=regionAt(c.lng,c.lat);return r?r.name:''}catch(e){return''}}
   function setSize(v){size=Math.max(0,Math.min(2,v));open=size===2;document.body.classList.toggle('wk-full',size===2);drawCard()}
   function drawCard(){if(!card||!D)return;if(panel){panel.classList.toggle('open',open);panel.classList.toggle('s0',size===0)}const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
+    const xs=size===0?'<button type="button" class="wk-x wk-x0" aria-label="إغلاق مطر الأسبوع">✕</button>':'';
+    const bindX=()=>{const x0=card.querySelector('.wk-x0');if(x0)x0.onclick=e=>{e.stopPropagation();btn.click()}};
     const agree=a=>a===3?'<span class="wk-ok">الثلاثة متفقة</span>':a===2?'<span class="wk-mx">نموذجين من 3</span>':'';
-    if(!rn){card.innerHTML='<div class="hd"><span>حرّك الخريطة على منطقة داخل المملكة</span></div>';return}
-    if(!L.length){card.innerHTML='<div class="hd"><span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر</span></div>';return}
+    if(!rn){card.innerHTML='<div class="hd">'+xs+'<span>حرّك الخريطة على منطقة داخل المملكة</span></div>';bindX();return}
+    if(!L.length){card.innerHTML='<div class="hd">'+xs+'<span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر</span></div>';bindX();return}
     const t=L[0];
-    const tw=when(t[6],day);card.innerHTML='<div class="hd"><span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
+    const tw=when(t[6],day);card.innerHTML='<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
       (open?L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span>'+esc(x[0])+agree(x[2])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">🕐 '+(x[6]>=0&&day<3?'الذروة ':'')+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
         '<div class="wk-note">توقعات نماذج الطقس (الأوروبي والأمريكي والألماني)'+(day>=3?' — بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>':'');
     card.querySelector('.hd').onclick=()=>setSize(open?1:2);
+    bindX();
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
     bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
