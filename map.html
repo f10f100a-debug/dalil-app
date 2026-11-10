@@ -1410,8 +1410,13 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
 .wk-panel{position:fixed;z-index:66;right:10px;left:74px;bottom:calc(var(--qh,0px) + 12px);background:#fffffff4;border:1px solid #E4DED3;border-radius:18px;box-shadow:0 6px 20px #0003;padding:8px 10px 9px;direction:rtl}
 .wk-bar{position:static;padding:0 0 6px;direction:rtl}
 .wk-panel:not(.open) .wk-leg{display:none}
-.wk-panel.s0 .wk-bar{display:none}.wk-x0{order:3;margin-inline-start:6px}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{max-height:62vh;overflow:auto}
+.wk-panel.s0 .wk-bar{display:none}.wk-x0{order:3;margin-inline-start:6px}.wk-panel.s0 .wk-card{border-top:0;padding-top:0}.wk-panel.open{overflow:auto}.wk-panel.open .wk-leg{flex-wrap:nowrap;overflow:hidden;white-space:nowrap}
 .wk-tw{white-space:nowrap}
+.wk-tog{flex:none;width:auto;height:auto;line-height:1.2;box-shadow:none;display:inline-flex;align-items:center;font:inherit;font-size:13px;font-weight:800;color:#2457A6;background:#E9F0FA;border:1px solid #CFDDF0;border-radius:999px;padding:8px 13px;min-height:38px;white-space:nowrap}
+.wk-panel.open .wk-row{padding:7px 0}.wk-row>span{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.wk-row .wk-t{display:inline;margin:0 4px 0 0;font-size:11.5px;color:#7A6A55}
+.wk-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#C9C1B3;flex:none;vertical-align:middle;margin-inline-end:4px}.wk-dot.a3{background:#2E7D4F}.wk-dot.a2{background:#E0A93B}
+.wk-panel{transition:max-height .22s ease}.wk-panel.open{max-height:62vh}.wk-panel.open .wk-leg{display:none!important}
+:is(html[data-theme=dark],html[data-theme=red]) .wk-tog{background:#1E2A3A;border-color:#2C3B50;color:#9DB6D3}
 .wk-bar h3{align-items:center}.wk-x{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E4DED3;background:#fff;color:#5C4A32;font-size:14px;line-height:1;padding:0}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-x{background:#2C251D;border-color:#353027;color:#EFE8DC}
 body.wk-full #quick{display:none!important}
@@ -1458,13 +1463,16 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     const agree=a=>a===3?'<span class="wk-ok">الثلاثة متفقة</span>':a===2?'<span class="wk-mx">نموذجين من 3</span>':'';
     if(!rn){card.innerHTML='<div class="hd">'+xs+'<span>حرّك الخريطة على منطقة داخل المملكة</span></div>';bindX();return}
     if(!L.length){card.innerHTML='<div class="hd">'+xs+'<span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر</span></div>';bindX();return}
-    const t=L[0];
-    const tw=when(t[6],day);card.innerHTML='<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span><b>'+(open?'▼':'▲ الخمسة')+'</b></div>'+
-      (open?L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span>'+esc(x[0])+agree(x[2])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">🕐 '+(x[6]>=0&&day<3?'الذروة ':'')+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
-        '<div class="wk-note">توقعات نماذج الطقس (الأوروبي والأمريكي والألماني)'+(day>=3?' — بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>':'');
-    card.querySelector('.hd').onclick=()=>setSize(open?1:2);
+    const t=L[0],tw=when(t[6],day),tg='<button type="button" class="wk-tog">'+(open?'إخفاء ⌄':'الخمسة ⌃')+'</button>';
+    // مفتوحة: قائمة مضغوطة (سطر لكل مكان) بدون تكرار «أقوى مكان»
+    card.innerHTML=(open
+      ?'<div class="hd">'+xs+'<span>📍 أقوى 5 أماكن في '+esc(rn)+' · '+esc(dn)+'</span>'+tg+'</div>'+
+        L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span><i class="wk-dot a'+x[2]+'"></i>'+esc(x[0])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">'+esc(w)+'</small>':'')+'</span><b>'+Math.round(x[1])+' ملم</b></div>'}).join('')+
+        '<div class="wk-note"><i class="wk-dot a3"></i>النماذج الثلاثة متفقة · <i class="wk-dot a2"></i>نموذجين من 3'+(day>=3?' · بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>'
+      :'<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+Math.round(t[1])+' ملم</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span>'+tg+'</div>');
+    card.querySelector('.wk-tog').onclick=e=>{e.stopPropagation();setSize(open?1:2)};
     bindX();
-    card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn});}
+    card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+Math.round(x[1])+' ملم متوقع '+dn;setSize(1)});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
     bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
       '<div class="wk-days">'+D.days.map((d,i)=>'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+
