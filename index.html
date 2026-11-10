@@ -5225,10 +5225,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const dirs=['شمالية','شمالية شرقية','شرقية','جنوبية شرقية','جنوبية','جنوبية غربية','غربية','شمالية غربية'];
     return dirs[Math.round((((Number(deg)||0)%360)+360)%360/45)%8];
   }
-  function weatherWarningText(current,daily){
+  function weatherWarningText(current,daily,hourly){
     const warnings=[];
     const gust=Number(current.wind_gusts_10m)||0, wind=Number(current.wind_speed_10m)||0;
-    const rain=Number(daily.precipitation_probability_max?.[0])||0;
+    // 10 نوفمبر: كان يقرأ احتمال المطر لليوم كامل، فيظل الشريط الأحمر لين نص الليل بعد ما وقف المطر → الـ 6 ساعات الجاية بس
+    const ht=(hourly&&hourly.time)||[], nk=String(current.time||'').slice(0,13);
+    let h0=ht.findIndex(t=>String(t).slice(0,13)>=nk);
+    const rain=h0<0?(ht.length?0:Number(daily.precipitation_probability_max?.[0])||0):Math.max(0,...ht.slice(h0,h0+6).map((_,k)=>Number(hourly.precipitation_probability?.[h0+k])||0));
     const max=Number(daily.temperature_2m_max?.[0]), min=Number(daily.temperature_2m_min?.[0]);
     const code=Number(current.weather_code);
     if(gust>=50 || wind>=40) warnings.push('رياح قوية؛ تجنّب الأماكن المكشوفة وثبّت معدات الرحلة');
@@ -5327,7 +5330,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.getElementById('wxData').hidden = !(tiles.length || hoursHtml || daysHtml);
 
     const warnings = [];
-    const baseWarning = weatherWarningText(current, daily);
+    const baseWarning = weatherWarningText(current, daily, hourly);
     if(baseWarning) warnings.push(baseWarning);
     // التحذير عند انخفاض الرؤية فعلًا، أو غبار شديد جدًا؛ لا من رقم الغبار وحده
     const visNow = current.visibility == null ? NaN : Number(current.visibility);
