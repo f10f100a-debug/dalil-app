@@ -25,6 +25,12 @@ for m in MODELS:
             H[m][c] = [v or 0 for v in x['hourly']['precipitation']]
         time.sleep(2)
     print(m, 'ok', flush=True)
+# 10 نوفمبر: «اليوم» كان مجموع اليوم كامل (أغلبه نزل) → نحسب من الساعة الحالية لين نص الليل بس
+H0 = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3))).hour
+if H0 > 0:
+    for m in MODELS:
+        for c in H[m]:
+            H[m][c][:H0] = [0.0] * H0; P[m][c][0] = sum(H[m][c][H0:24])
 def at(m, i, j, day, tab):
     # تنعيم ثنائي الخطي من نقاط 0.5° (المحيطة بمركز خلية 0.25°)
     y, x = i + .5, j + .5; i0, j0 = int(y // 2) * 2, int(x // 2) * 2; fy, fx = (y - i0) / 2, (x - j0) / 2; s = wsum = 0
@@ -83,7 +89,7 @@ for (rg, day), lst in best.items():
         if len(out) == 5: break
     top.setdefault(G['regions'][rg], [[] for _ in range(7)])[day] = out
 now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=3)))
-json.dump({'v': 1, 'at': now.strftime('%Y-%m-%dT%H:%M+03:00'), 'days': days, 'models': ['ECMWF', 'GFS', 'ICON'], 'r': R, 'lat0': LA0, 'lng0': LN0,
+json.dump({'v': 1, 'from_h': H0, 'at': now.strftime('%Y-%m-%dT%H:%M+03:00'), 'days': days, 'models': ['ECMWF', 'GFS', 'ICON'], 'r': R, 'lat0': LA0, 'lng0': LN0,
            'cells': cells, 'top': top, 'source': 'Open-Meteo (ECMWF IFS, NOAA GFS, DWD ICON)'},
           open(A + 'rain-week.json', 'w'), ensure_ascii=False, separators=(',', ':'))
 print('cells', len(cells), 'days', days, 'Hail day1', top.get('حائل', [[]] * 7)[1][:3])

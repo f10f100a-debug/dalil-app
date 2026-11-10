@@ -1440,7 +1440,10 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   const btn=document.createElement('button');btn.type='button';btn.dataset.wk='1';btn.innerHTML='<span>🗓️</span><b>الأسبوع</b>';q.appendChild(btn);
   let D=null,day=1,on=false,open=false,size=1,bar=null,card=null,panel=null,lastReg='';
   const COL=['step',['get','m'],'rgba(0,0,0,0)',1,'#CFE8FB',3,'#8CC4F2',7,'#4A90D9',15,'#2457A6',25,'#5B1F86'];
-  const dayName=(d,i)=>i===0?'اليوم':i===1?'بكرة':new Intl.DateTimeFormat('ar-SA-u-nu-latn',{weekday:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
+  // 10 نوفمبر: «اليوم» = باقي اليوم (من ساعة التحديث)، ويختفي بعد 9 الليل؛ والأسماء حسب التاريخ الفعلي مو ترتيب الملف
+  const ryd=o=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Riyadh'}).format(new Date(Date.now()+(o||0)*864e5)),ryh=()=>+new Intl.DateTimeFormat('en-GB',{hour:'numeric',hour12:false,timeZone:'Asia/Riyadh'}).format(new Date())%24;
+  const wkHidden=i=>{const d=D&&D.days[i],t=ryd();return !d||d<t||(d===t&&ryh()>=21)};
+  const dayName=(d,i)=>d===ryd()?(D&&D.from_h>0?'باقي اليوم':'اليوم'):d===ryd(1)?'بكرة':new Intl.DateTimeFormat('ar-SA-u-nu-latn',{weekday:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   // وقت الذروة: الأيام القريبة بالساعات، والبعيدة فترة عامة (الدقة أقل)
   const h12=h=>{h=(h+24)%24;return(h%12||12)+(h<12?' ص':' م')};
@@ -1479,7 +1482,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;setSize(1)});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
     bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
-      '<div class="wk-days">'+D.days.map((d,i)=>'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+
+      '<div class="wk-days">'+D.days.map((d,i)=>wkHidden(i)?'':'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+
       '<div class="wk-leg">ملم <i style="background:#CFE8FB"></i>1 <i style="background:#8CC4F2"></i>3 <i style="background:#4A90D9"></i>7 <i style="background:#2457A6"></i>15 <i style="background:#5B1F86;box-shadow:inset 0 0 0 20px rgba(239,228,207,.25)"></i>25+ · الباهت: النماذج مختلفة · 🟡 رعد</div>';
     bar.querySelector('.wk-x').onclick=e=>{e.stopPropagation();btn.click()};
     bar.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{day=+b.dataset.d;drawBar();draw();drawCard()})}
@@ -1495,6 +1498,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     card=document.createElement('div');card.className='wk-card';panel.appendChild(card);
     if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;const[wx,wy]=world(c.lat,c.lng);cx=wx;cy=wy;render()}
     document.body.classList.add('wk-on');
+    if(wkHidden(day)){const k=D.days.findIndex((d,i)=>!wkHidden(i));day=k<0?0:k}
     drawBar();draw();drawCard()}
   function stop(){document.body.classList.remove('wk-on','wk-full');size=1;open=false;panel&&panel.remove();panel=bar=card=null;if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
