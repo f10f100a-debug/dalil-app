@@ -2194,6 +2194,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
+      const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn'; nb.style.cssText = 'margin-top:8px;width:100%';
+      nb.textContent = '📍 اربط جوالي بتجربة «نبّهني حسب موقعي»';
+      nb.onclick = async ()=>{ const c = window.__dalilNearCode ? await window.__dalilNearCode() : null;
+        nb.textContent = c ? '🔑 رمز جوالك: ' + c + ' — أرسله لي' : '⚠️ شغّل التنبيهات و«نبّهني حسب موقعي» أول'; };
+      box.appendChild(nb);
       v.parentNode.insertBefore(box, v.nextSibling); }); }
     if(v) v.textContent = ios ? 'الإصدار ' + ios[1] + ' (آيفون)' : and ? 'الإصدار ' + and[1] + ' (أندرويد)' : 'نسخة الويب';
     const d = new Date(document.lastModified);   // وقت نشر الصفحة على الموقع (يتحدّث تلقائيًا مع كل تعديل)
@@ -6241,7 +6246,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(eventsLoading) return eventsLoading;
     eventsLoading = new Promise((resolve, reject)=>{
       const sc = document.createElement('script');
-      sc.src = 'events.js?v=26';
+      sc.src = 'events.js?v=27';
       sc.onload = ()=>window.DalilEvents ? resolve(window.DalilEvents) : reject(new Error('events'));
       sc.onerror = ()=>{ eventsLoading = null; reject(new Error('events')); };
       document.head.appendChild(sc);

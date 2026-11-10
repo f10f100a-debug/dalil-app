@@ -732,6 +732,10 @@
     if(NATIVE){ const t = lsGet(LS_TOKEN); return t ? {kind:'ios', sub:t} : null; }
     const s = await currentSub(); return s ? {kind:'web', sub:s.endpoint} : null;
   }
+  // رمز الجهاز لتجربة «نبّهني حسب موقعي» (نفس البصمة اللي يحسبها الخادم: أول 12 من SHA-256 لـ kind+sub) — نعرض أول 6
+  window.__dalilNearCode = async ()=>{ try{ const id = await fySub(); if(!id) return null;
+    const h = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(id.kind + id.sub)));
+    return Array.from(h.slice(0, 3)).map(x=>x.toString(16).padStart(2, '0')).join('').toUpperCase(); }catch(e){ return null; } };
   async function syncFayd(force){
     if(!pushOn || (!fyKm() && !fyFollow().length && !lsGet(LS_FYS))) return false;
     const id = await fySub(); if(!id) return false;
