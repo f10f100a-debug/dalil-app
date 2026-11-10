@@ -24,6 +24,8 @@ MIN_HA = float(os.environ.get("SCAN_MINHA") or 2.5)     # أقل مساحة خض
 NOW_MIN = float(os.environ.get("SCAN_NOW") or 0.16)
 D_MIN = float(os.environ.get("SCAN_D") or 0.06)
 FRAC = float(os.environ.get("SCAN_FRAC") or 0.15)
+MIN_MM = float(os.environ.get("SCAN_MM") or 20)   # أقل مطر قبل الصورة حتى تنحسب خضرة موسم (كان 8)
+R_DAY = 4.0                                        # يوم مطر أقل من كذا ما ينحسب
 T0 = time.time()
 today = dtm.date.today()
 y = today.year if today.month >= 8 else today.year - 1
@@ -126,11 +128,11 @@ def label(la, lo):
         if abs(a - la) > .6 or abs(b - lo) > .7: continue
         d = km(la, lo, a, b)
         if not best or d < best[0]: best = (d, nm, a, b)
-    if not best: return "خضرة جديدة", ""
+    if not best: return "خضرة محتملة", ""
     d, nm, a, b = best
-    if d < 1.5: return "خضرة جديدة · قرب " + nm, nm
+    if d < 1.5: return "خضرة محتملة · قرب " + nm, nm
     ang = (math.degrees(math.atan2((lo - b) * math.cos(math.radians(la)), la - a)) + 360) % 360
-    return f"خضرة جديدة · {round(d)} كم {DIRS[int((ang + 22.5) // 45) % 8]} {nm}", nm
+    return f"خضرة محتملة · {round(d)} كم {DIRS[int((ang + 22.5) // 45) % 8]} {nm}", nm
 
 G = json.load(open("data/region-grid.json"))
 # 7 نوفمبر: الشبكة (0.25°) كانت تحسب مربعات الحدود سعودية كلها → طلعت 73 بقعة بالأردن والعراق. الحين خط الحدود نفسه + هامش 1 كم
@@ -156,7 +158,7 @@ def _edge_km(la, lo):
 def in_ksa(la, lo):
     return _inside(la, lo) and _edge_km(la, lo) >= 1.0
 
-def rain75(pts):
+def rain75(pts, until=None):
     import urllib.request, urllib.parse
     out = []
     for k in range(0, len(pts), 80):
@@ -170,7 +172,8 @@ def rain75(pts):
             except Exception as e:
                 print("rain retry", str(e)[:80], flush=True); time.sleep(20 * (t + 1))
         if j is None: out += [None] * len(part); continue
-        for loc in (j if isinstance(j, list) else [j]): out.append(sum(v or 0 for v in loc["daily"]["precipitation_sum"]))
+        for loc in (j if isinstance(j, list) else [j]):
+            dd = loc["daily"]; out.append(sum(v or 0 for d, v in zip(dd["time"], dd["precipitation_sum"]) if (until is None or d <= until) and (v or 0) >= R_DAY))
     return out
 
 def near_named(la, lo, r=2.0):
@@ -277,28 +280,35 @@ def main():
         if not in_ksa(r[0], r[1]) or near_named(r[0], r[1]): continue
         if any(km(r[0], r[1], q[0], q[1]) < 2 for q in rows): continue
         rows.append(r)
-    # بدون مطر = سقي (محاور جديدة في طبرجل وعريفج والشمال) مو ربيع: نطلب 8 ملم فأكثر آخر 75 يوم (Open-Meteo)
+    # بدون مطر = سقي (محاور جديدة في طبرجل وعريفج والشمال) مو ربيع.
+    # 10 نوفمبر (شمال حائل): حلقات «ربيع» والمحطة 17 ملم بس والرادار قال 60–85 → شددنا:
+    # - المطر ينحسب بس إذا نزل قبل صورة القمر بـ 5 أيام فأكثر (المطر اللي بعد الصورة ما يفسّر خضرتها)
+    # - يوم الرادار أقل من 4 ملم ما ينحسب (رذاذ/صدى ما يخضّر صحراء)
+    # - حكم المحطة يمتد 80 كم بدل 50، والحد صار 20 ملم بدل 8
     rows = rows[:900]
-    mm = rain75([(r[0], r[1]) for r in rows])
-    # + الرادار والمحطات (نفس طريقة تحديث الفياض — Open-Meteo يفوّت مطر الشمال كثير)
+    nowdate0 = max((i["properties"]["datetime"][:10] for i in nowi), default=today.isoformat())
+    until = (dtm.date.fromisoformat(nowdate0) - dtm.timedelta(days=5)).isoformat()
+    mm = rain75([(r[0], r[1]) for r in rows], until)
     try:
         import radar, rainqc, synop
         since75 = (today - dtm.timedelta(days=75)).isoformat()
         SY = json.load(open(synop.FILE)) if os.path.exists(synop.FILE) else None
         R = radar.load(since75); Q = rainqc.QC(R, SY)
         for n_, r in enumerate(rows):
-            gq = Q.gauge(r[0], r[1], max_km=50); gd = gq[1] if gq else {}
+            gq = Q.gauge(r[0], r[1], max_km=80); gd = gq[1] if gq else {}
             rr = 0.0
             for day in R:
+                if day > until: continue
                 v, _ = Q.radar(day, r[0], r[1])
                 if v is None: continue
-                rr += rainqc.cap(v, gd.get(day)) if day in gd else v
-            gt = sum(v for d, v in gd.items() if d >= since75)
+                v = rainqc.cap(v, gd.get(day)) if day in gd else v
+                if v >= R_DAY: rr += v
+            gt = sum(v for d, v in gd.items() if since75 <= d <= until and v >= R_DAY)
             mm[n_] = max(mm[n_] or 0, rr, gt)
     except Exception as e:
         print("::warning::radar rain skipped: " + str(e)[:150], flush=True)
-    kept = [r for r, m in zip(rows, mm) if m is None or m >= 8]
-    print(f"::notice::rain check: {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < 8 mm)", flush=True)
+    kept = [r for r, m in zip(rows, mm) if m is None or m >= MIN_MM]
+    print(f"::notice::rain check (until {until}): {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < {MIN_MM} mm)", flush=True)
     rows = kept[:400]
     # فحص أخير بدقة 10 م (Copernicus، طلب لكل بقعة): المزرعة تفضحها قمم NDVI عالية (≥ 0.8) الحين أو بالموسم الماضي، أو خضرة بالصيف
     try:
