@@ -2187,10 +2187,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
       const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة']];
-      const get = k=>{ try{ return k === 'dalil_lab_layout' ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
+      const get = k=>{ try{ return k === 'dalil_lab_layout' ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\//.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
         try{ if(c.dataset.lab === 'dalil_lab_layout') c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');
+          else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
         if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
@@ -6624,7 +6625,19 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- تجربة «الخريطة على الشاشة كاملة» (مخفية: dalil_lab_mapfull=1) ----------
   // صفحة الخريطة: بدون عنوان وبدون صف التسجيل/الأدوات — الخريطة من فوق لين التبويبات، والتسجيل والأدوات أزرار داخلها
   (function(){
-    let lab = false; try{ lab = localStorage.getItem('dalil_lab_mapfull') === '1'; }catch(e){}
+    // 11 نوفمبر: صارت الافتراضي على الآيفون (تطبيق دليل أو سفاري) بعد تجربة تسجيل المسار في البر؛ الأندرويد يبقى تجربة ('1')
+    // القيمة '0' = الخريطة العادية (زر في الإعدادات ← المظهر)
+    const iosDev = /iPhone|iPad|iPod|DalilApp\//.test(navigator.userAgent || '');
+    let lab = false; try{ const v = localStorage.getItem('dalil_lab_mapfull'); lab = v === '1' || (iosDev && v !== '0'); }catch(e){}
+    (function mapSwitch(){
+      const t = [...document.querySelectorAll('#screen-settings .section-title')].find(x=>x.textContent.trim() === 'المظهر');
+      const card = t && t.nextElementSibling; if(!card || !(iosDev || lab)) return;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.style.cssText = 'margin-top:10px;width:100%';
+      b.textContent = lab ? '↩️ رجّع الخريطة العادية' : '🗺️ شغّل الخريطة على الشاشة كاملة';
+      b.onclick = ()=>{ try{ localStorage.setItem('dalil_lab_mapfull', lab ? '0' : '1'); }catch(e){}
+        if(typeof toast === 'function') toast(lab ? 'رجّعنا الخريطة العادية' : 'شغّلنا الخريطة على الشاشة كاملة'); setTimeout(()=>location.reload(), 700); };
+      card.appendChild(b);
+    })();
     if(!lab) return;
     const st = document.createElement('style');
     st.textContent = 'body.lab-mapfull.on-track .app-head{display:none}'
