@@ -4139,6 +4139,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const catalogHtml = found && found.items && found.items.length
       ? `<div class="pl-section">من المواقع البرية <small>· ${found.total > found.items.length ? 'أقرب ' + found.items.length + ' من ' + found.total : found.total} نتيجة</small></div>` + found.items.map(placeCard).join('')
       : (q && !bundledCatalog ? `<div class="pl-note">${bundledLoading ? 'جارٍ تحميل المواقع البرية…' : 'تعذّر تحميل المواقع البرية — افتح التطبيق مرة مع اتصال بالإنترنت ليحفظها للاستخدام بدونه.'}</div>` : '');
+    // «📥 من ملفاتي المستوردة»: مقسّمة حسب الملف، مسكّرة لين تفتحها، والأقرب أول
+    let importedHtml = '';
+    if(!q && userIdx.size){
+      importedHtml = '<div class="pl-section">📥 من ملفاتي المستوردة <small>· في جوالك بس</small></div>' + [...userIdx].map(([f, ids])=>{
+        const open = userOpen.has(f);
+        let body = '';
+        if(open){
+          let its = ids.map(catalogItem).filter(Boolean);
+          if(state.pos){ its.forEach(p=>p._dist = haversine(state.pos.lat, state.pos.lng, p.lat, p.lng)); its.sort((a, b)=>a._dist - b._dist); }
+          body = its.slice(0, 200).map(placeCard).join('') + (its.length > 200 ? `<div class="pl-note">أقرب 200 من ${iso(its.length)} — ابحث بالاسم للباقي</div>` : '')
+            + `<button type="button" class="pl-more" data-ufdel="${escapeHtml(f)}">🗑️ حذف «${escapeHtml(f)}» من جوالي</button>`;
+        }
+        return `<button type="button" class="pl-more" data-uf="${escapeHtml(f)}" style="text-align:right">${open ? '⌄' : '‹'} ${escapeHtml(f)} · ${iso(ids.length)} موقع</button>` + body;
+      }).join('');
+    }
+    if(items.length === 0 && importedHtml && !q){
+      setText('placesCount', '');
+      list.innerHTML = importedHtml + adHtml('places');
+      return;
+    }
     if(items.length === 0 && catalogHtml){
       setText('placesCount', '');
       list.innerHTML = catalogHtml;
@@ -4155,11 +4175,20 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const shown = items.slice(0, placesLimit);
     const pageBtn = items.length > shown.length
       ? `<button type="button" class="pl-more" data-pl-page>عرض المزيد (${(items.length - shown.length).toLocaleString('ar-SA-u-nu-latn')} باقي)</button>` : '';
-    list.innerHTML = shown.map(placeCard).join('') + pageBtn + catalogHtml + adHtml('places');
+    list.innerHTML = shown.map(placeCard).join('') + pageBtn + importedHtml + catalogHtml + adHtml('places');
   }
   let placesLimit = 100, placesTab = '';
   document.getElementById('placesList').addEventListener('click', e=>{
     if(e.target.closest('[data-pl-page]')){ placesLimit += 100; renderPlaces(); return; }
+    const uf = e.target.closest('[data-uf]'); if(uf){ const f = uf.dataset.uf; userOpen.has(f) ? userOpen.delete(f) : userOpen.add(f); renderPlaces(); return; }
+    const ud = e.target.closest('[data-ufdel]');
+    if(ud){ const f = ud.dataset.ufdel, n = (userIdx.get(f) || []).length;
+      if(!confirm('حذف «' + f + '» (' + n + ' موقع) من جوالك؟ ما يأثر على أماكنك المحفوظة.')) return;
+      const ri = userCatalog.regions.indexOf(f);
+      userCatalog = {regions:userCatalog.regions, cats:userCatalog.cats, p:userCatalog.p.filter(x=>x[3] !== ri)};
+      userOpen.delete(f);
+      catalogPut(userCatalog).catch(()=>{}).finally(()=>{ rebuildCatalog(); renderPlaces(); toast('حُذف «' + f + '» من جوالك'); });
+      return; }
     const t = e.target.closest('[data-pltab]'); if(t){ placesTab = t.dataset.pltab; placesLimit = 100; renderPlaces(); }
   });
   document.getElementById('plSeg').addEventListener('click', e=>{
@@ -4173,7 +4202,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       : p.catalog ? `<span class="pl-ic cat">${icoSpan(catalogIcon(p.kind))}</span>`
       : `<span class="pl-ic" aria-hidden="true">${escapeHtml(p.icon || '📍')}</span>`;
     const name = escapeHtml(p.name);
-    const meta = (p.catalog ? p.kind + (p.region ? ' · ' + p.region : '') + ' · ' : '') + placeMeta(p);
+    const meta = (p.user ? '📥 ملفك · ' : '') + (p.catalog ? p.kind + (p.region && !p.user ? ' · ' + p.region : '') + ' · ' : '') + placeMeta(p);
     return `<div class="pl-card">
         ${icon}
         <div class="pl-info"><div class="pl-name">${name}</div><div class="pl-meta">${escapeHtml(meta)}</div></div>
@@ -4352,7 +4381,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // يستورده المستخدم (محفوظ منفصلًا في IndexedDB) دون تكرار.
   // معالم OpenStreetMap البرية غير الموجودة في خرائط البر (data/osm-places.json).
   let bundledCatalog = null, osmCatalog = null, bundledLoading = null;
-  let userCatalog = {regions:[], cats:[], p:[]};
+  let userCatalog = {regions:[], cats:[], p:[]}, userIdx = new Map(), userFileOf = new Map(), userOpen = new Set();
   const catalogKey = (name, lat, lng)=>name + '|' + Number(lat).toFixed(3) + '|' + Number(lng).toFixed(3);
   function mergeCatalog(target, src, seen){
     let added = 0;
@@ -4374,6 +4403,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(osmCatalog) mergeCatalog(merged, osmCatalog, seen);
     mergeCatalog(merged, userCatalog, seen);
     catalog.regions = merged.regions; catalog.cats = merged.cats; catalog.p = merged.p;
+    // 11 نوفمبر: نقاط الملفات المستوردة (في الجوال فقط) — نعرف مكانها في القائمة المدمجة عشان تطلع في «أماكني» بعلامة «📥 ملفك»
+    const uf = new Map(userCatalog.p.map(x=>[catalogKey(x[0], x[1], x[2]), (userCatalog.regions || [])[x[3]] || 'ملف']));
+    userIdx = new Map(); userFileOf = new Map();
+    catalog.p.forEach((x, i)=>{ const f = uf.get(catalogKey(x[0], x[1], x[2])); if(f){ if(!userIdx.has(f)) userIdx.set(f, []); userIdx.get(f).push(i); userFileOf.set(i, f); } });
     indexCatalog();
     updateCatalogStatus();
     if(document.getElementById('screen-places').classList.contains('active')) renderPlaces();
@@ -4755,7 +4788,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.getElementById('newMapBtn').addEventListener('click', ()=>{ location.href = 'map2.html'; });
   function catalogItem(i){
     const x = catalog.p[i];
-    return x ? {id:'k:' + i, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:catalog.cats[x[4]] || 'معلم', region:catalog.regions[x[3]] || ''} : null;
+    if(!x) return null;
+    const file = userFileOf.get(i) || '';
+    return {id:'k:' + i, name:x[0], lat:x[1], lng:x[2], alt:null, cat:'catalog', catalog:true, kind:catalog.cats[x[4]] || 'معلم', region:catalog.regions[x[3]] || '', user:file};
   }
   // أقرب مواقع خرائط البر إلى موقعك (تُعرض في الأماكن عندما يكون البحث فارغًا).
   const NEARBY_KM = 50, NEARBY_MAX = 20;
