@@ -91,7 +91,8 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     gt = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
     tot = sum(v for d, v in rain[k].items() if start.isoformat() <= d <= end.isoformat())
     lim = max(2 * gt, gt + 15)
-    rad = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and src[k].get(d) == "radar"]
+    # كل الأيام اللي المحطة ما بلّغت فيها (رادار أو نموذج) — أول تشغيل: بريدة الزايد كان من النموذج مو الرادار
+    rad = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and d not in g[1] and rain[k][d] > 0]
     rsum = sum(rain[k][d] for d in rad)
     if tot > lim and rsum > 0:
         f = max(0.0, (rsum - (tot - lim)) / rsum)
