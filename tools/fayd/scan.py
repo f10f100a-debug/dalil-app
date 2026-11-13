@@ -307,7 +307,11 @@ def main():
             mm[n_] = max(mm[n_] or 0, rr, gt)
     except Exception as e:
         print("::warning::radar rain skipped: " + str(e)[:150], flush=True)
-    kept = [r for r, m in zip(rows, mm) if m is None or m >= MIN_MM]
+    # 13 نوفمبر: رفحاء وحائل والقصيم والدوادمي الرادار فيها شبه أعمى (مقارنة المطارات) — فياض رفحاء ولينة خضرت والمسح شالها.
+    # هناك ما نشيل بشرط المطر؛ نعتمد على صور القمر وفحص المزارع، والدائرة أصلًا مكتوب عليها «تحتاج تأكيد».
+    WEAK = [(26.5, 28.8, 40.5, 43.5), (25.3, 27.3, 42.8, 44.9), (28.6, 30.4, 42.4, 45.0), (23.8, 25.3, 43.4, 45.1)]
+    weak = lambda la, lo: any(a <= la <= b and c <= lo <= d for a, b, c, d in WEAK)
+    kept = [r for r, m in zip(rows, mm) if m is None or m >= MIN_MM or weak(r[0], r[1])]
     print(f"::notice::rain check (until {until}): {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < {MIN_MM} mm)", flush=True)
     rows = kept[:400]
     # فحص أخير بدقة 10 م (Copernicus، طلب لكل بقعة): المزرعة تفضحها قمم NDVI عالية (≥ 0.8) الحين أو بالموسم الماضي، أو خضرة بالصيف

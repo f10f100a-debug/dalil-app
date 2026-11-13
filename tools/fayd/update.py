@@ -315,6 +315,21 @@ cnt = lambda rs: sum(1 for r in rs if r[2] > 0)
 pn, nn = (cnt(prev["rows"]) if prev else 0), cnt(rows)
 force = "force" in sys.argv[1:]
 held = prev and not force and max(pn, nn) >= 5 and abs(nn - pn) > 0.3 * max(pn, 1)
+# 13 نوفمبر: الحارس حجز 56 فيضة خضراء جديدة (68 → 149) 3 أيام بعد أمطار الشمال — وهذا وقت الربيع الحقيقي.
+# (1) الزيادة تنتشر إذا أغلب الجديدة (70%+) جاها مطر 8 ملم فأكثر — زيادة بعد مطر مسجّل = ربيع مو خطأ صور
+# (2) وإذا انحجز يومين ورا بعض بنفس الاتجاه، اليوم الثاني ينتشر (مو خطأ عابر)
+if held and nn > pn:
+    pg = {r[0] for r in prev["rows"] if r[2] > 0}
+    newg = [r for r in rows if r[2] > 0 and r[0] not in pg]
+    wet = sum(1 for r in newg if rain.get(r[0], 0) >= 8)
+    if newg and wet >= 0.7 * len(newg):
+        print(f"::notice::fayd gate: +{len(newg)} new green, {wet} with rain ≥8 mm → publish", flush=True); held = False
+if held:
+    try:
+        pp = json.load(open("data/fayd-pending.json")); ppn = cnt(pp["rows"])
+        if pp.get("asof") != asof and (ppn - pn) * (nn - pn) > 0:
+            print(f"::notice::fayd gate: held twice in a row ({pn} → {ppn} → {nn}) → publish", flush=True); held = False
+    except Exception: pass
 if held:
     json.dump(out, open("data/fayd-pending.json", "w"), separators=(",", ":"))
     open("data/fayd-qa.md", "w").write(f"تحديث الفياض {asof}: الفياض الخضراء تغيّرت من {pn} إلى {nn} — انحفظ للمراجعة في data/fayd-pending.json وما انتشر.\n\nالمشالة بفلتر المطر ({len(dropped)}): " + " · ".join(dropped)[:3000] + f"\n\nمطر قليل — ظاهرة مع «تحتاج تأكيد» ({len(light)}): " + " · ".join(light)[:3000] + "\n")
