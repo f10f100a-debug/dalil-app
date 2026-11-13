@@ -319,9 +319,9 @@ for r in rows:
     pr = PREVR.get(r[0])
     if not pr or r[2] < 2 or r[5] == 5 or len(r) < 7 or len(pr) < 7: continue
     fresh = pr[2] == 0 and pr[1] < 20 and 0 <= _days(r[6], pr[6]) < 6
-    still = pr[5] == 2 and pr[2] == 1 and pr[6] == r[6]          # نفس الصورة اللي انشكّ فيها، ما جات صورة أحدث
+    still = pr[5] in (2, 6) and pr[2] == 1 and pr[6] == r[6]     # نفس الصورة اللي انشكّ فيها، ما جات صورة أحدث
     if fresh or still:
-        r[2] = 1; r[5] = 2; jumpn.append(SITES[r[0]][0])
+        r[2] = 1; r[5] = 6; jumpn.append(SITES[r[0]][0])   # 6 = خضرة مفاجئة (نصها في التطبيق غير «ما لقينا مطر»)
 if jumpn: print(f"::notice::sudden jump (needs a newer image) {len(jumpn)}: " + " · ".join(jumpn[:20]), flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
