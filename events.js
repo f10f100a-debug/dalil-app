@@ -54,6 +54,27 @@
     if(!id){ id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)); lsSet(LS.device, id); }
     return id;
   }
+  // ---------- عدد المشاهدات (13 نوفمبر، طلب المشتركين) ----------
+  // يظهر من 10 مشاهدات فأكثر (العدد الصغير ما يفيد ويحبط). صاحب الحدث يشوف عدده دايمًا + سطر شكر.
+  const viewsTxt = n=>n >= 1000 ? (Math.round(n / 100) / 10) + ' ألف' : String(n);
+  let myPoster = lsGet('dalil_my_poster') || '';
+  function ensureMyPoster(){
+    if(myPoster) return;
+    const dev = lsGet(LS.device); if(!dev) return;
+    fetch(SB + '/rest/v1/rpc/my_poster', {method:'POST', headers:{apikey:KEY, 'Content-Type':'application/json'}, body:JSON.stringify({p_dev:dev})})
+      .then(r=>r.ok ? r.json() : '').then(v=>{ if(typeof v === 'string' && v){ myPoster = v; lsSet('dalil_my_poster', v); } }).catch(()=>{});
+  }
+  const isMine = e=>!!(myPoster && e.poster && e.poster === myPoster);
+  setTimeout(ensureMyPoster, 3000);
+  function countView(e){
+    fetch(SB + '/rest/v1/rpc/event_view', {method:'POST', headers:{apikey:KEY, 'Content-Type':'application/json'}, body:JSON.stringify({p_id:e.id, p_dev:deviceId()})})
+      .then(r=>r.ok ? r.json() : null).then(v=>{ if(typeof v !== 'number') return; e.views = v; const el = document.querySelector('#evViewer [data-ev-views="' + e.id + '"]'); if(el) el.outerHTML = viewsLine(e); }).catch(()=>{});
+  }
+  function viewsLine(e){
+    const n = Number(e.views) || 0, mine = isMine(e);
+    if(!mine && n < 10) return `<span data-ev-views="${esc(e.id)}"></span>`;
+    return `<div data-ev-views="${esc(e.id)}">${n >= 10 || mine ? `<p class="ev-v-meta">👁 ${esc(viewsTxt(n))} مشاهدة</p>` : ''}${mine && n > 0 ? `<p class="ev-v-own">🙌 ${esc(viewsTxt(n))} ${n === 1 ? 'شخص شاف' : 'شخص شافوا'} حدثك — شكرًا لك</p>` : ''}</div>`;
+  }
   function ago(iso){
     const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
     if(s < 60) return 'الآن';
@@ -72,7 +93,7 @@
   function fetchEvents(force){
     if(st.loading) return st.loading;
     if(!force && Date.now() - st.loadedAt < 60000) return Promise.resolve(st.events);
-    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster,video_path,video_dur';
+    const cols = 'id,created_at,expires_at,kind,caption,nickname,region,lat,lng,photo_path,thumb_path,width,height,poster,video_path,video_dur,views';
     st.loading = fetch(`${SB}/rest/v1/events?select=${cols}&order=created_at.desc&limit=120`, {headers:{apikey:KEY}, cache:'no-store'})
       .then(r=>{ if(!r.ok) throw new Error('http ' + r.status); return r.json(); })
       .then(list=>{ const before = st.loadedAt ? newestAt() : 0; st.events = visible(Array.isArray(list) ? list : []); if(before && newestAt() > before) tone('event'); st.loadedAt = Date.now(); st.error = ''; updateNewDot(); return st.events; })
@@ -119,6 +140,7 @@
       <img src="${esc(PUB + e.thumb_path)}" alt="" loading="lazy" decoding="async">
       ${e.video_path ? `<span class="ev-play" aria-hidden="true">▶${e.video_dur ? `<small>${Math.round(e.video_dur)}ث</small>` : ''}</span>` : ''}
       <span class="ev-tile-top">${kindBadge(e.kind)}<span class="ev-ago">${esc(ago(e.created_at))}</span></span>
+      ${(Number(e.views) || 0) >= 10 ? `<span class="ev-views">👁 ${esc(viewsTxt(Number(e.views)))}</span>` : ''}
       <span class="ev-tile-txt">${e.caption ? `<b>${esc(e.caption)}</b>` : ''}${meta ? `<small>${meta}</small>` : ''}</span>
     </button>`;
   }
@@ -142,6 +164,7 @@
       <div class="ev-v-info">
         ${e.caption ? `<p class="ev-v-cap">${esc(e.caption)}</p>` : ''}
         <p class="ev-v-meta">${[e.region, d ? 'يبعد ' + d : '', e.nickname ? 'بعدسة ' + e.nickname : ''].filter(Boolean).map(esc).join(' · ')}</p>
+        ${viewsLine(e)}
         ${hasLoc ? `<div class="ev-v-actions">
           <button type="button" class="cp-btn cp-btn-gold" data-ev-act="go" data-id="${esc(e.id)}">${ico('nav')}توجّه بالبوصلة</button>
           <button type="button" class="cp-btn cp-btn-white" data-ev-act="map" data-id="${esc(e.id)}">${ico('map')}على الخريطة</button>
@@ -151,6 +174,7 @@
       </div>`;
     v.classList.add('show');
     v.setAttribute('aria-hidden', 'false');
+    countView(e); ensureMyPoster();
     // زر الرجوع في الأندرويد (وسحبة الرجوع) يسكّر العارض بدل ما يطلع من الصفحة
     try{ if(!(history.state && history.state.evViewer)) history.pushState({ evViewer: 1 }, ''); }catch(err){}
   }

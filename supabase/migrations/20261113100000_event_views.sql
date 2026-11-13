@@ -1,0 +1,2 @@
+-- 13 نوفمبر: عدد مشاهدات الأحداث — events.views + event_views (مشاهدة لكل جهاز، بصمة مقطوعة) + event_view() + my_poster()
+-- (مطبّق عبر MCP بالأسماء event_views و event_views_grant)
