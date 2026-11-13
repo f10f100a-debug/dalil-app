@@ -83,6 +83,21 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         if fetch0.isoformat() <= day <= end.isoformat():
             rain[k][day] = min(rainqc.cap(rain[k].get(day, 0), v), 150); src[k].pop(day, None)
 
+# 13 نوفمبر (فحص الفقع: بريدة 37 ملم ومحطة القصيم 16): أيام بدون تقرير من المحطة كانت تنحسب من الرادار كامل.
+# الحين: إذا فيه محطة خلال 80 كم والمجموع طلع أكثر من ضعفها (أو +15 ملم)، نصغّر أيام الرادار بنفس النسبة.
+for k, (name, region, la, lo) in enumerate(AREAS):
+    g = Q.gauge(la, lo, max_km=80)
+    if not g: continue
+    gt = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
+    tot = sum(v for d, v in rain[k].items() if start.isoformat() <= d <= end.isoformat())
+    lim = max(2 * gt, gt + 15)
+    rad = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and src[k].get(d) == "radar"]
+    rsum = sum(rain[k][d] for d in rad)
+    if tot > lim and rsum > 0:
+        f = max(0.0, (rsum - (tot - lim)) / rsum)
+        for d in rad: rain[k][d] = round(rain[k][d] * f, 1)
+        print(f"::notice::fq cap {name}: {tot:.0f} → {lim:.0f} (محطة {g[0]} {gt:.0f} ملم)")
+
 # تأكيد من الخضرة: فياض خلال 60 كم صارت «مثل المعتاد» أو أخضر
 fy_near = [0] * len(AREAS)
 try:
