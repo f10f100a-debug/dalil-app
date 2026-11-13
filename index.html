@@ -6390,6 +6390,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(b.dataset.fyAlert === 'set' || !f.on){ if(!f.on) toast('فعّل التنبيهات أول، وبعدها اختر نطاق الفياض'); f.openSettings(); return; }
     await f.setKm(100); renderFayd();
   });
+  // نقاط ربيع أكدها جهازين فأكثر (spring_field_points) — تنجاب مرة كل 10 دقايق، وإذا تغيّرت نعيد رسم القائمة
+  let FIELD_PTS = [], fieldAt = 0;
+  function loadFieldPts(){
+    if(Date.now() - fieldAt < 600e3) return; fieldAt = Date.now();
+    const K = 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';
+    fetch('https://penhpgvjtxytgyrhmetg.supabase.co/rest/v1/rpc/spring_field_points', {method:'POST', cache:'no-store', headers:{apikey:K, authorization:'Bearer ' + K, 'Content-Type':'application/json'}, body:'{"p_days":10}'})
+      .then(r=>r.ok ? r.json() : []).then(j=>{ const pts = (j || []).map(x=>[+x.lat, +x.lng]).filter(p=>isFinite(p[0]) && isFinite(p[1]));
+        if(pts.length !== FIELD_PTS.length){ FIELD_PTS = pts; try{ renderFayd(); }catch(e){} } }).catch(()=>{});
+  }
   function renderFayd(){
     const card = document.getElementById('faydCard');
     if(!faydData || !faydSites || !Array.isArray(faydData.rows)){ card.hidden = true; return; }
@@ -6400,6 +6409,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
     const pos = state.pos;
     let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], pct:r[3], chk:r[5] === 5 ? 0 : (r[5] || 0), field:r[5] === 5, d:r[6] || ''} : null; }).filter(Boolean);
+    // 13 نوفمبر: بلاغات «🌱 ربيع عندك؟» من جهازين فأكثر (آخر 10 أيام) تأكد الفيضة على طول — قبل لا تجي صورة القمر وتحديث اليوم
+    loadFieldPts();
+    if(FIELD_PTS.length) rows.forEach(r=>{ if(r.field) return; if(FIELD_PTS.some(p=>Math.abs(p[0] - r.lat) < .06 && Math.abs(p[1] - r.lng) < .07 && haversine(p[0], p[1], r.lat, r.lng) <= 5000)){ r.field = true; r.chk = 0; if(r.st < 2) r.st = 2; } });
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
     if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
     if(faydFilter === 'near'){
