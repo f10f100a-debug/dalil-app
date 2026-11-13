@@ -2190,7 +2190,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة']];
+      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ return k === 'dalil_lab_layout' || k === 'dalil_lab_week' ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\//.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
@@ -2198,7 +2198,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(c.dataset.lab === 'dalil_lab_week') c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn'; nb.style.cssText = 'margin-top:8px;width:100%';
@@ -4869,7 +4869,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   function loadWadiIndex(){
     if(!wadiLoading) wadiLoading = fetch('data/wadis.json?v=1').then(r=>r.ok ? r.json() : null).then(d=>{
       const k = 1 / ((d && d.scale) || 1e4);
-      wadiIndex = d && Array.isArray(d.w) ? d.w.map(([name, parts])=>({key:wadiKey(name), parts:parts.map(a=>{
+      wadiIndex = d && Array.isArray(d.w) ? d.w.map(([name, parts])=>({key:wadiKey(name), name, parts:parts.map(a=>{
         const pts = []; let lat = 0, lng = 0;
         for(let i = 0; i < a.length; i += 2){ lat += a[i]; lng += a[i+1]; pts.push([lat*k, lng*k]); }
         return pts;
@@ -6716,6 +6716,145 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(e.data.type === 'DALIL_OPEN_TOOLS') tog.click();
       if(e.data.type === 'DALIL_MAP_FS' && scr.classList.contains('active')) setTimeout(tell, 50); });   // زر ملء الشاشة القديم ما يطلّعنا
     tell();
+  })();
+  // ---------- تجربة «⛺ مخيّمك آمن؟» و«🧭 وين أطلع؟» (13 نوفمبر — dalil_lab_camp / dalil_lab_where) ----------
+  (function(){
+    const lab = k=>{ try{ return localStorage.getItem(k) === '1'; }catch(e){ return false; } };
+    const LS_CAMP = 'dalil_camp';
+    const OM = 'https://api.open-meteo.com/v1/forecast?';
+    const fmtH = d=>d.toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'});
+    const dayW = d=>{ const t = new Date(); t.setHours(0,0,0,0); const x = new Date(d); x.setHours(0,0,0,0); const k = Math.round((x - t) / 864e5); return k === 0 ? 'اليوم' : k === 1 ? 'بكرة' : x.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', {weekday:'long'}); };
+    const st = document.createElement('style');
+    st.textContent = '.cp-actions.lab4{grid-template-columns:repeat(4,minmax(0,1fr))}.camp-card{border-radius:18px;padding:12px 14px;margin:0 0 12px;line-height:1.7;font-size:13px}.camp-card.warn{background:#FFF1E6;border:1.5px solid #E8833A}.camp-card.ok{background:#EEF6EF;border:1.5px solid #6BAE7A}.camp-card.wait{background:var(--card,#fff);border:1px solid var(--line)}.camp-card b.t{display:block;font-size:15px}.camp-card small{color:var(--text-faint);display:block}.camp-row{display:flex;gap:8px;margin-top:8px}.camp-row button{flex:1;font:inherit;font-weight:800;font-size:13px;border-radius:12px;padding:9px;border:1px solid var(--line);background:#fff;color:#3A2A12}.camp-row button.g{background:#C29A5B;border-color:#C29A5B;color:#2b1d07}'
+      + '.wh-card{margin:0 0 12px}.wh-hd{display:flex;justify-content:space-between;align-items:center;gap:8px}.wh-hd select{font:inherit;font-size:13px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#fff}.wh-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:right;border:0;border-top:1px solid var(--line);background:none;padding:9px 0;font:inherit;color:inherit;cursor:pointer}.wh-row b{font-size:14.5px}.wh-row small{display:block;color:var(--text-faint);font-size:12px;line-height:1.6}.wh-sc{text-align:center;flex:none}.wh-sc b{display:block;font-size:19px;color:#2E7D4F}.wh-sc b.m{color:#B88A2A}.wh-note{font-size:11.5px;color:var(--text-faint);margin-top:6px}.wh-more{width:100%;font:inherit;font-weight:800;font-size:13px;border:1px solid var(--line);background:none;border-radius:12px;padding:8px;margin-top:6px;color:#8A5A12}:is(html[data-theme=dark],html[data-theme=red]) .camp-card.warn{background:#3A2A1C}:is(html[data-theme=dark],html[data-theme=red]) .camp-card.ok{background:#1F2A22}';
+    document.head.appendChild(st);
+
+    // ===== ⛺ مخيّمك آمن؟ =====
+    if(lab('dalil_lab_camp')){
+      const acts = document.querySelector('.cp-actions'), car = document.getElementById('carCard');
+      const btn = document.createElement('button'); btn.className = 'cp-btn cp-btn-white'; btn.type = 'button'; btn.innerHTML = '<span style="font-size:17px">⛺</span>مخيمي';
+      if(acts){ acts.insertBefore(btn, acts.firstChild); acts.classList.add('lab4'); }
+      const card = document.createElement('div'); card.className = 'camp-card'; card.hidden = true;
+      if(car && car.parentNode) car.parentNode.insertBefore(card, car);
+      let camp = null; try{ camp = JSON.parse(localStorage.getItem(LS_CAMP) || 'null'); }catch(e){}
+      let busy = false, last = 0, res = null;
+      async function check(force){
+        if(!camp || busy || (!force && Date.now() - last < 30 * 60e3)) return; busy = true;
+        card.hidden = false; if(!res){ card.className = 'camp-card wait'; card.innerHTML = '⛺ نفحص مخيمك…'; }
+        try{
+          const W = await loadWadiIndex();
+          let near = null;
+          for(const w of W || []){ const b = nearestOnLines(w.parts, camp.lat, camp.lng); if(b && (!near || b.d < near.d)) near = {...b, name:w.name}; }
+          // مطر 48 ساعة: المخيم + 4 نقاط على بعد 25 كم (السيل يجي من أعلى الوادي)
+          const dk = 25 / 111, pts = [[0,0],[dk,0],[-dk,0],[0,dk / Math.cos(camp.lat * Math.PI / 180)],[0,-dk / Math.cos(camp.lat * Math.PI / 180)]].map(([a, b])=>[camp.lat + a, camp.lng + b]);
+          const q = new URLSearchParams({latitude:pts.map(p=>p[0].toFixed(3)).join(','), longitude:pts.map(p=>p[1].toFixed(3)).join(','), hourly:'precipitation', forecast_days:'3', timezone:'auto'});
+          const j = await fetch(OM + q).then(r=>r.ok ? r.json() : null).catch(()=>null);
+          let here = 0, around = 0, first = null;
+          if(j){ const L = Array.isArray(j) ? j : [j], now = Date.now();
+            L.forEach((loc, k)=>{ const T = loc.hourly.time, P = loc.hourly.precipitation; let s = 0;
+              for(let i = 0; i < T.length; i++){ const t = new Date(T[i]).getTime(); if(t < now - 3600e3 || t > now + 48 * 3600e3) continue; s += P[i] || 0; if((P[i] || 0) >= 0.5 && (!first || t < first)) first = t; }
+              if(k === 0) here = s; else around = Math.max(around, s); }); }
+          res = {near, here, around, first, at:Date.now()}; last = Date.now();
+        }catch(e){ res = res || null; }
+        busy = false; render();
+      }
+      function render(){
+        if(!camp){ card.hidden = true; return; }
+        card.hidden = false;
+        if(!res){ card.className = 'camp-card wait'; card.innerHTML = '⛺ نفحص مخيمك…'; return; }
+        const d = res.near ? Math.round(res.near.d) : 1e9, nm = res.near ? res.near.name : '';
+        const inW = d < 150, nearW = d < 400, rain = Math.max(res.here, res.around);
+        const when = res.first ? dayW(new Date(res.first)) + ' ' + fmtH(new Date(res.first)) : '';
+        let cls = 'ok', t = '', m = '', safe = '';
+        if(nearW){
+          const b = bearing(res.near.lat, res.near.lng, camp.lat, camp.lng), go = Math.max(150, 450 - d);
+          safe = {b, go, lat:camp.lat + go / 111320 * Math.cos(b * Math.PI / 180), lng:camp.lng + go / (111320 * Math.cos(camp.lat * Math.PI / 180)) * Math.sin(b * Math.PI / 180)};
+          t = (inW ? '⚠️ مخيمك في مجرى ' : '⚠️ مخيمك قريب من مجرى ') + escapeHtml(nm) + (inW ? '' : ' (' + d + ' م)');
+          if(rain >= 3){ cls = 'warn'; m = 'متوقع مطر حتى <b>' + Math.round(rain) + ' ملم حول الوادي</b> خلال 48 ساعة' + (when ? ' يبدأ ' + escapeHtml(when) : '') + '. السيل ممكن يوصلك حتى لو ما مطر عندك.'; }
+          else{ cls = inW ? 'warn' : 'ok'; m = 'ما فيه مطر يُذكر متوقع 48 ساعة، لكن بطون الأودية خطرة إذا تغيّر الجو — تابع التنبيهات.'; }
+        }else{
+          t = '✅ مخيمك بعيد عن مجاري الأودية المعروفة';
+          if(rain >= 10){ cls = 'warn'; t = '⚠️ مطر متوقع حول مخيمك'; m = 'حتى ' + Math.round(rain) + ' ملم خلال 48 ساعة' + (when ? ' يبدأ ' + escapeHtml(when) : '') + '. انتبه للشعبان الصغيرة القريبة (مو كلها في خرائطنا).'; }
+          else m = rain >= 1 ? 'مطر خفيف محتمل (' + Math.round(rain) + ' ملم) خلال 48 ساعة.' : 'وما فيه مطر متوقع خلال 48 ساعة.';
+        }
+        card.className = 'camp-card ' + cls;
+        card.innerHTML = '<b class="t">' + t + '</b><div>' + m + '</div>'
+          + (safe ? '<div class="camp-row"><button type="button" class="g" data-camp="safe">↗ أبعد عن المجرى ' + safe.go + ' م ' + escapeHtml(directionWord(safe.b)) + '</button></div>' : '')
+          + '<div class="camp-row"><button type="button" data-camp="re">🔄 افحص الحين</button><button type="button" data-camp="end">إنهاء المخيم</button></div>'
+          + '<small>حسب مجاري الأودية المسمّاة وتوقع الطقس · آخر فحص ' + escapeHtml(fmtH(new Date(res.at))) + '</small>';
+        card._safe = safe;
+      }
+      card.addEventListener('click', e=>{ const b = e.target.closest('[data-camp]'); if(!b) return;
+        if(b.dataset.camp === 're') check(true);
+        else if(b.dataset.camp === 'end'){ camp = null; res = null; try{ localStorage.removeItem(LS_CAMP); }catch(err){} render(); toast('أنهينا متابعة المخيم'); }
+        else if(b.dataset.camp === 'safe' && card._safe) navigateToPlace({id:'__camp_safe', name:'مكان أبعد عن مجرى الوادي', icon:'⛺', cat:'camp', lat:card._safe.lat, lng:card._safe.lng, alt:null});
+      });
+      btn.addEventListener('click', ()=>{
+        const p = state.pos; if(!p){ toast('بانتظار تحديد موقعك…'); return; }
+        camp = {lat:p.lat, lng:p.lng, at:Date.now()}; try{ localStorage.setItem(LS_CAMP, JSON.stringify(camp)); }catch(e){}
+        res = null; toast('⛺ حفظنا مخيمك — نفحصه الحين'); check(true);
+      });
+      if(camp){ render(); setTimeout(()=>check(true), 2500); }
+      setInterval(()=>check(false), 5 * 60e3);
+    }
+
+    // ===== 🧭 وين أطلع؟ =====
+    if(lab('dalil_lab_where')) setTimeout(()=>{
+      const bSeg = document.querySelector('.seg[aria-label="البر"]'); if(!bSeg) return;
+      const card = document.createElement('div'); card.className = 'cp-card wh-card';
+      bSeg.parentNode.insertBefore(card, bSeg);
+      new MutationObserver(()=>{ card.style.display = bSeg.style.display; if(bSeg.style.display !== 'none' && !card.querySelector('.wh-row')) load(); }).observe(bSeg, {attributes:true, attributeFilter:['style']}); card.style.display = bSeg.style.display;
+      const days = []; for(let i = 0; i < 7; i++){ const d = new Date(); d.setDate(d.getDate() + i); days.push(d); }
+      let day = days.findIndex(d=>d.getDay() === 4); if(day < 0) day = 1;   // الافتراضي: أقرب خميس
+      let more = false, cache = {}, busy = false;
+      const RAD = 300;
+      async function load(){
+        if(busy) return; const p = state.pos;
+        if(!p){ card.innerHTML = '<b>🧭 وين أطلع؟</b><div class="wh-note">فعّل الموقع عشان نقترح عليك وجهات قريبة.</div>'; return; }
+        const key = p.lat.toFixed(1) + ',' + p.lng.toFixed(1);
+        if(!cache[key]){
+          busy = true; card.innerHTML = '<b>🧭 وين أطلع؟</b><div class="wh-note">نجهّز أفضل الوجهات…</div>';
+          await loadFayd(); busy = false;
+          if(!faydData || !faydSites){ card.innerHTML = '<b>🧭 وين أطلع؟</b><div class="wh-note">تعذّر تحميل الفياض — حاول بعد شوي.</div>'; return; }
+          const cands = faydData.rows.filter(r=>r[2] >= 2).map(r=>{ const s = faydSites[r[0]]; if(!s) return null; const km = haversine(p.lat, p.lng, s[1], s[2]) / 1000; return km <= RAD ? {i:r[0], name:s[0], lat:s[1], lng:s[2], g:r[1], st:r[2], km} : null; }).filter(Boolean)
+            .sort((a, b)=>(b.g / 60 - b.km / 150) - (a.g / 60 - a.km / 150)).slice(0, 16);
+          if(!cands.length){ cache[key] = {cands:[]}; }
+          else{
+            busy = true;
+            const q = new URLSearchParams({latitude:cands.map(c=>c.lat.toFixed(3)).join(','), longitude:cands.map(c=>c.lng.toFixed(3)).join(','), daily:'precipitation_sum,wind_speed_10m_max,temperature_2m_max,weather_code', forecast_days:'7', timezone:'Asia/Riyadh'});
+            const j = await fetch(OM + q).then(r=>r.ok ? r.json() : null).catch(()=>null); busy = false;
+            const L = j ? (Array.isArray(j) ? j : [j]) : [];
+            cands.forEach((c, k)=>{ c.d = L[k] ? L[k].daily : null; });
+            cache[key] = {cands};
+          }
+        }
+        render(cache[key].cands);
+      }
+      function render(cands){
+        const opts = days.map((d, i)=>'<option value="' + i + '"' + (i === day ? ' selected' : '') + '>' + escapeHtml(dayW(d)) + '</option>').join('');
+        let html = '<div class="wh-hd"><b>🧭 وين أطلع؟</b><select aria-label="اليوم">' + opts + '</select></div><div class="wh-note" style="margin:2px 0 4px">أفضل الفياض الخضراء خلال ' + RAD + ' كم منك — من حالة الخضرة والمطر والرياح والحرارة</div>';
+        if(!cands.length){ card.innerHTML = html + '<div class="wh-note">ما فيه فياض خضراء خلال ' + RAD + ' كم منك حاليًا.</div>'; return; }
+        const sc = cands.map(c=>{
+          const d = c.d, r = d ? d.precipitation_sum[day] || 0 : 0, w = d ? d.wind_speed_10m_max[day] || 0 : 0, t = d ? d.temperature_2m_max[day] : null;
+          const green = Math.min(4, 1.5 + c.g / 60), dry = r < 0.5 ? 3 : r < 3 ? 1.5 : 0, wind = w <= 20 ? 2 : w <= 30 ? 1 : 0, temp = t == null ? 0.5 : (t >= 14 && t <= 30 ? 1 : 0.3);
+          const score = Math.max(0, Math.min(10, green + dry + wind + temp - c.km / 200));
+          const bits = [c.st >= 3 ? '🟢 خضراء' : '🟢 بداية ربيع', r < 0.5 ? '☀️ ما فيه مطر' : r < 3 ? '🌦️ مطر خفيف ' + r.toFixed(1) + ' ملم' : '🌧️ مطر ' + Math.round(r) + ' ملم', '🌬️ ' + Math.round(w) + ' كم/س' + (w > 35 ? ' (غبار محتمل)' : '')];
+          if(t != null) bits.push(Math.round(t) + '°');
+          return {...c, score, bits};
+        }).sort((a, b)=>b.score - a.score);
+        const shown = sc.slice(0, more ? 8 : 3);
+        html += shown.map((c, k)=>'<button type="button" class="wh-row" data-wh="' + c.i + '"><span><b>' + (k + 1) + '. ' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.bits.join(' · ')) + '</small></span><span class="wh-sc"><b' + (c.score < 8 ? ' class="m"' : '') + '>' + c.score.toFixed(1) + '</b><small>' + Math.round(c.km) + ' كم</small></span></button>').join('');
+        if(sc.length > 3) html += '<button type="button" class="wh-more" data-wh-more>' + (more ? 'أقل ⌃' : 'المزيد ⌄') + '</button>';
+        html += '<div class="wh-note">تقدير تجريبي — تأكد من الطريق والطقس يوم الطلعة.</div>';
+        card.innerHTML = html;
+      }
+      card.addEventListener('change', e=>{ if(e.target.tagName === 'SELECT'){ day = +e.target.value; load(); } });
+      card.addEventListener('click', e=>{
+        if(e.target.closest('[data-wh-more]')){ more = !more; load(); return; }
+        const b = e.target.closest('[data-wh]'); if(b) openPlaceSheet('fy:' + b.dataset.wh);
+      });
+      load(); setInterval(()=>{ if(card.style.display !== 'none' && !card.querySelector('.wh-row')) load(); }, 8e3);
+    }, 0);
   })();
   // ---------- تجربة «الترتيب الجديد» (مخفية — تُشغّل من «عن التطبيق»: 5 ضغطات على رقم الإصدار) ----------
   // تبويب «البر» (الربيع والفياض والفقع والطيور والأحداث) منفصل عن «الأجواء»، والإعدادات من ⚙️ فوق، والتنبيهات أول الإعدادات.
