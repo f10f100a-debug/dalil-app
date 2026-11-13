@@ -49,11 +49,20 @@ def merged(ar):
             for y, c in v["years"].items(): years[y] = years.get(y, 0) + c
         o[sc] = {"doy": doy, "n": sum(doy), "years": years}
     return o
+# الجرجس بالشمال عابر مو مشتّي (14 نوفمبر 2026: ملاحظة ميدانية من القناصين «راح وقته» + مشاهدات الشمال الأسبوعية تطيح بعد 10 نوفمبر)
+# المشاهدات المتأخرة بديسمبر قليلة متفرقة، فنهاية العبور بالشمال = 12 نوفمبر (يوم 315)
+NORTH_KIND = {"الجرجس": "pass"}
+NORTH_AUT_END = {"الجرجس": 315}
+NORTH_NOTE = {"الجرجس": "بالشمال يعبر بالخريف ويرجع بالربيع، وقليل منه يبقى للشتاء"}
 birds = []
 for ar, kind in KIND.items():
     o = merged(ar)
+    nk = NORTH_KIND.get(ar, kind); ns = scope(o["north"], nk)
+    if ar in NORTH_KIND: ns["kind"] = nk
+    if ar in NORTH_AUT_END and ns.get("aut"): ns["aut"][1] = NORTH_AUT_END[ar]
+    if ar in NORTH_NOTE: ns["note"] = NORTH_NOTE[ar]
     birds.append({"id": ar, "kind": kind, "sci": SCI[ar], "note": NOTE[ar], "protected": ar == "القميري",
-                  "north": scope(o["north"], kind), "all": scope(o["all"], kind)})
+                  "north": ns, "all": scope(o["all"], kind)})
 # القطا: مقيم — توزيع الأشهر لكل الأنواع مجتمعة + قائمة الأنواع
 qd = [0] * 365; qn = 0; types = []
 AR = {"القطا النبطاء (الخطاف)": "النبطاء (الخطاف)", "القطا كستنائي البطن": "كستنائي البطن", "القطا المخطط": "المخطط", "القطا المرقط": "المرقط",

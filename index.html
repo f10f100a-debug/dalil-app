@@ -6466,7 +6466,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   // ---------- هجرة الطيور (تقويم من أرشيف GBIF — data/birds.json يبنيه tools/birds/build.py) ----------
   let brData = null, brLoading = null, brFilter = 'all';
   function loadBirds(){
-    if(!brLoading) brLoading = fetch('data/birds.json?v=1').then(r=>r.ok ? r.json() : null).then(j=>{ brData = j; }).catch(()=>{ brLoading = null; });
+    if(!brLoading) brLoading = fetch('data/birds.json?v=2').then(r=>r.ok ? r.json() : null).then(j=>{ brData = j; }).catch(()=>{ brLoading = null; });
     return brLoading;
   }
   const BR_MON = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
@@ -6489,9 +6489,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return `<span class="br-ic" style="background:${c[0]};color:${c[1]}"><svg viewBox="0 0 34 30" fill="currentColor" aria-hidden="true">${shape}</svg></span>`;
   }
   function birdView(b, t, north){
-    const useN = north && b.north && b.north.n >= 300 && b.north.years >= 10;
+    // 14 نوفمبر: حد بيانات الشمال 120 مشاهدة (10 سنين+) بدل 300 — الجرجس كان ياخذ مواعيد المملكة (يشتّي بالجنوب) وهو بالشمال عابر
+    const useN = north && b.north && b.north.n >= 120 && b.north.years >= 10;
     const S = b.kind === 'resident' ? b.all : useN ? b.north : b.all;
     const weak = b.kind !== 'resident' && (S.n < 300 || (north && !useN));
+    const kind = (useN && b.north.kind) || b.kind, note = (useN && b.north.note) || b.note;
+    b = Object.assign({}, b, {kind, note});
     const v = {b, S, useN, weak};
     if(b.kind === 'resident'){ v.st = ['مقيم طول السنة', 'fy-p7', 5]; v.ln = 'يكثر من أكتوبر إلى فبراير · ' + b.note; return v; }
     const A = S.aut, P = S.spr, W = S.win;
@@ -6499,7 +6502,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(brIn(t, A)) v.st = brNear(t, A[2], 10) ? ['الذروة', 'fy-p3', 1] : (t < A[2] ? ['بداية العبور', 'fy-p6', 2] : ['آخر العبور', 'fy-p1', 3]);
       else if(brIn(t, P)) v.st = brNear(t, P[2], 10) ? ['ذروة الرجعة', 'fy-p3', 1] : (t < P[2] ? ['بداية الرجعة', 'fy-p6', 2] : ['آخر الرجعة', 'fy-p1', 3]);
       else v.st = [t > A[1] || t < P[0] ? 'انتهى عبوره' : 'خارج موسمه', 'fy-p0', 9];
-      v.ln = 'يعبر ' + brDate(A[0]) + ' – ' + brDate(A[1]) + ' · الذروة ' + brDate(A[2]) + '<br>يرجع بالربيع ' + brDate(P[0]) + ' – ' + brDate(P[1]);
+      v.ln = 'يعبر ' + brDate(A[0]) + ' – ' + brDate(A[1]) + ' · الذروة ' + brDate(A[2]) + '<br>يرجع بالربيع ' + brDate(P[0]) + ' – ' + brDate(P[1]) + (b.note ? '<br>' + b.note : '');
     }else{
       if(brIn(t, W)) v.st = ['يشتّي عندنا', 'fy-p5', 2];
       else if(A && brIn(t, A)) v.st = ['بدأ يوصل', 'fy-p5', 2];
