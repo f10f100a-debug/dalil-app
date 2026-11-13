@@ -426,7 +426,7 @@ async function radarAreaNote(){
     if(rvAreaMax!==mx){rvAreaMax=mx;refreshRainText()}
     // ما نقول شي إلا إذا فيه صدى واضح، وأغلبه ضعيف (أقل من 30 dBZ)، وما فيه خلايا قوية
     const wz=radarWeakAt(c.lat,c.lng);
-    if(wz){el.hidden=false;el.textContent='📡 الرادار في منطقة '+wz+' بعيد ويقلّل المطر — المطر الفعلي غالبًا أقوى وأوسع من اللي تشوفه. انتبه للبرق والسحب.';return}
+    if(wz&&echo>0){el.hidden=false;el.textContent='📡 الرادار في منطقة '+wz+' بعيد ويقلّل المطر — المطر الفعلي غالبًا أقوى وأوسع من اللي تشوفه. انتبه للبرق والسحب.';return}
     if(tot&&echo/tot>=.05&&mid/echo<.12&&heavy<3){el.hidden=false;el.textContent='معظم المطر الظاهر هنا ضعيف ورذاذ، وفي الجو الجاف كثير منه يتبخر قبل يوصل الأرض.'}
     else el.hidden=true;
   }catch(e){el.hidden=true}
@@ -463,7 +463,7 @@ async function loadRainReports(force){if(!glReady||(!force&&Date.now()-rrAt<120e
 setInterval(()=>{if(LP.radar)loadRainReports()},60e3);
 // أعلى الخريطة نظيف: دليل الألوان والملاحظة مطويّة، وتنفتح بزر ⓘ في شريط الرادار (يتذكر اختيارك)
 (()=>{const lg=$('#radarLegend'),bt=$('#rlInfo');let open=false;try{open=localStorage.getItem('dalil_rl_open')==='1'}catch(e){}
-  const set=v=>{open=v;lg.classList.toggle('rl-open',v);bt.setAttribute('aria-expanded',v);try{localStorage.setItem('dalil_rl_open',v?'1':'0')}catch(e){}};set(open);
+  const set=v=>{open=v;lg.classList.toggle('rl-open',v);bt.setAttribute('aria-expanded',v);try{localStorage.setItem('dalil_rl_open',v?'1':'0')}catch(e){}try{springBarSync()}catch(e){}};set(open);
   bt.addEventListener('click',()=>set(!open));
   const nt=$('#rlNote');if(nt)new MutationObserver(()=>bt.classList.toggle('dot',!nt.hidden)).observe(nt,{attributes:true,attributeFilter:['hidden']});
   $('#rlRep2').addEventListener('click',()=>$('#rlReport').click())})();
@@ -474,7 +474,7 @@ $('#rainSheet').addEventListener('click',async e=>{const b=e.target.closest('[da
   catch(err){status.textContent='تعذّر الإرسال — تأكد من الاتصال'}});
 // «🌱 ربيع عندك؟»: بلاغات الربيع من الميدان (آخر 3 أيام) — تظهر مع طبقة الربيع
 var srAt=0;
-function springBarSync(){const b=$('#springBar');if(!b)return;const on=!!LP.ndvi;b.classList.toggle('show',on);b.classList.toggle('stack',on&&!!LP.radar);if(!on)$('#springSheet').hidden=true;if(glReady)vis('spring-reports',on);if(on)loadSpringReports()}
+function springBarSync(){const b=$('#springBar');if(!b)return;const lg=$('#radarLegend');const on=!!LP.ndvi&&!(lg&&!lg.hidden&&lg.classList.contains('rl-open'));b.classList.toggle('show',on);b.classList.toggle('stack',on&&!!LP.radar);if(!on)$('#springSheet').hidden=true;if(glReady)vis('spring-reports',on);if(on)loadSpringReports()}
 async function loadSpringReports(force){if(!glReady||(!force&&Date.now()-srAt<120e3))return;srAt=Date.now();
   try{const r=await fetch(RR_URL+'/rest/v1/rpc/spring_reports_recent',{method:'POST',headers:{apikey:RR_KEY,'content-type':'application/json'},body:'{}',cache:'no-store'});if(!r.ok)return;
     const rows=await r.json(),fc={type:'FeatureCollection',features:(rows||[]).map(x=>({type:'Feature',properties:{level:x.level,age:Math.round((Date.now()-Date.parse(x.at))/36e5)},geometry:{type:'Point',coordinates:[+x.lng,+x.lat]}}))};
