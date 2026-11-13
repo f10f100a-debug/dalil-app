@@ -1372,7 +1372,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261110-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261113-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -3466,14 +3466,16 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         const p = (H['precipitation_' + m] || [])[i], q = (H['precipitation_probability_' + m] || [])[i], w = (H['weather_code_' + m] || [])[i], c = (H['cape_' + m] || [])[i];
         if(p == null && q == null) continue;
         const wet = (p || 0) >= 0.2 || (q || 0) >= 50;
-        if(wet) agree++;
+        // 13 نوفمبر (دقة النماذج أكتوبر–نوفمبر): الأوروبي لقط 54% من أيام المطر مقابل 37% للأمريكي و26% للألماني → وزنه ضعف
+        if(wet) agree += m === 'ecmwf_ifs025' ? 2 : 1;
         if(q != null) pr.push(q); if(p != null) mm.push(p);
         if(w >= 95) thunder++; if(w === 96 || w === 99) hail++;
         if(c != null) cape = Math.max(cape, c);
       }
       mm.sort((a, b)=>a - b);
       const prob = pr.length ? Math.round(pr.reduce((a, b)=>a + b, 0) / pr.length) : 0;
-      let lv = agree >= 3 || (agree >= 2 && prob >= 60) ? 3 : agree;
+      // agree من 4: الأوروبي 2 + الأمريكي 1 + الألماني 1 — مرجّح = الكل، أو الأوروبي ومعه واحد واحتمال 60%+
+      let lv = agree >= 4 || (agree >= 3 && prob >= 60) ? 3 : Math.min(agree, 2);
       out.push({t:new Date(T[i]), lv, prob, mm:mm.length ? mm[Math.floor(mm.length / 2)] : 0, thunder:lv && (thunder >= 1 || cape >= 800), hail:lv >= 2 && hail >= 1});
     }
     return out;

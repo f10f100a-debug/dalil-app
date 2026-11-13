@@ -404,6 +404,9 @@ async function probeRadar(p,quiet){const el=$('#navRain');if(!el)return;if(!quie
     const tl=r.time?' '+new Date(r.time*1000).toLocaleTimeString('ar-SA-u-nu-latn',{hour:'numeric',minute:'2-digit'}):'';
     el.textContent=r.dbz==null?(lt?'⚡ عاصفة رعدية نشطة هنا (برق من القمر الصناعي) — غالبًا خارج تغطية الرادار':'☀️ الرادار'+tl+': لا مطر هنا'):r.dbz<=20?'🌫️ الرادار'+tl+': صدى ضعيف هنا — غالبًا يتبخر قبل يوصل الأرض':(r.dbz>=45?'⛈️ ':'🌧️ ')+'الرادار'+tl+': '+rvClass(r.dbz)+' هنا ('+r.dbz+' dBZ)'}catch(e){el.textContent='تعذّر قراءة الرادار — تأكد من الاتصال';if(window.parent!==window&&parent.__dalilReport)parent.__dalilReport('probe: '+(e&&e.message),'map')}}
 // قراءة المطر حول وسط الخريطة (~60 كم) من نفس صورة الرادار المعروضة: إذا أغلبه ضعيف ننبّه إنه غالبًا ما يوصل الأرض
+// 13 نوفمبر (مقارنة أسبوعين بالمطارات): حائل والقصيم ورفحاء والدوادمي الرادار فيها يفوّت أغلب المطر ويقلّل شدته
+const RADAR_WEAK=[[26.5,28.8,40.5,43.5,'حائل'],[25.3,27.3,42.8,44.9,'القصيم'],[28.8,30.3,42.6,44.6,'رفحاء'],[23.8,25.3,43.4,45.1,'الدوادمي']];
+const radarWeakAt=(la,lo)=>(RADAR_WEAK.find(z=>la>=z[0]&&la<=z[1]&&lo>=z[2]&&lo<=z[3])||[])[4]||'';
 let rvNoteKey='';
 async function radarAreaNote(){
   const el=$('#rlNote');if(!el)return;if(!LP.radar||!RADAR_FRAMES.length){el.hidden=true;return}
@@ -422,6 +425,8 @@ async function radarAreaNote(){
       const k=(yy*512+xx)*4,d=rvDbz(px[k],px[k+1],px[k+2],px[k+3]);if(d!=null&&d>mx)mx=d;if(d==null||d<15)continue;echo++;if(d>=30)mid++;if(d>=40)heavy++}
     if(rvAreaMax!==mx){rvAreaMax=mx;refreshRainText()}
     // ما نقول شي إلا إذا فيه صدى واضح، وأغلبه ضعيف (أقل من 30 dBZ)، وما فيه خلايا قوية
+    const wz=radarWeakAt(c.lat,c.lng);
+    if(wz){el.hidden=false;el.textContent='📡 الرادار في منطقة '+wz+' بعيد ويقلّل المطر — المطر الفعلي غالبًا أقوى وأوسع من اللي تشوفه. انتبه للبرق والسحب.';return}
     if(tot&&echo/tot>=.05&&mid/echo<.12&&heavy<3){el.hidden=false;el.textContent='معظم المطر الظاهر هنا ضعيف ورذاذ، وفي الجو الجاف كثير منه يتبخر قبل يوصل الأرض.'}
     else el.hidden=true;
   }catch(e){el.hidden=true}
