@@ -6800,13 +6800,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
     // ===== 🧭 وين أطلع؟ =====
     if(lab('dalil_lab_where')) setTimeout(()=>{
-      const bSeg = document.querySelector('.seg[aria-label="البر"]'); if(!bSeg) return;
+      // 13 نوفمبر (رأي أبو مالك): الشريط فوق، والبطاقة داخل «الفياض» بس، فوق «أكثر الفياض اخضرارًا»، ومصغّرة بسطر
+      const fc = document.getElementById('faydCard'); if(!fc) return;
       const card = document.createElement('div'); card.className = 'cp-card wh-card';
-      bSeg.parentNode.insertBefore(card, bSeg);
-      new MutationObserver(()=>{ card.style.display = bSeg.style.display; if(bSeg.style.display !== 'none' && !card.querySelector('.wh-row')) load(); }).observe(bSeg, {attributes:true, attributeFilter:['style']}); card.style.display = bSeg.style.display;
+      fc.parentNode.insertBefore(card, fc);
+      const vis = ()=>{ card.hidden = fc.hidden; if(!fc.hidden && !card.dataset.ok) load(); };
+      new MutationObserver(vis).observe(fc, {attributes:true, attributeFilter:['hidden']}); vis();
       const days = []; for(let i = 0; i < 7; i++){ const d = new Date(); d.setDate(d.getDate() + i); days.push(d); }
       let day = days.findIndex(d=>d.getDay() === 4); if(day < 0) day = 1;   // الافتراضي: أقرب خميس
-      let more = false, cache = {}, busy = false;
+      let more = false, open = false, cache = {}, busy = false;
       const RAD = 300;
       async function load(){
         if(busy) return; const p = state.pos;
@@ -6832,28 +6834,34 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       }
       function render(cands){
         const opts = days.map((d, i)=>'<option value="' + i + '"' + (i === day ? ' selected' : '') + '>' + escapeHtml(dayW(d)) + '</option>').join('');
-        let html = '<div class="wh-hd"><b>🧭 وين أطلع؟</b><select aria-label="اليوم">' + opts + '</select></div><div class="wh-note" style="margin:2px 0 4px">أفضل الفياض الخضراء خلال ' + RAD + ' كم منك — من حالة الخضرة والمطر والرياح والحرارة</div>';
-        if(!cands.length){ card.innerHTML = html + '<div class="wh-note">ما فيه فياض خضراء خلال ' + RAD + ' كم منك حاليًا.</div>'; return; }
+        let html = '<div class="wh-hd"><b>🧭 وين أطلع؟</b><select aria-label="اليوم">' + opts + '</select></div>';
+        if(!cands.length){ card.innerHTML = html + '<div class="wh-note">ما فيه فياض خضراء خلال ' + RAD + ' كم منك حاليًا.</div>'; card.dataset.ok = '1'; return; }
         const sc = cands.map(c=>{
           const d = c.d, r = d ? d.precipitation_sum[day] || 0 : 0, w = d ? d.wind_speed_10m_max[day] || 0 : 0, t = d ? d.temperature_2m_max[day] : null;
           const green = Math.min(4, 1.5 + c.g / 60), dry = r < 0.5 ? 3 : r < 3 ? 1.5 : 0, wind = w <= 20 ? 2 : w <= 30 ? 1 : 0, temp = t == null ? 0.5 : (t >= 14 && t <= 30 ? 1 : 0.3);
           const score = Math.max(0, Math.min(10, green + dry + wind + temp - c.km / 200));
-          const bits = [c.st >= 3 ? '🟢 خضراء' : '🟢 بداية ربيع', r < 0.5 ? '☀️ ما فيه مطر' : r < 3 ? '🌦️ مطر خفيف ' + r.toFixed(1) + ' ملم' : '🌧️ مطر ' + Math.round(r) + ' ملم', '🌬️ ' + Math.round(w) + ' كم/س' + (w > 35 ? ' (غبار محتمل)' : '')];
+          const bits = ['🟢 ' + ((FY_ST[c.st] || FY_ST[2])[0]), r < 0.5 ? '☀️ ما فيه مطر' : r < 3 ? '🌦️ مطر خفيف ' + r.toFixed(1) + ' ملم' : '🌧️ مطر ' + Math.round(r) + ' ملم', '🌬️ ' + Math.round(w) + ' كم/س' + (w > 35 ? ' (غبار محتمل)' : '')];
           if(t != null) bits.push(Math.round(t) + '°');
           return {...c, score, bits};
         }).sort((a, b)=>b.score - a.score);
+        const word = v=>v >= 8 ? 'ممتاز' : v >= 6 ? 'جيد' : 'مقبول';
+        card.dataset.ok = '1';
+        if(!open){ const t = sc[0];
+          card.innerHTML = '<button type="button" class="wh-row" data-wh-open style="border-top:0;padding:2px 0"><span><b>🧭 أفضل طلعة ' + escapeHtml(dayW(days[day])) + ': ' + escapeHtml(t.name) + '</b><small>' + t.score.toFixed(1) + ' ' + word(t.score) + ' · ' + Math.round(t.km) + ' كم · اضغط لأفضل 3</small></span><span style="font-size:18px;color:#8A5A12">⌄</span></button>'; return; }
         const shown = sc.slice(0, more ? 8 : 3);
-        html += shown.map((c, k)=>'<button type="button" class="wh-row" data-wh="' + c.i + '"><span><b>' + (k + 1) + '. ' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.bits.join(' · ')) + '</small></span><span class="wh-sc"><b' + (c.score < 8 ? ' class="m"' : '') + '>' + c.score.toFixed(1) + '</b><small>' + Math.round(c.km) + ' كم</small></span></button>').join('');
-        if(sc.length > 3) html += '<button type="button" class="wh-more" data-wh-more>' + (more ? 'أقل ⌃' : 'المزيد ⌄') + '</button>';
-        html += '<div class="wh-note">تقدير تجريبي — تأكد من الطريق والطقس يوم الطلعة.</div>';
+        html += shown.map((c, k)=>'<button type="button" class="wh-row" data-wh="' + c.i + '"><span><b>' + (k + 1) + '. ' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.bits.join(' · ')) + '</small></span><span class="wh-sc"><b' + (c.score < 8 ? ' class="m"' : '') + '>' + c.score.toFixed(1) + '</b><small>' + word(c.score) + ' · ' + Math.round(c.km) + ' كم</small></span></button>').join('');
+        html += '<div style="display:flex;gap:8px">' + (sc.length > 3 ? '<button type="button" class="wh-more" data-wh-more>' + (more ? 'أقل' : 'المزيد') + '</button>' : '') + '<button type="button" class="wh-more" data-wh-close>إخفاء ⌃</button></div>';
+        html += '<div class="wh-note">تقدير تجريبي من الخضرة والمطر والرياح والحرارة والمسافة — تأكد يوم الطلعة.</div>';
         card.innerHTML = html;
       }
       card.addEventListener('change', e=>{ if(e.target.tagName === 'SELECT'){ day = +e.target.value; load(); } });
       card.addEventListener('click', e=>{
         if(e.target.closest('[data-wh-more]')){ more = !more; load(); return; }
+        if(e.target.closest('[data-wh-open]')){ open = true; load(); return; }
+        if(e.target.closest('[data-wh-close]')){ open = false; more = false; load(); return; }
         const b = e.target.closest('[data-wh]'); if(b) openPlaceSheet('fy:' + b.dataset.wh);
       });
-      load(); setInterval(()=>{ if(card.style.display !== 'none' && !card.querySelector('.wh-row')) load(); }, 8e3);
+      setInterval(()=>{ if(!card.hidden && !card.dataset.ok) load(); }, 8e3);
     }, 0);
   })();
   // ---------- تجربة «الترتيب الجديد» (مخفية — تُشغّل من «عن التطبيق»: 5 ضغطات على رقم الإصدار) ----------
