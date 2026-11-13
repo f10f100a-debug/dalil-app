@@ -305,6 +305,24 @@ try:
         for d8, p75, mean, gfrac, valid in got.get(k, []): hist["obs"][d8] = [p75, gfrac]
     json.dump(W, open("data/fayd-field-watch.json", "w"), ensure_ascii=False, separators=(",", ":"))
 except Exception as e: print("field watch", e)
+# 13 نوفمبر (فيضة جزاء: جرداء بصورة 6 نوفمبر وخضراء بصورة 8 نوفمبر، والمطر 7 نوفمبر): العشب ما يطلع في يوم أو يومين —
+# القفزة من جرداء لخضراء خلال أقل من 6 أيام غالبًا أرض مبلولة أو بقايا غيم. نخليها «بداية اخضرار — تحتاج تأكيد» (برا «وين أطلع»
+# وتنبيه الفياض) لين تجي صورة أحدث وتثبّتها. المؤكدة من الميدان (r[5]=5) ما نلمسها.
+try:
+    PREVR = {r[0]: r for r in json.load(open("data/fayd.json"))["rows"]}
+except Exception: PREVR = {}
+def _days(a, b):
+    try: return (dtm.date.fromisoformat(a) - dtm.date.fromisoformat(b)).days
+    except Exception: return 99
+jumpn = []
+for r in rows:
+    pr = PREVR.get(r[0])
+    if not pr or r[2] < 2 or r[5] == 5 or len(r) < 7 or len(pr) < 7: continue
+    fresh = pr[2] == 0 and pr[1] < 20 and 0 <= _days(r[6], pr[6]) < 6
+    still = pr[5] == 2 and pr[2] == 1 and pr[6] == r[6]          # نفس الصورة اللي انشكّ فيها، ما جات صورة أحدث
+    if fresh or still:
+        r[2] = 1; r[5] = 2; jumpn.append(SITES[r[0]][0])
+if jumpn: print(f"::notice::sudden jump (needs a newer image) {len(jumpn)}: " + " · ".join(jumpn[:20]), flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
 # ---- بوابة النشر: إذا عدد الفياض الخضراء تغيّر أكثر من 30% عن المنشور → ما ننشر، نحفظه للمراجعة وننبّه المطوّر ----
