@@ -309,7 +309,8 @@ def main():
         print("::warning::radar rain skipped: " + str(e)[:150], flush=True)
     # 13 نوفمبر: رفحاء وحائل والقصيم والدوادمي الرادار فيها شبه أعمى (مقارنة المطارات) — فياض رفحاء ولينة خضرت والمسح شالها.
     # هناك ما نشيل بشرط المطر؛ نعتمد على صور القمر وفحص المزارع، والدائرة أصلًا مكتوب عليها «تحتاج تأكيد».
-    WEAK = [(26.5, 28.8, 40.5, 43.5), (25.3, 27.3, 42.8, 44.9), (28.6, 30.4, 42.4, 45.0), (23.8, 25.3, 43.4, 45.1)]
+    # 13 نوفمبر: حائل والقصيم فيها محطات تقيس المطر (وقليل) — رجعت دوائر بقعاء الغلط. الاستثناء للحدود الشمالية بس (رفحاء ولينة)
+    WEAK = [(28.6, 30.4, 42.4, 45.0)]
     weak = lambda la, lo: any(a <= la <= b and c <= lo <= d for a, b, c, d in WEAK)
     kept = [r for r, m in zip(rows, mm) if m is None or m >= MIN_MM or weak(r[0], r[1])]
     print(f"::notice::rain check (until {until}): {len(rows)} → {len(kept)} (dropped {len(rows) - len(kept)} with < {MIN_MM} mm)", flush=True)

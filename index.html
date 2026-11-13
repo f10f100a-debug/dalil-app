@@ -6420,7 +6420,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
     if(faydFilter === 'near'){
       if(!pos){ document.getElementById('faydList').innerHTML = '<div class="pl-note">فعّل الموقع عشان نرتب الفياض القريبة منك.</div>'; return; }
-      rows = rows.filter(r=>r.km <= 150).sort((a, b)=>(b.st > 0) - (a.st > 0) || b.g - a.g);
+      rows = rows.filter(r=>r.km <= 150).sort((a, b)=>(b.st > 0) - (a.st > 0) || a.km - b.km);   // 13 نوفمبر: الأقرب أول
     }
     // «تحتاج تأكيد» (قفزة خضرة كبيرة = غالبًا محور زراعي جديد) تنزل آخر القائمة
     const green = rows.filter(r=>r.st > 0).sort((a, b)=>(a.chk || 0) - (b.chk || 0));
@@ -6818,7 +6818,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           busy = true; card.innerHTML = '<b>🧭 وين أطلع؟</b><div class="wh-note">نجهّز أفضل الوجهات…</div>';
           await loadFayd(); busy = false;
           if(!faydData || !faydSites){ card.innerHTML = '<b>🧭 وين أطلع؟</b><div class="wh-note">تعذّر تحميل الفياض — حاول بعد شوي.</div>'; return; }
-          const cands = faydData.rows.filter(r=>r[2] >= 2).map(r=>{ const s = faydSites[r[0]]; if(!s) return null; const km = haversine(p.lat, p.lng, s[1], s[2]) / 1000; return km <= RAD ? {i:r[0], name:s[0], lat:s[1], lng:s[2], g:r[1], st:r[2], km} : null; }).filter(Boolean)
+          const cands = faydData.rows.filter(r=>r[2] >= 2 && ((r[3] || 0) >= 25 || r[5] === 5)).map(r=>{ const s = faydSites[r[0]]; if(!s) return null; const km = haversine(p.lat, p.lng, s[1], s[2]) / 1000; return km <= RAD ? {i:r[0], name:s[0], lat:s[1], lng:s[2], g:r[1], st:r[2], km} : null; }).filter(Boolean)
             .sort((a, b)=>(b.g / 60 - b.km / 150) - (a.g / 60 - a.km / 150)).slice(0, 16);
           if(!cands.length){ cache[key] = {cands:[]}; }
           else{
@@ -6835,21 +6835,24 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       function render(cands){
         const opts = days.map((d, i)=>'<option value="' + i + '"' + (i === day ? ' selected' : '') + '>' + escapeHtml(dayW(d)) + '</option>').join('');
         let html = '<div class="wh-hd"><b>🧭 وين أطلع؟</b><select aria-label="اليوم">' + opts + '</select></div>';
-        if(!cands.length){ card.innerHTML = html + '<div class="wh-note">ما فيه فياض خضراء خلال ' + RAD + ' كم منك حاليًا.</div>'; card.dataset.ok = '1'; return; }
+        if(!cands.length){ card.innerHTML = html + '<div class="wh-note">ما فيه فيضة خضرتها 25% أو أكثر خلال ' + RAD + ' كم منك حاليًا.</div>'; card.dataset.ok = '1'; return; }
         const sc = cands.map(c=>{
           const d = c.d, r = d ? d.precipitation_sum[day] || 0 : 0, w = d ? d.wind_speed_10m_max[day] || 0 : 0, t = d ? d.temperature_2m_max[day] : null;
           const green = Math.min(4, 1.5 + c.g / 60), dry = r < 0.5 ? 3 : r < 3 ? 1.5 : 0, wind = w <= 20 ? 2 : w <= 30 ? 1 : 0, temp = t == null ? 0.5 : (t >= 14 && t <= 30 ? 1 : 0.3);
-          const score = Math.max(0, Math.min(10, green + dry + wind + temp - c.km / 200));
+          const score = Math.max(0, Math.min(10, green + dry + wind + temp - c.km / 100));   // المسافة أثقل: 100 كم = نقطة
           const bits = ['🟢 ' + ((FY_ST[c.st] || FY_ST[2])[0]), r < 0.5 ? '☀️ ما فيه مطر' : r < 3 ? '🌦️ مطر خفيف ' + r.toFixed(1) + ' ملم' : '🌧️ مطر ' + Math.round(r) + ' ملم', '🌬️ ' + Math.round(w) + ' كم/س' + (w > 35 ? ' (غبار محتمل)' : '')];
           if(t != null) bits.push(Math.round(t) + '°');
           return {...c, score, bits};
         }).sort((a, b)=>b.score - a.score);
         const word = v=>v >= 8 ? 'ممتاز' : v >= 6 ? 'جيد' : 'مقبول';
         card.dataset.ok = '1';
+        const nearGood = sc.filter(c=>c.score >= 6).sort((a, b)=>a.km - b.km)[0];
+        const nearLine = nearGood && nearGood !== sc[0] && nearGood.km < sc[0].km - 30 ? '<small style="display:block">🚗 أقرب خيار جيد: ' + escapeHtml(nearGood.name) + ' · ' + nearGood.score.toFixed(1) + ' · ' + Math.round(nearGood.km) + ' كم</small>' : '';
         if(!open){ const t = sc[0];
-          card.innerHTML = '<button type="button" class="wh-row" data-wh-open style="border-top:0;padding:2px 0"><span><b>🧭 أفضل طلعة ' + escapeHtml(dayW(days[day])) + ': ' + escapeHtml(t.name) + '</b><small>' + t.score.toFixed(1) + ' ' + word(t.score) + ' · ' + Math.round(t.km) + ' كم · اضغط لأفضل 3</small></span><span style="font-size:18px;color:#8A5A12">⌄</span></button>'; return; }
+          card.innerHTML = '<button type="button" class="wh-row" data-wh-open style="border-top:0;padding:2px 0"><span><b>🧭 أفضل طلعة ' + escapeHtml(dayW(days[day])) + ': ' + escapeHtml(t.name) + '</b><small>' + t.score.toFixed(1) + ' ' + word(t.score) + ' · ' + Math.round(t.km) + ' كم · اضغط لأفضل 3</small>' + nearLine + '</span><span style="font-size:18px;color:#8A5A12">⌄</span></button>'; return; }
         const shown = sc.slice(0, more ? 8 : 3);
         html += shown.map((c, k)=>'<button type="button" class="wh-row" data-wh="' + c.i + '"><span><b>' + (k + 1) + '. ' + escapeHtml(c.name) + '</b><small>' + escapeHtml(c.bits.join(' · ')) + '</small></span><span class="wh-sc"><b' + (c.score < 8 ? ' class="m"' : '') + '>' + c.score.toFixed(1) + '</b><small>' + word(c.score) + ' · ' + Math.round(c.km) + ' كم</small></span></button>').join('');
+        if(nearLine) html += '<div class="wh-note">' + nearLine.replace(/<\/?small[^>]*>/g, '') + '</div>';
         html += '<div style="display:flex;gap:8px">' + (sc.length > 3 ? '<button type="button" class="wh-more" data-wh-more>' + (more ? 'أقل' : 'المزيد') + '</button>' : '') + '<button type="button" class="wh-more" data-wh-close>إخفاء ⌃</button></div>';
         html += '<div class="wh-note">تقدير تجريبي من الخضرة والمطر والرياح والحرارة والمسافة — تأكد يوم الطلعة.</div>';
         card.innerHTML = html;

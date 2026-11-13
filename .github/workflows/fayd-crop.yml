@@ -1,0 +1,17 @@
+# نسبة المزارع داخل كل فيضة (ESA WorldCover) → data/fayd-crop.json — مرة وحدة (أو إذا تغيّرت قائمة الفياض)
+name: Fayd crop mask
+on: { workflow_dispatch: {} }
+jobs:
+  crop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy
+      - run: python3 tools/fayd/cropfrac.py
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add data/fayd-crop.json && git commit -qm "الفياض: نسبة المزارع (WorldCover)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done

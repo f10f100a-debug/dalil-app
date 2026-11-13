@@ -162,6 +162,8 @@ s2dates = []
 farm = []          # فياض فيها زراعة (خضراء وقت الجفاف بالقمر الدقيق) — ما نقدر نقيس ربيعها
 # MODIS بديل فقط إذا صورته حديثة (كانت تُستخدم صور عمرها شهر وتنعرض كأنها «آخر صورة 29 أكتوبر»)
 modis_fresh = bool(dates) and (today - dtm.date.fromisoformat(dates[-1])).days <= 16
+try: CROP = json.load(open("data/fayd-crop.json"))["crop"]
+except Exception: CROP = {}
 SKIP = {1703}      # «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع)
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
@@ -173,6 +175,8 @@ for i, s in enumerate(SITES):
     sb, c = s2base[i] if i < len(s2base) else None, cur.get(i)
     if sb and sb[0] >= 0.3:
         farm.append(i); continue                     # القمر الدقيق شافها خضراء قبل المطر = زراعة داخل الفيضة
+    if CROP.get(str(i), 0) >= 33:
+        farm.append(i); continue                     # 13 نوفمبر (مريحات): ثلثها أو أكثر أراضي زراعية (WorldCover) — خضرة المحاور تخرب القياس
     if sb and c:
         # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
         (d8, p75, mean, gfrac, valid), = c
@@ -184,8 +188,10 @@ for i, s in enumerate(SITES):
         if check: st_ = 1                            # ما ننبّه عنها ولا نقول «أخضر من المعتاد» لين تتأكد ميدانيًا
         # 6 نوفمبر (فياض قور الارانب): الفيضة الجرداء جدًا أي زيادة صغيرة تطلعها «4» — الدرجة لازم تعكس المساحة اللي خضرت فعلًا
         gf = max(0, gain_frac) * 100
+        # 13 نوفمبر (أبو مالك: «10% نسبة بسيطة»): مثل المعتاد من 20%، أخضر من المعتاد 35%، بكثير 60% — وتحت 20% «بداية اخضرار» بدون تنبيه
         if st_ >= 2 and gf < 10: st_ = 1; check = 4      # بداية خفيفة (أقل من 10% من المساحة) → «تحتاج تأكيد» بدون تنبيه
-        elif st_ >= 2: st_ = min(st_, 2 if gf < 25 else 3 if gf < 50 else 4)
+        elif st_ >= 2 and gf < 20: st_ = 1
+        elif st_ >= 2: st_ = min(st_, 2 if gf < 35 else 3 if gf < 60 else 4)
         rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1, check, d8]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
     elif v and modis_fresh:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
