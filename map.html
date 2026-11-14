@@ -1140,17 +1140,26 @@ const TPL=[
 // محرك الرسم (WebGL) يرفضه الآيفون إذا انفتحت الصفحة والتطبيق بالخلفية أو الذاكرة ممتلئة:
 // نعيد التحميل أول ما يرجع المستخدم (أو بعد لحظة)، 3 مرات بالكثير، وبعدها رسالة واضحة بدل خريطة فاضية
 const GL_RETRY='dalil_gl_retry';
-function glFail(){
+// 14 نوفمبر (أخطاء المستخدمين: 12 آيفون الخريطة ما اشتغلت حتى بعد 3 محاولات): نسجل السبب بالتفصيل،
+// ونفك سياق الفحص (كان يبقى ماسك سياق رسم زيادة)، وإذا الجوال مقفل عنده الرسم كليًا (وضع القفل Lockdown) ما نعيد المحاولة بلا فايدة
+let glWhy='';
+function glProbe(){const r={w2:0,w1:0,api:typeof WebGLRenderingContext!=='undefined'?1:0,msg:''};
+  for(const k of['webgl2','webgl']){try{const c=document.createElement('canvas');c.addEventListener('webglcontextcreationerror',e=>{r.msg=String(e.statusMessage||'').slice(0,60)},{once:true});
+    const x=c.getContext(k,{failIfMajorPerformanceCaveat:false});if(x){r[k==='webgl2'?'w2':'w1']=1;try{const l=x.getExtension('WEBGL_lose_context');l&&l.loseContext()}catch(e){}break}}catch(e){r.msg=String(e.message||e).slice(0,60)}}
+  return r}
+function glFail(stage,detail){
   let n=0;try{n=+(sessionStorage.getItem(GL_RETRY)||0)}catch(e){}
+  const pr=glProbe(),blocked=!pr.api;
   const again=()=>{if(document.hidden)return;try{sessionStorage.setItem(GL_RETRY,n+1)}catch(e){}location.reload()};
-  if(n<3){status.textContent='يجهّز الخريطة…';if(document.hidden)document.addEventListener('visibilitychange',again);else setTimeout(again,1500)}
+  if(blocked)status.textContent='الخريطة تحتاج «WebGL» وهو مقفل في جوالك — إذا مفعّل «وضع القفل»: الإعدادات ← الخصوصية والأمن ← وضع القفل ← استثنِ دليل';
+  else if(n<3){status.textContent='يجهّز الخريطة…';if(document.hidden)document.addEventListener('visibilitychange',again);else setTimeout(again,1500)}
   else{status.textContent='تعذّر تشغيل الخريطة — اقفل التطبيق وافتحه من جديد';document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{sessionStorage.setItem(GL_RETRY,0)}catch(e){}location.reload()}})}
-  return 'dalil:nogl '+(document.hidden?'hidden':'visible')+' try'+n;
+  glWhy=' '+(stage||'probe')+' w2:'+pr.w2+' w1:'+pr.w1+' api:'+pr.api+(pr.msg?' why:'+pr.msg:'')+(detail?' err:'+String(detail).slice(0,60):'');
+  return 'dalil:nogl '+(document.hidden?'hidden':'visible')+' try'+n+glWhy;
 }
-{let ok=false;try{const c=document.createElement('canvas');ok=!!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){}
-  if(!ok)throw new Error(glFail());}
-// الفحص نجح لكن المحرك نفسه فشل؟ نفس المعالجة
-addEventListener('error',e=>{if(!glReady&&/WebGL/.test(e.message||''))glFail()});
+{const pr=glProbe();if(!pr.w2&&!pr.w1)throw new Error(glFail('probe'));}
+// الفحص نجح لكن المحرك نفسه فشل؟ نفس المعالجة (ونسجل السبب)
+addEventListener('error',e=>{if(!glReady&&/WebGL/.test(e.message||'')){const m=glFail('map',e.message);try{parent!==window&&parent.__dalilReport&&parent.__dalilReport(m,'map.html')}catch(_){}}});
 const gl=new maplibregl.Map({container:layer,interactive:false,attributionControl:false,fadeDuration:0,minZoom:2,maxZoom:19,center:[45,24],zoom:6,
   style:{version:8,glyphs:abs('vendor/glyphs/')+'{fontstack}/{range}.pbf',
     sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19},
