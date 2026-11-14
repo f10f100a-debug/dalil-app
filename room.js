@@ -158,7 +158,7 @@
     const age = Number.isFinite(p.at) ? Math.max(0, Math.round((Date.now() - p.at) / 1000)) : 0;
     if(age > POS_MAX_AGE_S && !allowStale) return null;
     return {lat:+p.lat.toFixed(6), lng:+p.lng.toFixed(6), acc:Number.isFinite(p.accuracy) ? Math.round(p.accuracy) : null,
-      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar(), age};
+      spd:Number.isFinite(p.speed) && p.speed >= 0 ? +p.speed.toFixed(1) : null, car:myCar(), age, ...(window.DALIL_NATIVE ? {} : {w:1})};   // w = من المتصفح (14 نوفمبر)
   }
   // موقع السيارة المحفوظ يُرسل مع الموقع لأعضاء الغرفة فقط (لا يُخزَّن في الخادم)
   // تطبيق الآيفون 1.3: بيانات العضوية لإرسال الموقع من الخلفية
@@ -186,7 +186,7 @@
     const age = Number.isFinite(+p.age) && +p.age > 0 ? Math.min(+p.age, 86400) : 0, fixT = Date.now() - age * 1000, old = R.pos.get(id);
     if(old && fixT < old.t - 5000) return;
     const car = p.car && Math.abs(p.car.lat) <= 90 && Math.abs(p.car.lng) <= 180 ? {lat:+p.car.lat, lng:+p.car.lng} : (p.bg ? (R.pos.get(id) || {}).car || null : null);
-    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:fixT});
+    R.pos.set(id, {lat:+p.lat, lng:+p.lng, acc:p.acc, spd:p.spd, car, t:fixT, web:p.w === 1});
     if(R.navObj && R.navObj._car === id && car){ R.navObj.lat = car.lat; R.navObj.lng = car.lng; }
     if(R.navObj && R.navObj._member === id){ R.navObj.lat = +p.lat; R.navObj.lng = +p.lng; }
     checkLag(); renderMembersSoon(); syncMapSoon();
@@ -1168,7 +1168,7 @@
       else if(!p) sub = 'بانتظار موقعه';
       else{
         const d = a ? B.haversine(a.lat, a.lng, p.lat, p.lng) : null;
-        sub = (d != null ? B.fmtDist(d) + ' · ' + B.directionWord(B.bearing(a.lat, a.lng, p.lat, p.lng)) : 'موقعه وصل') + (Number.isFinite(p.spd) && p.spd > 2 ? ' · ' + Math.round(p.spd * 3.6) + ' كم/س' : '') + (stale ? ' · آخر ظهور ' + ago(p.t) : '');
+        sub = (p.web ? '🌐 من المتصفح — ما يسمع والصفحة مقفلة · ' : '') + (d != null ? B.fmtDist(d) + ' · ' + B.directionWord(B.bearing(a.lat, a.lng, p.lat, p.lng)) : 'موقعه وصل') + (Number.isFinite(p.spd) && p.spd > 2 ? ' · ' + Math.round(p.spd * 3.6) + ' كم/س' : '') + (stale ? ' · آخر ظهور ' + ago(p.t) : '');
       }
       const lag = !mine && R.lagging.has(m.member_id), sos = R.sos.has(m.member_id), muted = R.muted.has(m.member_id);
       const car = mine ? myCar() : p && p.car;

@@ -53,6 +53,7 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     const memB = await Bp.evaluate(()=>[...document.querySelectorAll('#rmMembers .rm-mem')].map(e=>e.innerText.replace(/\s+/g, ' ')));
     ok('الأعضاء يشوفون بعض', memA.some(x=>x.includes('فاحص ب')) && memB.some(x=>x.includes('فاحص أ')), 'أ: ' + memA.join(' | ').slice(0, 140) + ' · ب: ' + memB.join(' | ').slice(0, 140));
     const dist = memA.find(x=>x.includes('فاحص ب')) || '';
+    ok('علامة «من المتصفح» على العضو اللي داخل من المتصفح', dist.includes('المتصفح'), dist.slice(0, 80));
     ok('موقع الثاني وصل للأول (مسافة)', /\d[\d.]*\S*\s*(كم|م)(\s|$)/.test(dist), dist.slice(0, 120));
     await A.screenshot({path:path.join(OUT, 'room-a.png')}); await Bp.screenshot({path:path.join(OUT, 'room-b.png')});
     // رسالة صوتية: ب يضغط زر التحدث ثانيتين ونص
