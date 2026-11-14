@@ -1,0 +1,35 @@
+# يبني خط الخريطة العربي (Noto Kufi Arabic، رخصة OFL) بصيغة حروف الخريطة — يدوي
+name: Map font
+on: workflow_dispatch
+jobs:
+  font:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 18 }
+      - run: pip install --quiet fonttools
+      - name: Font
+        run: |
+          curl -sL -o kufi-var.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/notokufiarabic/NotoKufiArabic%5Bwght%5D.ttf"
+          python3 -m fontTools.varLib.instancer kufi-var.ttf wght=500 -o kufi.ttf
+          python3 - <<'PY'
+          from fontTools.ttLib import TTFont
+          cm=TTFont('kufi.ttf').getBestCmap()
+          for a,b,n in [(0x600,0x6FF,'arabic'),(0xFB50,0xFDFF,'pres-A'),(0xFE70,0xFEFF,'pres-B'),(0x30,0x39,'digits'),(0x41,0x7A,'latin')]:
+              print(n, sum(1 for c in range(a,b+1) if c in cm), 'of', b-a+1)
+          need=[c for c in range(0xFE80,0xFEFC+1)]
+          print('pres-B core missing', [hex(c) for c in need if c not in cm][:20])
+          PY
+      - run: npm i --no-save --silent fontnik@0.7.2
+      - run: node tools/fonts/build_glyphs.js kufi.ttf "Dalil Kufi" && ls "vendor/glyphs/Dalil Kufi" | head -30
+      - name: Commit
+        run: |
+          cp kufi.ttf "vendor/glyphs/Dalil Kufi/" 2>/dev/null; rm -f "vendor/glyphs/Dalil Kufi/kufi.ttf"
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add "vendor/glyphs/Dalil Kufi"
+          git diff --cached --quiet && exit 0
+          git commit -qm "خط الخريطة: Dalil Kufi (Noto Kufi Arabic 500 + Noto Sans احتياط)"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
