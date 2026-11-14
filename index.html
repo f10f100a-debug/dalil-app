@@ -2190,7 +2190,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
+      const LABS = [['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\//.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
@@ -2198,7 +2198,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where'].includes(c.dataset.lab)) c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');   // 14 نوفمبر: الرادار بعد 30 د ومخيمك آمن ووين أطلع للكل (تنطفي بـ '0')
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn'; nb.style.cssText = 'margin-top:8px;width:100%';
@@ -2542,6 +2542,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     return {compassGranted, locationGranted};
   }
 
+  // 14 نوفمبر (تجربة dalil_lab_fastgps على جوال أبو مالك): نقبل قراءة عمرها أقل من دقيقة كبداية (الآيفون غالبًا عنده وحدة) —
+  // الموقع يطلع فورًا ثم يتحدث بالدقيق تلقائيًا. نفس الطلب (ما يطلع إذن زيادة). وما نعيد تشغيل الموقع إذا رجع خلال دقيقة.
+  const fastGps = ()=>{ try{ return localStorage.getItem('dalil_lab_fastgps') === '1'; }catch(e){ return false; } };
+  const geoOpts = ()=>({enableHighAccuracy:true, maximumAge:fastGps() ? 60000 : 0, timeout:15000});
   function requestLocationAccess(forceRestart=false){
     if(!('geolocation' in navigator)){
       document.getElementById('permLoc').textContent = '— غير مدعوم —';
@@ -2570,7 +2574,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           // الرفض: نوقف المراقبة وما نكرر الطلب. ضعف الإشارة: المراقبة تستمر
           if(err.code === 1){ try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){} geoWatchId = null; fin(false); }
           else fin('nofix');   // ضعف إشارة أو انتهى الوقت: الإذن موجود، والمراقبة تكمل وتلقط الإشارة لاحقًا
-        }, {enableHighAccuracy:true, maximumAge:0, timeout:15000});
+        }, geoOpts());
       }catch(e){ fin(false); }
     });
   }
@@ -2602,9 +2606,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     if(geoWatchId !== null) return;
     try{
-      geoWatchId = navigator.geolocation.watchPosition(onPosition, onPositionError, {
-        enableHighAccuracy:true, maximumAge:0, timeout:15000
-      });
+      geoWatchId = navigator.geolocation.watchPosition(onPosition, onPositionError, geoOpts());
     }catch(e){
       showDiag('❌ تعذّر استدعاء واجهة الموقع: ' + e.message);
     }
@@ -5798,7 +5800,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && screenNeeded()) requestTrackWakeLock(); });
   // الآيفون قد يوقف تحديث الموقع عند الخروج من التطبيق أو قفل الشاشة؛ نعيد تشغيله فور العودة.
   document.addEventListener('visibilitychange',()=>{
-    if(document.visibilityState==='visible' && !state.tracking && (state.pos || permissionsWereReady)) startGeoWatch(true);
+    if(document.visibilityState==='visible' && !state.tracking && (state.pos || permissionsWereReady)){ if(fastGps() && geoWatchId !== null && Date.now() - lastPositionAt < 60000) return; startGeoWatch(true); }
   });
   document.addEventListener('visibilitychange',()=>{
     if(!state.tracking) return;
