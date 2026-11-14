@@ -1149,7 +1149,7 @@ function glProbe(){const r={w2:0,w1:0,api:typeof WebGLRenderingContext!=='undefi
   return r}
 function glFail(stage,detail){
   let n=0;try{n=+(sessionStorage.getItem(GL_RETRY)||0)}catch(e){}
-  const pr=glProbe(),blocked=!pr.api;
+  const pr=glProbe(),blocked=!pr.api&&!document.hidden;   // بالخلفية ممكن يكون منع مؤقت — نعيد المحاولة أول ما يرجع، ونحكم والتطبيق قدامه
   const again=()=>{if(document.hidden)return;try{sessionStorage.setItem(GL_RETRY,n+1)}catch(e){}location.reload()};
   if(blocked)status.textContent='الخريطة تحتاج «WebGL» وهو مقفل في جوالك — إذا مفعّل «وضع القفل»: الإعدادات ← الخصوصية والأمن ← وضع القفل ← استثنِ دليل';
   else if(n<3){status.textContent='يجهّز الخريطة…';if(document.hidden)document.addEventListener('visibilitychange',again);else setTimeout(again,1500)}
