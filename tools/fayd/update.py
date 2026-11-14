@@ -135,7 +135,9 @@ base = json.load(open("data/fayd-base.json"))["base"]
 try: s2base = json.load(open("data/fayd-s2base.json"))["base"]
 except Exception: s2base = [None] * len(SITES)
 today = dtm.date.today()
-cur = s2.sample(SITES, (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=1)
+# 14 نوفمبر (الحدود الشمالية: أم العصافير 45% بصورة 8 نوفمبر ثم 12% بصورة 13): صورة وحدة ممكن تكون أرض مبلولة بعد المطر
+# أو غبار — نجيب آخر صورتين صافيتين ونعتمد الأقل خضرة منهم (الخضرة لازم تتكرر في صورتين قبل ما نصدقها)
+cur = s2.sample(SITES, (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=2)
 print(f"::notice::s2 current {len(cur)}/{len(SITES)} t={round(time.time() - T0)}s", flush=True)
 # Copernicus (Sentinel Hub): الصور توصل فيه أول (Planetary Computer أحيانًا يتأخر أو يفوّت صورة كاملة — 6 نوفمبر: صورة الجوف ما وصلته)
 # نطلب بس الفياض اللي صورتها قديمة (أكثر من يومين) عشان نبقى تحت الحد المجاني (30 ألف طلب بالشهر)
@@ -147,7 +149,7 @@ try:
         got = cdse.sample([(i, SITES[i][1], SITES[i][2]) for i in stale], (today - dtm.timedelta(days=12)).isoformat(), today.isoformat())
         newer = 0
         for i, v in got.items():
-            if not cur.get(i) or v[0][0] > cur[i][0][0]: cur[i] = v; newer += 1
+            if not cur.get(i) or v[0][0] > cur[i][0][0]: cur[i] = v + (cur[i][:1] if cur.get(i) else []); newer += 1
         print(f"::notice::copernicus: asked {len(stale)}, newer {newer}, requests {cdse.calls} t={round(time.time() - T0)}s", flush=True)
 except Exception as e:
     print("::warning::copernicus failed: " + str(e)[:150], flush=True)
@@ -164,6 +166,10 @@ farm = []          # فياض فيها زراعة (خضراء وقت الجفا�
 modis_fresh = bool(dates) and (today - dtm.date.fromisoformat(dates[-1])).days <= 16
 try: CROP = json.load(open("data/fayd-crop.json"))["crop"]
 except Exception: CROP = {}
+def _d(a, b):
+    try: return (dtm.date.fromisoformat(a) - dtm.date.fromisoformat(b)).days
+    except Exception: return 99
+twice = []        # فياض أحدث صورة فيها أخضر من اللي قبلها (ما اعتمدناها لين تتكرر)
 SKIP = {1703}      # «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع)
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
@@ -179,7 +185,11 @@ for i, s in enumerate(SITES):
         farm.append(i); continue                     # 13 نوفمبر (مريحات): ثلثها أو أكثر أراضي زراعية (WorldCover) — خضرة المحاور تخرب القياس
     if sb and c:
         # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
-        (d8, p75, mean, gfrac, valid), = c
+        d8 = c[0][0]
+        pair = [x for x in c[:2] if 0 <= _d(d8, x[0]) <= 10]
+        use = min(pair, key=lambda x: x[3])           # الأقل خضرة من آخر صورتين (التأكيد بصورتين)
+        if use is not c[0]: twice.append((i, c[0][3], use[3]))
+        (_, p75, mean, gfrac, valid) = use
         g = p75 - sb[0]; gain_frac = gfrac - sb[1]
         started = g >= 0.04 or gain_frac >= 0.10
         idx = g / span
@@ -197,6 +207,8 @@ for i, s in enumerate(SITES):
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
         st_ = 0 if g < 0.02 else 1 if idx < 0.6 else 2 if idx < 1.2 else 3 if idx < 2 else 4
         rows.append([i, round(max(0, g) * 1000), st_, None, 0, 0, dates[-1]])
+big = [(SITES[i][0], round(a * 100), round(b * 100)) for i, a, b in twice if a - b >= 0.15]
+print(f"::notice::two-image check: {len(twice)} fayd had a greener latest image; big gaps (≥15%) {len(big)}: " + " · ".join(f"{n} {a}%→{b}%" for n, a, b in big[:25]), flush=True)
 # الخضرة بدون مطر = سقي (مزارع جديدة) مو ربيع: نتأكد من مطر آخر 75 يوم لكل فيضة تبان خضراء
 def rain75(idx):
     out = {}
@@ -329,6 +341,21 @@ for r in rows:
     if fresh or still:
         r[2] = 1; r[5] = 6; jumpn.append(SITES[r[0]][0])   # 6 = خضرة مفاجئة (نصها في التطبيق غير «ما لقينا مطر»)
 if jumpn: print(f"::notice::sudden jump (needs a newer image) {len(jumpn)}: " + " · ".join(jumpn[:20]), flush=True)
+# 14 نوفمبر: «تغيّر جماعي» — إذا أغلب فياض منطقة وحدة نزلت (أو طلعت) 15 نقطة فأكثر بين صورتين، غالبًا الخلل بالصورة
+# (غبار أو أرض مبلولة) مو بالربيع → ننبّه المطوّر (data/fayd-qa.md → تنبيه الجوال)
+swing = []
+from collections import defaultdict
+byreg = defaultdict(list)
+for r in rows:
+    pr = PREVR.get(r[0])
+    if pr and len(pr) >= 7 and r[6] != pr[6] and max(r[3] or 0, pr[3] or 0) >= 15:
+        byreg[SITES[r[0]][3]].append((r[3] or 0) - (pr[3] or 0))
+for reg, ds in byreg.items():
+    if len(ds) < 6: continue
+    dn = sum(d <= -15 for d in ds); up = sum(d >= 15 for d in ds)
+    if dn >= 0.7 * len(ds) or up >= 0.7 * len(ds):
+        swing.append(f"{reg}: {len(ds)} فيضة — نزلت {dn} وطلعت {up} (متوسط {sum(ds) / len(ds):+.0f} نقطة)")
+if swing: print("::warning::regional swing: " + " · ".join(swing), flush=True)
 rows.sort(key=lambda r: -r[1])
 asof = max(s2dates) if s2dates else (dates[-1] if dates else "")
 # ---- بوابة النشر: إذا عدد الفياض الخضراء تغيّر أكثر من 30% عن المنشور → ما ننشر، نحفظه للمراجعة وننبّه المطوّر ----
@@ -360,6 +387,9 @@ if held:
     print(f"::warning::fayd held: green {pn} → {nn}", flush=True)
 else:
     json.dump(out, open("data/fayd.json", "w"), separators=(",", ":"))
-    try: os.remove("data/fayd-pending.json"); os.remove("data/fayd-qa.md")
-    except Exception: pass
+    for f_ in ("data/fayd-pending.json", "data/fayd-qa.md"):
+        try: os.remove(f_)
+        except Exception: pass
+    if swing:
+        open("data/fayd-qa.md", "w").write(f"تحديث الفياض {asof}: تغيّر جماعي بين صورتين — راجع الصور (غبار؟ أرض مبلولة؟):\n\n" + "\n".join("- " + x for x in swing) + "\n")
 print("asof", dates, "rows", len(rows), "green", sum(r[2] > 0 for r in rows))
