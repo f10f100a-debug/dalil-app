@@ -1,0 +1,42 @@
+# الفحص الآلي (14 نوفمبر): بعد كل رفع للتطبيق + كل يوم — فحص الشاشات (Playwright) وفحص البيانات.
+# أي مشكلة → data/ui-qa.md أو data/data-qa.md على الموقع → dalil-devalert يرسل إشعار لجوال المطوّر.
+name: QA
+on:
+  push:
+    branches: [main]
+    paths: ["index.html", "map.html", "events.js", "sw.js", "tools/qa/**"]
+  schedule: [{ cron: "23 6 * * *" }]
+  workflow_dispatch:
+concurrency: { group: qa, cancel-in-progress: true }
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm i --no-save --silent playwright@1.48.2 && npx playwright install --with-deps chromium >/dev/null
+      - name: Screens
+        id: ui
+        continue-on-error: true
+        run: |
+          (python3 -m http.server 8804 >/dev/null 2>&1 &) ; sleep 2
+          OUT=qa-out node tools/qa/ui_check.js
+      - name: Data
+        id: data
+        continue-on-error: true
+        run: python3 tools/qa/data_check.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: qa-screens, path: qa-out/ }
+      - name: Publish result
+        if: always()
+        run: |
+          if [ "${{ steps.ui.outcome }}" = failure ]; then cp qa-out/ui-qa.md data/ui-qa.md; else rm -f data/ui-qa.md; fi
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add -A data/ui-qa.md data/data-qa.md 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -qm "فحص آلي: نتيجة $(date -u +%F)"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
