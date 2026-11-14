@@ -1674,12 +1674,18 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     star:['#7A4E9A',[['f','M12 2.5l2.8 6.4 7 .6-5.3 4.6 1.6 6.9L12 17.4 5.9 21l1.6-6.9L2.2 9.5l7-.6z']]],
     cave:['#8B3A1E',[['e','M2.5 20c0-9 4.5-14 9.5-14s9.5 5 9.5 14z M8.5 20c0-4 1.6-6.8 3.5-6.8s3.5 2.8 3.5 6.8z']]],
     warn:['#B3261E',[['e','M12 2.5L1.5 21h21z M11 9h2v6.5h-2z M11 17h2v2h-2z']]],
-    nogo:['#B3261E',[['f','M5 10.5h14v3H5z']]]};
+    nogo:['#B3261E',[['f','M5 10.5h14v3H5z']]],
+    meadow:['#3F8F3A',[['s','M7.5 19.5c0-4-1-7-3-9.5 M12 19.5V6 M16.5 19.5c0-4 1-7 3-9.5',2.4]]]};
   const KI={'محطة وقود':'fuel','صيانة سيارات':'wrench','إسعاف وصحة':'health','أمن وطوارئ':'police','مورد ماء':'well','ماء شرب':'tap','تجمع مياه':'pool','سد':'dam','تخييم واستراحة':'tent',
     'آثار':'ruins','معلم سياحي':'star','دحل':'cave','كهف':'cave','حرة':'warn','سبخة':'warn','موقع خطر':'warn','منطقة عسكرية':'nogo'};
   const RANK={'مورد ماء':1,'ماء شرب':1,'محطة وقود':2,'إسعاف وصحة':3,'أمن وطوارئ':4,'صيانة سيارات':5,'دحل':6,'كهف':6,'موقع خطر':6,'سبخة':7,'حرة':7,'آثار':8,'معلم سياحي':8,'تخييم واستراحة':8,'سد':9,'تجمع مياه':10,'منطقة عسكرية':12};
   const NOMARK=['جبل','نفود'];   // اسم بدون نقطة ولا أيقونة: التضاريس تبيّنها
-  const KINDS=Object.keys(KI),K=['get','kind'],N=['get','name'],has=['in',K,['literal',KINDS]],pool=['==',K,'تجمع مياه'];
+  const KINDS=Object.keys(KI),K=['get','kind'],N=['get','name'],has=['in',K,['literal',KINDS]];
+  // «تجمع مياه» بالبيانات أغلبه أسماء مجاري (شعيب، وادي…) مو ماء: ننشيله (اسمه مكتوب على خط الشعيب). الفيضة والروضة = عشب (أخضر)، والباقي (خبراء، غدير، قاع…) ماء موسمي
+  const pre=w=>['==',['slice',N,0,w.length],w],TJ=['==',K,'تجمع مياه'];
+  const CH=['all',TJ,['any',...['شعيب','وادي','شعبان','شعب ','تلعة','وديان','شعاب'].map(pre)]];
+  const MEAD=['all',TJ,['any',...['فيضة','فياض','روضة','رياض'].map(pre)]];
+  const pool=['all',TJ,['!',MEAD]];
   const AR={'Petromin':'بترومين','Petromin Diesel Express Service':'بترومين ديزل','Petromin Commercial Vehicles Care':'بترومين للشاحنات','Naft Station':'محطة نفط','Gas Station':'محطة وقود','Gas station':'محطة وقود','Petrol Station':'محطة وقود',
     'Al Drees':'الدريس','ALDREES Gas Station':'الدريس','Aldrees':'الدريس','aldrees':'الدريس','AlDrees':'الدريس','Aldress':'الدريس','Sasco':'ساسكو','SASCO':'ساسكو','Sahel':'ساحل','Gulf':'الخليج',
     'Circle K':'سيركل كي','TotalEnergies':'توتال','Fuel Way':'فيول واي','Police Station':'مركز شرطة','petroglyphs':'نقوش صخرية','Abdul Aziz palace':'قصر الملك عبدالعزيز','Tower of Barzan Palace':'برج قصر برزان'};
@@ -1693,17 +1699,17 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   function icons(){for(const g of Object.keys(G)){const id='poi-'+g;if(!gl.hasImage(id))try{gl.addImage(id,img(g),{pixelRatio:2})}catch(e){}}}
   function poi(rid){if(typeof gl==='undefined')return;icons();
     const d='dalil@'+rid,l='dalil-label@'+rid;if(!gl.getLayer(d)||!gl.getLayer(l))return;
-    gl.setFilter(d,['all',SVCF,['!',has],['!',['in',K,['literal',NOMARK]]]]);
+    gl.setFilter(d,['all',SVCF,['!',has],['!',['in',K,['literal',NOMARK]]]]);if(!gl.getLayer(l))return;
     gl.setLayerZoomRange(l,10,24);
-    gl.setLayoutProperty(l,'icon-image',['match',K,...Object.entries(KI).flatMap(([k,g])=>[k,'poi-'+g]),'']);
+    gl.setLayoutProperty(l,'icon-image',['case',MEAD,'poi-meadow',['match',K,...Object.entries(KI).flatMap(([k,g])=>[k,'poi-'+g]),'']]);
     gl.setLayoutProperty(l,'icon-size',['interpolate',['linear'],['zoom'],10,['case',pool,.45,.58],13,['case',pool,.6,.76],16,['case',pool,.75,.95]]);
     gl.setLayoutProperty(l,'icon-padding',1);
     gl.setLayoutProperty(l,'symbol-sort-key',['match',K,...Object.entries(RANK).flat(),20]);
     gl.setLayoutProperty(l,'text-field',['step',['zoom'],'',12,name]);
     gl.setLayoutProperty(l,'text-offset',['case',has,['literal',[0,1.1]],['in',K,['literal',NOMARK]],['literal',[0,0]],['literal',[0,.9]]]);
     gl.setLayoutProperty(l,'text-anchor',['case',['in',K,['literal',NOMARK]],'center','top']);
-    gl.setPaintProperty(l,'text-color',['case',pool,'#3E86B4',kindColor]);
-    gl.setFilter(l,['all',SVCF,['any',has,['>=',['zoom'],12]]]);}
+    gl.setPaintProperty(l,'text-color',['case',MEAD,'#2F7A2B',pool,'#3E86B4',kindColor]);
+    gl.setFilter(l,['all',SVCF,['!',CH],['any',has,['>=',['zoom'],12]]]);}
   const prev=window.__styleLab;window.__styleLab=rid=>{try{prev&&prev(rid)}catch(e){}try{poi(rid)}catch(e){}};
   const t=setInterval(()=>{if(typeof glReady!=='undefined'&&glReady){clearInterval(t);try{gl.on('styleimagemissing',e=>{if(String(e.id).startsWith('poi-'))icons()});for(const r of activeRegions)poi(r)}catch(e){}}},300);
 })();
