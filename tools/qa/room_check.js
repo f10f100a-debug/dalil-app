@@ -31,7 +31,7 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     await p_create(A);
     const sa = await sess(A);
     await A.screenshot({path:path.join(OUT, 'room-a-create.png')});
-    ok('إنشاء غرفة', !!(sa && sa.code), sa ? 'رقم ' + sa.code : (await A.evaluate(()=>(document.querySelector('.rm-err, #rmErr') || {}).innerText || '')) + ' · شبكة: ' + A.net.join(' | ') + ' · ' + A.errs.join(' | ').slice(0, 300));
+    ok('إنشاء غرفة', !!(sa && sa.code), sa ? 'رقم ' + sa.code : JSON.stringify(sa) + ' · ' + (await A.evaluate(()=>(document.getElementById('rmBody') || document.body).innerText.replace(/\s+/g, ' ').slice(0, 260))) + ' · شبكة: ' + A.net.join(' | ') + ' · ' + A.errs.join(' | ').slice(0, 300));
     if(!sa || !sa.code) throw new Error('stop');
     Bp = await phone(browser, 'ب', 27.9380, 42.3750);
     await Bp.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-join"]'); t && t.click(); }); await sleep(400);
