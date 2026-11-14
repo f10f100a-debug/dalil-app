@@ -78,6 +78,7 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
       else{
         const ms = await fr.evaluate(()=>({canvas:!!document.querySelector('canvas.maplibregl-canvas'), st:(document.getElementById('status') || {}).textContent || ''})).catch(e=>({err:String(e)}));
         if(ms.err) F('الخريطة: ' + ms.err.slice(0, 120));
+        const mt = await fr.evaluate(()=>document.body.innerText).catch(()=>''); const mb = mt.match(/.{0,25}(Invalid Date|\bNaN\b|\bundefined\b).{0,25}/); if(mb) F('الخريطة: نص مكسور «' + mb[0].replace(/\n/g, ' ') + '»');
         else{ if(!ms.canvas) F('الخريطة: محرك الرسم ما اشتغل'); if(/تعذّر|خطأ|WebGL/.test(ms.st)) F('الخريطة: «' + ms.st.slice(0, 80) + '»'); }
         const btns = await fr.$$eval('button', a=>a.filter(b=>b.offsetParent && /الأمطار|السيول|الربيع|التضاريس|الأسبوع/.test(b.innerText)).map(b=>b.innerText.trim().split('\n').pop()));
         for(const t of btns){ await fr.evaluate(t=>{ const b = [...document.querySelectorAll('button')].find(x=>x.offsetParent && x.innerText.trim().split('\n').pop() === t); b && b.click(); }, t).catch(()=>{}); await sleep(1200);
