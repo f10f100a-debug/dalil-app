@@ -10,7 +10,7 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
 const steps = [], fails = [];
 const ok = (s, good, extra = '')=>{ (good ? steps : fails).push((good ? '✓ ' : '✗ ') + s + (extra ? ' — ' + extra : '')); console.log((good ? 'OK  ' : 'FAIL') + ' ' + s + ' ' + extra); };
 async function phone(browser, name, lat, lng){
-  const ctx = await browser.newContext({...devices['iPhone 13'], geolocation:{latitude:lat, longitude:lng}, permissions:['geolocation', 'microphone'], locale:'ar', serviceWorkers:'block'});
+  const ctx = await browser.newContext({...devices['iPhone 13'], geolocation:{latitude:lat, longitude:lng}, permissions:['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'], locale:'ar', serviceWorkers:'block'});
   await ctx.addInitScript(()=>{ try{ localStorage.setItem('dalil_install_guide_seen', '1'); localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_room_terms_v1', '1'); }catch(e){}
     Object.defineProperty(navigator, 'standalone', {get:()=>true}); });
   const p = await ctx.newPage(); p.errs = []; p.net = [];
@@ -22,7 +22,7 @@ async function phone(browser, name, lat, lng){
   await p.evaluate(()=>document.getElementById('roomBtn').click()); await p.waitForSelector('#rmName', {timeout:15000});
   p.label = name; return p;
 }
-const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return null; } });
+const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return null; } }).catch(()=>null);
 (async()=>{
   const browser = await chromium.launch({args:['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--autoplay-policy=no-user-gesture-required']});
   let A, Bp;

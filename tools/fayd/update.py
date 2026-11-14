@@ -137,7 +137,10 @@ except Exception: s2base = [None] * len(SITES)
 today = dtm.date.today()
 # 14 نوفمبر (الحدود الشمالية: أم العصافير 45% بصورة 8 نوفمبر ثم 12% بصورة 13): صورة وحدة ممكن تكون أرض مبلولة بعد المطر
 # أو غبار — نجيب آخر صورتين صافيتين ونعتمد الأقل خضرة منهم (الخضرة لازم تتكرر في صورتين قبل ما نصدقها)
-cur = s2.sample(SITES, (today - dtm.timedelta(days=12)).isoformat(), today.isoformat(), max_cloud=60, keep=2)
+# الصورة الثانية من آخر 20 يوم (الشرقية: صورة 5 نوفمبر وما قبلها غيم — كانت تطيح «صورة وحدة» وهي خضراء من أسابيع)
+cur = s2.sample(SITES, (today - dtm.timedelta(days=20)).isoformat(), today.isoformat(), max_cloud=60, keep=2)
+_lim12 = (today - dtm.timedelta(days=12)).isoformat()
+cur = {i: v for i, v in cur.items() if v and v[0][0] >= _lim12}      # الأحدث لازم يكون خلال 12 يوم مثل قبل
 print(f"::notice::s2 current {len(cur)}/{len(SITES)} t={round(time.time() - T0)}s", flush=True)
 # Copernicus (Sentinel Hub): الصور توصل فيه أول (Planetary Computer أحيانًا يتأخر أو يفوّت صورة كاملة — 6 نوفمبر: صورة الجوف ما وصلته)
 # نطلب بس الفياض اللي صورتها قديمة (أكثر من يومين) عشان نبقى تحت الحد المجاني (30 ألف طلب بالشهر)
@@ -186,7 +189,7 @@ for i, s in enumerate(SITES):
     if sb and c:
         # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
         d8 = c[0][0]
-        pair = [x for x in c[:2] if 0 <= _d(d8, x[0]) <= 10]
+        pair = [x for x in c[:2] if 0 <= _d(d8, x[0]) <= 16]
         use = min(pair, key=lambda x: x[3])           # الأقل خضرة من آخر صورتين (التأكيد بصورتين)
         if use is not c[0]: twice.append((i, c[0][3], use[3]))
         (_, p75, mean, gfrac, valid) = use
