@@ -202,6 +202,7 @@ for i, s in enumerate(SITES):
         if st_ >= 2 and gf < 10: st_ = 1; check = 4      # بداية خفيفة (أقل من 10% من المساحة) → «تحتاج تأكيد» بدون تنبيه
         elif st_ >= 2 and gf < 20: st_ = 1
         elif st_ >= 2: st_ = min(st_, 2 if gf < 35 else 3 if gf < 60 else 4)
+        if st_ >= 2 and not check and len(pair) < 2: st_ = 1; check = 7     # صورة وحدة بس: ننتظر الثانية تأكدها (برا التنبيه و«وين أطلع»)
         rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1, check, d8]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
     elif v and modis_fresh:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
