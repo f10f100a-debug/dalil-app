@@ -1546,4 +1546,59 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
   setInterval(()=>{if(on&&card&&regName()!==lastReg)drawCard()},1200);
 })();
-</script><script>(function(){const a=document.getElementById('attribution');if(!a)return;let t=0;a.addEventListener('click',e=>{if(!(document.body.classList.contains('embed')&&(!document.body.classList.contains('fs')||document.body.classList.contains('full'))))return;if(!a.classList.contains('open')){e.preventDefault();a.classList.add('open');clearTimeout(t);t=setTimeout(()=>a.classList.remove('open'),6000)}})})();</script></body></html>
+</script><script>(function(){const a=document.getElementById('attribution');if(!a)return;let t=0;a.addEventListener('click',e=>{if(!(document.body.classList.contains('embed')&&(!document.body.classList.contains('fs')||document.body.classList.contains('full'))))return;if(!a.classList.contains('open')){e.preventDefault();a.classList.add('open');clearTimeout(t);t=setTimeout(()=>a.classList.remove('open'),6000)}})})();</script><script>
+// ---------- 14 نوفمبر: الإحداثيات (تجربة dalil_lab_coords على جوال أبو مالك) ----------
+// (1) علامة + بوسط الخريطة وإحداثياتها لما تحرك الخريطة بعيد عن موقعك — اضغطها تصير هي النقطة المحددة
+// (2) إحداثيات النقطة: ضغطة تفتح كل الصيغ (درجات ودقائق، درجات ودقائق وثواني، عشري، UTM، MGRS) — كل وحدة تنسخ بضغطة، وزر «إرسال»
+(function(){
+  let on=false;try{on=localStorage.getItem('dalil_lab_coords')==='1'}catch(e){}
+  if(!on)return;
+function toUTM(lat,lng){const a=6378137,f=1/298.257223563,k0=.9996,e2=f*(2-f),ep2=e2/(1-e2);
+  let zone=Math.floor((lng+180)/6)+1;if(lat>=56&&lat<64&&lng>=3&&lng<12)zone=32;
+  if(lat>=72&&lat<84){if(lng>=0&&lng<9)zone=31;else if(lng>=9&&lng<21)zone=33;else if(lng>=21&&lng<33)zone=35;else if(lng>=33&&lng<42)zone=37}
+  const l0=((zone-1)*6-180+3)*Math.PI/180,p=lat*Math.PI/180,l=lng*Math.PI/180,N=a/Math.sqrt(1-e2*Math.sin(p)**2),T=Math.tan(p)**2,C=ep2*Math.cos(p)**2,A=Math.cos(p)*(l-l0);
+  const M=a*((1-e2/4-3*e2*e2/64-5*e2**3/256)*p-(3*e2/8+3*e2*e2/32+45*e2**3/1024)*Math.sin(2*p)+(15*e2*e2/256+45*e2**3/1024)*Math.sin(4*p)-(35*e2**3/3072)*Math.sin(6*p));
+  const E=k0*N*(A+(1-T+C)*A**3/6+(5-18*T+T*T+72*C-58*ep2)*A**5/120)+500000;
+  let Nn=k0*(M+N*Math.tan(p)*(A*A/2+(5-T+9*C+4*C*C)*A**4/24+(61-58*T+T*T+600*C-330*ep2)*A**6/720));if(lat<0)Nn+=1e7;
+  const band='CDEFGHJKLMNPQRSTUVWXX'[Math.max(0,Math.min(20,Math.floor((lat+80)/8)))];
+  return{zone,band,E,N:Nn}}
+function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH','JKLMNPQR','STUVWXYZ'][set],rows='ABCDEFGHJKLMNPQRSTUV';
+  const c=cols[Math.floor(u.E/1e5)-1],r=rows[(Math.floor(u.N/1e5)+(u.zone%2===0?5:0))%20];
+  const e=String(Math.floor(u.E%1e5)).padStart(5,'0'),n=String(Math.floor(u.N%1e5)).padStart(5,'0');
+  return u.zone+u.band+' '+c+r+' '+e+' '+n}
+
+  const st=document.createElement('style');
+  st.textContent='.cx-plus{position:fixed;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;z-index:6;display:none}.cx-plus:before,.cx-plus:after{content:"";position:absolute;background:#1e493d;box-shadow:0 0 0 1.5px #fff}.cx-plus:before{left:12px;top:0;width:2px;height:26px}.cx-plus:after{top:12px;left:0;height:2px;width:26px}'
+    +'button.cx-pill{position:fixed;left:50%;top:calc(50% + 22px);transform:translateX(-50%);z-index:7;display:none;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;background:#fffaf0!important;border:1px solid #d9c9a8!important;border-radius:999px!important;padding:6px 13px!important;font:800 12.5px/1.3 system-ui;color:#1e493d!important;direction:ltr;box-shadow:0 2px 8px rgba(0,0,0,.25);white-space:nowrap}'
+    +'.nav-copy{min-width:0;flex:1}.cx-fmts{margin-top:6px;display:none;gap:5px;flex-direction:column;width:100%}.cx-fmts.open{display:flex}.cx-fmts button{width:100%;display:flex;justify-content:space-between;gap:8px;align-items:center;border:1px solid rgba(201,150,79,.45);background:rgba(201,150,79,.10);border-radius:10px;padding:7px 10px;font:700 12.5px system-ui;color:inherit}.cx-fmts b{font-weight:800;color:#C9964F;font-size:11px;white-space:nowrap}.cx-fmts span{direction:ltr;unicode-bidi:plaintext;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
+    +'.cx-fmts .cx-share{justify-content:center;margin-top:2px;border:0;background:#C9964F;color:#2b1a05;border-radius:10px;padding:7px;font:800 12.5px system-ui}';
+  document.head.appendChild(st);
+  const plus=document.createElement('div');plus.className='cx-plus';
+  const pill=document.createElement('button');pill.type='button';pill.className='cx-pill';
+  document.body.appendChild(plus);document.body.appendChild(pill);
+  const center=()=>{const[sx,sy]=screenToStage(innerWidth/2,innerHeight/2);return stageToLatLng(sx,sy)};
+  let last='';
+  setInterval(()=>{
+    let show=view==='free';
+    if(show&&typeof gps!=='undefined'&&gps){const c=center();show=distanceMeters(gps,c)>80}
+    plus.style.display=pill.style.display=show?'block':'none';
+    if(show){const c=center(),t=fmtCoords(c.lat,c.lng);if(t!==last){last=t;pill.textContent='＋ '+t}}
+  },250);
+  pill.onclick=()=>{const c=center();targetPoint={lat:c.lat,lng:c.lng};navName.textContent='نقطة وسط الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اضغط الإحداثيات لكل الصيغ';try{probeRadar(targetPoint)}catch(e){}};
+  // كل الصيغ
+  const box=document.createElement('div');box.className='cx-fmts';
+  navCoords.insertAdjacentElement('afterend',box);
+  const ddm=(v,isLat)=>{const a=Math.abs(v),d=Math.floor(a),dir=isLat?(v>=0?'N':'S'):(v>=0?'E':'W');return d+'°'+((a-d)*60).toFixed(3)+"'"+dir};
+  const dms=(v,isLat)=>{const a=Math.abs(v),d=Math.floor(a),mf=(a-d)*60,m=Math.floor(mf),dir=isLat?(v>=0?'N':'S'):(v>=0?'E':'W');return d+'°'+m+"'"+((mf-m)*60).toFixed(1)+'"'+dir};
+  const all=p=>{const u=toUTM(p.lat,p.lng);return[['درجات ودقائق',ddm(p.lat,true)+' '+ddm(p.lng,false)],['درجات ودقائق وثواني',dms(p.lat,true)+' '+dms(p.lng,false)],['عشري',p.lat.toFixed(6)+', '+p.lng.toFixed(6)],
+    ['UTM',u.zone+u.band+' '+Math.round(u.E)+'E '+Math.round(u.N)+'N'],['MGRS',toMGRS(p.lat,p.lng)]]};
+  function fill(){if(!targetPoint)return;const L=all(targetPoint);
+    box.innerHTML=L.map(([n,v])=>'<button type="button" data-cx="'+v.replace(/"/g,'&quot;')+'"><b>'+n+' 📋</b><span>'+v+'</span></button>').join('')+'<button type="button" class="cx-share" data-cxshare>📤 إرسال الموقع</button>'}
+  navCoords.onclick=()=>{if(!targetPoint)return;fill();box.classList.toggle('open')};
+  box.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.hasAttribute('data-cxshare')){const p=targetPoint,t=(navName.textContent||'موقع')+'\n'+all(p)[0][1]+'\nhttps://maps.google.com/?q='+p.lat.toFixed(6)+','+p.lng.toFixed(6);
+      if(navigator.share){navigator.share({text:t}).catch(()=>{})}else{try{await navigator.clipboard.writeText(t);status.textContent='تم نسخ الموقع'}catch(_){status.textContent=t}}return}
+    const v=b.getAttribute('data-cx');try{await navigator.clipboard.writeText(v);status.textContent='تم النسخ: '+v}catch(_){status.textContent=v}});
+  const ou=updateNavigation;updateNavigation=function(){ou();if(box.classList.contains('open'))fill()};
+})();
+</script></body></html>
