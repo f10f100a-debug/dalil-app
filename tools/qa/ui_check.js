@@ -44,6 +44,11 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
         const m = sp.txt.match(/على بعد ([\d.]+) كم/); if(m && Number(m[1]) > 10) F(`بطاقة الربيع: «${sp.lvl}» والفيضة على بعد ${m[1]} كم (لازم «حولك ما اخضرّ»)`);
       }
       const rows = await p.$$eval('#faydList .fy-row', a=>a.map(e=>({t:e.innerText.replace(/\s+/g, ' '), pill:(e.querySelector('.fy-pill') || {}).innerText || ''})));
+      // الترتيب (غير «الأقرب لي») لازم ينزل مع النسبة بين الفياض المؤكدة
+      await p.evaluate(()=>{ const c = document.querySelector('#faydChips [data-fy="all"]'); c && c.click(); }); await sleep(800);
+      const pcts = await p.$$eval('#faydList .fy-row', a=>a.filter(e=>!/تحتاج تأكيد/.test(e.innerText)).map(e=>{ const m = e.innerText.match(/\+(\d+)٪/); return m ? +m[1] : null; }).filter(x=>x != null));
+      for(let k = 1; k < pcts.length; k++) if(pcts[k] > pcts[k - 1]){ F(`ترتيب الفياض: ${pcts[k]}٪ جت بعد ${pcts[k - 1]}٪`); break; }
+      await p.evaluate(()=>{ const c = document.querySelector('#faydChips [data-fy="near"]'); c && c.click(); }); await sleep(500);
       for(const r of rows){ const m = r.t.match(/\+(\d+)٪/); if(m && PILL_STRONG.includes(r.pill.trim()) && Number(m[1]) < 20) F(`قائمة الفياض: «${r.pill.trim()}» ونسبتها ${m[1]}٪ — «${r.t.slice(0, 50)}»`); }
       // البر → الفقع والطيور: ما يطلع فيها شي يخص الفياض
       for(const [k, ar] of [['fq', 'الفقع'], ['birds', 'الطيور']]){
