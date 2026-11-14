@@ -1589,6 +1589,11 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const st2=document.createElement('style');st2.textContent='button.cx-pill.cx-me{left:auto;transform:none;top:auto;font-size:11px!important;padding:4px 10px!important;opacity:.92}';document.head.appendChild(st2);
   const toScreen=(lat,lng)=>{const w=world(lat,lng),sx=w[0]+innerWidth/2-cx,sy=w[1]+innerHeight/2-cy,a=-rot*Math.PI/180,dx=sx-originX,dy=sy-originY;return[originX+dx*Math.cos(a)-dy*Math.sin(a),originY+dx*Math.sin(a)+dy*Math.cos(a)]};
   let lastMe='';
+  // مكان الشريط: تحت الصليب، وإذا تحته سهمك أو عضو من غرفة الرحلة أو سيارتك أو مكان محفوظ نطلعه فوق (نختار الأقل تغطية)
+  function place(){const w=pill.offsetWidth||240,h=pill.offsetHeight||30,L=innerWidth/2-w/2-6,Rr=innerWidth/2+w/2+6;
+    const obs=[...document.querySelectorAll('#marks .mk,#dot,#targetMarker')].filter(e=>e.offsetParent!==null||getComputedStyle(e).display!=='none').map(e=>e.getBoundingClientRect()).filter(r=>r.width>0);
+    const hit=t=>{let a=0;for(const r of obs){const x=Math.max(0,Math.min(Rr,r.right)-Math.max(L,r.left)),y=Math.max(0,Math.min(t+h+4,r.bottom)-Math.max(t-4,r.top));a+=x*y}return a};
+    const dn=hit(innerHeight/2+22),upA=hit(innerHeight/2-58);return dn>0&&upA<dn}
   setInterval(()=>{
     const off=LP.coords===false,hasG=typeof gps!=='undefined'&&gps;
     let show=!off&&view==='free',up=false;
@@ -1596,7 +1601,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       if(Math.hypot(dx,dy)<34)show=false;                       // الوسط هو مكانك تقريبًا
       else if(Math.abs(dx)<140&&dy>-6&&dy<80)up=true;}catch(e){const c=center();show=distanceMeters(gps,c)>80}}
     plus.style.display=pill.style.display=show?'block':'none';
-    if(show){pill.style.top=up?'calc(50% - 58px)':'calc(50% + 22px)';const c=center(),t=fmtCoords(c.lat,c.lng);if(t!==last){last=t;pill.textContent='＋ '+t}}
+    if(show){up=place();pill.style.top=up?'calc(50% - 58px)':'calc(50% + 22px)';const c=center(),t=fmtCoords(c.lat,c.lng);if(t!==last){last=t;pill.textContent='＋ '+t}}
     const showMe=!off&&!show&&hasG;me.style.display=showMe?'block':'none';
     if(showMe){const b=badge.getBoundingClientRect();me.style.bottom=(innerHeight-b.top+8)+'px';me.style.right=Math.max(8,innerWidth-b.right)+'px';
       const t=fmtCoords(gps.lat,gps.lng);if(t!==lastMe){lastMe=t;me.textContent='📍 '+t}}
