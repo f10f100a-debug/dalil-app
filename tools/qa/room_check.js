@@ -36,13 +36,14 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     Bp = await phone(browser, 'ب', 27.9380, 42.3750);
     await Bp.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-join"]'); t && t.click(); }); await sleep(400);
     await Bp.fill('#rmCode', sa.code); await Bp.fill('#rmName', 'فاحص ب'); await Bp.fill('#rmPin', '4321');
-    await Bp.click('#rmGo'); await sleep(4000);
+    await Bp.click('#rmGo');
+    await Bp.waitForFunction(()=>{ try{ return !!JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return false; } }, null, {timeout:25000}).catch(()=>{});
     const sb = await sess(Bp);
     ok('دخول الجوال الثاني بالرقم والرمز', !!(sb && sb.room_id === sa.room_id), sb ? '' : await Bp.evaluate(()=>(document.getElementById('rmErr') || {}).innerText || ''));
     // رمز غلط لازم يُرفض
     const C = await phone(browser, 'ج', 27.95, 42.40);
     await C.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-join"]'); t && t.click(); }); await sleep(300);
-    await C.fill('#rmCode', sa.code); await C.fill('#rmName', 'دخيل'); await C.fill('#rmPin', '9999'); await C.click('#rmGo'); await sleep(3000);
+    await C.fill('#rmCode', sa.code); await C.fill('#rmName', 'دخيل'); await C.fill('#rmPin', '9999'); await C.click('#rmGo'); await sleep(8000);
     const ce = await C.evaluate(()=>(document.getElementById('rmErr') || {}).innerText || '');
     ok('رفض الرمز السري الغلط', !(await sess(C)) && /غير صحيح/.test(ce), ce);
     await C.context().close();
@@ -76,5 +77,6 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
 async function p_create(A){
   await A.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-create"]'); t && t.click(); }); await sleep(400);
   await A.fill('#rmName', 'فاحص أ'); await A.fill('#rmPin', '4321'); if(await A.$('#rmTrip')) await A.fill('#rmTrip', 'فحص آلي');
-  await A.click('#rmGo'); await sleep(4000);
+  await A.click('#rmGo');
+  await A.waitForFunction(()=>{ try{ return !!JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return false; } }, null, {timeout:25000}).catch(()=>{});
 }
