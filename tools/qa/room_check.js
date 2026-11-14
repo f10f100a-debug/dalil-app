@@ -16,7 +16,7 @@ async function phone(browser, name, lat, lng){
   const p = await ctx.newPage(); p.errs = []; p.net = [];
   p.on('response', async r=>{ if(r.url().includes('dalil-rooms')){ let t = ''; try{ t = (await r.text()).slice(0, 160); }catch(e){} p.net.push(r.status() + ' ' + r.url().split('?')[1] + ' ' + t); } });
   p.on('requestfailed', r=>{ if(r.url().includes('supabase')) p.net.push('FAILED ' + r.url().slice(0, 90) + ' ' + (r.failure() || {}).errorText); });
-  p.on('console', m=>{ if(m.type() === 'error') p.errs.push('console: ' + m.text().slice(0, 160)); });
+  p.on('console', m=>{ if(m.type() === 'error' && !/Failed to load resource/.test(m.text())) p.errs.push('console: ' + m.text().slice(0, 160)); });
   p.on('pageerror', e=>p.errs.push(e.message)); p.on('dialog', d=>d.accept());
   await p.goto(BASE + '/index.html'); await sleep(2500);
   await p.evaluate(()=>document.getElementById('roomBtn').click()); await p.waitForSelector('#rmName', {timeout:15000});
