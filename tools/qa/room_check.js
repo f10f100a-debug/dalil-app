@@ -37,7 +37,7 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     await Bp.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-join"]'); t && t.click(); }); await sleep(400);
     await Bp.fill('#rmCode', sa.code); await Bp.fill('#rmName', 'فاحص ب'); await Bp.fill('#rmPin', '4321');
     await Bp.click('#rmGo');
-    await Bp.waitForFunction(()=>{ try{ return !!JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return false; } }, null, {timeout:25000}).catch(()=>{});
+    await waitSess(Bp);
     const sb = await sess(Bp);
     ok('دخول الجوال الثاني بالرقم والرمز', !!(sb && sb.room_id === sa.room_id), sb ? '' : await Bp.evaluate(()=>(document.getElementById('rmErr') || {}).innerText || ''));
     // رمز غلط لازم يُرفض
@@ -74,9 +74,10 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
   fs.writeFileSync(path.join(OUT, 'room-qa.md'), rep); console.log('\n' + rep);
   process.exit(fails.length ? 1 : 0);
 })();
+async function waitSess(p){ for(let i = 0; i < 50; i++){ if(await sess(p)) return true; if(await p.evaluate(()=>{ const e = document.querySelector('.rm-err'); return !!(e && e.offsetParent && e.innerText.trim()); })) return false; await sleep(500); } return false; }
 async function p_create(A){
   await A.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-create"]'); t && t.click(); }); await sleep(400);
   await A.fill('#rmName', 'فاحص أ'); await A.fill('#rmPin', '4321'); if(await A.$('#rmTrip')) await A.fill('#rmTrip', 'فحص آلي');
   await A.click('#rmGo');
-  await A.waitForFunction(()=>{ try{ return !!JSON.parse(localStorage.getItem('dalil_room_v1') || 'null'); }catch(e){ return false; } }, null, {timeout:25000}).catch(()=>{});
+  await waitSess(A);
 }
