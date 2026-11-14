@@ -317,7 +317,10 @@
       + '(رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ')';
     if(navigator.share){ navigator.share({text}).catch(()=>{}); return; }
     (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(()=>B.toast('تم نسخ بيانات الغرفة'), ()=>{
-      window.location.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+      // 14 نوفمبر: نافذة جديدة — كان يطلّع المستخدم من دليل (المتصفح بدون مشاركة ولا نسخ)
+      const u = 'https://wa.me/?text=' + encodeURIComponent(text);
+      const w = window.open(u, '_blank'); if(w) try{ w.opener = null; }catch(e){}
+      if(!w) B.toast('رقم الغرفة ' + R.sess.code + ' · الرمز ' + R.sess.pin + ' — أرسلها لجماعتك');
     });
   }
 
