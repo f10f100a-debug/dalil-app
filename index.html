@@ -6546,7 +6546,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     document.querySelectorAll('#spSeg [data-sp]').forEach(b=>{ const on = b.dataset.sp === spView; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     document.getElementById('fqCard').hidden = spView !== 'fq';
     document.getElementById('brCard').hidden = spView !== 'birds';
-    { const sc = document.querySelector('.sp-card'); if(sc) sc.style.display = spView === 'fayd' ? '' : 'none'; }   // «حالة الربيع حولك» تحت الفياض بس
+    { const v = spView === 'fayd' ? '' : 'none'; const sc = document.querySelector('.sp-card'); if(sc) sc.style.display = v;
+      ['springMap', 'springCopernicus'].forEach(id=>{ const e = document.getElementById(id); if(e) e.style.display = spView === 'fayd' ? (id === 'springCopernicus' ? 'flex' : '') : 'none'; });
+      const n = document.getElementById('springCopernicus'); const note = n && n.nextElementSibling; if(note && note.classList.contains('weather-source-note')) note.style.display = v; }   // «حالة الربيع حولك» تحت الفياض بس
     if(spView === 'fq'){ document.getElementById('faydCard').hidden = true; loadFq().then(renderFq); }
     else if(spView === 'birds'){ document.getElementById('faydCard').hidden = true; loadBirds().then(renderBirds); }
     else loadFayd().then(renderFayd);
@@ -6591,7 +6593,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     const [g, rain] = await Promise.all([greenAround(q.lat, q.lng).catch(()=>undefined), rainLast30(q.lat, q.lng).catch(()=>undefined), loadFayd()]);
     let near = [];
     if(faydData && faydSites && Array.isArray(faydData.rows)){
-      near = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {name:s[0], km:haversine(q.lat, q.lng, s[1], s[2]) / 1000, st:r[2], pct:r[3], s2:r[4]} : null; })
+      near = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {name:s[0], km:haversine(q.lat, q.lng, s[1], s[2]) / 1000, st:r[2], pct:r[3], s2:r[4], flag:r[5] || 0} : null; })
         .filter(x=>x && x.km <= 25).sort((a, b)=>b.st - a.st || a.km - b.km).slice(0, 3);
     }
     springCache = {at:Date.now(), lat:q.lat, lng:q.lng, live:q.live, name:q.name, g, rain, near, asof:faydData && faydData.asof};
@@ -6599,7 +6601,9 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   }
   function renderSpring(c){
     const body = document.getElementById('springBody'), fmt = n=>Number(n).toLocaleString('ar-SA-u-nu-latn');
-    const g = c.g, rain = c.rain, near = c.near || [], best = near.find(x=>x.st > 0);
+    const g = c.g, rain = c.rain, near = c.near || [];
+    // 14 نوفمبر: الخضرة الخفيفة اللي «تحتاج تأكيد» (أقل من 10٪) ما تنحسب «أقرب خضرة» إلا إذا أكدها بلاغ ميداني
+    const best = near.find(x=>x.st > 0 && (x.flag === 5 || (x.flag !== 4 && x.pct >= 10)));
     let level, note, color;
     const far = best && best.km > 10;   // أقرب خضرة بعيدة: لا نقول «بداية اخضرار» عن مكانك
     if(far){
@@ -7166,7 +7170,15 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(d < 25000 && (!best || d < best.d)) best = {d, x};
     }
     const b = bestMain || best;
-    return b ? (b.d < 3000 ? '' : directionWord(bearing(b.x[1], b.x[2], lat, lng)) + ' ') + b.x[0] : '';
+    if(b) return (b.d < 3000 ? '' : directionWord(bearing(b.x[1], b.x[2], lat, lng)) + ' ') + b.x[0];
+    // 14 نوفمبر: ما فيه معلم قريب (بحر أو صحراء مفتوحة) → «60 كم غرب الليث» بدل اسم المنطقة المكرر
+    let far = null;
+    for(const x of catalog.p){
+      if(Math.abs(x[1] - lat) > 1.5 || Math.abs(x[2] - lng) > 1.7) continue;
+      if(x[4] !== main) continue;
+      const d = haversine(lat, lng, x[1], x[2]); if(!far || d < far.d) far = {d, x};
+    }
+    return far ? iso(Math.round(far.d / 1000)) + ' كم ' + directionWord(bearing(far.x[1], far.x[2], lat, lng)) + ' ' + far.x[0] : '';
   }
   function loadHail(force){
     if(HL.busy) return HL.busy;
@@ -7183,13 +7195,18 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           kept.push({lat, lng, t:h.t, dbz:h.dbz, region:h.region || '', rep:Number(h.rep) || 0, src:h.src});
         }
         HL.list = kept; HL.at = Date.now();
-        return (catalog.p.length ? Promise.resolve() : loadCatalog().catch(()=>{})).then(()=>{ kept.forEach(k=>{ k.name = hlName(k.lat, k.lng) || k.region || 'منطقة مفتوحة'; }); return HL.list; });
+        return Promise.all([ensureBundledCatalog().catch(()=>{}), catalog.p.length ? null : loadCatalog().catch(()=>{})]).then(()=>{ kept.forEach(k=>{ k.name = hlName(k.lat, k.lng) || k.region || 'منطقة مفتوحة'; });
+          // نفس الاسم = نفس المكان: نخلي الأحدث ونجمع البلاغات (كان يتكرر «مكة» أربع مرات)
+          const byName = [];
+          kept.forEach(k=>{ const o = byName.find(x=>x.name === k.name); if(!o){ byName.push(k); return; } if(k.src === 'radar' || o.src !== 'radar') o.rep = Math.max(o.rep, k.rep); });
+          HL.list = byName; return HL.list; });
       }).catch(()=>HL.list).finally(()=>{ HL.busy = null; });
     return HL.busy;
   }
   function renderHail(){
     const card = document.getElementById('hailCard'); if(!card) return;
-    const pos = state.pos, list = (HL.list || []).map((h, i)=>({...h, i, km:pos ? haversine(pos.lat, pos.lng, h.lat, h.lng) / 1000 : null}));
+    const pos = state.pos, list = (HL.list || []).map((h, i)=>({...h, i, km:pos ? haversine(pos.lat, pos.lng, h.lat, h.lng) / 1000 : null}))
+    if(pos) list.sort((a, b)=>a.km - b.km);   // الأقرب لك أول
     if(!list.length){ card.hidden = true; return; }
     const shown = hlAll ? list : list.slice(0, 4);
     card.innerHTML = '<h3>🧊 وين نزل البرد اليوم؟</h3><small style="color:var(--text-faint)">آخر 24 ساعة · من الرادار وبلاغات الناس · اضغط للتوجّه</small>' +
