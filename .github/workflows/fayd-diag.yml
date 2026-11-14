@@ -1,0 +1,18 @@
+# تشخيص يدوي: قراءات Sentinel-2 لكل صورة لفياض محددة (غبار؟ أرض مبلولة؟) → artifact + سجل
+name: Fayd diag
+on:
+  workflow_dispatch:
+    inputs:
+      names: { description: "أسماء الفياض مفصولة بفاصلة", type: string, default: "" }
+      start: { description: "من", type: string, default: "2026-11-01" }
+      end: { description: "إلى", type: string, default: "2026-11-14" }
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy
+      - run: python3 tools/fayd/diag_dates.py "${{ inputs.names }}" "${{ inputs.start }}" "${{ inputs.end }}"
+      - uses: actions/upload-artifact@v4
+        with: { name: fayd-diag, path: diag/ }
