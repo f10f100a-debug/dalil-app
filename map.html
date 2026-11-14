@@ -1732,4 +1732,54 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const prev=window.__styleLab;window.__styleLab=rid=>{try{prev&&prev(rid)}catch(e){}try{poi(rid)}catch(e){}};
   const t=setInterval(()=>{if(typeof glReady!=='undefined'&&glReady){clearInterval(t);try{gl.on('styleimagemissing',e=>{if(String(e.id).startsWith('poi-'))icons()});for(const r of activeRegions)poi(r)}catch(e){}}},300);
 })();
+
+// ---------- 15 نوفمبر: المسطرة (تجربة dalil_lab_ruler على جوال أبو مالك) ----------
+// من «الأدوات» ← 📏 المسطرة: خط متقطع من موقعك (أو من الصليب لو ما فيه GPS) لين وسط الشاشة، المسافة والاتجاه مباشرة،
+// «➕ نقطة» تثبّت نقطة وتكمل منها (مسار بأكثر من نقطة والمجموع)، «↩️» تشيل آخر نقطة، «✕» تقفل. كله بالجوال (يشتغل بدون شبكة)
+(function(){
+  let on=false;try{on=localStorage.getItem('dalil_lab_ruler')==='1'}catch(e){}
+  if(!on)return;
+  const st=document.createElement('style');st.textContent=
+    '#rlSvg{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;display:none}'
+   +'#rlPlus{position:fixed;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;pointer-events:none;z-index:7;display:none}#rlPlus:before,#rlPlus:after{content:"";position:absolute;background:#B3261E;box-shadow:0 0 0 1.5px #fff}#rlPlus:before{left:14px;top:0;width:2px;height:30px}#rlPlus:after{top:14px;left:0;height:2px;width:30px}'
+   +'#rlBar{position:fixed;left:10px;right:10px;z-index:96;display:none;background:#fffaf0;border:1px solid #d9c9a8;border-radius:16px;padding:9px 10px;box-shadow:0 6px 18px rgba(0,0,0,.22);font:700 13px system-ui;color:#2b2218;direction:rtl}'
+   +'#rlBar .rl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}#rlBar .rl-d{font:900 22px system-ui;color:#B3261E}#rlBar .rl-s{font-size:12px;color:#6F665A}'
+   +'#rlBar .rl-btns{display:flex;gap:6px;margin-top:8px}#rlBar .rl-btns button{flex:1;border:1px solid #d9c9a8;background:#F3EADA;border-radius:11px;padding:8px 4px;font:800 13px system-ui;color:#2b2218}#rlBar .rl-btns .rl-add{background:#C9964F;border-color:#C9964F;color:#2b1a05}'
+   +':is(html[data-theme=dark],html[data-theme=red]) #rlBar{background:#1F1B16;border-color:#353027;color:#EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) #rlBar .rl-btns button{background:#2A251E;border-color:#353027;color:#EFE8DC}';
+  document.head.appendChild(st);
+  const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');svg.id='rlSvg';document.body.appendChild(svg);
+  const plus=document.createElement('div');plus.id='rlPlus';document.body.appendChild(plus);
+  const bar=document.createElement('div');bar.id='rlBar';bar.innerHTML='<div class="rl-top"><span>📏 <span class="rl-d">—</span></span><span class="rl-s"></span></div><div class="rl-s rl-seg"></div><div class="rl-btns"><button type="button" class="rl-add">➕ نقطة</button><button type="button" class="rl-undo">↩️ تراجع</button><button type="button" class="rl-x">✕ إنهاء</button></div>';
+  document.body.appendChild(bar);
+  const toScreen=(lat,lng)=>{const w=world(lat,lng),sx=w[0]+innerWidth/2-cx,sy=w[1]+innerHeight/2-cy,a=-rot*Math.PI/180,dx=sx-originX,dy=sy-originY;return[originX+dx*Math.cos(a)-dy*Math.sin(a),originY+dx*Math.sin(a)+dy*Math.cos(a)]};
+  const center=()=>{const[sx,sy]=screenToStage(innerWidth/2,innerHeight/2);return stageToLatLng(sx,sy)};
+  const fmtD=m=>m<1000?Math.round(m)+' م':(m<10000?(m/1000).toFixed(2):(m/1000).toFixed(1))+' كم';
+  const DIRS=['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'];
+  const brg=(a,b)=>{const p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180,y=Math.sin(dl)*Math.cos(p2),x=Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl);return(Math.atan2(y,x)*180/Math.PI+360)%360};
+  let act=false,pts=[],raf=0,fromGps=false;
+  function draw(){if(!act)return;raf=requestAnimationFrame(draw);
+    const c=center(),all=pts.concat([c]);
+    const sc=all.map(p=>toScreen(p.lat,p.lng)),line=sc.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    svg.setAttribute('viewBox','0 0 '+innerWidth+' '+innerHeight);
+    svg.innerHTML='<polyline points="'+line+'" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/><polyline points="'+line+'" fill="none" stroke="#B3261E" stroke-width="3" stroke-dasharray="9 7" stroke-linecap="round" stroke-linejoin="round"/>'
+      +sc.slice(0,-1).map((p,i)=>'<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="'+(i===0?7:5.5)+'" fill="'+(i===0&&fromGps?'#1F6FA8':'#B3261E')+'" stroke="#fff" stroke-width="2.5"/>').join('');
+    let tot=0;for(let i=1;i<all.length;i++)tot+=distanceMeters(all[i-1],all[i]);
+    const last=all[all.length-2],seg=distanceMeters(last,c),b=Math.round(brg(last,c))%360;
+    bar.querySelector('.rl-d').textContent=fmtD(tot);
+    bar.querySelector('.rl-top .rl-s').textContent=pts.length>1?'مجموع '+pts.length+' مقاطع':(fromGps?'من موقعك':'من النقطة الأولى');
+    bar.querySelector('.rl-seg').textContent=(pts.length>1?'آخر مقطع '+fmtD(seg)+' · ':'')+'الاتجاه '+b+'° '+DIRS[Math.round(b/45)%8];
+    const bd=document.getElementById('badge'),r=bd?bd.getBoundingClientRect():null;const bt=(r&&r.top>0?innerHeight-r.top+8:90),bh=bar.offsetHeight||120;if(innerHeight-bt-bh<innerHeight/2+30){bar.style.bottom='auto';bar.style.top='64px'}else{bar.style.top='auto';bar.style.bottom=bt+'px'}}
+  function hideCx(h){for(const e of document.querySelectorAll('.cx-plus,.cx-pill'))e.style.visibility=h?'hidden':''}
+  function start(){if(act)return;act=true;const c=center();fromGps=typeof gps!=='undefined'&&!!gps;pts=[fromGps?{lat:gps.lat,lng:gps.lng}:c];
+    try{if(view!=='free')setView('free')}catch(e){}
+    svg.style.display=plus.style.display=bar.style.display='block';hideCx(true);
+    status.textContent=fromGps?'المسطرة: حرّك الخريطة لين الصليب الأحمر على المكان — المسافة من موقعك':'المسطرة: حرّك الخريطة — المسافة من نقطة البداية';draw()}
+  function stop(){act=false;cancelAnimationFrame(raf);svg.style.display=plus.style.display=bar.style.display='none';svg.innerHTML='';hideCx(false);pts=[]}
+  bar.querySelector('.rl-add').onclick=()=>{const c=center(),l=pts[pts.length-1];if(distanceMeters(l,c)<2)return;pts.push(c);try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}};
+  bar.querySelector('.rl-undo').onclick=()=>{if(pts.length>1)pts.pop();else stop()};
+  bar.querySelector('.rl-x').onclick=stop;
+  for(const t of['touchstart','pointerdown','click','touchend','mousedown'])bar.addEventListener(t,e=>e.stopPropagation(),{passive:true});
+  window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data)return;if(e.data.type==='DALIL_RULER')act?stop():start()});
+  window.__ruler={start,stop};
+})();
 </script></body></html>
