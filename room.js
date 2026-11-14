@@ -1164,6 +1164,7 @@
       const pz = !mine && R.paused.get(m.member_id);
       if(mine) sub = isPaused() ? 'أنت · متوقف مؤقتًا — موقعك ما يتحدث' : a ? 'أنت · موقعك يظهر للأعضاء' : 'أنت · بانتظار موقعك';
       else if(pz && pz > Date.now()) sub = '⏸️ متوقف مؤقتًا حتى ' + hhmm(pz) + (p ? ' · آخر موقع ' + ago(p.t) : '');
+      else if(!p && m.last_seen && Date.now() - new Date(m.last_seen).getTime() > 10 * 60e3) sub = 'غير متصل · آخر ظهور ' + ago(new Date(m.last_seen).getTime());   // 14 نوفمبر: جلسة قديمة ساكتة بدل «بانتظار موقعه» للأبد
       else if(!p) sub = 'بانتظار موقعه';
       else{
         const d = a ? B.haversine(a.lat, a.lng, p.lat, p.lng) : null;
