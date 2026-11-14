@@ -1179,7 +1179,7 @@ async function attachSaved(r){try{const c=await caches.open(OFFLINE_MAPS);let[u1
     u1=k1[k1.length-1].url;u2=k2[k2.length-1].url;a=await c.match(u1);b=await c.match(u2);old=true;if(!a||!b)return}
   for(const[u,res]of[[u1,a],[u2,b]])pmProtocol.add(new pmtiles.PMTiles(new pmtiles.FileSource(new File([await res.blob()],u))));savedUrls[r.id]=[u1,u2];savedRegions.add(r.id);if(old)outdatedRegions.add(r.id)}catch(e){}}
 function addRegion(r){const[u1,u2]=savedUrls[r.id]||regionUrls(r);gl.addSource('vt-'+r.id,{type:'vector',url:'pmtiles://'+u1});gl.addSource('hs-'+r.id,{type:'raster',url:'pmtiles://'+u2,tileSize:256});
-  for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id);applyRegionPrefs(r.id)}
+  for(const t of TPL){const{id,src,...def}=t;gl.addLayer({...def,id:id+'@'+r.id,source:src+'-'+r.id},'slot:'+id)}activeRegions.add(r.id);applyRegionPrefs(r.id);try{window.__styleLab&&window.__styleLab(r.id)}catch(e){}}
 function removeRegion(id){for(const t of TPL)if(gl.getLayer(t.id+'@'+id))gl.removeLayer(t.id+'@'+id);for(const p of['vt-','hs-'])if(gl.getSource(p+id))gl.removeSource(p+id);activeRegions.delete(id)}
 // المنطقة من شبكة المناطق (data/region-grid.json) لا من الصناديق المتداخلة
 let GRID=null;fetch('data/region-grid.json?v=1').then(r=>r.ok?r.json():null).then(g=>{GRID=g}).catch(()=>{});
@@ -1604,5 +1604,44 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       if(navigator.share){navigator.share({text:t}).catch(()=>{})}else{try{await navigator.clipboard.writeText(t);status.textContent='تم نسخ الموقع'}catch(_){status.textContent=t}}return}
     const v=b.getAttribute('data-cx');try{await navigator.clipboard.writeText(v);status.textContent='تم النسخ: '+v}catch(_){status.textContent=v}});
   const ou=updateNavigation;updateNavigation=function(){ou();if(box.classList.contains('open'))fill()};
+})();
+</script><script>
+// ---------- 14 نوفمبر: شكل الخريطة الجديد (تجربة dalil_lab_style على جوال أبو مالك) ----------
+// كتابة أوضح (إطار أعرض حول الأسماء)، أودية أوضح، تضاريس أنعم — ووضع ليلي حقيقي بألوان ليلية بدل «قلب الألوان» (كانت الطرق تطلع سوداء)
+(function(){
+  let on=false;try{on=localStorage.getItem('dalil_lab_style')==='1'}catch(e){}
+  if(!on)return;
+  const dark=()=>/^(dark|red)$/.test(document.documentElement.getAttribute('data-theme')||'');
+  document.documentElement.classList.add('style-lab');
+  const st=document.createElement('style');st.textContent='html.style-lab:not(.base-sat) #layer{filter:none!important}';document.head.appendChild(st);
+  const L={bg:{'background-color':'#F1E7D2'},sand:{'fill-color':'#F2DCA6','fill-opacity':.75},
+    hillshade:{'raster-opacity':['interpolate',['linear'],['zoom'],6,.8,13,.55]},
+    contour:{'line-color':'#A5814F','line-opacity':['case',['==',['get','idx'],1],.5,.22]},
+    wadi:{'line-color':'#3B82B8','line-width':['interpolate',['linear'],['zoom'],8,.9,12,1.8,15,3.2],'line-opacity':.9},
+    'road-case':{'line-color':'#9E8566'},track:{'line-color':'#7D5E36'},
+    place:{'text-halo-color':'#FBF6EA','text-halo-width':2.2},'wadi-label':{'text-color':'#1B5A85','text-halo-color':'#FBF6EA','text-halo-width':2},
+    'road-label':{'text-halo-color':'#FBF6EA','text-halo-width':2},'contour-label':{'text-halo-color':'#FBF6EA','text-halo-width':1.6},
+    nature:{'text-halo-color':'#FBF6EA','text-halo-width':2},peak:{'text-halo-color':'#FBF6EA','text-halo-width':2},'dalil-label':{'text-halo-width':2},'natline-label':{'text-halo-color':'#FBF6EA','text-halo-width':2}};
+  const H='#14110D';
+  const D={bg:{'background-color':'#1C1915'},sand:{'fill-color':'#2E2619','fill-opacity':.9},
+    cover:{'fill-color':['match',['get','kind'],'rock','#3A332B','scrub','#2C3322','wetland','#21363A','#2B3524'],'fill-opacity':.6},
+    farm:{'fill-color':'#2F3A22'},park:{'fill-color':'#2C3A26'},urban:{'fill-color':'#35302A'},water:{'fill-color':'#1F3B52'},
+    hillshade:{'raster-opacity':.4,'raster-brightness-max':.55},
+    contour:{'line-color':'#8C7350','line-opacity':['case',['==',['get','idx'],1],.4,.18]},waterway:{'line-color':'#3F78A3'},
+    wadi:{'line-color':'#5AA0D6','line-width':['interpolate',['linear'],['zoom'],8,.9,12,1.8,15,3.2],'line-opacity':.9},
+    cliff:{'line-color':'#B08A5C'},protected:{'line-color':'#4CAF78'},track:{'line-color':'#B59160'},rail:{'line-color':'#8F877B'},
+    'road-case':{'line-color':'#0E0C0A'},road:{'line-color':['match',['get','class'],'motorway','#D9772F','trunk','#D9772F','primary','#C99445','secondary','#9C8256','#6E6458']},
+    place:{'text-color':['match',['get','kind'],'neighborhood','#B9AE9C','#EFE6D6'],'text-halo-color':H,'text-halo-width':2.2},
+    'wadi-label':{'text-color':'#8CC4EE','text-halo-color':H,'text-halo-width':2},'road-label':{'text-color':'#E6D9C3','text-halo-color':H,'text-halo-width':2},
+    'contour-label':{'text-color':'#BFA67E','text-halo-color':H},nature:{'text-halo-color':H,'text-halo-width':2},peak:{'text-color':'#E2C9A0','text-halo-color':H,'text-halo-width':2},
+    'dalil-label':{'text-halo-color':H,'text-halo-width':2},'natline-label':{'text-halo-color':H,'text-halo-width':2},'protected-label':{'text-color':'#7FCF9F','text-halo-color':H},
+    'nature-dot':{'circle-stroke-color':H},dalil:{'circle-stroke-color':H}};
+  function apply(rid){if(typeof gl==='undefined'||!glReady&&!rid)return;const P=dark()?D:L;
+    for(const[id,props]of Object.entries(P)){const lid=id==='bg'?'bg':id+'@'+rid;if(id==='bg'&&rid)continue;if(!gl.getLayer(lid))continue;
+      for(const[k,v]of Object.entries(props)){try{gl.setPaintProperty(lid,k,v)}catch(e){}}}}
+  window.__styleLab=rid=>{apply(rid)};
+  const all=()=>{try{apply(null);gl.setPaintProperty('bg','background-color',(dark()?D:L).bg['background-color']);for(const r of activeRegions)apply(r)}catch(e){}};
+  new MutationObserver(all).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  const t=setInterval(()=>{if(typeof glReady!=='undefined'&&glReady){clearInterval(t);all()}},300);
 })();
 </script></body></html>
