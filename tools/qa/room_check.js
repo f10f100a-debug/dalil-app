@@ -13,7 +13,10 @@ async function phone(browser, name, lat, lng){
   const ctx = await browser.newContext({...devices['iPhone 13'], geolocation:{latitude:lat, longitude:lng}, permissions:['geolocation', 'microphone'], locale:'ar', serviceWorkers:'block'});
   await ctx.addInitScript(()=>{ try{ localStorage.setItem('dalil_install_guide_seen', '1'); localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_room_terms_v1', '1'); }catch(e){}
     Object.defineProperty(navigator, 'standalone', {get:()=>true}); });
-  const p = await ctx.newPage(); p.errs = [];
+  const p = await ctx.newPage(); p.errs = []; p.net = [];
+  p.on('response', async r=>{ if(r.url().includes('dalil-rooms')){ let t = ''; try{ t = (await r.text()).slice(0, 160); }catch(e){} p.net.push(r.status() + ' ' + r.url().split('?')[1] + ' ' + t); } });
+  p.on('requestfailed', r=>{ if(r.url().includes('supabase')) p.net.push('FAILED ' + r.url().slice(0, 90) + ' ' + (r.failure() || {}).errorText); });
+  p.on('console', m=>{ if(m.type() === 'error') p.errs.push('console: ' + m.text().slice(0, 160)); });
   p.on('pageerror', e=>p.errs.push(e.message)); p.on('dialog', d=>d.accept());
   await p.goto(BASE + '/index.html'); await sleep(2500);
   await p.evaluate(()=>document.getElementById('roomBtn').click()); await p.waitForSelector('#rmName', {timeout:15000});
@@ -27,7 +30,8 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     A = await phone(browser, 'أ', 27.9200, 42.3600);
     await p_create(A);
     const sa = await sess(A);
-    ok('إنشاء غرفة', !!(sa && sa.code), sa ? 'رقم ' + sa.code : await A.evaluate(()=>(document.getElementById('rmErr') || {}).innerText || ''));
+    await A.screenshot({path:path.join(OUT, 'room-a-create.png')});
+    ok('إنشاء غرفة', !!(sa && sa.code), sa ? 'رقم ' + sa.code : (await A.evaluate(()=>(document.querySelector('.rm-err, #rmErr') || {}).innerText || '')) + ' · شبكة: ' + A.net.join(' | ') + ' · ' + A.errs.join(' | ').slice(0, 300));
     if(!sa || !sa.code) throw new Error('stop');
     Bp = await phone(browser, 'ب', 27.9380, 42.3750);
     await Bp.evaluate(()=>{ const t = document.querySelector('[data-rm="tab-join"]'); t && t.click(); }); await sleep(400);
