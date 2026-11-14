@@ -24,17 +24,24 @@ jobs:
         run: |
           (python3 -m http.server 8804 >/dev/null 2>&1 &) ; sleep 2
           OUT=qa-out node tools/qa/ui_check.js
+      - name: Screens (live data)
+        id: live
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: LIVE=1 OUT=qa-live node tools/qa/ui_check.js
       - name: Data
         id: data
         continue-on-error: true
         run: python3 tools/qa/data_check.py
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: qa-screens, path: qa-out/ }
+        with: { name: qa-screens, path: "qa-out/\nqa-live/" }
       - name: Publish result
         if: always()
         run: |
-          if [ "${{ steps.ui.outcome }}" = failure ]; then cp qa-out/ui-qa.md data/ui-qa.md; else rm -f data/ui-qa.md; fi
+          rm -f data/ui-qa.md
+          if [ "${{ steps.ui.outcome }}" = failure ]; then cat qa-out/ui-qa.md >> data/ui-qa.md; fi
+          if [ "${{ steps.live.outcome }}" = failure ]; then { echo; echo "(بيانات حية)"; cat qa-live/ui-qa.md; } >> data/ui-qa.md; fi
           git config user.email ci@dalil && git config user.name "dalil-bot"
           git add -A data/ui-qa.md data/data-qa.md 2>/dev/null || true
           git diff --cached --quiet && exit 0

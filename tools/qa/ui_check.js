@@ -6,6 +6,7 @@ const {chromium, devices} = require('playwright');
 const fs = require('fs'), path = require('path');
 const BASE = process.env.BASE || 'http://localhost:8804';
 const OUT = process.env.OUT || 'qa-out';
+const LIVE = process.env.LIVE === '1';   // 1 = بيانات حية (طقس، رادار، أحداث، برد) — يشتغل يوميًا على GitHub
 const SPOTS = [['بقعاء', 27.92, 42.36], ['الرياض', 24.71, 46.67], ['حائل', 27.52, 41.69], ['جازان', 16.89, 42.55], ['أم العصافير', 29.19, 43.56]];
 const LEVEL_GREEN = ['بداية اخضرار', 'ربيع متوسط', 'ربيع جيد'];
 const PILL_STRONG = ['مثل المعتاد', 'أخضر من المعتاد', 'أخضر من المعتاد بكثير'];
@@ -21,10 +22,10 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
     const p = await ctx.newPage(); const errs = [];
     p.on('pageerror', e=>errs.push(e.message));
     // الشبكة الخارجية مقفولة (نتيجة ثابتة) — نفحص منطق التطبيق على بيانات المستودع نفسها
-    await p.route(u=>!String(u).startsWith(BASE), r=>r.abort());
+    if(!LIVE) await p.route(u=>!String(u).startsWith(BASE), r=>r.abort());
     // برد تجريبي (عواصف متفرقة بمنطقة مكة) — نفحص التسمية والتكرار
     const HL = [[21.3,39.0],[21.25,39.05],[20.9,39.4],[21.6,39.9],[20.5,40.3]].map((x,i)=>({lat:x[0],lng:x[1],t:new Date(Date.now()-i*1800e3).toISOString(),dbz:57,region:'مكة',rep:0,src:'radar'}));
-    await p.route(/rpc\/recent_hail/, r=>r.fulfill({status:200, contentType:'application/json', body:JSON.stringify(HL)}));
+    if(!LIVE) await p.route(/rpc\/recent_hail/, r=>r.fulfill({status:200, contentType:'application/json', body:JSON.stringify(HL)}));
     const F = (m)=>fails.push(`${name}: ${m}`);
     try{
       await p.goto(BASE + '/index.html', {waitUntil:'load'}); await sleep(2500);
@@ -66,7 +67,20 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
       const rg = hn.filter(x=>x === 'مكة' || x === 'منطقة مفتوحة'); if(rg.length > 1) F(`البرد: ${rg.length} سطور باسم المنطقة بس («${rg[0]}») بدل اسم مكان`);
       if(!hn.length) notes.push(name + ': بطاقة البرد ما ظهرت');
       // الأماكن والخريطة
-      for(const s of ['places', 'track']){ await p.evaluate(s=>{ const t = document.querySelector('.tab[data-screen="' + s + '"]'); t && t.click(); }, s); await sleep(1500); await shot(s); await bodyBad(s === 'places' ? 'الأماكن' : 'الخريطة'); }
+      for(const s of ['places', 'track']){ await p.evaluate(s=>{ const t = document.querySelector('.tab[data-screen="' + s + '"]'); t && t.click(); }, s); await sleep(s === 'track' ? 6000 : 1500); await shot(s); await bodyBad(s === 'places' ? 'الأماكن' : 'الخريطة'); }
+      // صفحة الخريطة (داخل الإطار): المحرك اشتغل، ما فيه رسالة خطأ، وأزرار الطبقات تفتح بدون أخطاء
+      const fr = p.frames().find(f=>/map\.html/.test(f.url()));
+      if(!fr) F('الخريطة: الإطار ما انفتح');
+      else{
+        const ms = await fr.evaluate(()=>({canvas:!!document.querySelector('canvas.maplibregl-canvas'), st:(document.getElementById('status') || {}).textContent || ''})).catch(e=>({err:String(e)}));
+        if(ms.err) F('الخريطة: ' + ms.err.slice(0, 120));
+        else{ if(!ms.canvas) F('الخريطة: محرك الرسم ما اشتغل'); if(/تعذّر|خطأ|WebGL/.test(ms.st)) F('الخريطة: «' + ms.st.slice(0, 80) + '»'); }
+        const btns = await fr.$$eval('button', a=>a.filter(b=>b.offsetParent && /الأمطار|السيول|الربيع|التضاريس|الأسبوع/.test(b.innerText)).map(b=>b.innerText.trim().split('\n').pop()));
+        for(const t of btns){ await fr.evaluate(t=>{ const b = [...document.querySelectorAll('button')].find(x=>x.offsetParent && x.innerText.trim().split('\n').pop() === t); b && b.click(); }, t).catch(()=>{}); await sleep(1200);
+          await fr.evaluate(t=>{ const b = [...document.querySelectorAll('button')].find(x=>x.offsetParent && x.innerText.trim().split('\n').pop() === t); b && b.click(); }, t).catch(()=>{}); await sleep(400); }
+        if(!btns.length) notes.push(name + ': أزرار طبقات الخريطة ما ظهرت');
+        await shot('map-layers');
+      }
       for(const e of [...new Set(errs)]) F('خطأ برمجي: ' + e.slice(0, 160));
       notes.push(`${name}: ${rows.length} فيضة بالقائمة · الربيع «${sp.lvl}»`);
     }catch(e){ F('تعذّر الفحص: ' + String(e).slice(0, 160)); }
