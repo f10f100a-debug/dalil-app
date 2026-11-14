@@ -1636,9 +1636,10 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     'contour-label':{'text-color':'#BFA67E','text-halo-color':H},nature:{'text-halo-color':H,'text-halo-width':2},peak:{'text-color':'#E2C9A0','text-halo-color':H,'text-halo-width':2},
     'dalil-label':{'text-halo-color':H,'text-halo-width':2},'natline-label':{'text-halo-color':H,'text-halo-width':2},'protected-label':{'text-color':'#7FCF9F','text-halo-color':H},
     'nature-dot':{'circle-stroke-color':H},dalil:{'circle-stroke-color':H}};
+  let MF='Dalil Kufi Bold';try{const f=localStorage.getItem('dalil_map_font');if(/^Dalil [A-Za-z ]+$/.test(f||''))MF=f}catch(e){}
   const SYM=['contour-label','wadi-label','road-label','natline-label','protected-label','nature','peak','dalil-label','place'];
   const LINE=['contour-label','wadi-label','road-label','natline-label'];
-  function font(rid){for(const id of SYM){const lid=id+'@'+rid;if(!gl.getLayer(lid))continue;try{gl.setLayoutProperty(lid,'text-font',['Dalil Kufi']);
+  function font(rid){for(const id of SYM){const lid=id+'@'+rid;if(!gl.getLayer(lid))continue;try{gl.setLayoutProperty(lid,'text-font',[MF]);
     // الكوفي أعرض: نصغّره 8٪ عشان ما تختفي أسماء من الزحمة، وأسماء الخطوط ما تنكسر على المنعطفات الحادة
     const sz=gl.getLayoutProperty(lid,'text-size');if(sz!=null&&!(window.__kfz||(window.__kfz=new Set())).has(lid)){window.__kfz.add(lid);gl.setLayoutProperty(lid,'text-size',typeof sz==='number'?+(sz*.92).toFixed(2):['*',.92,sz])}}catch(e){}}}
   function apply(rid){if(typeof gl==='undefined'||!glReady&&!rid)return;const P=dark()?D:L;if(rid)font(rid);
