@@ -179,6 +179,10 @@ body.embed.has-target:not(.fs) .attribution{bottom:calc(var(--nav-top,200px) + 1
 body.embed:not(.fs) .attribution:not(.open){font-size:0;padding:3px 8px;border-radius:999px}
 body.embed:not(.fs) .attribution:not(.open)::before{content:"ⓘ مصادر";font-size:10px}
 body.embed:not(.fs) .attribution.open{left:8px;right:8px;white-space:normal;text-align:center;z-index:90;font-size:9px}
+/* 14 نوفمبر: الخريطة الكاملة (من الأماكن/الأجواء) نفس الشي — كان نص المصادر الطويل يغطي زر موقعي والأزرار */
+body:not(.embed) .attribution:not(.open){font-size:0;padding:3px 8px;border-radius:999px;left:78px;right:auto}
+body:not(.embed) .attribution:not(.open)::before{content:"ⓘ مصادر";font-size:10px}
+body:not(.embed) .attribution.open{left:8px;right:8px;white-space:normal;text-align:center;z-index:90;font-size:9px}
 :is(html[data-theme=dark],html[data-theme=red]) body.embed:not(.fs) #quick,:is(html[data-theme=dark],html[data-theme=red]) body.embed:not(.fs) .nav-card{background:#1F1B16;border-color:#353027}
 :is(html[data-theme=dark],html[data-theme=red]) body.embed:not(.fs) #quick button:not(.on){background:#2C251D}
 /* ملء الشاشة: سطر المصادر ما يغطي زر الموقع */
@@ -1546,7 +1550,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
   setInterval(()=>{if(on&&card&&regName()!==lastReg)drawCard()},1200);
 })();
-</script><script>(function(){const a=document.getElementById('attribution');if(!a)return;let t=0;a.addEventListener('click',e=>{if(!(document.body.classList.contains('embed')&&(!document.body.classList.contains('fs')||document.body.classList.contains('full'))))return;if(!a.classList.contains('open')){e.preventDefault();a.classList.add('open');clearTimeout(t);t=setTimeout(()=>a.classList.remove('open'),6000)}})})();</script><script>
+</script><script>(function(){const a=document.getElementById('attribution');if(!a)return;let t=0;a.addEventListener('click',e=>{if(document.body.classList.contains('embed')&&document.body.classList.contains('fs')&&!document.body.classList.contains('full'))return;if(!a.classList.contains('open')){e.preventDefault();a.classList.add('open');clearTimeout(t);t=setTimeout(()=>a.classList.remove('open'),6000)}})})();</script><script>
 // ---------- 14 نوفمبر: الإحداثيات (تجربة dalil_lab_coords على جوال أبو مالك) ----------
 // (1) علامة + بوسط الخريطة وإحداثياتها لما تحرك الخريطة بعيد عن موقعك — اضغطها تصير هي النقطة المحددة
 // (2) إحداثيات النقطة: ضغطة تفتح كل الصيغ (درجات ودقائق، درجات ودقائق وثواني، عشري، UTM، MGRS) — كل وحدة تنسخ بضغطة، وزر «إرسال»
