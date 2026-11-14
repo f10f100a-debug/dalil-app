@@ -36,10 +36,14 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
         const seen = new Set(); for(const r of rows){ if(r && seen.has(r)) F(`${k}: سطر مكرر «${r.slice(0, 60)}»`); seen.add(r); } };
       // البوصلة
       await shot('compass'); await bodyBad('البوصلة');
+      // 14 نوفمبر: «⛺ مخيمك آمن؟» للكل — زرها أول أزرار البوصلة
+      if(!(await p.evaluate(()=>[...document.querySelectorAll('.cp-actions button')].some(b=>/مخيم/.test(b.innerText))))) F('البوصلة: زر «⛺ مخيمي» ما ظهر');
       // البر → الفياض
       await p.evaluate(()=>document.querySelector('[data-barr]').click()); await sleep(1200);
       await p.evaluate(()=>{ const b = document.querySelector('[data-barrb="fayd"]'); b && b.click(); }); await sleep(3500);
-      await shot('fayd'); await bodyBad('الفياض'); await dupes('.fy-row', 'قائمة الفياض');
+      await shot('fayd'); await bodyBad('الفياض');
+      // «🧭 وين أطلع؟» للكل: البطاقة موجودة فوق الفياض
+      if(!(await p.evaluate(()=>!!document.querySelector('.wh-card')))) F('الفياض: بطاقة «وين أطلع» ما ظهرت'); await dupes('.fy-row', 'قائمة الفياض');
       const sp = await p.evaluate(()=>{ const b = document.getElementById('springBody'); const big = b && b.querySelector('.big'); return {lvl:big ? big.innerText.trim() : '', txt:b ? b.innerText : ''}; });
       if(LEVEL_GREEN.includes(sp.lvl)){
         const m = sp.txt.match(/على بعد ([\d.]+) كم/); if(m && Number(m[1]) > 10) F(`بطاقة الربيع: «${sp.lvl}» والفيضة على بعد ${m[1]} كم (لازم «حولك ما اخضرّ»)`);

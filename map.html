@@ -1419,7 +1419,7 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
 // ---------- 🔮 الرادار بعد 30 دقيقة (تجربة: dalil_lab_nc=1) ----------
 // من dalil-nowcast (تحريك المطر الحالي بسرعته واتجاهه): خلايا ≥30 dBZ متوقعة بعد 30 د، شبكة 0.05°. تحققنا أسبوعين: أدق من «ما يتحرك» في 71% من المرات.
 (function(){
-  let lab=false;try{lab=localStorage.getItem('dalil_lab_nc')==='1'}catch(e){}
+  let lab=true;try{lab=localStorage.getItem('dalil_lab_nc')!=='0'}catch(e){}
   if(!lab)return;
   const LAT0=16,LNG0=34,S=.05,ROWS=330,COLS=440;let at=0,made='',has=false;
   const leg=document.createElement('div');leg.className='rl-ans';leg.innerHTML='<span><i style="background:#8E44AD55;outline:1.5px dashed #8E44AD"></i>🔮 مكان المطر المتوسط فأكثر بعد 30 د (تقدير)</span>';
