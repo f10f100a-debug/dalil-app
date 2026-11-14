@@ -1,35 +1,40 @@
-# يبني خط الخريطة العربي (Noto Kufi Arabic، رخصة OFL) بصيغة حروف الخريطة — يدوي
+# يبني خطوط الخريطة العربية (رخصة OFL من Google Fonts) بصيغة حروف الخريطة — يدوي
 name: Map font
 on: workflow_dispatch
 jobs:
   font:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 18 }
-      - run: pip install --quiet fonttools
-      - name: Font
+      - run: pip install --quiet fonttools && npm i --no-save --silent fontnik@0.7.2
+      - name: Fonts
         run: |
-          curl -sL -o kufi-var.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/notokufiarabic/NotoKufiArabic%5Bwght%5D.ttf"
-          python3 -m fontTools.varLib.instancer kufi-var.ttf wght=500 -o kufi.ttf
-          python3 - <<'PY'
+          G=https://raw.githubusercontent.com/google/fonts/main/ofl
+          curl -sL -o almarai.ttf "$G/almarai/Almarai-Bold.ttf"
+          curl -sL -o tajawal.ttf "$G/tajawal/Tajawal-Bold.ttf"
+          curl -sL -o cairo-var.ttf "$G/cairo/Cairo%5Bslnt,wght%5D.ttf"
+          curl -sL -o kufi-var.ttf "$G/notokufiarabic/NotoKufiArabic%5Bwght%5D.ttf"
+          python3 -m fontTools.varLib.instancer cairo-var.ttf wght=700 slnt=0 -o cairo.ttf
+          python3 -m fontTools.varLib.instancer kufi-var.ttf wght=700 -o kufib.ttf
+          for f in almarai tajawal cairo kufib; do python3 - "$f.ttf" <<'PY'
+          import sys
           from fontTools.ttLib import TTFont
-          cm=TTFont('kufi.ttf').getBestCmap()
-          for a,b,n in [(0x600,0x6FF,'arabic'),(0xFB50,0xFDFF,'pres-A'),(0xFE70,0xFEFF,'pres-B'),(0x30,0x39,'digits'),(0x41,0x7A,'latin')]:
-              print(n, sum(1 for c in range(a,b+1) if c in cm), 'of', b-a+1)
-          need=[c for c in range(0xFE80,0xFEFC+1)]
-          print('pres-B core missing', [hex(c) for c in need if c not in cm][:20])
+          cm=TTFont(sys.argv[1]).getBestCmap()
+          print(sys.argv[1], *[(n, sum(1 for c in range(a,b+1) if c in cm)) for a,b,n in [(0x600,0x6FF,'arabic'),(0xFB50,0xFDFF,'presA'),(0xFE70,0xFEFF,'presB')]])
           PY
-      - run: npm i --no-save --silent fontnik@0.7.2
-      - run: node tools/fonts/build_glyphs.js kufi.ttf "Dalil Kufi" && ls "vendor/glyphs/Dalil Kufi" | head -30
+          done
+          node tools/fonts/build_glyphs.js almarai.ttf "Dalil Almarai"
+          node tools/fonts/build_glyphs.js tajawal.ttf "Dalil Tajawal"
+          node tools/fonts/build_glyphs.js cairo.ttf "Dalil Cairo"
+          node tools/fonts/build_glyphs.js kufib.ttf "Dalil Kufi Bold"
       - name: Commit
         run: |
-          cp kufi.ttf "vendor/glyphs/Dalil Kufi/" 2>/dev/null; rm -f "vendor/glyphs/Dalil Kufi/kufi.ttf"
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add "vendor/glyphs/Dalil Kufi"
+          git add vendor/glyphs
           git diff --cached --quiet && exit 0
-          git commit -qm "خط الخريطة: Dalil Kufi (Noto Kufi Arabic 500 + Noto Sans احتياط)"
+          git commit -qm "خطوط الخريطة للمقارنة: المراعي وتجوّل والقاهرة والكوفي العريض (OFL)"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
