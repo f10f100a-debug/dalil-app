@@ -6717,17 +6717,26 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       + 'body.lab-mapfull.on-track #ttBar,body.lab-mapfull.on-track #recPill,body.lab-mapfull.on-track #alertBanner{display:none!important}'
       + 'body.lab-mapfull.on-track #trackToolsPanel{display:none}'
       + 'body.lab-mapfull.on-track #trackToolsPanel.open{display:block;position:fixed;left:0;right:0;bottom:var(--tabh,64px);max-height:72vh;overflow:auto;z-index:45;background:var(--bg,#F3EEE5);border-radius:22px 22px 0 0;padding:6px 16px 18px;box-shadow:0 -8px 30px rgba(0,0,0,.22)}'
-      + '.lab-tools-x{display:block;margin:4px auto 6px;border:0;background:none;font-size:14px;font-weight:800;color:var(--text-dim,#7A6A55);padding:6px 16px}';
+      + '.lab-tools-hd{position:sticky;top:-6px;z-index:3;background:var(--bg,#F3EEE5);margin:-6px -16px 6px;padding:10px 16px 8px;display:flex;justify-content:center;align-items:center;min-height:46px;touch-action:none}'
+      + '.lab-tools-grip{width:46px;height:5px;border-radius:3px;background:var(--line,#D9CFC0)}'
+      + '.lab-tools-x{position:absolute;left:14px;top:6px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line,#E4DED3);background:var(--panel-2,#F3EADA);color:var(--text,#2b2218);font:800 17px/1 system-ui;display:flex;align-items:center;justify-content:center;padding:0}';
     document.head.appendChild(st);
     document.body.classList.add('lab-mapfull');
     const scr = document.getElementById('screen-track'), f = document.getElementById('trackMapFrame'), bar = document.querySelector('.tabbar');
     const panel = document.getElementById('trackToolsPanel'), tog = document.getElementById('trackToolsToggle');
-    const x = document.createElement('button'); x.type = 'button'; x.className = 'lab-tools-x'; x.textContent = '⌄ إخفاء الأدوات'; x.onclick = ()=>tog.click(); panel.insertBefore(x, panel.firstChild);
+    // 15 نوفمبر: رأس القائمة مثل باقي القوائم — مقبض (اسحب لتحت = تسكّر) و ✕ دائري فوق يسار
+    const hd = document.createElement('div'); hd.className = 'lab-tools-hd'; hd.innerHTML = '<span class="lab-tools-grip" aria-hidden="true"></span>';
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'lab-tools-x'; x.textContent = '✕'; x.setAttribute('aria-label', 'إغلاق الأدوات'); x.onclick = ()=>tog.click(); hd.appendChild(x);
+    panel.insertBefore(hd, panel.firstChild);
+    let y0 = null; hd.addEventListener('touchstart', e=>{ if(e.target === x) return; y0 = e.touches[0].clientY; panel.style.transition = 'none'; }, {passive:true});
+    hd.addEventListener('touchmove', e=>{ if(y0 === null) return; const dy = Math.max(0, e.touches[0].clientY - y0); panel.style.transform = 'translateY(' + dy + 'px)'; }, {passive:true});
+    hd.addEventListener('touchend', e=>{ if(y0 === null) return; const dy = (e.changedTouches[0] || {}).clientY - y0; y0 = null; panel.style.transition = 'transform .18s'; panel.style.transform = '';
+      if(dy > 60 && tog.getAttribute('aria-expanded') === 'true') tog.click(); }, {passive:true});
     // 15 نوفمبر: المسطرة (تجربة dalil_lab_ruler) — زر بأعلى الأدوات يقفلها ويشغّل المسطرة بالخريطة
     try{ if(localStorage.getItem('dalil_lab_ruler') === '1'){ const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn btn-primary'; rb.style.cssText = 'width:100%;margin:2px 0 10px';
       rb.textContent = '📏 المسطرة — قِس المسافة على الخريطة';
       rb.onclick = ()=>{ if(tog.getAttribute('aria-expanded') === 'true') tog.click(); const f = document.getElementById('trackMapFrame'); try{ f && f.contentWindow.postMessage({type:'DALIL_RULER'}, location.origin); }catch(err){} };
-      x.insertAdjacentElement('afterend', rb); } }catch(err){}
+      hd.insertAdjacentElement('afterend', rb); } }catch(err){}
     const tell = ()=>{ const on = scr.classList.contains('active'); document.body.classList.toggle('on-track', on);
       if(bar) document.documentElement.style.setProperty('--tabh', bar.offsetHeight + 'px');
       if(!on || !f.contentWindow) return;
