@@ -6718,6 +6718,13 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         if(typeof toast === 'function') toast(lab ? 'رجّعنا الخريطة العادية' : 'شغّلنا الخريطة على الشاشة كاملة'); setTimeout(()=>location.reload(), 700); };
       card.appendChild(b);
     })();
+    // 15 نوفمبر: المسطرة — زر بأعلى «الأدوات» (بالترتيب العادي والشاشة الكاملة) يقفلها ويشغّل المسطرة بالخريطة
+    try{ const panel0 = document.getElementById('trackToolsPanel'), tog0 = document.getElementById('trackToolsToggle');
+      if(panel0 && tog0 && localStorage.getItem('dalil_lab_ruler') !== '0'){ const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn btn-primary'; rb.style.cssText = 'width:100%;margin:10px 0';
+        rb.textContent = '📏 المسطرة — قِس المسافة على الخريطة';
+        rb.onclick = ()=>{ if(tog0.getAttribute('aria-expanded') === 'true') tog0.click(); const f = document.getElementById('trackMapFrame'); try{ f && f.contentWindow.postMessage({type:'DALIL_RULER'}, location.origin); }catch(err){}
+          if(!lab) try{ f && f.scrollIntoView({behavior:'smooth', block:'center'}); }catch(err){} };
+        panel0.insertBefore(rb, panel0.firstChild); } }catch(err){}
     if(!lab) return;
     const st = document.createElement('style');
     st.textContent = 'body.lab-mapfull.on-track .app-head{display:none}'
@@ -6740,11 +6747,6 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     hd.addEventListener('touchmove', e=>{ if(y0 === null) return; const dy = Math.max(0, e.touches[0].clientY - y0); panel.style.transform = 'translateY(' + dy + 'px)'; }, {passive:true});
     hd.addEventListener('touchend', e=>{ if(y0 === null) return; const dy = (e.changedTouches[0] || {}).clientY - y0; y0 = null; panel.style.transition = 'transform .18s'; panel.style.transform = '';
       if(dy > 60 && tog.getAttribute('aria-expanded') === 'true') tog.click(); }, {passive:true});
-    // 15 نوفمبر: المسطرة (تجربة dalil_lab_ruler) — زر بأعلى الأدوات يقفلها ويشغّل المسطرة بالخريطة
-    try{ if(localStorage.getItem('dalil_lab_ruler') !== '0'){ const rb = document.createElement('button'); rb.type = 'button'; rb.className = 'btn btn-primary'; rb.style.cssText = 'width:100%;margin:2px 0 10px';
-      rb.textContent = '📏 المسطرة — قِس المسافة على الخريطة';
-      rb.onclick = ()=>{ if(tog.getAttribute('aria-expanded') === 'true') tog.click(); const f = document.getElementById('trackMapFrame'); try{ f && f.contentWindow.postMessage({type:'DALIL_RULER'}, location.origin); }catch(err){} };
-      hd.insertAdjacentElement('afterend', rb); } }catch(err){}
     const tell = ()=>{ const on = scr.classList.contains('active'); document.body.classList.toggle('on-track', on);
       if(bar) document.documentElement.style.setProperty('--tabh', bar.offsetHeight + 'px');
       if(!on || !f.contentWindow) return;
