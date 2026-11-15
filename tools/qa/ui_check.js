@@ -86,9 +86,9 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
         if(!btns.length) notes.push(name + ': أزرار طبقات الخريطة ما ظهرت');
         // 14 نوفمبر (نزلت للكل): أيقونات المواقع تحمّلت، الخط الكوفي العريض على الأسماء، وشريط الإحداثيات ظاهر
         const nv = await fr.evaluate(()=>{ try{ const L = typeof gl !== 'undefined' && gl.getStyle ? gl.getStyle().layers.find(l=>/^dalil-label@/.test(l.id)) : null;
-          return {ready:typeof glReady !== 'undefined' && glReady, ic:typeof gl !== 'undefined' && gl.hasImage('poi-well'), font:L ? JSON.stringify(L.layout && L.layout['text-font']) : '', cx:!!document.querySelector('.cx-pill')}; }catch(e){ return {err:String(e)}; } }).catch(e=>({err:String(e)}));
+          return {ready:typeof glReady !== 'undefined' && glReady, ic:typeof gl !== 'undefined' && gl.hasImage('poi-well'), font:L ? JSON.stringify(L.layout && L.layout['text-font']) : '', cx:!!document.querySelector('.cx-pill'), rl:!!window.__ruler}; }catch(e){ return {err:String(e)}; } }).catch(e=>({err:String(e)}));
         if(nv.err) F('الخريطة الجديدة: ' + nv.err.slice(0, 120));
-        else if(nv.ready){ if(!nv.ic) F('الخريطة: أيقونات المواقع ما تحمّلت'); if(nv.font && !/Dalil Kufi Bold/.test(nv.font)) F('الخريطة: الأسماء مو بالخط الكوفي العريض (' + nv.font + ')'); if(!nv.cx) F('الخريطة: شريط الإحداثيات ما ظهر'); }
+        else if(nv.ready){ if(!nv.ic) F('الخريطة: أيقونات المواقع ما تحمّلت'); if(nv.font && !/Dalil Kufi Bold/.test(nv.font)) F('الخريطة: الأسماء مو بالخط الكوفي العريض (' + nv.font + ')'); if(!nv.cx) F('الخريطة: شريط الإحداثيات ما ظهر'); if(!nv.rl) F('الخريطة: المسطرة ما تحمّلت'); }
         await shot('map-layers');
       }
       for(const e of [...new Set(errs)]) F('خطأ برمجي: ' + e.slice(0, 160));
