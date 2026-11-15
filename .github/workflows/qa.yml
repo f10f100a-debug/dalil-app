@@ -24,6 +24,8 @@ jobs:
         run: |
           (python3 -m http.server 8804 >/dev/null 2>&1 &) ; sleep 2
           OUT=qa-out node tools/qa/ui_check.js
+          # محوّل صوت غرفة الرحلة للأندرويد (M4A/AAC مثل الآيفون)
+          node tools/qa/aac_mux_check.js
       - name: Screens (live data)
         id: live
         if: github.event_name != 'push'

@@ -179,6 +179,7 @@ jobs:
               private final Runnable poll = new Runnable() { @Override public void run() {
                   try {
                       getBridge().getWebView().evaluateJavascript("!!(window.DalilRoom&&window.DalilRoom.active)", v -> setRoom("true".equals(v)));
+                  getBridge().getWebView().evaluateJavascript(AAC_JS, null);
                   if (room) getBridge().getWebView().evaluateJavascript(ROOM_SUB, null);
                   if (room && bg) keepVisible();   // نعيدها كل 3 ثواني (النظام ممكن يخفيها بعد onStop)
                   } catch (Exception e) { }
@@ -187,6 +188,8 @@ jobs:
 
               // 1.4: عضو الغرفة يسجّل رمز تنبيهاته (لو سكّر التطبيق نهائيًا يوصله «🎙️ فلان أرسل رسالة صوتية»)
               private static final String ROOM_SUB = "(function(){try{var s=JSON.parse(localStorage.getItem('dalil_room_v1')||'null'),t=localStorage.getItem('dalil_apns_token');if(!s||!s.room_id||!s.token||!s.member_id)return;try{DalilAndroid.roomCreds(s.room_id,s.member_id,s.token)}catch(e){}if(!t||/^[0-9a-f]+$/.test(t))return;var k=s.room_id+'|'+s.member_id+'|'+t.slice(-12);if(window.__dalRA===k&&Date.now()-(window.__dalRT||0)<600000)return;window.__dalRA=k;window.__dalRT=Date.now();var K='sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';fetch('https://penhpgvjtxytgyrhmetg.supabase.co/rest/v1/rpc/room_android_sub',{method:'POST',headers:{'Content-Type':'application/json',apikey:K,authorization:'Bearer '+K},body:JSON.stringify({p_room:s.room_id,p_member:s.member_id,p_auth:s.token,p_token:t})}).catch(function(){window.__dalRA=''})}catch(e){}})()";
+              // 1.6: تحويل رسائل الغرفة الصوتية لصيغة الآيفون (M4A/AAC) قبل الإرسال — ملف android/aac.js للأندرويد بس
+              private static final String AAC_JS = "if(!window.__dalAac&&!window.__dalAacLoading&&document.head){window.__dalAacLoading=1;var s=document.createElement('script');s.src='https://f10f100a-debug.github.io/dalil-app/android/aac.js?v='+Math.floor(Date.now()/36e5);s.onerror=function(){window.__dalAacLoading=0};document.head.appendChild(s)}";
 
               private void setRoom(boolean on) {
                   if (on == room) return;
