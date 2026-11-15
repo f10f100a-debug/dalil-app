@@ -66,6 +66,10 @@ jobs:
               for g in ints:
                   r = api(f"/v1/betaGroups/{g['id']}/relationships/builds", "POST", {"data": [{"type": "builds", "id": bid}]})
                   print("added to", repr(g["attributes"]["name"]), r is not None)
+                  ts = (api(f"/v1/betaGroups/{g['id']}/betaTesters?limit=200") or {}).get("data", [])
+                  if ts:
+                      r = api(f"/v1/builds/{bid}/relationships/individualTesters", "POST", {"data": [{"type": "betaTesters", "id": t["id"]} for t in ts]})
+                      print("individual testers on build:", len(ts), r is not None)
               time.sleep(5)
               for inc in (api(f"/v1/builds/{bid}?include=buildBetaDetail") or {}).get("included", []):
                   if inc["type"] == "buildBetaDetails": print("BETA DETAIL AFTER", json.dumps(inc["attributes"]))
