@@ -2201,6 +2201,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         if(c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
+      // 15 نوفمبر: ربط «تنبيهات المطوّر» بهذا الجوال برمز مؤقت من Claude (بعد إعادة تثبيت التطبيق يتغير رمز التنبيهات)
+      const dl = document.createElement('button'); dl.type = 'button'; dl.className = 'btn'; dl.style.cssText = 'margin-top:8px;width:100%'; dl.textContent = '🔔 اربط تنبيهات المطوّر بهذا الجوال';
+      dl.onclick = async ()=>{ let tok = ''; try{ tok = localStorage.getItem('dalil_apns_token') || ''; }catch(e){}
+        if(!tok){ toast('شغّل التنبيهات في الإعدادات أول، وبعدها جرّب'); return; }
+        const code = (window.prompt('رمز الربط (6 أرقام من Claude):') || '').trim(); if(!/^\d{6}$/.test(code)) return;
+        try{ const r = await fetch(DALIL_SB + '/rest/v1/rpc/dev_link', {method:'POST', headers:{'Content-Type':'application/json', apikey:'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw', authorization:'Bearer sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw'}, body:JSON.stringify({p_code:code, p_token:tok})});
+          toast((await r.json()) === true ? '✅ تنبيهات المطوّر صارت توصل هذا الجوال' : 'الرمز غلط أو انتهى'); }catch(e){ toast('ما قدرنا نتصل، جرّب بعد شوي'); } };
+      box.appendChild(dl);
       const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'btn'; nb.style.cssText = 'margin-top:8px;width:100%';
       nb.textContent = '📍 اربط جوالي بتجربة «نبّهني حسب موقعي»';
       nb.onclick = async ()=>{ const c = window.__dalilNearCode ? await window.__dalilNearCode() : null;
