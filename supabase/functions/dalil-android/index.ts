@@ -2,6 +2,8 @@
 // - رموز الأندرويد في جدول push_android لحالها (دوال الآيفون ما تشوفها).
 // - a=rain (pg_cron كل 10 دقايق بعد دالة المطر بدقيقتين): يقرأ سجل auto_alerts (قراءة فقط) من آخر رقم أرسله،
 //   ويرسل نفس تنبيه المطر لأجهزة الأندرويد في نفس المنطقة. أي خلل هنا ما يمس إرسال الآيفون.
+// - a=room (pg_cron كل دقيقة): رسالة صوتية جديدة بغرفة الرحلة وعضو أندرويد تطبيقه مسكّر (ما شافه السيرفر من 100 ثانية)
+//   → تنبيه «🎙️ فلان أرسل رسالة صوتية». يقرأ جداول الغرف فقط (room_voice/room_members/room_mutes) وما يكتب فيها.
 // - a=test: تنبيه تجريبي لآخر جهاز أندرويد مسجّل (أو token محدد).
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { fcmReady, sendFcm, sendFcmMany } from "../_shared/fcm.ts";
@@ -40,6 +42,39 @@ Deno.serve(async (req) => {
       if (maxId > last) await sb.from("private_config").upsert({ key: "android_alert_last_id", value: String(maxId) });
       await sb.from("private_config").upsert({ key: "android_alert_last", value: JSON.stringify({ at: new Date().toISOString(), rows: out }) });
       return json({ ok: true, rows: out });
+    }
+    if (a === "room") {
+      const { data: lastRow } = await sb.from("private_config").select("value").eq("key", "android_room_last").maybeSingle();
+      const since = new Date(Math.max(Date.parse(lastRow?.value || "") || 0, Date.now() - 5 * 60e3)).toISOString();
+      const { data: voices } = await sb.from("room_voice").select("room_id,member_id,created_at").gt("created_at", since).order("created_at").limit(500);
+      const out: unknown[] = []; let newest = since;
+      const byRoom = new Map<string, { member_id: string; created_at: string }[]>();
+      for (const v of voices || []) { newest = v.created_at > newest ? v.created_at : newest; byRoom.set(v.room_id, [...(byRoom.get(v.room_id) || []), v]); }
+      for (const [room, vs] of byRoom) {
+        const { data: andr } = await sb.from("room_android").select("member_id,token,last_push_at").eq("room_id", room);
+        if (!andr?.length) continue;
+        const { data: mem } = await sb.from("room_members").select("member_id,name,last_seen,kicked,left_room,paused_until").eq("room_id", room);
+        const { data: mutes } = await sb.from("room_mutes").select("muter_id,target_id").eq("room_id", room);
+        const { data: rm } = await sb.from("rooms").select("name").eq("id", room).maybeSingle();
+        const M = new Map((mem || []).map((m) => [m.member_id, m]));
+        for (const d of andr) {
+          const me = M.get(d.member_id);
+          if (!me || me.kicked || me.left_room) { await sb.from("room_android").delete().match({ room_id: room, member_id: d.member_id }); continue; }   // طلع من الغرفة
+          if (me.paused_until && Date.parse(me.paused_until) > Date.now()) continue;                       // موقّف الغرفة مؤقتًا
+          if (me.last_seen && Date.now() - Date.parse(me.last_seen) < 100e3) continue;                     // تطبيقه شغال — يسمعها مباشرة
+          if (d.last_push_at && Date.now() - Date.parse(d.last_push_at) < 120e3) continue;                 // تنبيه وحد كل دقيقتين بالكثير
+          const from = vs.filter((v) => v.member_id !== d.member_id && !(mutes || []).some((x) => x.muter_id === d.member_id && x.target_id === v.member_id));
+          if (!from.length) continue;
+          const names = [...new Set(from.map((v) => M.get(v.member_id)?.name || "عضو"))];
+          const r = await sendFcm(d.token, { title: "🎙️ " + names.slice(0, 2).join(" و") + (names.length > 2 ? " وغيرهم" : ""),
+            body: (from.length > 1 ? from.length + " رسائل صوتية في " : "أرسل رسالة صوتية في ") + (rm?.name || "غرفة الرحلة") + " — افتح دليل وتسمعها", url: "./", tag: "room-" + room, ttl: 1800 });
+          if (r === "gone") await sb.from("room_android").delete().match({ room_id: room, member_id: d.member_id });
+          else if (r === "ok") await sb.from("room_android").update({ last_push_at: new Date().toISOString() }).match({ room_id: room, member_id: d.member_id });
+          out.push({ room: room.slice(0, 8), r });
+        }
+      }
+      if (newest > since) await sb.from("private_config").upsert({ key: "android_room_last", value: newest });
+      return json({ ok: true, voices: (voices || []).length, sent: out });
     }
     return json({ error: "unknown_action" }, 400);
   } catch (e) {
