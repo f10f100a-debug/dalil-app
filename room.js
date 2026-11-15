@@ -383,6 +383,7 @@
           if(nPlay && Date.now() < nPlayEnd && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
           diag({s:'native_timeout'}); queue.push(v); playNext();
         };
+        nCheck.set(v.id, check); if(nCheck.size > 60) nCheck.delete(nCheck.keys().next().value);
         nWait.set(v.id, setTimeout(check, 3000));
       }else{ queue.push(v); playNext(); }
     }
@@ -390,7 +391,7 @@
   }
   // تشغيل التطبيق نفسه (1.6+) — الصفحة تعرض حالة التشغيل فقط، والتطبيق يبلّغ «سمعها» بنفسه
   let nPlay = null, nPlayEnd = 0, nTimer = 0;
-  const nWait = new Map();
+  const nWait = new Map(), nCheck = new Map();
   // أمان: إذا التطبيق قال «بدأت» وما وصل «خلصت» (الصفحة كانت نايمة بالخلفية لحظتها) كانت تبقى ■ للأبد
   // وتأخّر الرسائل اللي بعدها دقيقة ونص — الحين ترجع ▶ بعد طول الرسالة + 4 ث
   function nClear(why){ clearTimeout(nTimer); nTimer = 0; if(!nPlay) return; if(why) diag({s:'native_stuck', why}); nPlay = null; nPlayEnd = 0; renderVoiceSoon(); updateBtn(); }
@@ -399,6 +400,8 @@
   window.__dalilPttPlay = function(ev, id, why){
     id = String(id || '');
     if(nWait.has(id)){ clearTimeout(nWait.get(id)); nWait.delete(id); }
+    // 1.9: التطبيق استلم الرسالة ويحمّلها — ننتظره 8 ث بدل 3 قبل ما نشغّلها من الصفحة
+    if(ev === 'nstart'){ const ck = nCheck.get(id); if(ck && !R.heard.has(id)) nWait.set(id, setTimeout(ck, 8000)); return; }
     if(ev === 'nplay'){
       const v = R.voice.find(x=>x.id === id), ms = ((v && v.duration) || 30) * 1000 + 4000;
       // 15 نوفمبر: التطبيق بدأ متأخر بعد ما الصفحة شغّلتها (انتظرت 3 ث) — نوقف الصفحة عشان ما يطلع صوتين فوق بعض (يبان تقطيع)
@@ -472,6 +475,10 @@
       clearInterval(rec.timer);
       rec.timer = setInterval(()=>{ const sec = (Date.now() - rec.t0) / 1000; const el = $('rmPttTime'); if(el) el.textContent = Math.floor(sec) + 'ث'; if(sec >= MAX_REC_S) recStop(); }, 250);
       if(!rec.on){ pttMsg(false); B.toast('اضغط مطوّلًا وانتظر النغمة، بعدها تكلّم'); }   // رفع إصبعه قبل ما يبدأ
+    }else if(ev === 'txretry_native'){
+      // 1.9: التطبيق يعيد طلب الإرسال بنفسه — نمدد انتظار البداية
+      diag({s:'native_txretry', why:'app'});
+      if(rec.native){ clearTimeout(rec.nWait); rec.nWait = setTimeout(()=>{ if(rec.native && rec.t0 < Date.now() - 2000){ window.__dalilPttEvt('fail', {why:'no_start'}); pttMsg(false); } }, 2500); }
     }else if(ev === 'end'){
       clearInterval(rec.timer); if(rec.native) renderPtt('send');
     }else if(ev === 'vtext'){
