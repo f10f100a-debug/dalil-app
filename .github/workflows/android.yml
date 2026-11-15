@@ -103,6 +103,69 @@ jobs:
           grep -n "uses-permission\|uses-feature" $M
           echo "::notice::Android $VERSION_NAME ($VERSION_CODE) — UserAgent DalilAndroid/$VERSION_NAME"
 
+      - name: جسر دليل الأصلي (1.1) — إبقاء الشاشة شغالة وفتح إعدادات التطبيق
+        run: |
+          set -e
+          J=android/app/src/main/java/com/alluhaybi/dalil
+          test -f $J/MainActivity.java
+          # الواجهة window.DalilAndroid تنضاف قبل تحميل الصفحة (من load() في إضافة Capacitor)
+          cat > $J/DalilNative.java <<'JAVA'
+          package com.alluhaybi.dalil;
+
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.provider.Settings;
+          import android.view.WindowManager;
+          import android.webkit.JavascriptInterface;
+          import com.getcapacitor.Plugin;
+          import com.getcapacitor.annotation.CapacitorPlugin;
+          import java.util.HashSet;
+          import java.util.Set;
+
+          @CapacitorPlugin(name = "DalilNative")
+          public class DalilNative extends Plugin {
+              private final Set<String> awake = new HashSet<>();
+              @Override public void load() {
+                  getBridge().getWebView().addJavascriptInterface(new Object() {
+                      @JavascriptInterface public int version() { return 1; }
+                      // إبقاء الشاشة شغالة وقت التوجيه وتسجيل المسار (src: main أو map)
+                      @JavascriptInterface public void keepAwake(String src, boolean on) {
+                          getActivity().runOnUiThread(() -> {
+                              String k = src == null ? "main" : src;
+                              if (on) awake.add(k); else awake.remove(k);
+                              if (awake.isEmpty()) getActivity().getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                              else getActivity().getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                          });
+                      }
+                      // صفحة دليل في إعدادات الجوال (لو رفض إذن الموقع أو التنبيهات)
+                      @JavascriptInterface public void openSettings() {
+                          getActivity().runOnUiThread(() -> {
+                              Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", getContext().getPackageName(), null));
+                              i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                              getContext().startActivity(i);
+                          });
+                      }
+                  }, "DalilAndroid");
+              }
+          }
+          JAVA
+          sed -i 's/^          //' $J/DalilNative.java
+          cat > $J/MainActivity.java <<'JAVA'
+          package com.alluhaybi.dalil;
+
+          import android.os.Bundle;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override public void onCreate(Bundle savedInstanceState) {
+                  registerPlugin(DalilNative.class);
+                  super.onCreate(savedInstanceState);
+              }
+          }
+          JAVA
+          sed -i 's/^          //' $J/MainActivity.java
+          cat $J/MainActivity.java
+
       - name: Target SDK 36 (شرط Google Play من 31 أغسطس 2026) + أقل إصدار أندرويد 7 (minSdk 24)
         run: |
           V=android/variables.gradle
