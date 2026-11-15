@@ -1,6 +1,7 @@
 // تنبيه المطوّر (جوال أبو مالك فقط، private_config.dev_token): كل ساعة (pg_cron) نشيك:
 //  1) ملفات الفحص المنشورة على الموقع (فياض محجوزة/تغيّر جماعي، مسح الفياض الجديدة، فحص الشاشات، فحص البيانات، فحص غرفة الرحلة)
 //  2) أخطاء جوالات المستخدمين الحقيقية (client_error_digest): خطأ جديد ما ظهر الأسبوع اللي قبل، أو خطأ منتشر (5 أجهزة فأكثر باليوم)
+//  3) صحة غرفة الرحلة (room_health): ملخص يومي 9 الصبح، وتنبيه لو الصوت نزل عن 80٪
 // كل مشكلة جديدة = إشعار واحد. داخلي فقط بمفتاح cron.
 import { createClient } from "npm:@supabase/supabase-js@2";
 const b64u = (u: Uint8Array) => { let s = ""; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
@@ -58,6 +59,22 @@ Deno.serve(async (req) => {
     const res = await push("🐞 أخطاء عند المستخدمين", body);
     out.push({ errors: fresh.length, sent: res.status });
     if (res.ok) { for (const x of fresh as any[]) seen.add((x.is_new ? "new:" : "wide:" + day + ":") + String(x.sig).slice(0, 120)); changed = true; }
+  }
+  // 15 نوفمبر: صحة غرفة الرحلة — ملخص يومي الساعة 9 الصبح (بتوقيت الرياض)، وتنبيه إذا نزل الصوت عن 80٪ (بعينة كافية)
+  const { data: h } = await sb.rpc("room_health", { p_hours: 24 });
+  if (h) {
+    const hr = new Date(Date.now() + 3 * 3600e3).getUTCHours(), samples = (h.play_ok || 0) + (h.play_fail || 0) + (h.tx_fail || 0);
+    const line = "الصوت: " + (h.voice_ok_pct ?? "—") + "٪ وصل · " + (h.voice_smooth_pct ?? "—") + "٪ بدون تأخير (" + samples + " رسالة)"
+      + (h.tx_fail ? " · فشل إرسال " + h.tx_fail : "") + " — المواقع: " + (h.pos_fresh_pct != null ? h.pos_fresh_pct + "٪ حديثة" : "ما فيه قياس بعد");
+    const dayKey = "health:" + day, lowKey = "healthlow:" + day;
+    if (hr >= 9 && !seen.has(dayKey) && samples > 0) {
+      const res = await push("🎙️ صحة غرفة الرحلة (24 ساعة)", line);
+      out.push({ health: h, sent: res.status }); if (res.ok) { seen.add(dayKey); changed = true; }
+    }
+    if (samples >= 30 && h.voice_ok_pct != null && h.voice_ok_pct < 80 && !seen.has(lowKey)) {
+      const res = await push("⚠️ الصوت بغرفة الرحلة نزل", line + " — راجعه مع Claude");
+      out.push({ healthLow: true, sent: res.status }); if (res.ok) { seen.add(lowKey); changed = true; }
+    }
   }
   if (changed) await sb.from("private_config").upsert({ key: "dev_alert_seen", value: [...seen].slice(-60).join("\n") });
   return new Response(JSON.stringify({ ok: true, out }), { headers: { "content-type": "application/json" } });

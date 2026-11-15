@@ -183,6 +183,14 @@
     checkLag();
     if(R.open) renderMembersSoon();
   }
+  // 15 نوفمبر: صحة مواقع القافلة — كل 10 د نسجّل كم عضو موقعه حديث (أقل من دقيقتين) / قديم / ما وصل (بدون أي موقع، أرقام بس)
+  setInterval(()=>{
+    if(!R.sess || isPaused() || !R.members || R.members.size < 2) return;
+    let fresh = 0, stale = 0, none = 0, web = 0; const now = Date.now();
+    for(const id of R.members.keys()){ if(id === me()) continue; const p = R.pos.get(id);
+      if(!p) none++; else if(now - p.t < 120000) fresh++; else stale++; if(p && p.web) web++; }
+    diag({s:'pos_health', fresh, stale, none, web});
+  }, 600000);
   function setPos(id, p){
     if(!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180)) return;
     // وقت القراءة بساعة هذا الجوال: الآن ناقص عمرها. نرفض الأقدم من اللي عندنا (بهامش 5 ث)
@@ -393,6 +401,9 @@
     if(nWait.has(id)){ clearTimeout(nWait.get(id)); nWait.delete(id); }
     if(ev === 'nplay'){
       const v = R.voice.find(x=>x.id === id), ms = ((v && v.duration) || 30) * 1000 + 4000;
+      // 15 نوفمبر: التطبيق بدأ متأخر بعد ما الصفحة شغّلتها (انتظرت 3 ث) — نوقف الصفحة عشان ما يطلع صوتين فوق بعض (يبان تقطيع)
+      if(playing && playing.id === id){ try{ player.pause(); }catch(e){} playing = null; diag({s:'native_late', overlap:1}); setTimeout(playNext, 300); }
+      else if(R.heard.has(id) && nPlay !== id) diag({s:'native_late'});
       nPlay = id; nPlayEnd = Date.now() + ms; R.heard.add(id); diag({s:'play_ok', path:'native'});
       clearTimeout(nTimer); nTimer = setTimeout(()=>{ if(nPlay === id) nClear('timeout'); }, ms);
     }
