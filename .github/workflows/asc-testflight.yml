@@ -30,8 +30,10 @@ jobs:
         shell: python
         run: |
           import os, time, json, base64, jwt, urllib.request, urllib.error
-          p8 = os.environ["KEY_P8"].strip()
-          if "BEGIN" not in p8: p8 = base64.b64decode(p8).decode()
+          p8 = os.environ["KEY_P8"]
+          if "BEGIN PRIVATE KEY" not in p8:
+              body = "".join(p8.split()); dec = base64.b64decode(body)
+              p8 = ("-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i+64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n") if dec[:1] == b"0" else dec.decode()
           tok = jwt.encode({"iss": os.environ["ISSUER_ID"], "iat": int(time.time()), "exp": int(time.time()) + 900, "aud": "appstoreconnect-v1"}, p8, algorithm="ES256", headers={"kid": os.environ["KEY_ID"]})
           H = {"Authorization": "Bearer " + tok, "Content-Type": "application/json"}
           def api(path, method="GET", body=None):
