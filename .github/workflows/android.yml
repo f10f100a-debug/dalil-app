@@ -172,7 +172,14 @@ jobs:
         run: |
           set -e
           if [ -z "$GSJ" ]; then echo "::error::السر GOOGLE_SERVICES_JSON غير موجود (بدونه التنبيهات تطيّح التطبيق)"; exit 1; fi
-          printf '%s' "$GSJ" > android/app/google-services.json
+          # نسخ النص من الجوال أحيانًا يضيّع القوس الأول/الأخير أو يقلب علامات التنصيص — نصلحه بدون طباعة المحتوى
+          node -e '
+            let t=process.env.GSJ.replace(/^\uFEFF/,"").replace(/[\u201C\u201D\u201E\u2033]/g,"\"").replace(/[\u2018\u2019]/g,"\x27").replace(/\u00A0/g," ").trim();
+            const tries=[t,"{"+t+"}","{"+t,t+"}"];let j=null,k=-1;
+            for(let i=0;i<tries.length&&!j;i++){try{j=JSON.parse(tries[i]);k=i}catch(e){}}
+            if(!j||typeof j!=="object"){console.error("::error::السر GOOGLE_SERVICES_JSON مو JSON صحيح — انسخ الملف كامل من أول قوس { لآخر قوس }");process.exit(1)}
+            if(k>0)console.log("::warning::السر كان ناقص قوس — انصلح تلقائيًا ("+k+")");
+            require("fs").writeFileSync("android/app/google-services.json",JSON.stringify(j,null,2));'
           # تأكد إنه ملف فايربيس صحيح ولنفس التطبيق (بدون طباعة محتواه)
           node -e 'const j=require("./android/app/google-services.json");const ok=(j.client||[]).some(c=>c.client_info&&c.client_info.android_client_info&&c.client_info.android_client_info.package_name==="com.alluhaybi.dalil");if(!ok){console.error("package mismatch");process.exit(1)}console.log("firebase project:",j.project_info.project_id)'
           grep -n "google-services" android/build.gradle android/app/build.gradle
