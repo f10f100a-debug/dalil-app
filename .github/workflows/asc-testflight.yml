@@ -1,0 +1,66 @@
+# TestFlight: فحص حالة نسخة (ليش «Ready to Submit» وما تتثبّت) وإضافتها لمجموعة الاختبار الداخلية.
+# - diag: يقرا بس (المجموعات، حالة النسخة الداخلية والخارجية، التشفير) — بدون إيميلات.
+# - fix: يضيف النسخة لكل مجموعة داخلية (Internal) — التثبيت للفريق الداخلي ما يحتاج مراجعة أبل.
+name: TestFlight helper
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "diag أو fix"
+        type: choice
+        options: [diag, fix]
+        default: diag
+      build:
+        description: "رقم البناء (مثل 55)"
+        type: string
+        default: "55"
+
+jobs:
+  asc:
+    runs-on: ubuntu-latest
+    steps:
+      - run: pip install -q pyjwt cryptography
+      - env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+          MODE: ${{ inputs.mode }}
+          BUILD: ${{ inputs.build }}
+        shell: python
+        run: |
+          import os, time, json, base64, jwt, urllib.request, urllib.error
+          p8 = os.environ["KEY_P8"].strip()
+          if "BEGIN" not in p8: p8 = base64.b64decode(p8).decode()
+          tok = jwt.encode({"iss": os.environ["ISSUER_ID"], "iat": int(time.time()), "exp": int(time.time()) + 900, "aud": "appstoreconnect-v1"}, p8, algorithm="ES256", headers={"kid": os.environ["KEY_ID"]})
+          H = {"Authorization": "Bearer " + tok, "Content-Type": "application/json"}
+          def api(path, method="GET", body=None):
+              r = urllib.request.Request("https://api.appstoreconnect.apple.com" + path, headers=H, method=method, data=json.dumps(body).encode() if body else None)
+              try:
+                  with urllib.request.urlopen(r) as x: t = x.read(); return json.loads(t) if t else {}
+              except urllib.error.HTTPError as e: print("HTTP", e.code, path, e.read()[:400]); return None
+          app = api("/v1/apps?filter[bundleId]=com.alluhaybi.dalil")["data"][0]; aid = app["id"]
+          b = api(f"/v1/builds?filter[app]={aid}&filter[version]={os.environ['BUILD']}&include=buildBetaDetail,preReleaseVersion")
+          if not b or not b["data"]: raise SystemExit("::error::build not found")
+          build = b["data"][0]; bid = build["id"]; at = build["attributes"]
+          print("BUILD", os.environ["BUILD"], "processing:", at.get("processingState"), "usesNonExemptEncryption:", at.get("usesNonExemptEncryption"), "expired:", at.get("expired"))
+          for inc in b.get("included", []):
+              if inc["type"] == "buildBetaDetails": print("BETA DETAIL", json.dumps(inc["attributes"]))
+          groups = api(f"/v1/apps/{aid}/betaGroups?limit=50")["data"]
+          for g in groups:
+              ga = g["attributes"]
+              n = api(f"/v1/betaGroups/{g['id']}/betaTesters?limit=200")
+              inb = api(f"/v1/betaGroups/{g['id']}/builds?limit=200")
+              has = any(x["id"] == bid for x in (inb or {}).get("data", []))
+              print("GROUP", repr(ga.get("name")), "internal:", ga.get("isInternalGroup"), "allBuilds:", ga.get("hasAccessToAllBuilds"), "testers:", len((n or {}).get("data", [])), "has build:", has)
+          if os.environ["MODE"] == "fix":
+              if at.get("usesNonExemptEncryption") is None:
+                  print("set encryption=false:", api(f"/v1/builds/{bid}", "PATCH", {"data": {"type": "builds", "id": bid, "attributes": {"usesNonExemptEncryption": False}}}) is not None)
+              ints = [g for g in groups if g["attributes"].get("isInternalGroup")]
+              if not ints: print("::warning::ما فيه مجموعة داخلية — لازم تنشأ من App Store Connect (TestFlight ← Internal Testing ← +)")
+              for g in ints:
+                  r = api(f"/v1/betaGroups/{g['id']}/relationships/builds", "POST", {"data": [{"type": "builds", "id": bid}]})
+                  print("added to", repr(g["attributes"]["name"]), r is not None)
+              time.sleep(5)
+              for inc in (api(f"/v1/builds/{bid}?include=buildBetaDetail") or {}).get("included", []):
+                  if inc["type"] == "buildBetaDetails": print("BETA DETAIL AFTER", json.dumps(inc["attributes"]))
