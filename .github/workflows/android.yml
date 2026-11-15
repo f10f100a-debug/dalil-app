@@ -92,7 +92,7 @@ jobs:
             })().catch(e=>{console.error(e);process.exit(1)});'
           # الأذونات: الموقع (البوصلة والتوجيه)، الميكروفون (غرفة الرحلة)، الكاميرا (صورة/فيديو حدث)، الاهتزاز
           M=android/app/src/main/AndroidManifest.xml
-          for p in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION RECORD_AUDIO MODIFY_AUDIO_SETTINGS CAMERA VIBRATE; do
+          for p in ACCESS_COARSE_LOCATION ACCESS_FINE_LOCATION RECORD_AUDIO MODIFY_AUDIO_SETTINGS CAMERA VIBRATE POST_NOTIFICATIONS; do
             grep -q "android.permission.$p\"" $M || sed -i "s#<uses-permission android:name=\"android.permission.INTERNET\" />#&\n    <uses-permission android:name=\"android.permission.$p\" />#" $M
           done
           grep -q 'android.hardware.location.gps' $M || sed -i 's#</manifest>#    <uses-feature android:name="android.hardware.location.gps" android:required="false" />\n    <uses-feature android:name="android.hardware.camera" android:required="false" />\n</manifest>#' $M
@@ -165,6 +165,17 @@ jobs:
           JAVA
           sed -i 's/^          //' $J/MainActivity.java
           cat $J/MainActivity.java
+
+      - name: تنبيهات أندرويد (1.2) — ملف فايربيس من السر GOOGLE_SERVICES_JSON
+        env:
+          GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          set -e
+          if [ -z "$GSJ" ]; then echo "::error::السر GOOGLE_SERVICES_JSON غير موجود (بدونه التنبيهات تطيّح التطبيق)"; exit 1; fi
+          printf '%s' "$GSJ" > android/app/google-services.json
+          # تأكد إنه ملف فايربيس صحيح ولنفس التطبيق (بدون طباعة محتواه)
+          node -e 'const j=require("./android/app/google-services.json");const ok=(j.client||[]).some(c=>c.client_info&&c.client_info.android_client_info&&c.client_info.android_client_info.package_name==="com.alluhaybi.dalil");if(!ok){console.error("package mismatch");process.exit(1)}console.log("firebase project:",j.project_info.project_id)'
+          grep -n "google-services" android/build.gradle android/app/build.gradle
 
       - name: Target SDK 36 (شرط Google Play من 31 أغسطس 2026) + أقل إصدار أندرويد 7 (minSdk 24)
         run: |

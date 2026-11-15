@@ -613,9 +613,10 @@
     return new Promise(async (resolve, reject)=>{
       const p = PN(); const hs = [];
       const done = (fn, v)=>{ hs.forEach(h=>h && h.remove && h.remove()); fn(v); };
-      hs.push(await p.addListener('registration', t=>done(resolve, String(t.value || '').toLowerCase())));
+      hs.push(await p.addListener('registration', t=>{ const v = String(t.value || ''); done(resolve, /^[0-9a-f]+$/i.test(v) ? v.toLowerCase() : v); }));   // رمز أبل hex (صغير)، رمز أندرويد (FCM) حساس لحالة الحروف
       hs.push(await p.addListener('registrationError', e=>done(reject, new Error((e && e.error) || 'registration'))));
       setTimeout(()=>done(reject, new Error('timeout')), 20000);
+      if(window.DALIL_ANDROID){ try{ await p.createChannel({id:'dalil', name:'تنبيهات دليل', description:'المطر والسيول والفياض', importance:5, visibility:1, vibration:true}); }catch(e){} }   // قناة عالية: يطلع التنبيه فوق الشاشة مع صوت
       try{ await p.register(); }catch(e){ done(reject, e); }
     });
   }
@@ -624,8 +625,12 @@
     if(perm.receive !== 'granted') perm = await PN().requestPermissions();
     if(perm.receive !== 'granted') throw Object.assign(new Error('denied'), {denied:true});
     const token = await nativeToken();
-    const r = await fetch(FN + 'dalil-public?a=subscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token, region})});
+    // أندرويد (رمز فايربيس): يتسجّل عبر دالة قاعدة البيانات push_android_sub
+    const and = !/^[0-9a-f]+$/.test(token);
+    const r = and ? await fetch(SB + '/rest/v1/rpc/push_android_sub', {method:'POST', headers:{'Content-Type':'application/json', apikey:KEY, authorization:'Bearer ' + KEY}, body:JSON.stringify({p_token:token, p_region:region || ''})})
+      : await fetch(FN + 'dalil-public?a=subscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token, region})});
     if(!r.ok) throw new Error('subscribe ' + r.status);
+    if(and){ const j = await r.json().catch(()=>({})); if(!j.ok) throw new Error('subscribe ' + (j.error || 'fail')); }
     lsSet(LS_TOKEN, token); lsSet(LS_SENT_REG, region || '');
   }
   // سريع: يطلب الإذن فقط ويرجع فورًا، والتسجيل (رمز Apple + سيرفرنا) يكمل في الخلفية مع إعادة المحاولة
@@ -650,7 +655,8 @@
   }
   async function nativeUnsubscribe(){
     const token = lsGet(LS_TOKEN);
-    if(token) fetch(FN + 'dalil-public?a=unsubscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})}).catch(()=>{});
+    if(token && !/^[0-9a-f]+$/.test(token)) fetch(SB + '/rest/v1/rpc/push_android_unsub', {method:'POST', headers:{'Content-Type':'application/json', apikey:KEY, authorization:'Bearer ' + KEY}, body:JSON.stringify({p_token:token})}).catch(()=>{});
+    else if(token) fetch(FN + 'dalil-public?a=unsubscribe_native', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})}).catch(()=>{});
     try{ localStorage.removeItem(LS_TOKEN); localStorage.removeItem('dalil_fayd_synced'); }catch(e){}
     try{ await PN().unregister(); }catch(e){}
   }

@@ -96,6 +96,31 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
     }catch(e){ F('تعذّر الفحص: ' + String(e).slice(0, 160)); }
     await ctx.close();
   }
+  // تنبيهات أندرويد 1.2 (فايربيس): قناة «dalil» ثم تسجيل الرمز عبر push_android_sub — والرمز ما ينقلب لحروف صغيرة
+  if(!LIVE) try{
+    const ctx = await browser.newContext({...devices['Pixel 7'], userAgent:devices['Pixel 7'].userAgent + ' DalilAndroid/1.2', serviceWorkers:'block'});
+    await ctx.addInitScript(()=>{ localStorage.setItem('dalil_install_guide_seen', '1'); localStorage.setItem('dalil_permissions_ready', '1');
+      window.__calls = []; const L = {};
+      window.Capacitor = {isNativePlatform:()=>true, getPlatform:()=>'android', isPluginAvailable:n=>n === 'PushNotifications', Plugins:{PushNotifications:{
+        checkPermissions:async()=>({receive:'granted'}), requestPermissions:async()=>({receive:'granted'}), createChannel:async o=>{ __calls.push('channel:' + o.id); },
+        addListener:async(e, f)=>{ L[e] = f; return {remove(){}}; }, register:async()=>{ setTimeout(()=>L.registration && L.registration({value:'AbC:APA91b' + 'Xy'.repeat(70)}), 50); }, unregister:async()=>{}}}}; });
+    const p = await ctx.newPage(); const errs = [], reqs = [];
+    p.on('pageerror', e=>errs.push(e.message));
+    await p.route(u=>!String(u).startsWith(BASE), r=>{ reqs.push(r.request().url()); r.fulfill({status:200, contentType:'application/json', body:'{"ok":true}'}); });
+    await p.goto(BASE + '/index.html'); await sleep(3000);
+    const r = await p.evaluate(async()=>{ for(let i = 0; i < 20 && !window.DalilEvents; i++) await new Promise(x=>setTimeout(x, 250));
+      try{ await window.DalilEvents.subscribeNow(); }catch(e){ return {err:e.message}; } return {np:window.DALIL_NATIVE_PUSH, calls:__calls, tok:localStorage.getItem('dalil_apns_token') || ''}; });
+    if(r.err) fails.push('تنبيهات أندرويد: ' + r.err);
+    else{
+      if(!r.np) fails.push('تنبيهات أندرويد: الصفحة ما تعرّفت على أندرويد 1.2');
+      if(!r.calls.includes('channel:dalil')) fails.push('تنبيهات أندرويد: قناة التنبيهات «dalil» ما انشأت');
+      if(!/^AbC:/.test(r.tok)) fails.push('تنبيهات أندرويد: الرمز انحفظ غلط (لازم يبقى بحالة حروفه)');
+      if(!reqs.some(u=>/rpc\/push_android_sub/.test(u))) fails.push('تنبيهات أندرويد: ما تسجّل الرمز في push_android_sub');
+    }
+    for(const e of [...new Set(errs)]) fails.push('أندرويد: خطأ برمجي: ' + e.slice(0, 160));
+    notes.push('تنبيهات أندرويد 1.2: ' + (r.err ? 'فشل' : 'قناة + تسجيل ✓'));
+    await ctx.close();
+  }catch(e){ fails.push('تنبيهات أندرويد: تعذّر الفحص: ' + String(e).slice(0, 160)); }
   await browser.close();
   const rep = (fails.length ? `فحص الشاشات ${new Date().toISOString().slice(0, 10)}: ${fails.length} مشكلة\n\n` + fails.map(x=>'- ' + x).join('\n') : 'فحص الشاشات: كله سليم') + '\n\n' + notes.map(x=>'- ' + x).join('\n') + '\n';
   fs.writeFileSync(path.join(OUT, 'ui-qa.md'), rep); console.log(rep);

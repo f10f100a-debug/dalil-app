@@ -1,5 +1,6 @@
-// إشعار تجريبي لجهاز واحد (لتجربة نغمات نسخة الآيفون الجديدة) — داخلي فقط بمفتاح cron، ما يرسل لأي مشترك ثاني.
+// إشعار تجريبي لجهاز واحد (آيفون أو أندرويد) — داخلي فقط بمفتاح cron، ما يرسل لأي مشترك ثاني.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { fcmReady, isFcm, sendFcm } from "../_shared/fcm.ts";
 
 const b64u = (u: Uint8Array) => { let s = ""; for (const x of u) s += String.fromCharCode(x); return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); };
 Deno.serve(async (req) => {
@@ -9,6 +10,11 @@ Deno.serve(async (req) => {
   if (!c.cron_key || req.headers.get("x-cron-key") !== c.cron_key) return new Response("forbidden", { status: 403 });
   const b = await req.json().catch(() => ({}));
   const token = String(b.token || "");
+  // أندرويد (فايربيس): نفس التجربة لجهاز واحد
+  if (isFcm(token)) {
+    const r = await sendFcm(token, { title: "🔔 تجربة: تنبيه دليل", body: "هذا إشعار تجريبي لتطبيق الأندرويد — وصلك أنت بس.", url: "./?screen=weather", tag: "test" });
+    return new Response(JSON.stringify({ android: true, ready: fcmReady(), result: r }), { headers: { "content-type": "application/json" } });
+  }
   if (!/^[0-9a-f]{64,200}$/.test(token)) return new Response("bad token", { status: 400 });
   const pem = Deno.env.get("APNS_KEY_P8") || c.apns_key_p8, kid = Deno.env.get("APNS_KEY_ID") || c.apns_key_id, team = Deno.env.get("APNS_TEAM_ID") || "M3FNP2GR5Z";
   const der = Uint8Array.from(atob(pem.replace(/-----[^-]+-----/g, "").replace(/\s+/g, "")), (x) => x.charCodeAt(0));
