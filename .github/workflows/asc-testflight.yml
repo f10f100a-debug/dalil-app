@@ -45,7 +45,7 @@ jobs:
           b = api(f"/v1/builds?filter[app]={aid}&filter[version]={os.environ['BUILD']}&include=buildBetaDetail,preReleaseVersion")
           if not b or not b["data"]: raise SystemExit("::error::build not found")
           build = b["data"][0]; bid = build["id"]; at = build["attributes"]
-          print("BUILD", os.environ["BUILD"], "processing:", at.get("processingState"), "usesNonExemptEncryption:", at.get("usesNonExemptEncryption"), "expired:", at.get("expired"))
+          print("BUILD", os.environ["BUILD"], "processing:", at.get("processingState"), "usesNonExemptEncryption:", at.get("usesNonExemptEncryption"), "expired:", at.get("expired"), "minOs:", at.get("minOsVersion"), "audience:", at.get("buildAudienceType"))
           for inc in b.get("included", []):
               if inc["type"] == "buildBetaDetails": print("BETA DETAIL", json.dumps(inc["attributes"]))
           groups = api(f"/v1/apps/{aid}/betaGroups?limit=50")["data"]
@@ -55,6 +55,9 @@ jobs:
               inb = api(f"/v1/betaGroups/{g['id']}/builds?limit=200")
               has = any(x["id"] == bid for x in (inb or {}).get("data", []))
               print("GROUP", repr(ga.get("name")), "internal:", ga.get("isInternalGroup"), "allBuilds:", ga.get("hasAccessToAllBuilds"), "testers:", len((n or {}).get("data", [])), "has build:", has)
+              for t in (n or {}).get("data", []):
+                  ta = t["attributes"]; tb = api(f"/v1/betaTesters/{t['id']}/builds?limit=200")
+                  print("  TESTER", "state:", ta.get("state"), "inviteType:", ta.get("inviteType"), "appDevices:", len(ta.get("appDevices") or []), "sees build:", any(x["id"] == bid for x in (tb or {}).get("data", [])))
           if os.environ["MODE"] == "fix":
               if at.get("usesNonExemptEncryption") is None:
                   print("set encryption=false:", api(f"/v1/builds/{bid}", "PATCH", {"data": {"type": "builds", "id": bid, "attributes": {"usesNonExemptEncryption": False}}}) is not None)
