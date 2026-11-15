@@ -148,7 +148,8 @@ function roomView(room: Record<string, any>, member: Record<string, any>, member
   return {
     room_id: room.id, code: room.code, name: room.name, secret: room.secret, rally: room.rally,
     expires_at: room.expires_at, me: { member_id: member.member_id, name: member.name, color: member.color },
-    members: members.map((m) => ({ member_id: m.member_id, name: m.name, color: m.color, paused_until: pausedUntil(m) })),
+    members: members.map((m) => ({ member_id: m.member_id, name: m.name, color: m.color, paused_until: pausedUntil(m), last_seen: m.last_seen || null })),
+    owner_id: members[0]?.member_id || null,   // صاحب الغرفة = أقدم عضو باقي فيها (منشئها، وإذا طلع تنتقل للي بعده)
     voice, max_members: MAX_MEMBERS,
   };
 }
@@ -302,6 +303,24 @@ Deno.serve(async (req) => {
       await sb.from("rooms").update({ rally }).eq("id", room.id);
       if (rally) await notifyRoom(sb, room.id, member.member_id, { title: "🚩 نقطة التجمع", body: member.name + " حدّد نقطة التجمع: " + rally.label, tag: "room-rally" });
       return json(req, { ok: true, rally });
+    }
+
+    // صاحب الغرفة (أقدم عضو باقي): إخراج عضو فورًا، وتغيير الرمز السري عشان المُخرج ما يرجع من جهاز ثاني
+    if (action === "kick" || action === "repin") {
+      const members = await activeMembers(sb, room.id);
+      if (members[0]?.member_id !== member.member_id) return json(req, { error: "not_owner" }, 403);
+      if (action === "repin") {
+        const pin = String(body.pin || "");
+        if (!validPin(pin)) return json(req, { error: "bad_pin" }, 400);
+        await sb.from("rooms").update({ pin_hash: await sha(cfg.ip_salt + "|room|" + room.code + "|" + pin) }).eq("id", room.id);
+        return json(req, { ok: true });
+      }
+      const target = String(body.target || "");
+      if (!target || target === member.member_id || !members.some((m) => m.member_id === target)) return json(req, { error: "bad_target" }, 400);
+      await sb.from("room_members").update({ kicked: true }).eq("room_id", room.id).eq("member_id", target);
+      await pttLeave(sb, [room.id], target);
+      const secret = await rotateRoomSecret(sb, room.id, room.secret);
+      return json(req, { ok: true, kicked: true, secret });
     }
 
     // كتم عضو؛ إذا كتمه 3 أعضاء (أو كل الباقين في الغرف الصغيرة) يخرج من الغرفة وتتغير القناة السرية.

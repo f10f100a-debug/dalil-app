@@ -11,7 +11,7 @@ const steps = [], fails = [];
 const ok = (s, good, extra = '')=>{ (good ? steps : fails).push((good ? '✓ ' : '✗ ') + s + (extra ? ' — ' + extra : '')); console.log((good ? 'OK  ' : 'FAIL') + ' ' + s + ' ' + extra); };
 async function phone(browser, name, lat, lng){
   const ctx = await browser.newContext({...devices['iPhone 13'], geolocation:{latitude:lat, longitude:lng}, permissions:['geolocation', 'microphone', 'clipboard-read', 'clipboard-write'], locale:'ar', serviceWorkers:'block'});
-  await ctx.addInitScript(()=>{ try{ localStorage.setItem('dalil_install_guide_seen', '1'); localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_room_terms_v1', '1'); }catch(e){}
+  await ctx.addInitScript(()=>{ try{ localStorage.setItem('dalil_install_guide_seen', '1'); localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_room_terms_v1', '1'); localStorage.setItem('dalil_lab_owner', '1'); }catch(e){}
     Object.defineProperty(navigator, 'standalone', {get:()=>true}); });
   const p = await ctx.newPage(); p.errs = []; p.net = [];
   p.on('response', async r=>{ if(r.url().includes('dalil-rooms')){ let t = ''; try{ t = (await r.text()).slice(0, 160); }catch(e){} p.net.push(r.status() + ' ' + r.url().split('?')[1] + ' ' + t); } });
@@ -65,6 +65,20 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     ok('الرسالة الصوتية انرسلت', vB.length > 0, vB.join(' | ').slice(0, 120));
     ok('الرسالة الصوتية وصلت للثاني', vA.length > 0, vA.join(' | ').slice(0, 120));
     await A.screenshot({path:path.join(OUT, 'room-a-voice.png')});
+    // 15 نوفمبر: صاحب الغرفة (منشئها) يخرج عضو ويغيّر الرمز
+    const crown = await A.evaluate(()=>[...document.querySelectorAll('#rmMembers .rm-mem b')].map(b=>b.innerText).join(' | ')).catch(()=>'');
+    ok('👑 صاحب الغرفة على منشئها', /👑\s*فاحص أ/.test(crown), crown.slice(0, 100));
+    const sbB = await sess(Bp), pin0 = (await sess(A) || {}).pin;
+    await A.evaluate(id=>{ const b = document.querySelector('[data-rm="menu"][data-id="' + id + '"]'); b && b.click(); }, sbB && sbB.member_id); await sleep(700);
+    const hasKick = await A.evaluate(()=>!!document.querySelector('[data-mm="kick"]'));
+    ok('زر «إخراج من الغرفة» لصاحب الغرفة', hasKick);
+    await A.evaluate(()=>{ const b = document.querySelector('[data-mm="kick"]'); b && b.click(); }); await sleep(600);
+    await A.evaluate(()=>{ const b = document.querySelector('[data-mm="kick-yes"]'); b && b.click(); }); await sleep(2500);
+    let outB = false; for(let i = 0; i < 25 && !outB; i++){ outB = !(await sess(Bp)); if(!outB) await sleep(1000); }
+    ok('العضو المُخرج طلع من الغرفة', outB);
+    await A.evaluate(()=>{ const b = document.querySelector('[data-mm="repin"]'); b && b.click(); }); await sleep(2500);
+    const pin1 = (await sess(A) || {}).pin;
+    ok('تغيير الرمز السري', !!pin1 && pin1 !== pin0, (pin0 || '') + ' → ' + (pin1 || ''));
     // الخروج
     for(const p of [Bp, A]){ await p.evaluate(()=>{ const b = document.querySelector('[data-rm="leave"]') || document.getElementById('rmLeave'); b && b.click(); }); await sleep(2500); }
     ok('الخروج من الغرفة', !(await sess(A)) && !(await sess(Bp)));

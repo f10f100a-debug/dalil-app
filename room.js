@@ -21,7 +21,7 @@
   const ERR = {
     wrong_code:'رقم الغرفة أو الرمز السري غير صحيح', expired:'انتهت مدة الغرفة (24 ساعة)', full:'الغرفة ممتلئة (15 عضوًا)',
     rate_limited:'محاولات كثيرة، انتظر قليلًا ثم حاول', room_locked:'الغرفة مقفلة للدخول مؤقتًا بسبب محاولات رمز خاطئة كثيرة — حاول بعد ساعة', bad_pin:'الرمز السري من 4 إلى 8 أرقام', name_required:'اكتب اسمك أولًا',
-    kicked:'أُخرجت من الغرفة بتصويت الأعضاء', not_member:'لم تعد عضوًا في هذه الغرفة', bad_code:'تأكد من رقم الغرفة (6 أرقام) والرمز السري',
+    kicked:'أُخرجت من الغرفة', not_owner:'هذا لصاحب الغرفة بس', not_member:'لم تعد عضوًا في هذه الغرفة', bad_code:'تأكد من رقم الغرفة (6 أرقام) والرمز السري',
     bad_audio:'تعذّر إرسال التسجيل', banned:'تم إيقاف استخدامك لغرف الرحلة بسبب مخالفة الشروط', too_large:'التسجيل طويل جدًا', server:'تعذّر الاتصال بالخادم، حاول مرة أخرى', net:'لا يوجد اتصال بالإنترنت'
   };
   const errText = e=>ERR[e] || ERR.server;
@@ -41,6 +41,9 @@
     navObj:null, open:false, tab:'join'
   };
   function loadSess(){ try{ const s = JSON.parse(lsGet(LS.sess) || 'null'); return s && s.room_id && s.token ? s : null; }catch(e){ return null; } }
+  const OWNER_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_owner') === '1'; }catch(e){ return false; } })();   // تجربة على جوال أبو مالك أول
+  // 15 نوفمبر: صاحب الغرفة = أقدم عضو باقي (owner_id من السيرفر) — يقدر يخرج عضو ويغيّر الرمز السري
+  const isOwner = ()=>!!(OWNER_LAB && R.room && R.sess && R.room.owner_id === R.sess.member_id);
   function saveSess(){ lsSet(LS.sess, R.sess ? JSON.stringify({...R.sess, muted:[...R.muted]}) : null); }
   const me = ()=>R.sess && R.sess.member_id;
   const authBody = (extra)=>({room_id:R.sess.room_id, member_id:R.sess.member_id, token:R.sess.token, ...(extra || {})});
@@ -1058,7 +1061,7 @@
       <div id="rmMembers"></div>
       <div class="rm-invite">
         <div class="grow"><small>رقم الغرفة</small><b class="rm-code">${esc(R.sess.code)}</b></div>
-        <div class="grow"><small>الرمز السري</small><b class="rm-code">${esc(R.sess.pin || '••••')}</b></div>
+        <div class="grow"><small>الرمز السري${isOwner() ? ' · <button type="button" data-rm="repin" style="border:0;background:none;padding:0;font:inherit;color:inherit;text-decoration:underline">🔑 غيّره</button>' : ''}</small><b class="rm-code">${esc(R.sess.pin || '••••')}</b></div>
         <button class="cp-btn cp-btn-gold" type="button" data-rm="share">دعوة أصحابك</button>
       </div>
       <div class="rm-title">الرسائل الصوتية</div>
@@ -1176,7 +1179,7 @@
         : `<button type="button" class="rm-car" data-rm="navcar" data-id="${esc(m.member_id)}">🚗 سيارته${a ? ' · ' + esc(B.fmtDist(B.haversine(a.lat, a.lng, car.lat, car.lng))) + ' ' + esc(B.directionWord(B.bearing(a.lat, a.lng, car.lat, car.lng))) : ''} — توجّه</button>`) : '';
       return `<div class="rm-mem${stale ? ' stale' : ''}">
         <span class="rm-av" style="background:${esc(m.color)}">${esc((m.name || '؟').trim().charAt(0))}</span>
-        <div class="grow"><b>${sos ? '🆘 ' : ''}${esc(m.name)}${muted ? ' 🔇' : ''}</b><small class="${lag || sos ? 'lag' : ''}">${lag ? 'بعيد عن القافلة · ' : ''}${esc(sub)}</small>${carLine}</div>
+        <div class="grow"><b>${sos ? '🆘 ' : ''}${OWNER_LAB && R.room && R.room.owner_id === m.member_id ? '👑 ' : ''}${esc(m.name)}${muted ? ' 🔇' : ''}</b><small class="${lag || sos ? 'lag' : ''}">${lag ? 'بعيد عن القافلة · ' : ''}${esc(sub)}</small>${carLine}</div>
         ${mine ? '' : `<button class="rm-ib" type="button" data-rm="nav" data-id="${esc(m.member_id)}" aria-label="توجّه إلى ${esc(m.name)}" ${p ? '' : 'disabled'}>${ico('nav')}</button>
         <button class="rm-ib" type="button" data-rm="menu" data-id="${esc(m.member_id)}" aria-label="خيارات ${esc(m.name)}">${ico('more')}</button>`}
       </div>`;
@@ -1238,6 +1241,7 @@
     else if(act === 'nav') navTo(id);
     else if(act === 'navcar') navToCar(id);
     else if(act === 'menu') memberMenu(id);
+    else if(act === 'repin') menuAction('repin');
     else if(act === 'rally-set') rallyMenu();
     else if(act === 'play'){
       const v = R.voice.find(x=>x.id === id); if(!v) return;
@@ -1263,7 +1267,8 @@
     showMenu(`<h3 style="margin:0 0 12px">${n}</h3><div class="cp-sheet-list">
       ${item('nav', id, 'توجّه إليه بالبوصلة', 'السهم يتبع موقعه أولًا بأول')}
       ${muted ? item('unmute', id, 'إلغاء الكتم', 'تسمع رسائله من جديد')
-        : item('mute', id, 'كتم', 'لن تسمع رسائله. إذا كتمه 3 أعضاء يخرج من الغرفة')}
+        : item('mute', id, 'كتم', 'لن تسمع رسائله. إذا كتمه 3 أعضاء (أو كل الباقين بالغرفة الصغيرة) يخرج من الغرفة')}
+      ${isOwner() ? item('kick', id, '👑 إخراج من الغرفة', 'يطلع على طول وما يرجع بنفس الجهاز') : ''}
       ${item('report', id, 'إبلاغ عن إساءة', 'يصل البلاغ لإدارة دليل وتتم مراجعته خلال 24 ساعة')}
     </div><button type="button" class="cp-btn cp-btn-white" data-mm="x">إلغاء</button>`);
   }
@@ -1277,6 +1282,26 @@
     </div><button type="button" class="cp-btn cp-btn-white" data-mm="x">إلغاء</button>`);
   }
   async function menuAction(mm, id, arg){
+    if(mm === 'kick'){
+      showMenu(`<h3 style="margin:0 0 12px">إخراج ${esc(memberName(id))} من الغرفة؟</h3><div class="cp-sheet-list">
+        ${item('kick-yes', id, 'نعم، أخرجه', 'يطلع على طول ويوقف يشوف مواقعكم ويسمع رسائلكم')}</div><button type="button" class="cp-btn cp-btn-white" data-mm="x">إلغاء</button>`);
+      return;
+    }
+    if(mm === 'kick-yes'){
+      const nm = memberName(id), j = await api('kick', authBody({target:id}));
+      if(!j.ok) return B.toast(errText(j.error));
+      RT.send('rekey', {target:id}); setTimeout(refreshState, 600);
+      showMenu(`<h3 style="margin:0 0 6px">خرج ${esc(nm)} من الغرفة</h3><p style="margin:0 0 12px;font-size:13px;opacity:.8">إذا عنده الرمز السري يقدر يدخل من جهاز ثاني. غيّر الرمز وأرسل الجديد لجماعتك بس.</p><div class="cp-sheet-list">
+        ${item('repin', '', '🔑 غيّر الرمز السري', 'رمز جديد من 4 أرقام')}</div><button type="button" class="cp-btn cp-btn-white" data-mm="x">لاحقًا</button>`);
+      return;
+    }
+    if(mm === 'repin'){
+      let pin; do{ pin = String(1000 + (crypto.getRandomValues(new Uint32Array(1))[0] % 9000)); }while(pin === R.sess.pin);
+      const j = await api('repin', authBody({pin}));
+      if(!j.ok) return B.toast(errText(j.error));
+      R.sess.pin = pin; saveSess(); render(); B.toast('الرمز الجديد ' + pin + ' — أرسله لجماعتك من «دعوة أصحابك»');
+      return;
+    }
     if(mm === 'nav') return navTo(id);
     if(mm === 'pause') return startPause(Number(arg));
     if(mm === 'mute' || mm === 'unmute'){
