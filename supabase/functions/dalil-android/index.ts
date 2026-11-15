@@ -76,6 +76,20 @@ Deno.serve(async (req) => {
       if (newest > since) await sb.from("private_config").upsert({ key: "android_room_last", value: newest });
       return json({ ok: true, voices: (voices || []).length, sent: out });
     }
+    // فحص صيغة ملفات الصوت (قراءة فقط): أنواع الصناديق والترميز — نفرق تسجيل الأندرويد عن الآيفون
+    if (a === "probe") {
+      const b = await req.json().catch(() => ({}));
+      const out: unknown[] = [];
+      for (const path of (Array.isArray(b.paths) ? b.paths : []).slice(0, 6)) {
+        const { data } = await sb.storage.from("room-voice").download(String(path));
+        if (!data) { out.push({ path, err: "missing" }); continue; }
+        const u = new Uint8Array(await data.arrayBuffer());
+        const txt = Array.from(u).map((c) => c >= 32 && c < 127 ? String.fromCharCode(c) : ".").join("");
+        const tags = ["ftyp", "moov", "moof", "mdat", "mp4a", "Opus", "dOps", "esds", "mvex", "trak"].filter((t) => txt.includes(t));
+        out.push({ path: String(path).slice(-12), size: u.length, brand: txt.slice(8, 12), tags, moovFirst: txt.indexOf("moov") >= 0 && (txt.indexOf("mdat") < 0 || txt.indexOf("moov") < txt.indexOf("mdat")) });
+      }
+      return json({ ok: true, out });
+    }
     return json({ error: "unknown_action" }, 400);
   } catch (e) {
     console.error("dalil-android", a, e);
