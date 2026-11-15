@@ -355,7 +355,7 @@ jobs:
               s = s.replace("import UIKit", "import UIKit\nimport AVFoundation\nimport PushToTalk\nimport Speech", 1)
               i = s.find("didFinishLaunchingWithOptions")
               j = s.find("return true", i)
-              s = s[:j] + "if #available(iOS 16.0, *) { DalilPTT.shared.setup() }\n        " + s[j:]
+              s = s[:j] + "if #available(iOS 16.0, *) { DalilPTT.shared.setup() }\n        UIApplication.shared.applicationSupportsShakeToEdit = false   // 1.9: الهز بالسيارة كان يطلع «التراجع عن الكتابة»\n        " + s[j:]
               s = s.rstrip() + """
           @available(iOS 16.0, *)
           final class DalilPTT: NSObject, PTChannelManagerDelegate, PTChannelRestorationDelegate, AVAudioPlayerDelegate {
@@ -396,19 +396,37 @@ jobs:
                   if a.category != .playAndRecord { try? a.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
               }
               private func evt(_ name: String, _ json: String = "null") { DalilBg.shared.js("window.__dalilPttEvt && window.__dalilPttEvt('" + name + "'," + json + ")") }
+              private var holding = false
+              private var txRetried = false
+              private var waitIds = Set<String>()
               func beginTx() {
                   guard let m = mgr, let c = joined else { evt("fail"); return }
-                  ensureCategory()
-                  m.requestBeginTransmitting(channelUUID: c)
+                  holding = true; txRetried = false
+                  startTx(m, c)
               }
-              func endTx() { if let m = mgr, let c = joined { m.stopTransmitting(channelUUID: c) } }
+              // 1.9: قبل طلب الإرسال نوقف أي رسالة واردة شغالة ونفك «المتكلم الحالي» — أبل كانت ترفض برمز 4
+              // لما تكون رسالة تشتغل أو «المتكلم» عالق (حالة 14 نوفمبر: شغّل رسالة ثم ضغط «تحدّث»)
+              private func startTx(_ m: PTChannelManager, _ c: UUID) {
+                  ensureCategory()
+                  if let p = player { p.stop(); player = nil; if !playingId.isEmpty { pev("ndone", playingId) }; playingId = "" }
+                  queue.removeAll(); watchdog?.cancel(); watchdog = nil
+                  m.setActiveRemoteParticipant(nil, channelUUID: c) { _ in DispatchQueue.main.async { if self.holding { m.requestBeginTransmitting(channelUUID: c) } } }
+              }
+              func endTx() { holding = false; if let m = mgr, let c = joined { m.stopTransmitting(channelUUID: c) } }
               func channelManager(_ channelManager: PTChannelManager, failedToBeginTransmittingInChannel channelUUID: UUID, error: Error) {
                   NSLog("dalil ptt tx: \\(error)")
-                  let code = (error as NSError).code
+                  let e = error as NSError, code = e.code
                   DispatchQueue.main.async {
                       self.transmitting = false
-                      // 1.8: رقم خطأ Apple يوصل للسجل (نعرف ليش رفضت البدء)
-                      if let d = try? JSONSerialization.data(withJSONObject: ["why": "apple", "code": code]), let j = String(data: d, encoding: .utf8) { self.evt("fail", j) } else { self.evt("fail") }
+                      // 1.9: محاولة ثانية من التطبيق نفسه بعد 0.4 ث (والإصبع لسه على الزر) قبل ما نبلّغ الصفحة
+                      if !self.txRetried && self.holding, let m = self.mgr, let c = self.joined {
+                          self.txRetried = true; self.evt("txretry_native")
+                          DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { if self.holding { self.startTx(m, c) } }
+                          return
+                      }
+                      // 1.8: رقم خطأ Apple يوصل للسجل — 1.9: ومعه النطاق والوصف (نعرف معنى الرمز بدل التخمين)
+                      let info: [String: Any] = ["why": "apple", "code": code, "dom": String(e.domain.suffix(30)), "desc": String(e.localizedDescription.prefix(60)), "retried": self.txRetried]
+                      if let d = try? JSONSerialization.data(withJSONObject: info), let j = String(data: d, encoding: .utf8) { self.evt("fail", j) } else { self.evt("fail") }
                   }
               }
               func setup() {
@@ -467,6 +485,8 @@ jobs:
                   // 1.6 (44): نشغّل الرسالة بأنفسنا حتى والتطبيق مفتوح. قبل كانت الصفحة تشغّلها، فيأخذ النظام الصوت منها لحظة
                   // تفعيل اللاسلكي وينقطع التشغيل (AbortError ~45%). إلا إذا الصفحة شغّلتها قبلنا
                   if let s = pushPayload["url"] as? String, let u = URL(string: s), !playedByWeb(vid) {
+                      // 1.9: نبلّغ الصفحة أول ما توصل الرسالة (قبل التحميل) عشان ما تحسبنا تأخرنا وتشغّلها هي (صوتين فوق بعض)
+                      DispatchQueue.main.async { self.pev("nstart", vid) }
                       // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
                       // نبدأ التحميل فورًا (ما ننتظر تفعيل الصوت) حتى يشتغل أول ما يجهز
                       URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
@@ -503,7 +523,16 @@ jobs:
                           guard let d = d else { self.pev("nfail", vid, "download"); self.playNext(); return }
                           guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.playNext(); return }
                           self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
-                          if p.play() { self.pev("nplay", vid) } else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.playNext() }
+                          var ok = p.play()
+                          // 1.9: التطبيق قدام المستخدم والصوت مو مفعّل: نفعّله ونعيد مرة
+                          if !ok && self.active { try? AVAudioSession.sharedInstance().setActive(true); ok = p.play() }
+                          if ok { self.pev("nplay", vid) }
+                          else if !self.sessionOn && !self.active && !self.waitIds.contains(vid) {
+                              // 1.9: بالخلفية والنظام لسه ما فعّل الصوت: نرجّعها أول الطابور وننتظر didActivate بدل ما نفشل (play_nosession)
+                              self.waitIds.insert(vid); if self.waitIds.count > 50 { self.waitIds.removeAll() }
+                              self.player = nil; self.playingId = ""; self.pre[u] = d; self.queue.insert((u, vid), at: 0); self.arm()
+                          }
+                          else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.playNext() }
                       }
                   }
                   if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
