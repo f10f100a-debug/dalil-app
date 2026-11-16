@@ -56,6 +56,7 @@ jobs:
           WHATS_NEW = ("• غرفة الرحلة: تحسين كبير لثبات اللاسلكي والجوال مقفل — الرسائل المتتالية تشتغل كاملة بدون تقطيع أو تأخير\n"
                        "• الخروج من الغرفة والرجوع لها صار يشتغل مباشرة بدون إعادة فتح التطبيق\n"
                        "• زر «تحدّث» أسرع وأثبت\n"
+                       "• إذا كان إذن الموقع مرفوض: زر يفتح إعدادات دليل مباشرة\n"
                        "• تحسينات وإصلاحات عامة")
           WHATS_NEW_EN = ("• Trip room: much more reliable walkie-talkie while the phone is locked — consecutive messages play fully without cuts or delays\n"
                           "• Leaving and rejoining a room now works right away without reopening the app\n"
