@@ -123,4 +123,13 @@
   Object.defineProperty(W.prototype, 'mimeType', {get(){ return this._mime || this._r.mimeType; }});
   W.isTypeSupported = t=>O.isTypeSupported(t);
   window.MediaRecorder = W;
+
+  // 16 نوفمبر (تجربة): الأندرويد ما يرسل «النسخة السريعة» من الرسالة (voice_live) — يرسلها بنفس طريقة الآيفون:
+  // يرفعها للسيرفر وبعدها يبلّغ الغرفة. النسخة السريعة كانت توصل صفحة الآيفون قبل إشعار اللاسلكي، وتطبيق الآيفون ما يشغّل الرسالة.
+  const WS = window.WebSocket && window.WebSocket.prototype;
+  if(WS && !WS.__dalNoLive){
+    const send = WS.send;
+    WS.send = function(d){ if(typeof d === 'string' && d.indexOf('"event":"voice_live"') > 0 && d.indexOf('"type":"broadcast"') > 0){ stat.noLive = (stat.noLive || 0) + 1; return; } return send.apply(this, arguments); };
+    WS.__dalNoLive = 1;
+  }
 })();
