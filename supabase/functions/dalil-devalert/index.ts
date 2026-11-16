@@ -50,7 +50,10 @@ Deno.serve(async (req) => {
   // أخطاء جوالات المستخدمين
   const day = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
   const { data: errs } = await sb.rpc("client_error_digest", { p_hours: 24 });
-  const pick = (errs || []).filter((e: any) => e.is_new || Number(e.users) >= 5);
+  // 16 نوفمبر (بطلب أبو مالك): «الخريطة ما أخذت كرت الرسم» يُتجاهل إذا كان المحاولة الأولى أو الثانية (الخريطة تعيد لحالها وتشتغل)
+  //   — ينبّه بس إذا فشلت المحاولة الثالثة (try2) يعني المستخدم ما شاف خريطة فعلًا
+  const recovered = (e: any) => { const s = String(e.sample || ""); return /dalil:nogl/.test(s) && /api:1/.test(s) && !/try[2-9]/.test(s); };   // api:0 = الرسم مقفل بالجوال (وضع القفل) — هذا ينبّه لأن المستخدم ما شاف خريطة
+  const pick = (errs || []).filter((e: any) => !recovered(e) && (e.is_new || Number(e.users) >= 5));
   const fresh = pick.filter((e: any) => !seen.has((e.is_new ? "new:" : "wide:" + day + ":") + String(e.sig).slice(0, 120)));
   if (fresh.length) {
     const e: any = fresh[0];
