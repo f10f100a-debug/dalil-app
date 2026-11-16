@@ -390,6 +390,15 @@ jobs:
               private var holding = false
               private var txRetried = false
               private var waitIds = Set<String>()
+              // 1.10: رسالة سحبناها من الطابور وتنزل الحين — ما نقول لأبل «خلصنا» وهي بالطريق (كان يطفي الصوت قبل تشغيلها: تقطيع وتعليق والجوال مقفل)
+              private var loading = false
+              // 1.10: سجل مختصر للأعطال فقط (فشل/انتظار/صمام) يوصل السيرفر مباشرة والجوال مقفل
+              private func nd(_ s: String, _ id: String = "", _ x: String = "") {
+                  var e: [String: Any] = ["s": "nd_" + s, "n": true, "fg": active, "so": sessionOn, "q": queue.count]
+                  if !id.isEmpty { e["id"] = String(id.prefix(8)) }
+                  if !x.isEmpty { e["x"] = String(x.prefix(40)) }
+                  post("diag", ["e": e])
+              }
               func beginTx() {
                   guard let m = mgr, let c = joined else { evt("fail"); return }
                   holding = true; txRetried = false
@@ -434,7 +443,10 @@ jobs:
                   }
               }
               func sync(_ r: [String: Any]?) {
+                  let oldMember = room?["member_id"] as? String
                   room = r
+                  // 1.10: دخلت الغرفة من جديد (عضو جديد) والقناة نفسها شغالة → نرسل رمز اللاسلكي للعضو الجديد على طول
+                  if let m = r?["member_id"] as? String, m != oldMember, !token.isEmpty { DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { if (self.room?["member_id"] as? String) == m { self.post("ptt", ["ptt_token": self.token]) } } }
                   if let r = r { UserDefaults.standard.set(r, forKey: "dalil_ptt_room") } else { UserDefaults.standard.removeObject(forKey: "dalil_ptt_room") }
                   DispatchQueue.main.async { self.reconcile() }
               }
@@ -462,7 +474,11 @@ jobs:
               func channelManager(_ channelManager: PTChannelManager, failedToJoinChannel channelUUID: UUID, error: Error) { joining = false; NSLog("dalil ptt join: \\(error)") }
               func channelManager(_ channelManager: PTChannelManager, didLeaveChannel channelUUID: UUID, reason: PTChannelLeaveReason) {
                   if joined == channelUUID { joined = nil }
-                  if want() == channelUUID { post("ptt", ["ptt_token": ""]) }   // خرج من زر النظام: يرجع للإشعارات العادية
+                  // 1.10: خروجنا البرمجي (طلعت ورجعت لنفس الغرفة بسرعة) يوصل متأخر — كان يمسح رمز العضو الجديد. نمسحه بس لو خرج من زر النظام
+                  if want() == channelUUID {
+                      if reason == .developerRequest { DispatchQueue.main.async { self.reconcile() } }
+                      else { post("ptt", ["ptt_token": ""]) }   // خرج من زر النظام: يرجع للإشعارات العادية
+                  }
               }
               func channelManager(_ channelManager: PTChannelManager, receivedEphemeralPushToken pushToken: Data) {
                   token = pushToken.map { String(format: "%02x", $0) }.joined()
@@ -498,21 +514,22 @@ jobs:
                   watchdog?.cancel()
                   let w = DispatchWorkItem { [weak self] in
                       guard let self = self else { return }
-                      if self.player == nil { self.queue.removeAll(); self.finish() } else { self.arm() }
+                      if self.player == nil && !self.loading { if !self.queue.isEmpty { self.nd("wd", "", String(self.queue.count)) }; self.queue.removeAll(); self.finish() } else { self.arm() }
                   }
                   watchdog = w
                   DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: w)
               }
-              private func unstick() { if player == nil { queue.removeAll(); finish() } }
+              private func unstick() { if player == nil && !loading { queue.removeAll(); finish() } }
               private func playNext() {
-                  guard player == nil else { return }
+                  guard player == nil, !loading else { return }
                   guard !queue.isEmpty else { finish(); return }
                   let (u, vid) = queue.removeFirst()
-                  arm()
+                  arm(); loading = true
                   let start: (Data?) -> Void = { d in
                       DispatchQueue.main.async {
-                          guard let d = d else { self.pev("nfail", vid, "download"); self.playNext(); return }
-                          guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.playNext(); return }
+                          self.loading = false
+                          guard let d = d else { self.pev("nfail", vid, "download"); self.nd("fail", vid, "download"); self.playNext(); return }
+                          guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.nd("fail", vid, "decode"); self.playNext(); return }
                           self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
                           var ok = p.play()
                           // 1.9: التطبيق قدام المستخدم والصوت مو مفعّل: نفعّله ونعيد مرة
@@ -521,9 +538,9 @@ jobs:
                           else if !self.sessionOn && !self.active && !self.waitIds.contains(vid) {
                               // 1.9: بالخلفية والنظام لسه ما فعّل الصوت: نرجّعها أول الطابور وننتظر didActivate بدل ما نفشل (play_nosession)
                               self.waitIds.insert(vid); if self.waitIds.count > 50 { self.waitIds.removeAll() }
-                              self.player = nil; self.playingId = ""; self.pre[u] = d; self.queue.insert((u, vid), at: 0); self.arm()
+                              self.player = nil; self.playingId = ""; self.pre[u] = d; self.queue.insert((u, vid), at: 0); self.arm(); self.nd("waitact", vid)
                           }
-                          else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.playNext() }
+                          else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.nd("fail", vid, self.sessionOn ? "play" : "nosession"); self.playNext() }
                       }
                   }
                   if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
