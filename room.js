@@ -41,6 +41,9 @@
     navObj:null, open:false, tab:'join'
   };
   function loadSess(){ try{ const s = JSON.parse(lsGet(LS.sess) || 'null'); return s && s.room_id && s.token ? s : null; }catch(e){ return null; } }
+  // 16 نوفمبر (تجربة dalil_lab_pttwait — جوال أبو مالك أول): الجوال مقفل/بالخلفية → الصفحة ما تشغّل رسالة بنفسها أبدًا (تترك اللاسلكي)،
+  // لأن صوت الصفحة يمسك صوت الجوال «تشغيل فقط» فترفض أبل تفعيل اللاسلكي للرسائل اللي بعدها (يعلّق بعد أول رسالة). والتطبيق قدامه: ننتظر 6 ث بدل 3.
+  const PTT_WAIT_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_pttwait') === '1'; }catch(e){ return false; } })();
   const OWNER_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_owner') === '1'; }catch(e){ return false; } })();   // تجربة على جوال أبو مالك أول
   // 15 نوفمبر: صاحب الغرفة = أقدم عضو باقي (owner_id من السيرفر) — يقدر يخرج عضو ويغيّر الرمز السري
   const isOwner = ()=>!!(OWNER_LAB && R.room && R.sess && R.room.owner_id === R.sess.member_id);
@@ -381,10 +384,16 @@
           nWait.delete(v.id);
           if(!R.sess || !R.voice.includes(v) || R.heard.has(v.id) || nPlay === v.id || R.muted.has(v.member_id)) return;
           if(nPlay && Date.now() < nPlayEnd && Date.now() - t0 < 90000){ nWait.set(v.id, setTimeout(check, 2000)); return; }   // التطبيق يشغّل رسالة قبلها — ننتظر دورها
+          if(PTT_WAIT_LAB && document.visibilityState !== 'visible'){
+            // ما نشغّل من الصفحة بالخلفية — نرجع نشيك أول ما يرجع للتطبيق (لو اللاسلكي ما شغّلها)
+            diag({s:'native_wait_hidden'});
+            const back = ()=>{ if(document.visibilityState !== 'visible') return; document.removeEventListener('visibilitychange', back); nWait.set(v.id, setTimeout(check, 1500)); };
+            document.addEventListener('visibilitychange', back); return;
+          }
           diag({s:'native_timeout'}); queue.push(v); playNext();
         };
         nCheck.set(v.id, check); if(nCheck.size > 60) nCheck.delete(nCheck.keys().next().value);
-        nWait.set(v.id, setTimeout(check, 3000));
+        nWait.set(v.id, setTimeout(check, PTT_WAIT_LAB ? 6000 : 3000));
       }else{ queue.push(v); playNext(); }
     }
     renderVoiceSoon(); updateBtn();
