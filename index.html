@@ -1247,6 +1247,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .wd-legend span{border-radius:100px; padding:2px 9px;}
   .wd-legend span:last-child{color:var(--text-dim);}
   .wd-empty{text-align:center; color:var(--text-dim); padding:24px 12px; font-size:14px;}
+#rainBar{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:9000;display:flex;align-items:center;gap:10px;padding:12px 12px 12px 8px;border-radius:18px;background:#7a1f1f;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,.35);transform:translateY(-140%);opacity:0;transition:transform .35s cubic-bezier(.2,.9,.3,1.2),opacity .25s;direction:rtl;cursor:pointer;max-width:560px;margin:0 auto}
+#rainBar.on{transform:none;opacity:1}
+#rainBar.rb-app{background:#8a5a00}#rainBar.rb-calm{background:#2f4a5e}
+#rainBar .rb-i{font-size:30px;line-height:1}#rainBar .rb-t{flex:1;min-width:0;line-height:1.45}
+#rainBar b{display:block;font-size:16px}#rainBar small{display:block;font-size:13px;opacity:.92}#rainBar em{display:block;font-style:normal;font-size:11.5px;opacity:.75;margin-top:2px}
+#rainBar .rb-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:15px}
 </style>
 </head>
 <body class="on-compass">
@@ -2191,7 +2197,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
+      const LABS = [['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
@@ -2199,9 +2205,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler'].includes(c.dataset.lab)) c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');   // 14 نوفمبر: الرادار بعد 30 د ومخيمك آمن ووين أطلع للكل (تنطفي بـ '0')
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
+      if(window.__rainbarLab){ const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'btn'; rd.style.cssText = 'margin-top:8px;width:100%'; rd.textContent = '👀 شوف شكل شريط المطر (مثال)'; rd.onclick = ()=>window.__rainBarDemo && window.__rainBarDemo(); box.appendChild(rd); }
       // 15 نوفمبر: ربط «تنبيهات المطوّر» بهذا الجوال برمز مؤقت من Claude (بعد إعادة تثبيت التطبيق يتغير رمز التنبيهات)
       const dl = document.createElement('button'); dl.type = 'button'; dl.className = 'btn'; dl.style.cssText = 'margin-top:8px;width:100%'; dl.textContent = '🔔 اربط تنبيهات المطوّر بهذا الجوال';
       dl.onclick = async ()=>{ let tok = ''; try{ tok = localStorage.getItem('dalil_apns_token') || ''; }catch(e){}
@@ -2558,6 +2565,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   // 14 نوفمبر (تجربة dalil_lab_fastgps على جوال أبو مالك): نقبل قراءة عمرها أقل من دقيقة كبداية (الآيفون غالبًا عنده وحدة) —
   // الموقع يطلع فورًا ثم يتحدث بالدقيق تلقائيًا. نفس الطلب (ما يطلع إذن زيادة). وما نعيد تشغيل الموقع إذا رجع خلال دقيقة.
+  window.__rainbarLab = (()=>{ try{ return localStorage.getItem('dalil_lab_rainbar') === '1'; }catch(e){ return false; } })();
   const fastGps = ()=>{ try{ return localStorage.getItem('dalil_lab_fastgps') === '1'; }catch(e){ return false; } };
   const geoOpts = ()=>({enableHighAccuracy:true, maximumAge:fastGps() ? 60000 : 0, timeout:15000});
   function requestLocationAccess(forceRestart=false){
@@ -3474,11 +3482,25 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     // تنبيه مرة واحدة لكل موجة مطر قريبة
     const key = soft && !ltNear ? '' : r.kind === 'here' ? 'here' : (r.kind === 'coming' || r.kind === 'nearing') && r.eta <= 60 ? 'c' + Math.round(r.brg/45) : ltNear ? 'lt' : r.kind === 'close' && !r.away ? 'close' : '';
     if(key && STORM.warned !== key){
-      STORM.warned = key; toast(t);
+      STORM.warned = key; if(window.__rainbarLab) rainBar(icon, t, sub, cls); else toast(t);
       if(navigator.vibrate) navigator.vibrate([80, 60, 80]);
     } else if(!key) STORM.warned = '';
   }
   document.getElementById('stormStrip').addEventListener('click', ()=>document.getElementById('openRadarBtn').click());
+  // 17 نوفمبر (تجربة dalil_lab_rainbar — جوالات أبو مالك أول): تنبيه المطر المهم (جايك خلال ساعة، فوقك، برق قريب) يطلع شريط بارز
+  // ينزل من فوق بدل الرسالة الصغيرة اللي تختفي — ما يغطي البوصلة، يبقى دقيقة أو لين تسكره، وتضغطه يفتح الرادار. الحساب كله داخل الجوال.
+  function rainBar(icon, t, sub, cls){
+    let b = document.getElementById('rainBar');
+    if(!b){ b = document.createElement('div'); b.id = 'rainBar'; b.setAttribute('role', 'alert'); document.body.appendChild(b);
+      b.addEventListener('click', e=>{ b.classList.remove('on'); if(e.target.closest('[data-rb-x]')) return; const o = document.getElementById('openRadarBtn'); if(o) o.click(); }); }
+    const s1 = String(sub || '').split(' · ')[0];
+    b.className = 'rb-' + (cls || 'app');
+    b.innerHTML = '<span class="rb-i">' + icon + '</span><span class="rb-t"><b>' + escapeHtml(t) + '</b>' + (s1 ? '<small>' + escapeHtml(s1) + '</small>' : '') + '<em>اضغط وشوفه على الرادار</em></span><button type="button" class="rb-x" data-rb-x aria-label="إغلاق">✕</button>';
+    requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add('on')));
+    if(navigator.vibrate) navigator.vibrate([120, 80, 120]);
+    clearTimeout(rainBar.tm); rainBar.tm = setTimeout(()=>b.classList.remove('on'), 60000);
+  }
+  window.__rainBarDemo = ()=>rainBar('⛈️', 'المطر جايك — بعد ٤٠ دقيقة تقريبًا', 'مطر متوسط على بعد ٢٢ كم من جهة جنوب غرب، متجه نحوك بسرعة ٣٠ كم/س', 'near');
   // ---------- «متى المطر؟»: اتفاق 3 نماذج عالمية (الأوروبي والأمريكي والألماني) ساعة بساعة لـ 7 أيام ----------
   const RAIN_OUT = {at:0, lat:null, lng:null, data:null, busy:false};
   const RAIN_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless'];
@@ -6453,7 +6475,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(r.st0 < 1){ r.people = true; return; }   // القمر ما شاف شي: بلاغ ناس بس (قسم لحاله)
       if(r.repLv >= 2){ r.field = true; r.chk = 0; if(r.st < 2) r.st = 2; } else r.nearRep = true; });
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
-    if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
+    if(pos) rows.forEach(r=>{ r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000; if(window.__rainbarLab) r.dir = directionWord(bearing(pos.lat, pos.lng, r.lat, r.lng)); });
     if(faydFilter === 'near'){
       if(!pos){ document.getElementById('faydList').innerHTML = '<div class="pl-note">فعّل الموقع عشان نرتب الفياض القريبة منك.</div>'; return; }
       rows = rows.filter(r=>r.km <= 150).sort((a, b)=>(b.st > 0) - (a.st > 0) || a.stale - b.stale || a.km - b.km);   // 13 نوفمبر: الأقرب أول
@@ -6475,7 +6497,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
     try{ window.__faydDbg.shown = green.slice(0, 10).map(r=>({i:r.i, st0:r.st0, stale:r.stale, chk:r.chk || 0, field:!!r.field})); }catch(e){}
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '') + peopleHtml;
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------
