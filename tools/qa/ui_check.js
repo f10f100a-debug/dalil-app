@@ -51,8 +51,16 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
       const rows = await p.$$eval('#faydList .fy-row', a=>a.map(e=>({t:e.innerText.replace(/\s+/g, ' '), pill:(e.querySelector('.fy-pill') || {}).innerText || ''})));
       // الترتيب (غير «الأقرب لي») لازم ينزل مع النسبة بين الفياض المؤكدة
       await p.evaluate(()=>{ const c = document.querySelector('#faydChips [data-fy="all"]'); c && c.click(); }); await sleep(800);
-      const pcts = await p.$$eval('#faydList .fy-row', a=>a.filter(e=>!/تحتاج تأكيد/.test(e.innerText)).map(e=>{ const m = e.innerText.match(/\+(\d+)٪/); return m ? +m[1] : null; }).filter(x=>x != null));
+      const pcts = await p.$$eval('#faydList .fy-row', a=>a.filter(e=>!/تحتاج تأكيد|\(قديمة\)/.test(e.innerText)).map(e=>{ const m = e.innerText.match(/\+(\d+)٪/); return m ? +m[1] : null; }).filter(x=>x != null));
       for(let k = 1; k < pcts.length; k++) if(pcts[k] > pcts[k - 1]){ F(`ترتيب الفياض: ${pcts[k]}٪ جت بعد ${pcts[k - 1]}٪`); break; }
+      // 16 نوفمبر — حارس «قاعدة الترتيب»: أول 10 فياض كلها شافها القمر (مو بلاغات ناس بس)، والصورة القديمة (أقدم 10 أيام) ما تسبق الأحدث بنفس الفئة
+      const dbg = await p.evaluate(()=>window.__faydDbg || null);
+      if(dbg){
+        for(const r of dbg.shown || []) if(!(r.st0 >= 1)){ F(`قاعدة الفياض: فيضة (${r.i}) في القائمة والقمر ما شاف فيها اخضرار — مكانها «بلاغات الناس»`); break; }
+        const sh = dbg.shown || [];
+        for(let k = 1; k < sh.length; k++) if(sh[k].chk === sh[k - 1].chk && sh[k - 1].stale && !sh[k].stale){ F(`قاعدة الفياض: صورة قديمة (${sh[k - 1].i}) قبل صورة أحدث (${sh[k].i})`); break; }
+        for(const r of dbg.people || []) if(r.st0 >= 1){ F(`قاعدة الفياض: فيضة (${r.i}) شافها القمر وطالعة في «بلاغات الناس»`); break; }
+      } else F('قاعدة الفياض: بيانات الفحص (__faydDbg) ما انكتبت');
       await p.evaluate(()=>{ const c = document.querySelector('#faydChips [data-fy="near"]'); c && c.click(); }); await sleep(500);
       for(const r of rows){ const m = r.t.match(/\+(\d+)٪/); if(m && PILL_STRONG.includes(r.pill.trim()) && Number(m[1]) < 20) F(`قائمة الفياض: «${r.pill.trim()}» ونسبتها ${m[1]}٪ — «${r.t.slice(0, 50)}»`); }
       // البر → الفقع والطيور: ما يطلع فيها شي يخص الفياض
