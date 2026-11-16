@@ -1668,6 +1668,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           <li>خريطة البر والطرق والأودية والمعالم: © مساهمو <b>OpenStreetMap</b> — رخصة ODbL (openstreetmap.org/copyright)، عبر Overture Maps.</li>
           <li>التضاريس وخطوط الارتفاع: Copernicus DEM GLO-30 © DLR e.V. 2010-2014 و © Airbus Defence and Space GmbH 2014-2018، ضمن برنامج Copernicus.</li>
           <li>مواقع إضافية من <b>GeoNames</b> (geonames.org) — رخصة CC BY 4.0.</li>
+          <li>مواقع إضافية من <b>Wikidata</b> (wikidata.org) — رخصة CC0.</li>
           <li>مواقع «خرائط البر» (عند اختيارها مصدرًا): sites.google.com/view/desertmaps.</li>
           <li>طبقة الربيع (الغطاء النباتي): NASA GIBS — منتجات MODIS/VIIRS NDVI، بيانات مفتوحة.</li>
           <li>طبقة المطر: NASA GPM IMERG عبر GIBS، بيانات مفتوحة.</li>
@@ -4454,7 +4455,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(bundledCatalog) return Promise.resolve();
     if(bundledLoading) return bundledLoading;
     bundledLoading = Promise.all(placesSrc === 'osm' ? [
-      fetch('data/open-places.json?v=3').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
+      fetch('data/open-places.json?v=4').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
       Promise.resolve(null)
     ] : [
       fetch('data/desert-places.json?v=4').then(r=>{ if(!r.ok) throw new Error('catalog ' + r.status); return r.json(); }),
