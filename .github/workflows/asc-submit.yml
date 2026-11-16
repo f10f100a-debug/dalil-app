@@ -1,0 +1,117 @@
+# App Store: تجهيز إصدار وإرساله للمراجعة (بإذن أبو مالك 16 نوفمبر: «لديك صلاحية»).
+# - prepare: ينتظر معالجة البناء، يغيّر/ينشئ الإصدار، يربط البناء، التشفير=لا، نص «ما الجديد»، الإصدار يدوي (ما ينشر بعد الموافقة إلا يدويًا).
+# - submit: نفس prepare + يرسل للمراجعة.
+# ما ينشر للمستخدمين أبدًا — النشر بعد موافقة أبل يبقى يدوي.
+name: App Store submit
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "prepare أو submit"
+        type: choice
+        options: [prepare, submit]
+        default: prepare
+      version:
+        description: "رقم الإصدار"
+        type: string
+        default: "1.10"
+      build:
+        description: "رقم البناء"
+        type: string
+        default: "57"
+
+jobs:
+  asc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - run: pip install -q pyjwt cryptography
+      - env:
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_P8: ${{ secrets.ASC_KEY_P8 || secrets.ASC_KEY_P8_BASE64 }}
+          MODE: ${{ inputs.mode }}
+          VERSION: ${{ inputs.version }}
+          BUILD: ${{ inputs.build }}
+        shell: python
+        run: |
+          import os, time, json, base64, jwt, urllib.request, urllib.error
+          p8 = os.environ["KEY_P8"]
+          if "BEGIN PRIVATE KEY" not in p8:
+              body = "".join(p8.split()); dec = base64.b64decode(body)
+              p8 = ("-----BEGIN PRIVATE KEY-----\n" + "\n".join(body[i:i+64] for i in range(0, len(body), 64)) + "\n-----END PRIVATE KEY-----\n") if dec[:1] == b"0" else dec.decode()
+          def H():
+              tok = jwt.encode({"iss": os.environ["ISSUER_ID"], "iat": int(time.time()), "exp": int(time.time()) + 900, "aud": "appstoreconnect-v1"}, p8, algorithm="ES256", headers={"kid": os.environ["KEY_ID"]})
+              return {"Authorization": "Bearer " + tok, "Content-Type": "application/json"}
+          def api(path, method="GET", body=None, quiet=False):
+              r = urllib.request.Request("https://api.appstoreconnect.apple.com" + path, headers=H(), method=method, data=json.dumps(body).encode() if body is not None else None)
+              try:
+                  with urllib.request.urlopen(r) as x: t = x.read(); return json.loads(t) if t else {}
+              except urllib.error.HTTPError as e:
+                  msg = e.read()[:600]
+                  if not quiet: print("HTTP", e.code, method, path, msg)
+                  return None
+          V, B, MODE = os.environ["VERSION"], os.environ["BUILD"], os.environ["MODE"]
+          WHATS_NEW = ("• غرفة الرحلة: تحسين كبير لثبات اللاسلكي والجوال مقفل — الرسائل المتتالية تشتغل كاملة بدون تقطيع أو تأخير\n"
+                       "• الخروج من الغرفة والرجوع لها صار يشتغل مباشرة بدون إعادة فتح التطبيق\n"
+                       "• زر «تحدّث» أسرع وأثبت\n"
+                       "• تحسينات وإصلاحات عامة")
+          WHATS_NEW_EN = ("• Trip room: much more reliable walkie-talkie while the phone is locked — consecutive messages play fully without cuts or delays\n"
+                          "• Leaving and rejoining a room now works right away without reopening the app\n"
+                          "• Faster, steadier Talk button\n"
+                          "• General improvements and fixes")
+          app = api("/v1/apps?filter[bundleId]=com.alluhaybi.dalil")["data"][0]; aid = app["id"]
+          # 1) البناء جاهز؟ (أبل تعالجه بعد الرفع)
+          bid = None
+          for i in range(60):
+              b = api(f"/v1/builds?filter[app]={aid}&filter[version]={B}&filter[preReleaseVersion.version]={V}")
+              if b and b["data"]:
+                  at = b["data"][0]["attributes"]; bid = b["data"][0]["id"]
+                  print("build", B, "state:", at.get("processingState"), "encryption:", at.get("usesNonExemptEncryption"))
+                  if at.get("processingState") == "VALID": break
+                  if at.get("processingState") in ("FAILED", "INVALID"): raise SystemExit("::error::أبل رفضت البناء: " + at.get("processingState"))
+              else: print("build not visible yet", i)
+              bid = None if not (b and b["data"] and b["data"][0]["attributes"].get("processingState") == "VALID") else bid
+              time.sleep(60)
+          if not bid: raise SystemExit("::error::البناء ما جهز عند أبل خلال ساعة — أعد التشغيل لاحقًا")
+          if b["data"][0]["attributes"].get("usesNonExemptEncryption") is None:
+              print("encryption=false:", api(f"/v1/builds/{bid}", "PATCH", {"data": {"type": "builds", "id": bid, "attributes": {"usesNonExemptEncryption": False}}}) is not None)
+          # 2) الإصدار: نعدّل اللي ما انرسل (مثلا 1.9) إلى 1.10، أو ننشئ جديد
+          vs = api(f"/v1/apps/{aid}/appStoreVersions?filter[platform]=IOS&limit=20")["data"]
+          for v in vs: print("version", v["attributes"]["versionString"], v["attributes"]["appStoreState"])
+          editable = [v for v in vs if v["attributes"]["appStoreState"] in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADATA_REJECTED", "INVALID_BINARY")]
+          if editable:
+              vid = editable[0]["id"]
+              r = api(f"/v1/appStoreVersions/{vid}", "PATCH", {"data": {"type": "appStoreVersions", "id": vid, "attributes": {"versionString": V, "releaseType": "MANUAL"}}})
+              print("updated version ->", V, "MANUAL:", r is not None)
+          else:
+              r = api("/v1/appStoreVersions", "POST", {"data": {"type": "appStoreVersions", "attributes": {"platform": "IOS", "versionString": V, "releaseType": "MANUAL"},
+                  "relationships": {"app": {"data": {"type": "apps", "id": aid}}}}})
+              if not r: raise SystemExit("::error::تعذّر إنشاء الإصدار")
+              vid = r["data"]["id"]; print("created version", V)
+          # 3) ربط البناء
+          print("attach build:", api(f"/v1/appStoreVersions/{vid}/relationships/build", "PATCH", {"data": {"type": "builds", "id": bid}}) is not None)
+          # 4) «ما الجديد» لكل لغة
+          locs = api(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
+          for l in locs:
+              loc = l["attributes"]["locale"]; txt = WHATS_NEW if loc.startswith("ar") else WHATS_NEW_EN
+              print("whatsNew", loc, api(f"/v1/appStoreVersionLocalizations/{l['id']}", "PATCH", {"data": {"type": "appStoreVersionLocalizations", "id": l["id"], "attributes": {"whatsNew": txt}}}) is not None)
+          v = api(f"/v1/appStoreVersions/{vid}?include=build")
+          print("READY:", json.dumps({k: v["data"]["attributes"].get(k) for k in ("versionString", "appStoreState", "releaseType")}, ensure_ascii=False))
+          if MODE != "submit":
+              print("::notice::جاهز للمراجعة (ما انرسل) — الإصدار " + V + " بناء " + B + " إصدار يدوي"); raise SystemExit(0)
+          # 5) الإرسال للمراجعة (الطريقة الحديثة: reviewSubmissions)
+          old = api(f"/v1/reviewSubmissions?filter[app]={aid}&filter[platform]=IOS&filter[state]=READY_FOR_REVIEW,WAITING_FOR_REVIEW,IN_REVIEW,UNRESOLVED_ISSUES", quiet=True)
+          for s in (old or {}).get("data", []): print("existing submission", s["id"], s["attributes"].get("state"))
+          sub = next((s for s in (old or {}).get("data", []) if s["attributes"].get("state") == "READY_FOR_REVIEW"), None)
+          if not sub:
+              r = api("/v1/reviewSubmissions", "POST", {"data": {"type": "reviewSubmissions", "attributes": {"platform": "IOS"}, "relationships": {"app": {"data": {"type": "apps", "id": aid}}}}})
+              if not r: raise SystemExit("::error::تعذّر إنشاء طلب المراجعة")
+              sub = r["data"]
+          sid = sub["id"]
+          r = api("/v1/reviewSubmissionItems", "POST", {"data": {"type": "reviewSubmissionItems", "relationships": {"reviewSubmission": {"data": {"type": "reviewSubmissions", "id": sid}}, "appStoreVersion": {"data": {"type": "appStoreVersions", "id": vid}}}}})
+          print("item added:", r is not None)
+          r = api(f"/v1/reviewSubmissions/{sid}", "PATCH", {"data": {"type": "reviewSubmissions", "id": sid, "attributes": {"submitted": True}}})
+          if not r: raise SystemExit("::error::أبل رفضت الإرسال — شوف السطر اللي فوق (غالبًا معلومة ناقصة في الصفحة)")
+          print("::notice::انرسل للمراجعة ✓ الحالة:", r["data"]["attributes"].get("state"), "— النشر بعد الموافقة يدوي")
