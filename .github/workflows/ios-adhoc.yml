@@ -479,7 +479,7 @@ jobs:
                   // 16 نوفمبر: الخروج من برنامجنا (طلعت ورجعت لنفس الغرفة بسرعة) يوصل متأخر — كان يمسح رمز العضو الجديد.
                   // نمسح الرمز بس لو خرج من زر النظام، وإلا نرجع ننضم للقناة
                   if want() == channelUUID {
-                      if reason == .programmaticRequest { DispatchQueue.main.async { self.nd("leave", "", "rejoin"); self.reconcile() } }
+                      if reason == .developerRequest { DispatchQueue.main.async { self.nd("leave", "", "rejoin"); self.reconcile() } }
                       else { post("ptt", ["ptt_token": ""]); DispatchQueue.main.async { self.nd("leave", "", "user") } }   // خرج من زر النظام: يرجع للإشعارات العادية
                   }
               }
