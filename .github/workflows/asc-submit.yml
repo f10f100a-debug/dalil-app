@@ -10,7 +10,7 @@ on:
       mode:
         description: "prepare أو submit"
         type: choice
-        options: [prepare, submit]
+        options: [prepare, submit, cancel]
         default: prepare
       version:
         description: "رقم الإصدار"
@@ -62,6 +62,15 @@ jobs:
                           "• Faster, steadier Talk button\n"
                           "• General improvements and fixes")
           app = api("/v1/apps?filter[bundleId]=com.alluhaybi.dalil")["data"][0]; aid = app["id"]
+          if MODE == "cancel":
+              # سحب الإصدار من المراجعة (قبل ما تبدأ أبل) — يرجع «جاهز للإرسال»
+              subs = api(f"/v1/reviewSubmissions?filter[app]={aid}&filter[platform]=IOS", quiet=True) or {}
+              for x in subs.get("data", []):
+                  st = x["attributes"].get("state"); print("submission", x["id"], st)
+                  if st in ("WAITING_FOR_REVIEW", "READY_FOR_REVIEW", "UNRESOLVED_ISSUES"):
+                      r = api(f"/v1/reviewSubmissions/{x['id']}", "PATCH", {"data": {"type": "reviewSubmissions", "id": x["id"], "attributes": {"canceled": True}}})
+                      print("canceled:", r is not None, (r or {}).get("data", {}).get("attributes", {}).get("state"))
+              raise SystemExit(0)
           # 1) البناء جاهز؟ (أبل تعالجه بعد الرفع)
           bid = None
           for i in range(60):
