@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
         const u = new Uint8Array(await data.arrayBuffer());
         const txt = Array.from(u).map((c) => c >= 32 && c < 127 ? String.fromCharCode(c) : ".").join("");
         const tags = ["ftyp", "moov", "moof", "mdat", "mp4a", "Opus", "dOps", "esds", "mvex", "trak"].filter((t) => txt.includes(t));
+        if (b.raw) { let bin = ""; for (const x of u) bin += String.fromCharCode(x); out.push({ path: String(path).slice(-12), b64: btoa(bin) }); continue; }   // نسخة الملف للتحليل (رسائل تجربة أبو مالك)
         out.push({ path: String(path).slice(-12), size: u.length, brand: txt.slice(8, 12), tags, moovFirst: txt.indexOf("moov") >= 0 && (txt.indexOf("mdat") < 0 || txt.indexOf("moov") < txt.indexOf("mdat")) });
       }
       return json({ ok: true, out });
