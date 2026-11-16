@@ -477,11 +477,23 @@ jobs:
                   token = pushToken.map { String(format: "%02x", $0) }.joined()
                   post("ptt", ["ptt_token": token])
               }
+              // 16 نوفمبر (نسخة تجريبية لجوال أبو مالك): «مسجّل» اللاسلكي — كل خطوة توصل السيرفر مباشرة (الصفحة نايمة والجوال مقفل)
+              private var ndSeq = 0
+              private func nd(_ s: String, _ id: String = "", _ x: String = "") {
+                  ndSeq += 1
+                  var e: [String: Any] = ["s": "nd_" + s, "n": true, "k": ndSeq, "fg": active, "so": sessionOn, "q": queue.count, "pl": player != nil, "tx": transmitting]
+                  if !id.isEmpty { e["id"] = String(id.prefix(8)) }
+                  if !x.isEmpty { e["x"] = String(x.prefix(40)) }
+                  e["as"] = AVAudioSession.sharedInstance().category == .playAndRecord ? "pr" : String(AVAudioSession.sharedInstance().category.rawValue.suffix(12))
+                  post("diag", ["e": e])
+              }
               // صوت وصل والجوال مقفل: النظام يصحّي التطبيق ويفعّل الصوت، ونحن نشغّل الرسالة
               func incomingPushResult(channelManager: PTChannelManager, channelUUID: UUID, pushPayload: [String: Any]) -> PTPushResult {
                   if (pushPayload["leave"] as? Bool) == true { return .leaveChannel }
                   let who = (pushPayload["activeSpeaker"] as? String) ?? "عضو في الغرفة"
                   let vid = (pushPayload["id"] as? String) ?? ""
+                  let webp = playedByWeb(vid)
+                  DispatchQueue.main.async { self.nd("push", vid, webp ? "web" : "") }
                   // 1.6 (44): نشغّل الرسالة بأنفسنا حتى والتطبيق مفتوح. قبل كانت الصفحة تشغّلها، فيأخذ النظام الصوت منها لحظة
                   // تفعيل اللاسلكي وينقطع التشغيل (AbortError ~45%). إلا إذا الصفحة شغّلتها قبلنا
                   if let s = pushPayload["url"] as? String, let u = URL(string: s), !playedByWeb(vid) {
@@ -489,7 +501,7 @@ jobs:
                       DispatchQueue.main.async { self.pev("nstart", vid) }
                       // 1.5: إذا الصوت مفعّل أصلًا (رسالة ورا رسالة) نشغّل على طول بدل ما تعلق في الانتظار
                       // نبدأ التحميل فورًا (ما ننتظر تفعيل الصوت) حتى يشتغل أول ما يجهز
-                      URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
+                      URLSession.shared.dataTask(with: u) { d, _, _ in DispatchQueue.main.async { self.nd("dl", vid, String(d?.count ?? -1)); if let d = d { self.pre[u] = d; if self.player == nil && self.sessionOn { self.playNext() } } } }.resume()
                       DispatchQueue.main.async { self.queue.append((u, vid)); self.arm(); if self.player == nil && self.sessionOn { self.playNext() } }
                   } else {
                       // الصفحة شغّلتها (أو ما فيه رابط): نفك «المتكلم الحالي» على طول
@@ -499,15 +511,15 @@ jobs:
               }
               func channelManager(_ channelManager: PTChannelManager, didActivate audioSession: AVAudioSession) {
                   if audioSession.category != .playAndRecord { try? audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth]) }
-                  DispatchQueue.main.async { self.sessionOn = true; if self.transmitting { self.startRec() } else { self.playNext() } }
+                  DispatchQueue.main.async { self.sessionOn = true; self.nd("act"); if self.transmitting { self.startRec() } else { self.playNext() } }
               }
-              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) { DispatchQueue.main.async { self.sessionOn = false } }
+              func channelManager(_ channelManager: PTChannelManager, didDeactivate audioSession: AVAudioSession) { DispatchQueue.main.async { self.sessionOn = false; self.nd("deact") } }
               // صمّام أمان: «المتكلم الحالي» ما يعلق أبدًا (وإلا يقفل زر «تحدّث» في شاشة القفل)
               private func arm() {
                   watchdog?.cancel()
                   let w = DispatchWorkItem { [weak self] in
                       guard let self = self else { return }
-                      if self.player == nil { self.queue.removeAll(); self.finish() } else { self.arm() }
+                      if self.player == nil { self.nd("wd", "", String(self.queue.count)); self.queue.removeAll(); self.finish() } else { self.arm() }
                   }
                   watchdog = w
                   DispatchQueue.main.asyncAfter(deadline: .now() + 20, execute: w)
@@ -520,19 +532,19 @@ jobs:
                   arm()
                   let start: (Data?) -> Void = { d in
                       DispatchQueue.main.async {
-                          guard let d = d else { self.pev("nfail", vid, "download"); self.playNext(); return }
-                          guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.playNext(); return }
+                          guard let d = d else { self.pev("nfail", vid, "download"); self.nd("fail", vid, "download"); self.playNext(); return }
+                          guard let p = try? AVAudioPlayer(data: d) else { self.pev("nfail", vid, "decode_" + String(d.count)); self.nd("fail", vid, "decode_" + String(d.count)); self.playNext(); return }
                           self.player = p; p.delegate = self; p.prepareToPlay(); self.playingId = vid
                           var ok = p.play()
                           // 1.9: التطبيق قدام المستخدم والصوت مو مفعّل: نفعّله ونعيد مرة
                           if !ok && self.active { try? AVAudioSession.sharedInstance().setActive(true); ok = p.play() }
-                          if ok { self.pev("nplay", vid) }
+                          if ok { self.pev("nplay", vid); self.nd("play", vid, String(format: "%.1f", p.duration)) }
                           else if !self.sessionOn && !self.active && !self.waitIds.contains(vid) {
                               // 1.9: بالخلفية والنظام لسه ما فعّل الصوت: نرجّعها أول الطابور وننتظر didActivate بدل ما نفشل (play_nosession)
                               self.waitIds.insert(vid); if self.waitIds.count > 50 { self.waitIds.removeAll() }
-                              self.player = nil; self.playingId = ""; self.pre[u] = d; self.queue.insert((u, vid), at: 0); self.arm()
+                              self.player = nil; self.playingId = ""; self.pre[u] = d; self.queue.insert((u, vid), at: 0); self.arm(); self.nd("waitact", vid)
                           }
-                          else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.playNext() }
+                          else { self.player = nil; self.playingId = ""; self.pev("nfail", vid, self.sessionOn ? "play" : "play_nosession"); self.nd("fail", vid, self.sessionOn ? "play" : "nosession"); self.playNext() }
                       }
                   }
                   if let d = pre.removeValue(forKey: u) { start(d) }   // محمّلة مسبقًا
@@ -542,11 +554,11 @@ jobs:
                   DispatchQueue.main.async {
                       // «سمعها»: نبلّغ المرسل إن الرسالة اشتغلت والجوال مقفل
                       if flag && !self.playingId.isEmpty { self.post("heard", ["ids": [self.playingId]]) }
-                      self.pev(flag ? "ndone" : "nfail", self.playingId, flag ? "" : "finish")
+                      self.pev(flag ? "ndone" : "nfail", self.playingId, flag ? "" : "finish"); self.nd(flag ? "done" : "fail", self.playingId, flag ? "" : "finish")
                       self.player = nil; self.playingId = ""; self.playNext()
                   }
               }
-              private func finish() { watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
+              private func finish() { nd("finish"); watchdog?.cancel(); watchdog = nil; if let m = mgr, let c = joined { m.setActiveRemoteParticipant(nil, channelUUID: c, completionHandler: nil) } }
               // الكلام من زر اللاسلكي في شاشة القفل
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didBeginTransmittingFrom source: PTChannelTransmitRequestSource) { ensureCategory(); DispatchQueue.main.async { self.transmitting = true; self.evt("rec"); if self.sessionOn && self.recorder == nil { self.player?.stop(); if !self.playingId.isEmpty { self.pev("ndone", self.playingId); self.playingId = "" }; self.player = nil; self.startRec() } } }
               func channelManager(_ channelManager: PTChannelManager, channelUUID: UUID, didEndTransmittingFrom source: PTChannelTransmitRequestSource) { DispatchQueue.main.async { self.transmitting = false; self.evt("end"); self.stopRec() } }
