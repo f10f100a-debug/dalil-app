@@ -289,6 +289,9 @@ jobs:
                       UIApplication.shared.isIdleTimerDisabled = !awake.isEmpty
                   } else if cmd == "played" {
                       if #available(iOS 16.0, *), let id = b["id"] as? String { DalilPTT.shared.markWebPlayed(id) }
+                  } else if cmd == "openSettings" {
+                      // 1.10: إذن الموقع (أو البوصلة/التنبيهات) مرفوض — نفتح صفحة دليل في الإعدادات مباشرة (الآيفون ما يسمح نطلب الإذن مرة ثانية)
+                      if let u = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(u, options: [:], completionHandler: nil) }
                   } else if cmd == "drain" {
                       let pts = buffer; buffer.removeAll()
                       if let d = try? JSONSerialization.data(withJSONObject: pts), let s = String(data: d, encoding: .utf8) {
