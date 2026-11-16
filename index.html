@@ -2279,8 +2279,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
         : 'افتح الإعدادات ← دليل ← الموقع ← «أثناء استخدام التطبيق»، وفعّل «الموقع الدقيق». وتأكد إن الخصوصية ← خدمات الموقع مفعّلة.';
       onboardPermissionNote.textContent = 'لم يُفعّل إذن ' + missing.join(' و') + '. ' + how + ' بعدها ارجع واضغط «🔄 إعادة المحاولة».';
       // أندرويد 1.1: زر يفتح صفحة دليل في إعدادات الجوال مباشرة
-      if(window.DalilAndroid && DalilAndroid.openSettings){ const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'btn'; sb.style.cssText = 'display:block;margin:8px auto 0'; sb.textContent = '⚙️ فتح إعدادات دليل';
-        sb.onclick = ()=>{ try{ DalilAndroid.openSettings(); }catch(e){} }; onboardPermissionNote.appendChild(sb); }
+      // آيفون 1.10+: نفس الزر عن طريق جسر التطبيق (cmd:'openSettings') — النسخ الأقدم ما تعرف الأمر فما يطلع لها
+      const iosV = (navigator.userAgent.match(/DalilApp\/(\d+)\.(\d+)/) || []).slice(1).map(Number), iosSettings = iosV.length === 2 && (iosV[0] > 1 || iosV[1] >= 10) && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dalil;
+      if((window.DalilAndroid && DalilAndroid.openSettings) || iosSettings){ const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'btn'; sb.style.cssText = 'display:block;margin:8px auto 0'; sb.textContent = '⚙️ فتح إعدادات دليل';
+        sb.onclick = ()=>{ try{ if(window.DalilAndroid && DalilAndroid.openSettings) DalilAndroid.openSettings(); else window.webkit.messageHandlers.dalil.postMessage({cmd:'openSettings'}); }catch(e){} }; onboardPermissionNote.appendChild(sb); }
       onboardBtn.textContent = '🔄 إعادة المحاولة';
       skipPermissionsBtn.style.display = 'block';
     }
