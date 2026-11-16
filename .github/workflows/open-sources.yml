@@ -1,0 +1,71 @@
+# يجيب بيانات مفتوحة فقط (OpenStreetMap عبر Overpass — ODbL، ويكي داتا — CC0، GeoNames — CC BY 4.0) للمملكة،
+# ويحطها في فرع open-sources (بيانات مفتوحة أصلًا). نستخدمها نتحقق من مواقع قبل إضافتها — ما يرفع أي ملف من أبو مالك.
+name: Open sources fetch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch
+        shell: python
+        run: |
+          import json, urllib.request, urllib.parse, zipfile, io, os, time
+          os.makedirs("out", exist_ok=True)
+          UA = {"User-Agent": "DalilApp/1.0 (github.com/f10f100a-debug/dalil-app)"}
+          def get(url, data=None, timeout=600):
+              r = urllib.request.Request(url, data=data, headers=UA)
+              with urllib.request.urlopen(r, timeout=timeout) as x: return x.read()
+          # 1) OpenStreetMap (Overpass): مواقع لها اسم داخل المملكة — ماء، آثار، طبيعة، طرق برية، أماكن
+          q = """[out:json][timeout:500];area["ISO3166-1"="SA"][admin_level=2]->.a;
+          (nwr(area.a)["name"]["natural"~"spring|water|peak|hill|sand|dune|cave_entrance|valley|wadi|ridge|saddle|sinkhole"];
+           nwr(area.a)["name"]["man_made"~"water_well|water_tower|reservoir_covered"];
+           nwr(area.a)["name"]["amenity"~"drinking_water|water_point|fuel"];
+           nwr(area.a)["name"]["historic"];
+           nwr(area.a)["name"]["water"];
+           nwr(area.a)["name"]["tourism"~"attraction|viewpoint|camp_site|picnic_site"];
+           nwr(area.a)["name"]["place"~"locality|hamlet|isolated_dwelling"];);out center tags;"""
+          for ep in ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]:
+              try:
+                  d = json.loads(get(ep, urllib.parse.urlencode({"data": q}).encode()))
+                  rows = []
+                  for e in d.get("elements", []):
+                      t = e.get("tags", {}); la = e.get("lat") or (e.get("center") or {}).get("lat"); lo = e.get("lon") or (e.get("center") or {}).get("lon")
+                      if la is None: continue
+                      kind = next((k + "=" + t[k] for k in ("natural", "man_made", "amenity", "historic", "water", "tourism", "place") if k in t), "")
+                      rows.append([t.get("name:ar") or t.get("name"), round(la, 5), round(lo, 5), kind, e["type"][0] + str(e["id"])])
+                  json.dump(rows, open("out/osm.json", "w"), ensure_ascii=False); print("osm", len(rows)); break
+              except Exception as ex: print("overpass", ep, ex); time.sleep(20)
+          # 2) ويكي داتا: عناصر في المملكة لها إحداثيات (اسم عربي إذا موجود)
+          sp = """SELECT ?i ?l ?c ?t WHERE { ?i wdt:P17 wd:Q851; wdt:P625 ?c. OPTIONAL{?i rdfs:label ?l FILTER(lang(?l)="ar")} OPTIONAL{?i wdt:P31 ?t} }"""
+          try:
+              d = json.loads(get("https://query.wikidata.org/sparql?format=json&query=" + urllib.parse.quote(sp)))
+              rows = {}
+              for b in d["results"]["bindings"]:
+                  if "l" not in b: continue
+                  c = b["c"]["value"].replace("Point(", "").replace(")", "").split()
+                  rows[b["i"]["value"].split("/")[-1]] = [b["l"]["value"], round(float(c[1]), 5), round(float(c[0]), 5), (b.get("t") or {}).get("value", "").split("/")[-1]]
+              json.dump([[v[0], v[1], v[2], v[3], k] for k, v in rows.items()], open("out/wikidata.json", "w"), ensure_ascii=False); print("wikidata", len(rows))
+          except Exception as ex: print("wikidata", ex)
+          # 3) GeoNames (الملف الكامل للمملكة) — الاسم العربي من الأسماء البديلة إذا موجود
+          try:
+              z = zipfile.ZipFile(io.BytesIO(get("https://download.geonames.org/export/dump/SA.zip")))
+              rows = []
+              for line in z.read("SA.txt").decode().splitlines():
+                  f = line.split("\t")
+                  alts = [a for a in f[3].split(",") if any("؀" <= ch <= "ۿ" for ch in a)]
+                  rows.append([alts[0] if alts else f[1], round(float(f[4]), 5), round(float(f[5]), 5), f[6] + "." + f[7], "g" + f[0]])
+              json.dump(rows, open("out/geonames.json", "w"), ensure_ascii=False); print("geonames", len(rows))
+          except Exception as ex: print("geonames", ex)
+          open("out/README.txt", "w").write("بيانات مفتوحة: OpenStreetMap contributors (ODbL) · Wikidata (CC0) · GeoNames (CC BY 4.0). للتحقق فقط.\n")
+      - name: Publish to branch
+        run: |
+          cd out && ls -la && git init -q && git checkout -q -b open-sources
+          git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "open sources $(date -u +%F)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" open-sources
