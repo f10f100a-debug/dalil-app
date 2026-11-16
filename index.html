@@ -6426,7 +6426,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     if(Date.now() - fieldAt < 600e3) return; fieldAt = Date.now();
     const K = 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw';
     fetch('https://penhpgvjtxytgyrhmetg.supabase.co/rest/v1/rpc/spring_field_points', {method:'POST', cache:'no-store', headers:{apikey:K, authorization:'Bearer ' + K, 'Content-Type':'application/json'}, body:'{"p_days":10}'})
-      .then(r=>r.ok ? r.json() : []).then(j=>{ const pts = (j || []).map(x=>[+x.lat, +x.lng]).filter(p=>isFinite(p[0]) && isFinite(p[1]));
+      .then(r=>r.ok ? r.json() : []).then(j=>{ const pts = (j || []).map(x=>[+x.lat, +x.lng, +x.level || 1]).filter(p=>isFinite(p[0]) && isFinite(p[1]));
         if(pts.length !== FIELD_PTS.length){ FIELD_PTS = pts; try{ renderFayd(); }catch(e){} } }).catch(()=>{});
   }
   function renderFayd(){
@@ -6441,7 +6441,10 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], pct:r[3], chk:r[5] === 5 ? 0 : (r[5] || 0), field:r[5] === 5, d:r[6] || ''} : null; }).filter(Boolean);
     // 13 نوفمبر: بلاغات «🌱 ربيع عندك؟» من جهازين فأكثر (آخر 10 أيام) تأكد الفيضة على طول — قبل لا تجي صورة القمر وتحديث اليوم
     loadFieldPts();
-    if(FIELD_PTS.length) rows.forEach(r=>{ if(r.field) return; if(FIELD_PTS.some(p=>Math.abs(p[0] - r.lat) < .06 && Math.abs(p[1] - r.lng) < .07 && haversine(p[0], p[1], r.lat, r.lng) <= 5000)){ r.field = true; r.chk = 0; if(r.st < 2) r.st = 2; } });
+    // 16 نوفمبر: كانت 5 كم → بلاغات من داخل بقعاء رفعت قاع الملح وقاع قويرة حسن (القمر +0٪). الحين: البلاغ لازم يكون خلال 1.5 كم،
+    // وما يرفع الفيضة لـ«مثل المعتاد» إلا «متوسط» أو «كثيف» (2+). «بداية» بس يكتب «بلاغ قريب» بدون ما يغيّر ترتيبها
+    if(FIELD_PTS.length) rows.forEach(r=>{ if(r.field) return; const near = FIELD_PTS.filter(p=>Math.abs(p[0] - r.lat) < .02 && Math.abs(p[1] - r.lng) < .02 && haversine(p[0], p[1], r.lat, r.lng) <= 1500); if(!near.length) return;
+      if(near.some(p=>p[2] >= 2)){ r.field = true; r.chk = 0; if(r.st < 2) r.st = 2; } else r.nearRep = true; });
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
     if(pos) rows.forEach(r=>r.km = haversine(pos.lat, pos.lng, r.lat, r.lng) / 1000);
     if(faydFilter === 'near'){
@@ -6460,7 +6463,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '');
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------

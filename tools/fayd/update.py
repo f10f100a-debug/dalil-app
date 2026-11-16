@@ -300,18 +300,19 @@ print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in
 # فيضة حولها (5 كم) نقطة مؤكدة من الميدان — من data/fayd-field.json أو بلاغات «ربيع عندك؟» من جهازين فأكثر —
 # والقمر يشوف فيها بداية خضرة (3% فأكثر من مساحتها) → «بداية ربيع — مؤكدة من الميدان» (check=5)
 FIELD = []
-try: FIELD += [(r[0], r[1]) for r in json.load(open("data/fayd-field.json"))["rows"]]
+try: FIELD += [(r[0], r[1], 5) for r in json.load(open("data/fayd-field.json"))["rows"]]
 except Exception as e: print("field file", e)
 try:
     q = urllib.request.Request(radar.SB + "/rest/v1/rpc/spring_field_points", data=b'{"p_days":10}',
                                headers={"apikey": radar.KEY, "authorization": "Bearer " + radar.KEY, "content-type": "application/json"})
-    with urllib.request.urlopen(q, timeout=60) as r: FIELD += [(float(x["lat"]), float(x["lng"])) for x in json.load(r) or []]
+    # 16 نوفمبر: بلاغات الناس تحسب بس «متوسط/كثيف» (2+) وخلال 1.5 كم (كانت «بداية» و5 كم — بلاغات من البلد رفعت فياض حولها)
+    with urllib.request.urlopen(q, timeout=60) as r: FIELD += [(float(x["lat"]), float(x["lng"]), 1.5) for x in json.load(r) or [] if int(x.get("level") or 1) >= 2]
 except Exception as e: print("field reports", e)
 fieldn = 0
 if FIELD:
     for r in rows:
         la, lo = SITES[r[0]][1], SITES[r[0]][2]
-        near = any(abs(a - la) < .06 and abs(b - lo) < .07 and math.hypot((a - la) * 111, (b - lo) * 111 * math.cos(math.radians(la))) <= 5 for a, b in FIELD)
+        near = any(abs(a - la) < .06 and abs(b - lo) < .07 and math.hypot((a - la) * 111, (b - lo) * 111 * math.cos(math.radians(la))) <= km for a, b, km in FIELD)
         if near and r[4] == 1 and (r[3] or 0) >= 3 and (r[2] <= 1) and r[5] != 1 and r[0] not in farm:
             r[2] = 2; r[5] = 5; fieldn += 1
     print(f"::notice::field-confirmed: {fieldn} fayd near {len(FIELD)} field points", flush=True)
