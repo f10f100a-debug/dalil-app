@@ -44,7 +44,7 @@ for ci, (ct, secs) in enumerate(C.CH):
         pno += 1
 info = """<div class="pg"><div class="chap"><span class="n">ℹ</span>معلومات عامة</div><div class="card info"><ol>
 <li><b>التطبيق</b>دليل - بوصلة البر. مجاني بالكامل وبدون تسجيل حساب.</li>
-<li><b>وين تلقاه</b>الآيفون من App Store، ومن المتصفح على أي جوال: f10f100a-debug.github.io/dalil-app — وتقدر تضيفه للشاشة الرئيسية.</li>
+<li><b>وين تلقاه</b>الآيفون من App Store. الأندرويد: f10f100a-debug.github.io/dalil-app/android. ومن المتصفح على أي جوال: f10f100a-debug.github.io/dalil-app — وتقدر تضيفه للشاشة الرئيسية.</li>
 <li><b>الخصوصية</b>موقعك ما يُحفظ عندنا. أماكنك في جوالك. مواقع الغرفة تنتقل بين الأعضاء ولا تُخزَّن، والرسائل الصوتية تنحذف بعد ساعة.</li>
 <li><b>الدعم والاقتراحات</b>dalilbarr.app@gmail.com</li>
 <li><b>المصادر</b>الرادار: RainViewer · الطقس: Open-Meteo · المحطات: Ogimet · الأقمار: NASA وSentinel‑2 · الخرائط: OpenStreetMap وCopernicus DEM.</li>
