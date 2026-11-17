@@ -1253,6 +1253,38 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 #rainBar .rb-i{font-size:30px;line-height:1}#rainBar .rb-t{flex:1;min-width:0;line-height:1.45}
 #rainBar b{display:block;font-size:16px}#rainBar small{display:block;font-size:13px;opacity:.92}#rainBar em{display:block;font-style:normal;font-size:11.5px;opacity:.75;margin-top:2px}
 #rainBar .rb-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:15px}
+/* 17 نوفمبر (تجربة dalil_lab_home): ترتيب البوصلة الجديد — شريط فوق، سهم شمال ثلاثي الأبعاد، 4 أزرار، SOS باين */
+html.home2 #screen-compass.active{display:flex; flex-direction:column}
+html.home2 #screen-compass > *{order:20}
+html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #navActivation{order:2} html.home2 #screen-compass > #h2Strip{order:3} html.home2 #screen-compass > .cp-compass-card{order:4}
+html.home2 #screen-compass > #stormStrip{order:5} html.home2 #screen-compass > #carCard{order:6} html.home2 #screen-compass > #h2Grid{order:7} html.home2 #screen-compass > #emergencyBtn{order:8} html.home2 #screen-compass > #sosNote{order:9}
+html.home2 #cpWeatherBadge, html.home2 #cpRainBadge, html.home2 #roomBtn, html.home2 .cp-actions, html.home2 #cpSun{display:none!important}
+html.home2:not(.h2guide) #carCard{display:none}
+html.home2 .cp-compass{width:min(100%, 330px, 39dvh)}
+html.home2 .cp-compass-card{padding:6px 12px 0; margin-bottom:8px}
+html.home2 #cpCompass:not(.h2t) .cp-center{display:none}
+html.home2 #cpCompass.h2t .h2needle{display:none}
+.h2needle{position:absolute; inset:0}
+#h2Strip{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--cp-card); border:1px solid var(--cp-line); border-radius:18px; padding:6px 14px; margin-bottom:8px; min-height:64px; box-sizing:border-box}
+#h2Strip .h2s{flex:1; min-width:0; font-size:13.5px; line-height:1.55; color:var(--cp-dim); background:none; border:0; padding:0; font-family:inherit; text-align:right; cursor:pointer}
+#h2Strip .h2s b{color:var(--cp-ink); font-weight:800}
+#h2Strip .h2s.l{text-align:left}
+#h2Strip .h2h{flex:none; text-align:center; line-height:1.05}
+#h2Strip .h2h b{display:block; font-size:34px; font-weight:900; color:var(--cp-ink); font-variant-numeric:tabular-nums}
+#h2Strip .h2h span{display:block; font-size:14.5px; font-weight:800; color:var(--cp-gold-ink, #8A5A12)}
+#h2Grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px}
+#h2Grid .h2t{display:flex; align-items:center; gap:10px; min-height:58px; padding:8px 10px; background:var(--cp-card); border:1px solid var(--cp-line); border-radius:16px; color:var(--cp-ink); font-family:inherit; text-align:right; cursor:pointer; position:relative; min-width:0}
+#h2Grid .h2t .i{flex:none; width:38px; height:38px; border-radius:12px; background:var(--cp-soft, #F6EFE3); display:flex; align-items:center; justify-content:center; font-size:20px}
+#h2Grid .h2t .x{min-width:0; flex:1}
+#h2Grid .h2t b{display:block; font-size:15px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#h2Grid .h2t small{display:block; font-size:12.5px; color:var(--cp-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#h2Grid .h2t.room{background:linear-gradient(135deg,#17594F,#23806F); color:#fff; border:0}
+#h2Grid .h2t.room .i{background:rgba(255,255,255,.18)} #h2Grid .h2t.room small{color:#D5EEE8}
+#h2Grid .h2t .dot{position:absolute; top:8px; left:8px; width:10px; height:10px; border-radius:50%; background:#FF5A4E; box-shadow:0 0 0 2px #fff}
+#h2Grid .h2t[data-h2="save"]{gap:7px} #h2Grid .h2t[data-h2="save"] .i{width:34px; height:34px}
+#h2Grid .h2paste{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:1px solid var(--cp-line); background:var(--cp-soft, #F6EFE3); border-radius:10px; font-size:16px}
+@media (max-width:370px){ #h2Grid .h2t{gap:7px; padding:8px} #h2Grid .h2t .i{width:30px; height:30px; font-size:17px; border-radius:10px} #h2Grid .h2t b{font-size:14px} #h2Grid .h2t small{font-size:11.5px} #h2Grid .h2paste{width:30px; height:30px} }
+html.home2 .cp-sos{margin-top:0}
 </style>
 </head>
 <body class="on-compass">
@@ -2197,7 +2229,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
+      const LABS = [['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
@@ -2205,7 +2237,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait'].includes(c.dataset.lab)) c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');   // 14 نوفمبر: الرادار بعد 30 د ومخيمك آمن ووين أطلع للكل (تنطفي بـ '0')
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       if(window.__rainbarLab){ const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'btn'; rd.style.cssText = 'margin-top:8px;width:100%'; rd.textContent = '👀 شوف شكل شريط المطر (مثال)'; rd.onclick = ()=>window.__rainBarDemo && window.__rainBarDemo(); box.appendChild(rd); }
@@ -3220,6 +3252,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     renderCorners(pos, t, nav, car);
     setText('cpCSub', sub);
     setText('cpCSub2', sub2);
+    if(window.__h2) window.__h2.head(haveHeading ? heading : null, !!t);
 
     renderCarCard(car, t, nav, near);
   }
@@ -3487,6 +3520,76 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     } else if(!key) STORM.warned = '';
   }
   document.getElementById('stormStrip').addEventListener('click', ()=>document.getElementById('openRadarBtn').click());
+
+  // ---------- 17 نوفمبر (تجربة dalil_lab_home — جوالات أبو مالك أول): ترتيب البوصلة الجديد ----------
+  (function(){
+    let on = false; try{ on = localStorage.getItem('dalil_lab_home') === '1'; }catch(e){}
+    if(!on) return;
+    document.documentElement.classList.add('home2');
+    const scr = document.getElementById('screen-compass'), cmp = document.getElementById('cpCompass'), rot = document.getElementById('cpDialRot');
+    // سهم الشمال ثلاثي الأبعاد: داخل طبقة القرص فيدور معه ويأشر دايم على الشمال
+    const nd = document.createElement('div'); nd.className = 'h2needle'; nd.setAttribute('aria-hidden', 'true');
+    nd.innerHTML = '<svg class="cp-layer" viewBox="-14 -14 328 328"><defs><filter id="h2sh" x="-50%" y="-50%" width="200%" height="200%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#3a2208" flood-opacity=".38"/></filter>'
+      + '<linearGradient id="h2gl" x1="0" x2="1"><stop offset="0" stop-color="#F7B860"/><stop offset="1" stop-color="#E8912F"/></linearGradient><linearGradient id="h2gr" x1="0" x2="1"><stop offset="0" stop-color="#C46D18"/><stop offset="1" stop-color="#A65810"/></linearGradient>'
+      + '<radialGradient id="h2hub"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#F1E6D4"/><stop offset="1" stop-color="#B98A4A"/></radialGradient></defs>'
+      + '<g filter="url(#h2sh)"><polygon points="150,62 150,182 120,208" fill="url(#h2gl)"/><polygon points="150,62 180,208 150,182" fill="url(#h2gr)"/></g>'
+      + '<circle cx="150" cy="150" r="10" fill="url(#h2hub)" stroke="#8A5A12" stroke-width="2"/></svg>';
+    rot.appendChild(nd);
+    // الشريط: الطقس والمطر · الاتجاه · الصلاة الجاية
+    const strip = document.createElement('div'); strip.id = 'h2Strip';
+    strip.innerHTML = '<button type="button" class="h2s" data-h2="wx"></button><div class="h2h"><b dir="ltr">--°</b><span>بانتظار البوصلة</span></div><button type="button" class="h2s l" data-h2="sun"></button>';
+    scr.insertBefore(strip, scr.querySelector('.cp-compass-card'));
+    const sb = strip.querySelector('b'), ss = strip.querySelector('.h2h span'), wx = strip.querySelector('[data-h2="wx"]'), sun = strip.querySelector('[data-h2="sun"]');
+    wx.onclick = ()=>{ const r = document.getElementById('cpRainBadge'); (r && !r.hidden ? r : document.getElementById('cpWeatherBadge')).click(); };
+    sun.onclick = ()=>{ const c = document.getElementById('cpSun'); if(c) c.click(); };
+    // الأزرار الأربعة
+    const grid = document.createElement('div'); grid.id = 'h2Grid';
+    grid.innerHTML = '<button type="button" class="h2t" data-h2="car"><span class="i">🚗</span><span class="x"><b>السيارة</b><small>احفظ مكانها</small></span></button>'
+      + '<button type="button" class="h2t room" data-h2="room" hidden><span class="i">🎙️</span><span class="x"><b>غرفة الرحلة</b><small>كلّم جماعتك</small></span><span class="dot" hidden></span></button>'
+      + '<button type="button" class="h2t" data-h2="save"><span class="i">📍</span><span class="x"><b>حفظ مكان</b><small>أو 📋 لصق</small></span><span class="h2paste" data-h2="paste" role="button" aria-label="لصق موقع">📋</span></button>'
+      + '<button type="button" class="h2t" data-h2="share"><span class="i">📤</span><span class="x"><b>أرسل موقعي</b><small>واتساب أو رسالة</small></span></button>';
+    scr.insertBefore(grid, document.getElementById('emergencyBtn'));
+    const carT = grid.querySelector('[data-h2="car"]'), roomT = grid.querySelector('[data-h2="room"]');
+    const cc = document.getElementById('carCard'), rb = document.getElementById('roomBtn');
+    carT.onclick = ()=>{ const b = cc.querySelector('[data-act="go-car"]') || cc.querySelector('[data-act="save-car"]'); if(b) b.click(); };
+    roomT.onclick = ()=>rb.click();
+    grid.querySelector('[data-h2="save"]').onclick = e=>{ if(e.target.closest('[data-h2="paste"]')) document.getElementById('pasteBtn').click(); else document.getElementById('saveHereBtn').click(); };
+    grid.querySelector('[data-h2="share"]').onclick = ()=>document.getElementById('shareCurrentBtn').click();
+    const setT = (el, t)=>{ if(el.textContent !== t) el.textContent = t; };
+    function mirror(){
+      // الطقس + المطر
+      const wt = (document.getElementById('cpWeatherTemp') || {}).textContent || '', wi = (document.getElementById('cpWeatherIcon') || {}).innerHTML || '';
+      const rbd = document.getElementById('cpRainBadge'), rt = rbd && !rbd.hidden ? (document.getElementById('cpRainText') || {}).textContent : '';
+      const wh = (wt ? '<span style="display:inline-flex;vertical-align:middle;width:18px">' + wi + '</span> <b dir="ltr">' + escapeHtml(wt) + '</b>' : '') + (rt ? '<br>🌧️ ' + escapeHtml(rt) : '');
+      if(wx.dataset.v !== wh){ wx.dataset.v = wh; wx.innerHTML = wh; }
+      // الصلاة/الشمس من الزاوية
+      const c = document.getElementById('cpSun'), k = c && c.querySelector('[data-k]'), v = c && c.querySelector('[data-v]');
+      const sh = c && !c.hidden && k && v ? escapeHtml(k.textContent) + '<br><b>' + escapeHtml(v.textContent) + '</b>' : '';
+      if(sun.dataset.v !== sh){ sun.dataset.v = sh; sun.innerHTML = sh; }
+      // الغرفة
+      roomT.hidden = rb.style.display === 'none';
+      const bd = rb.querySelector('.rm-badge'), dt = rb.querySelector('.rm-new');
+      setT(roomT.querySelector('small'), bd && !bd.hidden && bd.textContent ? bd.textContent : 'كلّم جماعتك');
+      roomT.querySelector('.dot').hidden = !dt || dt.hidden;
+      grid.classList.toggle('three', roomT.hidden);
+    }
+    mirror(); setInterval(()=>{ if(scr.classList.contains('active')) mirror(); }, 1500);
+    new MutationObserver(mirror).observe(rb, {subtree:true, childList:true, characterData:true, attributes:true});
+    window.__h2 = {
+      head(h, tgt){
+        cmp.classList.toggle('h2t', tgt);
+        setT(sb, h == null ? '--°' : iso(Math.round(h) + '°'));
+        setT(ss, h == null ? 'بانتظار البوصلة' : cardinalSpaced(h));
+      },
+      car(key, car, pos){
+        document.documentElement.classList.toggle('h2guide', !(key === 'none' || key === 'saved'));
+        const sm = carT.querySelector('small');
+        if(key === 'none' || !car) setT(sm, 'احفظ مكانها');
+        else if(pos){ const d = haversine(pos.lat, pos.lng, car.lat, car.lng), b = bearing(pos.lat, pos.lng, car.lat, car.lng); setT(sm, ['⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️'][Math.round(b/45)%8] + ' ' + fmtDist(d) + ' ' + directionWord(b)); }
+        else setT(sm, 'محفوظة');
+      }
+    };
+  })();
   // 17 نوفمبر (تجربة dalil_lab_rainbar — جوالات أبو مالك أول): تنبيه المطر المهم (جايك خلال ساعة، فوقك، برق قريب) يطلع شريط بارز
   // ينزل من فوق بدل الرسالة الصغيرة اللي تختفي — ما يغطي البوصلة، يبقى دقيقة أو لين تسكره، وتضغطه يفتح الرادار. الحساب كله داخل الجوال.
   function rainBar(icon, t, sub, cls){
@@ -3771,6 +3874,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
       }
       carCardEl.innerHTML = html;
     }
+    if(window.__h2) window.__h2.car(key, car, state.pos);
     const titleEl = carCardEl.querySelector('[data-f="title"]');
     const subEl = carCardEl.querySelector('[data-f="sub"]');
     if(titleEl) setText(titleEl, title);
