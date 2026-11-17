@@ -3219,7 +3219,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(car && !isCarTarget(t)){
         // سهم صغير على الحافة باتجاه السيارة (أصغر من سهم التوجيه).
         const cb = bearing(pos.lat, pos.lng, car.lat, car.lng);
-        marks += `<path class="cp-car-dot" d="M150 8 L161 30 L150 25 L139 30 Z" transform="rotate(${cb.toFixed(1)} ${C} ${C})"><title>السيارة</title></path>`;
+        marks += `<path class="cp-car-dot" d="${window.__h2 ? 'M150 1 L170 37 L150 29 L130 37 Z' : 'M150 8 L161 30 L150 25 L139 30 Z'}" transform="rotate(${cb.toFixed(1)} ${C} ${C})"><title>السيارة</title></path>`;   // تجربة الشاشة الجديدة: سهم السيارة أكبر
       }
     }
     if(marks !== lastMarks){ dialMarksEl.innerHTML = marks; lastMarks = marks; }
