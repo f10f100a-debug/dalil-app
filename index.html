@@ -1124,6 +1124,14 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .push-row select{flex:1;}
   .cp-btn[hidden]{display:none;}
   .share-card{margin-bottom:4px;}
+  /* 17 نوفمبر: «🌱 ربيع عندك؟» فوق قائمة الفياض */
+  .fy-rep{margin:8px 0 10px; border:1px dashed #9BC49A; border-radius:14px; background:rgba(79,163,90,.08); padding:4px}
+  .fy-rep-open{width:100%; display:flex; align-items:center; gap:6px; border:0; background:none; padding:8px 8px; font:inherit; font-size:14px; color:var(--text); text-align:right; cursor:pointer}
+  .fy-rep-open span{flex:1} .fy-rep-open b{color:#2E7D46; font-weight:800}
+  .fy-rep-row{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; padding:4px}
+  .fy-rep-row button{border:1px solid #CFE3CC; background:var(--panel, #fff); border-radius:12px; padding:8px 2px; font:inherit; font-size:13px; font-weight:700; color:var(--text); cursor:pointer; line-height:1.3}
+  .fy-rep-row small{display:block; font-size:10.5px; font-weight:500; color:var(--text-dim)}
+  .fy-rep-note{display:block; padding:2px 8px 6px; font-size:11.5px; color:var(--text-dim); line-height:1.5}
 
   /* ===== الوضع الليلي والأحمر ===== */
   html[data-theme="dark"], html[data-theme="red"]{
@@ -1623,6 +1631,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
           <div class="fy-head"><span class="cp-ic" data-ico="leaf"></span><b>أكثر الفياض اخضرارًا الآن</b></div>
           <div class="fy-sub" id="faydSub"></div>
           <div id="faydAlert"></div>
+          <div class="fy-rep" id="fyReport"><button type="button" class="fy-rep-open" data-fyr="open">🌱 <span>أنت في البر الحين؟ وش تشوف حولك؟</span> <b>بلّغ</b></button>
+            <div class="fy-rep-row" hidden><button type="button" data-fyr="1">🌱 بداية<small>عشب خفيف</small></button><button type="button" data-fyr="2">🌿 متوسط</button><button type="button" data-fyr="3">🌾 كثيف<small>ربيع واضح</small></button><button type="button" data-fyr="0">🏜️ ما فيه شي</button></div>
+            <small class="fy-rep-note" hidden>موقعك تقريبي (~1 كم) ويظهر 3 أيام على طبقة الربيع — ويأكد الفياض قبل صور القمر. بدون نت؟ ينحفظ وينرسل أول ما ترجع الشبكة.</small></div>
           <div class="fy-chips" id="faydChips" role="radiogroup" aria-label="المنطقة">
             <button type="button" data-fy="all" class="on">الكل</button><button type="button" data-fy="riyadh">الرياض</button><button type="button" data-fy="east">الصمان والشرقية</button><button type="button" data-fy="north">الشمال والجوف</button><button type="button" data-fy="hail">حائل والقصيم</button><button type="button" data-fy="near">الأقرب لي</button>
           </div>
@@ -6640,6 +6651,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
   const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم']};
   let faydData = null, faydSites = null, faydLoading = null, faydFilter = '', faydMore = false;
+  // 17 نوفمبر: نحفظ الفياض والفقع ومطر الأسبوع بالجوال أول ما يفتح التطبيق وعنده نت (بعد 10 ث) — عشان تشتغل بالبر بدون شبكة حتى لو ما فتح التبويب
+  setTimeout(()=>{ if(navigator.onLine === false || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+    const d = new Date().toISOString().slice(0, 10);
+    ['data/fayd.json?d=' + d, 'data/fayd-sites.json?v=4', 'data/fq.json?d=' + d, 'data/rain-week.json?t=' + d].forEach(u=>fetch(u).then(r=>r.body && r.body.cancel && r.body.cancel()).catch(()=>{})); }, 10000);
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
@@ -6647,6 +6662,31 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
+  // 17 نوفمبر: «🌱 ربيع عندك؟» من شاشة الفياض — نفس بلاغ الخريطة (report_spring). بدون نت: ينحفظ وينرسل أول ما ترجع الشبكة
+  (function(){
+    const box = document.getElementById('fyReport'); if(!box) return;
+    const SB = 'https://penhpgvjtxytgyrhmetg.supabase.co', KEY = 'sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw', QK = 'dalil_spring_queue';
+    const devId = ()=>{ let d = ''; try{ d = localStorage.getItem('dalil_device_id'); if(!d){ d = crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); localStorage.setItem('dalil_device_id', d); } }catch(e){ d = 'nodev-' + Date.now(); } return d; };
+    const send = rep=>fetch(SB + '/rest/v1/rpc/report_spring', {method:'POST', cache:'no-store', headers:{apikey:KEY, authorization:'Bearer ' + KEY, 'content-type':'application/json'}, body:JSON.stringify({p_lat:rep.lat, p_lng:rep.lng, p_level:rep.lv, p_dev:devId()})}).then(r=>r.json().catch(()=>({})));
+    const queue = ()=>{ try{ return JSON.parse(localStorage.getItem(QK) || '[]'); }catch(e){ return []; } };
+    const saveQ = q=>{ try{ localStorage.setItem(QK, JSON.stringify(q.slice(-5))); }catch(e){} };
+    async function flush(){ const q = queue().filter(x=>Date.now() - x.at < 3 * 86400e3); if(!q.length || navigator.onLine === false) return; const left = [];
+      for(const x of q){ try{ const j = await send(x); if(!(j && (j.ok || j.error === 'limit'))) left.push(x); }catch(e){ left.push(x); } }
+      saveQ(left); if(left.length < q.length && typeof toast === 'function') toast('🌱 انرسل بلاغ الربيع اللي حفظناه — شكرًا!'); }
+    addEventListener('online', ()=>setTimeout(flush, 3000)); setTimeout(flush, 8000);
+    const row = box.querySelector('.fy-rep-row'), note = box.querySelector('.fy-rep-note');
+    box.addEventListener('click', async e=>{
+      const b = e.target.closest('[data-fyr]'); if(!b) return; const v = b.dataset.fyr;
+      if(v === 'open'){ const o = row.hidden; row.hidden = !o; note.hidden = !o; return; }
+      const pos = state.pos; if(!pos){ toast('بانتظار تحديد موقعك — البلاغ يكون عن المكان اللي أنت فيه'); return; }
+      row.hidden = true; note.hidden = true;
+      const rep = {lat:+pos.lat.toFixed(5), lng:+pos.lng.toFixed(5), lv:+v, at:Date.now()};
+      try{ const j = await send(rep);
+        if(j && j.ok){ toast('شكرًا! بلاغك يساعد الناس يلقون الربيع 🌱'); }
+        else toast(j && j.error === 'limit' ? 'وصلت حد البلاغات اليوم' : 'تعذّر الإرسال — حاول بعد شوي');
+      }catch(err){ const q = queue(); q.push(rep); saveQ(q); toast('ما فيه نت — حفظنا بلاغك وينرسل أول ما ترجع الشبكة 🌱'); }
+    });
+  })();
   // 🔔 متابعة فيضة / تنبيه النطاق (events.js يحفظها مع اشتراك التنبيهات)
   const fyEv = ()=>window.DalilEvents && window.DalilEvents.fayd;
   const bell = r=>{ const on = fyEv() && fyEv().follows(r.i); return `<span class="fy-bell${on ? ' on' : ''}" role="button" data-fy-bell="${r.i}" aria-label="${on ? 'إلغاء تنبيه ' : 'نبّهني إذا اخضرّت '}${escapeHtml(r.name)}">🔔</span>`; };

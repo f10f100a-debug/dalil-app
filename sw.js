@@ -1,4 +1,5 @@
-const SHELL_CACHE='dalil-shell-v362';
+const SHELL_CACHE='dalil-shell-v363';
+const LIVE_DATA='dalil-live-data-v1'; // 17 نوفمبر: آخر نسخة من الفياض والفقع ومطر الأسبوع (تشتغل بالبر بدون نت)
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/256-511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1536-1791.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1792-2047.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/8192-8447.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/9472-9727.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/64256-64511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=29','./assets/sounds/event.m4a','./assets/sounds/rain.m4a',
   './room.js?v=37','./privacy.html','./support.html','./mapimport.js','./vendor/sql-wasm.js','./vendor/sql-wasm.wasm','./vendor/geotiff.js','./data/region-grid.json?v=1','./fonts/Tajawal-Regular.ttf','./fonts/Tajawal-Medium.ttf','./fonts/Tajawal-Bold.ttf','./fonts/Tajawal-ExtraBold.ttf','./fonts/Tajawal-Black.ttf'];
@@ -10,7 +11,7 @@ self.addEventListener('install',event=>{
 
 self.addEventListener('activate',event=>{
   // ذاكرة صور الخريطة القديمة (dalil-map-tiles-v1) لم تعد في القائمة فتُحذف من الأجهزة.
-  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1']);  // خرائط المستخدم المستوردة
+  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1',LIVE_DATA]);  // خرائط المستخدم المستوردة
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)&&!/^dalil-v63-bundle-[a-z0-9-]+$/.test(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
@@ -23,8 +24,20 @@ self.addEventListener('fetch',event=>{
   if(url.pathname.endsWith('.mp4')) return;
   // ملفات الخرائط تُطلب بأجزاء (Range) وتحفظها map2.html بنفسها.
   if(url.pathname.endsWith('.pmtiles')) return;
-  // حالة الفياض تتحدث أسبوعيًا: دايم من الشبكة
-  if(url.pathname.endsWith('/data/fayd.json') || url.pathname.endsWith('/data/fq.json') || url.pathname.endsWith('/data/rain-week.json')) return;
+  // الفياض والفقع ومطر الأسبوع: من الشبكة أول (أحدث نسخة)، ونحفظها؛ بدون نت أو شبكة ضعيفة (8 ث) → آخر نسخة محفوظة
+  if(url.pathname.endsWith('/data/fayd.json') || url.pathname.endsWith('/data/fq.json') || url.pathname.endsWith('/data/rain-week.json')){
+    const key=url.origin+url.pathname;
+    event.respondWith((async()=>{
+      const cache=await caches.open(LIVE_DATA);
+      const net=fetch(request).then(r=>{ if(r&&r.ok) cache.put(key,r.clone()); return r; });
+      const timeout=new Promise(res=>setTimeout(()=>res(null),8000));
+      try{ const r=await Promise.race([net,timeout]); if(r&&r.ok) return r; }catch(e){}
+      const old=await cache.match(key);
+      if(old) return old;
+      try{ return await net; }catch(e){ return new Response('null',{status:503,headers:{'content-type':'application/json'}}); }
+    })());
+    return;
+  }
 
   if(request.mode==='navigate'){
     // فتح فوري: إذا الصفحة محفوظة نعرضها مباشرة ونحدّثها في الخلفية (الشبكة الضعيفة ما تأخر فتح التطبيق).
