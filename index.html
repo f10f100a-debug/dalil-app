@@ -1299,7 +1299,20 @@ html.home2 #screen-compass > .camp-card{order:5}
 #h2Grid .h2t[data-h2="save"]{gap:7px} #h2Grid .h2t[data-h2="save"] .i{width:34px; height:34px}
 #h2Grid .h2paste{flex:none; width:30px; height:30px; display:flex; align-items:center; justify-content:center; border:1px solid var(--cp-line); background:var(--cp-soft, #F6EFE3); border-radius:10px; font-size:16px}
 @media (max-width:370px){ #h2Grid .h2t{gap:7px; padding:8px} #h2Grid .h2t .i{width:30px; height:30px; font-size:17px; border-radius:10px} #h2Grid .h2t b{font-size:14px} #h2Grid .h2t small{font-size:11.5px} #h2Grid .h2paste{width:30px; height:30px} }
-html.home2 .cp-sos{margin-top:0}
+html.home2 .cp-sos{margin-top:0; margin-bottom:8px}
+/* 17 نوفمبر: كل الأدوات بشاشة وحدة — بدون سطر «اضغط مطوّلًا» (صار داخل الزر)، والإحداثيات سطر واحد */
+html.home2 #screen-compass > #sosNote{display:none}
+.h2sosh{font-size:12px; font-weight:600; opacity:.85; margin-inline-start:6px}
+html.home2 #screen-compass > .cp-loc{order:10; display:flex; align-items:center; gap:8px; padding:6px 10px 6px 6px; margin-bottom:6px}
+html.home2 .cp-loc > div:first-child{order:2; flex:none; display:flex; flex-direction:column; align-items:flex-end}
+html.home2 .cp-loc .cp-label{display:none}
+html.home2 .cp-loc .cp-loc-meta{margin:0; font-size:11.5px; white-space:nowrap}
+html.home2 .cp-loc .cp-loc-row{order:1; flex:1; min-width:0; margin:0; gap:6px}
+html.home2 .cp-loc .cp-coords{font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+html.home2 .cp-loc .cp-icon-btn{width:34px; height:34px; flex:none}
+html.home2 .cp-compass{margin:2px auto -12px}
+html.home2 .cp-compass-card{padding:4px 12px 0}
+#h2Grid .h2t{min-height:60px!important; padding:5px 4px!important}
 </style>
 </head>
 <body class="on-compass">
@@ -3566,6 +3579,7 @@ html.home2 .cp-sos{margin-top:0}
       + '<button type="button" class="h2t" data-h2="paste"><span class="i">📋</span><span class="x"><b>لصق موقع</b><small>من رسالة</small></span></button>'
       + '<button type="button" class="h2t" data-h2="share"><span class="i">📤</span><span class="x"><b>أرسل موقعي</b><small>واتساب أو رسالة</small></span></button>';
     scr.insertBefore(grid, document.getElementById('emergencyBtn'));
+    { const sl = document.getElementById('sosLabel'); if(sl){ const h = document.createElement('small'); h.className = 'h2sosh'; h.textContent = '· اضغط مطوّلًا'; sl.after(h); } }
     const carT = grid.querySelector('[data-h2="car"]'), roomT = grid.querySelector('[data-h2="room"]');
     const cc = document.getElementById('carCard'), rb = document.getElementById('roomBtn');
     carT.onclick = ()=>{ const b = cc.querySelector('[data-act="go-car"]') || cc.querySelector('[data-act="save-car"]'); if(b) b.click(); };
