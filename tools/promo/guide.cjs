@@ -100,11 +100,12 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
     await mapGo(p, 27.535, 41.71, 13); await p.waitForTimeout(800);
     await frame(p).locator('#rlBar .rl-add').click().catch(() => {}); await p.waitForTimeout(500);
     await mapGo(p, 27.55, 41.69, 13); await p.waitForTimeout(1500); });
-  await frame(p).locator('#rlBar .rl-x, #rlBar [class*="rl-end"]').first().click().catch(() => {});
+  await p.frames().find(f => f.url().includes('map.html')).evaluate(() => { const x = document.querySelector('#rlBar .rl-x'); if (x) x.click(); }).catch(() => {});
   await p.waitForTimeout(800); await mapGo(p, 27.52, 41.69, 12); await p.waitForTimeout(1500);
   // إحداثيات وسط الخريطة: الفقاعة ← كل الصيغ
-  await shot(p, '39-coords', async () => { await frame(p).locator('.cx-pill').first().click(); await p.waitForTimeout(1000); });
-  await p.keyboard.press('Escape').catch(() => {}); await frame(p).locator('body').click({ position: { x: 30, y: 400 } }).catch(() => {});
+  await shot(p, '39-coords', async () => { await p.frames().find(f => f.url().includes('map.html')).evaluate(() => { const x = document.querySelector('.cx-pill'); if (x) { x.style.visibility = ''; x.click(); } }); await p.waitForTimeout(1200); });
+  await p.keyboard.press('Escape').catch(() => {});
+  await p.frames().find(f => f.url().includes('map.html')).evaluate(() => { document.querySelectorAll('.cx-sheet, .cx-menu, [class*="cx-pop"]').forEach(e => e.remove()); }).catch(() => {});
   await shot(p, '10-map-sat', async () => { await frame(p).locator('#onlineMode').click(); await p.waitForTimeout(7000); });
   await frame(p).locator('#localMode').click().catch(() => {});
   await mapGo(p, 27.6, 41.75, 9); await p.waitForTimeout(1500);
@@ -124,7 +125,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await shot(p, '13c-map-fullscreen', async () => { await frame(p).locator('#fsBtn').click(); await p.waitForTimeout(2500); });
   await frame(p).locator('#fsBtn').click().catch(() => {}); await p.waitForTimeout(1200);
   await frame(p).locator('[data-q="rain"]').click().catch(() => {});
-  await shot(p, '14-track-tools', async () => { await p.click('#trackToolsToggle'); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
+  await shot(p, '14-track-tools', async () => { await p.evaluate(() => document.getElementById('trackToolsToggle').click()); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
   await toTop(p);
 
   // 5) الأجواء

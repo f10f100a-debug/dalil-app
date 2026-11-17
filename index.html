@@ -3603,7 +3603,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       const b = document.createElement('button'); b.type = 'button'; b.className = 'btn'; b.style.cssText = 'margin-top:10px;width:100%';
       b.textContent = on ? '↩️ رجّع شكل البوصلة القديم' : '🧭 شغّل شكل البوصلة الجديد';
       b.onclick = ()=>{ try{ localStorage.setItem('dalil_lab_home', on ? '0' : '1'); }catch(e){} if(typeof toast === 'function') toast(on ? 'رجّعنا شكل البوصلة القديم' : 'شغّلنا شكل البوصلة الجديد'); setTimeout(()=>location.reload(), 700); };
-      card.appendChild(b); })();
+      (function(){ let w = document.getElementById('lookBtns'); if(!w){ w = document.createElement('div'); w.id = 'lookBtns'; w.style.cssText = 'display:flex;flex-direction:column;width:100%'; card.parentNode.insertBefore(w, card.nextSibling); } b.style.width = '100%'; w.appendChild(b); })(); })();
     if(!on) return;
     document.documentElement.classList.add('home2');
     const scr = document.getElementById('screen-compass'), cmp = document.getElementById('cpCompass'), rot = document.getElementById('cpDialRot');
@@ -7029,7 +7029,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       b.textContent = lab ? '↩️ رجّع الخريطة العادية' : '🗺️ شغّل الخريطة على الشاشة كاملة';
       b.onclick = ()=>{ try{ localStorage.setItem('dalil_lab_mapfull', lab ? '0' : '1'); }catch(e){}
         if(typeof toast === 'function') toast(lab ? 'رجّعنا الخريطة العادية' : 'شغّلنا الخريطة على الشاشة كاملة'); setTimeout(()=>location.reload(), 700); };
-      card.appendChild(b);
+      (function(){ let w = document.getElementById('lookBtns'); if(!w){ w = document.createElement('div'); w.id = 'lookBtns'; w.style.cssText = 'display:flex;flex-direction:column;width:100%'; card.parentNode.insertBefore(w, card.nextSibling); } b.style.width = '100%'; w.appendChild(b); })();
     })();
     // 15 نوفمبر: المسطرة — زر بأعلى «الأدوات» (بالترتيب العادي والشاشة الكاملة) يقفلها ويشغّل المسطرة بالخريطة
     try{ const panel0 = document.getElementById('trackToolsPanel'), tog0 = document.getElementById('trackToolsToggle');
@@ -7234,7 +7234,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       b.textContent = lab ? '↩️ رجّع الشكل القديم للتطبيق' : '✨ شغّل الترتيب الجديد للتطبيق';
       b.onclick = ()=>{ try{ lab ? localStorage.setItem('dalil_lab_layout', '0') : localStorage.removeItem('dalil_lab_layout'); }catch(e){}
         if(typeof toast === 'function') toast(lab ? 'رجّعنا الشكل القديم' : 'شغّلنا الترتيب الجديد'); setTimeout(()=>location.reload(), 700); };
-      card.appendChild(b);
+      (function(){ let w = document.getElementById('lookBtns'); if(!w){ w = document.createElement('div'); w.id = 'lookBtns'; w.style.cssText = 'display:flex;flex-direction:column;width:100%'; card.parentNode.insertBefore(w, card.nextSibling); } b.style.width = '100%'; w.appendChild(b); })();
     })();
     if(!lab) return;
     document.body.classList.add('lab-layout');
