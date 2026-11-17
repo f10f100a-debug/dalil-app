@@ -1270,7 +1270,14 @@ html.home2.h2nav #screen-compass > #carCard{display:none}
 #h2Strip .h2nb{display:none; flex:1; justify-content:flex-end; gap:6px}
 #h2Strip.nav .h2nb{display:flex} #h2Strip.nav [data-h2="sun"]{display:none}
 #h2Strip .h2nb button{width:38px; height:38px; border-radius:12px; border:1px solid var(--cp-line); background:var(--cp-soft, #F6EFE3); color:var(--cp-ink); font-size:16px; font-weight:800; font-family:inherit; cursor:pointer}
-#h2Strip.nav .h2h span{font-size:13px}
+#h2Strip .h2eta{display:none}
+#h2Strip.nav{align-items:center; padding:8px 10px}
+#h2Strip.nav .h2h{flex:1; min-width:0}
+#h2Strip.nav .h2h span{font-size:16px; line-height:1.35; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-top:2px}
+#h2Strip.nav .h2eta{display:block; font-style:normal; font-size:13.5px; font-weight:700; color:var(--cp-dim); margin-top:2px}
+#h2Strip.nav .h2nb{flex:none; flex-direction:column; gap:6px}
+#h2Strip.nav .h2nb button{width:36px; height:34px}
+#h2Strip.nav [data-h2="wx"]{flex:none; max-width:64px}
 html.home2 .cp-compass{width:min(100%, 330px, 37dvh)}
 html.home2 .cp-compass-card{padding:6px 12px 0; margin-bottom:8px}
 html.home2 #cpCompass.h2t .cp-center{display:none}
@@ -3570,7 +3577,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     rot.appendChild(nd);
     // الشريط: الطقس والمطر · الاتجاه · الصلاة الجاية
     const strip = document.createElement('div'); strip.id = 'h2Strip';
-    strip.innerHTML = '<button type="button" class="h2s" data-h2="wx"></button><div class="h2h"><b dir="ltr">--°</b><span>بانتظار البوصلة</span></div><button type="button" class="h2s l" data-h2="sun"></button><div class="h2nb"><button type="button" data-h2="menu" aria-label="خيارات التوجيه">•••</button><button type="button" data-h2="stop" aria-label="إيقاف التوجيه">✕</button></div>';
+    strip.innerHTML = '<button type="button" class="h2s" data-h2="wx"></button><div class="h2h"><b dir="ltr">--°</b><span>بانتظار البوصلة</span><em class="h2eta"></em></div><button type="button" class="h2s l" data-h2="sun"></button><div class="h2nb"><button type="button" data-h2="menu" aria-label="خيارات التوجيه">•••</button><button type="button" data-h2="stop" aria-label="إيقاف التوجيه">✕</button></div>';
     scr.insertBefore(strip, scr.querySelector('.cp-compass-card'));
     const sb = strip.querySelector('b'), ss = strip.querySelector('.h2h span'), wx = strip.querySelector('[data-h2="wx"]'), sun = strip.querySelector('[data-h2="sun"]');
     wx.onclick = ()=>{ const r = document.getElementById('cpRainBadge'); (r && !r.hidden ? r : document.getElementById('cpWeatherBadge')).click(); };
@@ -3629,7 +3636,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
         cmp.classList.toggle('h2t', go); cmp.classList.toggle('h2near', tgt && !go);
         const r = go ? Math.round(brg) : 0, cur = +(nd.dataset.r || 0), nx = cur + ((r - cur % 360 + 540) % 360) - 180; if(Math.round(nx) !== cur){ nd.dataset.r = Math.round(nx); nd.style.transform = 'rotate(' + Math.round(nx) + 'deg)'; }
         sb.dir = go ? 'rtl' : 'ltr'; strip.classList.toggle('nav', go);
-        if(go){ const eta = /الوصول:\s*(.+)$/.exec((document.querySelector('#carCard [data-f="sub"]') || {}).textContent || ''); setT(sb, String(main || '')); setT(ss, (label || 'الهدف') + (eta ? ' · ' + eta[1].replace(/[\u2066-\u2069]/g, '') : '')); }
+        if(go){ const eta = /الوصول:\s*(.+)$/.exec((document.querySelector('#carCard [data-f="sub"]') || {}).textContent || ''); setT(sb, String(main || '')); setT(ss, label || 'الهدف'); setT(strip.querySelector('.h2eta'), eta ? '⏱ ' + eta[1].replace(/[\u2066-\u2069]/g, '') : ''); }
         else{ const m = /القبلة\s*(\S+)\s*·\s*(.+)/.exec(qib || ''); setT(sb, m ? '🕋 ' + m[1] : '🕋'); setT(ss, m ? 'القبلة · ' + m[2] : 'القبلة بانتظار الموقع'); }
       },
       car(key, car, pos){
