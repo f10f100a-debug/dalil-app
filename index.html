@@ -1255,6 +1255,12 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 #rainBar .rb-x{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:rgba(255,255,255,.18);color:#fff;font-size:15px}
 /* 17 نوفمبر (تجربة dalil_lab_home): ترتيب البوصلة الجديد — شريط فوق، سهم شمال ثلاثي الأبعاد، 4 أزرار، SOS باين */
 html.home2 #screen-compass.active{display:flex; flex-direction:column}
+/* منع أي زحمة أفقية (آيفون: الشاشة انزاحت لليسار وقت التوجيه) */
+html.home2, html.home2 body{overflow-x:hidden} html.home2 #screen-compass{overflow-x:clip; max-width:100%; box-sizing:border-box}
+html.home2 #screen-compass > *{max-width:100%; box-sizing:border-box; min-width:0}
+html.home2 .cp-compass-card{overflow:hidden}
+html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-v{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#h2Grid .h2t{overflow:hidden}
 html.home2 #screen-compass > *{order:20}
 html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #navActivation{order:2} html.home2 #screen-compass > #h2Strip{order:3} html.home2 #screen-compass > .cp-compass-card{order:4}
 html.home2 #screen-compass > #stormStrip{order:5} html.home2 #screen-compass > #carCard{order:6} html.home2 #screen-compass > #h2Grid{order:7} html.home2 #screen-compass > #emergencyBtn{order:8} html.home2 #screen-compass > #sosNote{order:9}
