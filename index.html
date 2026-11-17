@@ -3596,7 +3596,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     { const sl = document.getElementById('sosLabel'); if(sl){ const h = document.createElement('small'); h.className = 'h2sosh'; h.textContent = '· اضغط مطوّلًا'; sl.after(h); } }
     const carT = grid.querySelector('[data-h2="car"]'), roomT = grid.querySelector('[data-h2="room"]');
     const cc = document.getElementById('carCard'), rb = document.getElementById('roomBtn');
-    carT.onclick = ()=>{ const b = cc.querySelector('[data-act="go-car"]') || cc.querySelector('[data-act="save-car"]'); if(b) b.click(); };
+    // السيارة: محفوظة → توجّه لها (حتى لو كنت متوجه لمكان ثاني)، مو محفوظة → احفظها هنا
+    carT.onclick = ()=>{ try{ if(getCar()) startCarGuidance(); else saveCarHere(); }catch(e){ const b = cc.querySelector('[data-act="go-car"]') || cc.querySelector('[data-act="save-car"]'); if(b) b.click(); } };
     roomT.onclick = ()=>rb.click();
     grid.querySelector('[data-h2="save"]').onclick = ()=>document.getElementById('saveHereBtn').click();
     grid.querySelector('[data-h2="paste"]').onclick = ()=>document.getElementById('pasteBtn').click();
