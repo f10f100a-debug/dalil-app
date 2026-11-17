@@ -2771,12 +2771,14 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     lastPositionAt=Date.now();
     lastPositionError='';
     document.getElementById('permLoc').textContent = '✅ مفعّل';
+    const firstFix = !state.pos;   // 18 نوفمبر: أول موقع — كرت البرد يعيد رسمه بالمسافة
     state.pos = {
       lat: p.coords.latitude, lng: p.coords.longitude,
       alt: p.coords.altitude, speed: p.coords.speed, accuracy: p.coords.accuracy,
       courseRaw: Number.isFinite(p.coords.heading) ? p.coords.heading : null,
       at: Date.now()   // وقت وصول القراءة — غرفة الرحلة ما ترسل موقعًا قديمًا
     };
+    if(firstFix) setTimeout(()=>{ try{ window.dispatchEvent(new Event('dalil:firstpos')); }catch(e){} }, 0);
     speedSamples.push({t:Date.now(), lat:p.coords.latitude, lng:p.coords.longitude, spd:p.coords.speed, acc:p.coords.accuracy});
     while(speedSamples.length && Date.now() - speedSamples[0].t > SPEED_WINDOW_MS) speedSamples.shift();
     // اتجاه الحركة من GPS: فوق 5 كم/س يُقدَّم على المستشعر المغناطيسي لأنه
@@ -7567,14 +7569,16 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       }).catch(()=>HL.list).finally(()=>{ HL.busy = null; });
     return HL.busy;
   }
+  // 18 نوفمبر: إذا جا الموقع بعد ما انرسم الكرت، نعيد رسمه عشان تطلع المسافة والاتجاه والترتيب
+  window.addEventListener('dalil:firstpos', ()=>{ try{ if(HL.list && HL.list.length) renderHail(); }catch(e){} });
   function renderHail(){
     const card = document.getElementById('hailCard'); if(!card) return;
-    const pos = state.pos, list = (HL.list || []).map((h, i)=>({...h, i, km:pos ? haversine(pos.lat, pos.lng, h.lat, h.lng) / 1000 : null}))
+    const pos = state.pos, list = (HL.list || []).map((h, i)=>{ let km = null, dir = ''; if(pos){ km = haversine(pos.lat, pos.lng, h.lat, h.lng) / 1000; if(!Number.isFinite(km)) km = null; else if(km >= 3){ try{ dir = directionWord(bearing(pos.lat, pos.lng, h.lat, h.lng)); }catch(e){} } } return {...h, i, km, dir}; });
     if(pos) list.sort((a, b)=>a.km - b.km);   // الأقرب لك أول
     if(!list.length){ card.hidden = true; return; }
     const shown = hlAll ? list : list.slice(0, 4);
     card.innerHTML = '<h3>🧊 وين نزل البرد اليوم؟</h3><small style="color:var(--text-faint)">آخر 24 ساعة · من الرادار وبلاغات الناس · اضغط للتوجّه</small>' +
-      shown.map(h=>'<button type="button" class="hl-row" data-hl="' + h.i + '"><span class="n"><b>' + escapeHtml(h.name) + '</b><small>' + alWhen(h.t) + (h.km != null ? ' · ' + iso(Math.round(h.km)) + ' كم منك' : '') + '</small></span>' +
+      shown.map(h=>'<button type="button" class="hl-row" data-hl="' + h.i + '"><span class="n"><b>' + escapeHtml(h.name) + '</b><small>' + alWhen(h.t) + (h.km != null ? ' · ' + iso(Math.round(h.km)) + ' كم ' + (h.dir ? h.dir + ' ' : '') + 'منك' : '') + '</small></span>' +
         (h.src === 'report' ? '<span class="hl-pill">بلاغ ' + (h.rep === 2 ? 'شخصين' : iso(h.rep) + ' أشخاص') + '</span>' : h.rep > 0 ? '<span class="hl-pill ok">✓ أكده ' + (h.rep === 1 ? 'شخص' : h.rep === 2 ? 'شخصين' : iso(h.rep) + ' أشخاص') + '</span>' : '<span class="hl-pill">احتمال برد</span>') + '</button>').join('') +
       (list.length > 4 ? '<button type="button" class="al-more" data-hl-more>' + (hlAll ? 'عرض أقل' : 'عرض الكل (' + iso(list.length) + ')') + '</button>' : '') +
       '<div class="hl-note">«احتمال برد» = الرادار شاف مطر قوي جدًا مع برق، وغالبًا برد بس مو دايمًا. «✓ أكده» = ناس هناك بلّغوا «🧊 برد» والرادار شاف العاصفة. «بلاغ» = شخصين فأكثر بلّغوا والرادار ما شافه.</div>';
