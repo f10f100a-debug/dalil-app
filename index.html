@@ -1125,6 +1125,11 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-btn[hidden]{display:none;}
   .share-card{margin-bottom:4px;}
   /* 17 نوفمبر: «🌱 ربيع عندك؟» فوق قائمة الفياض */
+  .fy-early{margin:18px -6px 4px; padding:10px 10px 4px; border-top:2px solid var(--line); background:rgba(127,176,90,.09); border-radius:0 0 16px 16px}
+  .fy-early-h{font-size:16px; font-weight:800; color:#4E7A2C} .fy-early-h span{font-weight:600; color:var(--text-dim); font-size:14px}
+  .fy-early-s{font-size:12px; color:var(--text-dim); line-height:1.6; margin:2px 0 6px}
+  .fy-early .fy-row{border-bottom-color:rgba(94,127,58,.18)}
+  :is(html[data-theme="dark"], html[data-theme="red"]) .fy-early{background:rgba(127,176,90,.08)} :is(html[data-theme="dark"], html[data-theme="red"]) .fy-early-h{color:#9BCB78}
   .fy-rep{margin:8px 0 10px; border:1px dashed #9BC49A; border-radius:14px; background:rgba(79,163,90,.08); padding:4px}
   .fy-rep-open{width:100%; display:flex; align-items:center; gap:6px; border:0; background:none; padding:8px 8px; font:inherit; font-size:14px; color:var(--text); text-align:right; cursor:pointer}
   .fy-rep-open span{flex:1} .fy-rep-open b{color:#2E7D46; font-weight:800}
@@ -6749,10 +6754,13 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const peopleHtml = people.length ? `<div class="fy-sub" style="margin:12px 0 4px">🌱 بلاغات الناس — ما أكدها القمر بعد</div>` + people.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''} · بلاغ «${LV_AR[r.repLv] || 'ربيع'}» خلال 1.5 كم</span></span></button>`).join('') : '';
     // 17 نوفمبر (رفحاء): «🌱 بدايات أولى» — القمر شاف زيادة خفيفة (تحت حد «بدأ الربيع») بصورة حديثة: عشب صغير يبان بالميدان أكثر من القمر.
     // قسم لحاله، بدون تنبيهات ولا «وين أطلع»
-    const early = rows.filter(r=>r.st0 === 0 && r.st === 0 && !r.field && !r.people && r.s2 === 1 && r.g >= 20 && !r.stale && !(r.chk > 0))
+    // نفس الاسم موجود بالقائمة الأساسية وقريب (خلال 5 كم) → ما يتكرر بالبدايات (فياض مريحات: موقعين بنفس الاسم)
+    const greenNames = rows.filter(r=>r.st > 0 && r.st0 > 0);
+    const early = rows.filter(r=>r.st0 === 0 && r.st === 0 && !r.field && !r.people && r.s2 === 1 && r.g >= 20 && !r.stale && !(r.chk > 0)
+        && !greenNames.some(x=>x.name === r.name && haversine(x.lat, x.lng, r.lat, r.lng) < 5000))
       .sort((a, b)=>faydFilter === 'near' ? a.km - b.km : b.g - a.g).slice(0, faydMore ? 20 : 6);
-    const earlyHtml = early.length ? `<div class="fy-sub" style="margin:14px 0 4px;font-weight:800;color:#5E7F3A">🌱 بدايات أولى — عشب صغير، يبان بالميدان أكثر من القمر</div><div class="pl-note" style="margin:0 0 6px;font-size:12px">القمر شاف زيادة خفيفة عن قبل الموسم. ما نرسل عليها تنبيه — شفتها؟ بلّغ من فوق 🌱</div>`
-      + early.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}${r.repLv ? ' · بلاغ قريب' : ''}</span></span><span class="fy-pill" style="background:#EEF5E4;color:#5E7F3A">بدايات أولى</span></button>`).join('') : '';
+    const earlyHtml = early.length ? `<div class="fy-early"><div class="fy-early-h">🌱 بدايات أولى <span>(${early.length})</span></div><div class="fy-early-s">عشب صغير، يبان بالميدان أكثر من القمر. القمر شاف زيادة خفيفة عن قبل الموسم، وما نرسل عليها تنبيه — شفتها؟ بلّغ من فوق 🌱</div>`
+      + early.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}${r.repLv ? ' · بلاغ قريب' : ''}</span></span><span class="fy-pill" style="background:#fff;color:#5E7F3A;border:1px solid #CFE3C0">بدايات أولى</span></button>`).join('') + '</div>' : '';
     try{ window.__faydDbg = {shown:[], people:people.map(r=>({i:r.i, st0:r.st0})), early:early.map(r=>r.i)}; }catch(e){}
     const list = document.getElementById('faydList');
     renderFaydAlert();
