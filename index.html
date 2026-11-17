@@ -2283,8 +2283,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
       const LABS = [['dalil_lab_font', '🔤 خط Tajawal (محفوظ داخل التطبيق)'], ['dalil_lab_icons', '🎨 أيقونات ملوّنة لأزرار البوصلة'], ['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
-      const get = k=>{ try{ if(k === 'dalil_lab_font' || k === 'dalil_lab_icons'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && localStorage.getItem('dalil_lab_home') === '1'); }
-        if(k === 'dalil_lab_home'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && Date.now() >= Date.parse('2026-11-18T06:00:00+03:00')); } return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
+      const get = k=>{ try{ if(k === 'dalil_lab_icons') return localStorage.getItem(k) !== '0';
+        if(k === 'dalil_lab_font'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && localStorage.getItem('dalil_lab_home') === '1'); }
+        if(k === 'dalil_lab_home'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && Date.now() >= Date.parse('2026-11-17T17:30:00+03:00')); } return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
       box.innerHTML = '<b>🧪 التجارب (لهذا الجوال بس)</b>' + LABS.map(([k, t])=>'<label style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span>' + t + '</span><input type="checkbox" data-lab="' + k + '"' + (get(k) ? ' checked' : '') + '></label>').join('');
       box.querySelectorAll('[data-lab]').forEach(c=>c.onchange=()=>{
         try{ if(c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_icons' || c.dataset.lab === 'dalil_lab_font') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
@@ -3578,8 +3579,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
 
   // ---------- 17 نوفمبر (تجربة dalil_lab_home — جوالات أبو مالك أول): ترتيب البوصلة الجديد ----------
   (function(){
-    // 18 نوفمبر 6 الصبح (بطلب أبو مالك): صارت للكل تلقائيًا — '0' = الشكل القديم (من الإعدادات ← المظهر أو لوحة التجارب)
-    const H2_ALL = Date.parse('2026-11-18T06:00:00+03:00');
+    // 17 نوفمبر 5:30 م (أبو مالك: «افعل ما تراه مناسبًا»): صارت للكل — '0' = الشكل القديم (من الإعدادات ← المظهر أو لوحة التجارب)
+    const H2_ALL = Date.parse('2026-11-17T17:30:00+03:00');
     let pref = null; try{ pref = localStorage.getItem('dalil_lab_home'); }catch(e){}
     const on = pref === '1' || (pref !== '0' && Date.now() >= H2_ALL);
     // زر في الإعدادات ← المظهر: يرجّع الشكل القديم أو يشغّل الجديد
@@ -3620,9 +3621,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       + '<button type="button" class="h2t" data-h2="share"><span class="i">📤</span><span class="x"><b>أرسل موقعي</b><small>واتساب أو رسالة</small></span></button>';
     scr.insertBefore(grid, document.getElementById('emergencyBtn'));
     { const sl = document.getElementById('sosLabel'); if(sl){ const h = document.createElement('small'); h.className = 'h2sosh'; h.textContent = '· اضغط مطوّلًا'; sl.after(h); } }
-    // الأيقونات الملوّنة: تشتغل تلقائيًا عند اللي مفعّل التجربة بنفسه ('1')، وللبقية بعد ما نعتمدها
+    // الأيقونات الملوّنة: للكل مع الشكل الجديد (17 نوفمبر) — '0' يرجّع الإيموجي
     let icp = null; try{ icp = localStorage.getItem('dalil_lab_icons'); }catch(e){}
-    if(icp === '1' || (icp !== '0' && pref === '1')){
+    if(icp === '1' || icp !== '0'){
       document.documentElement.classList.add('h2ic');
       const TENT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 12 4l9 16"/><path d="M12 4v16"/><path d="M9 20l3-6 3 6"/><path d="M2 20h20"/></svg>';
       const IC = {car:['car', '#E8833A'], room:['radio', ''], camp:[null, '#A9773F'], save:['pin', '#D9483B'], paste:['paste', '#3B7DD8'], share:['send', '#8A5BD0']};
