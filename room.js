@@ -41,9 +41,9 @@
     navObj:null, open:false, tab:'join'
   };
   function loadSess(){ try{ const s = JSON.parse(lsGet(LS.sess) || 'null'); return s && s.room_id && s.token ? s : null; }catch(e){ return null; } }
-  // 16 نوفمبر (تجربة dalil_lab_pttwait — جوال أبو مالك أول): الجوال مقفل/بالخلفية → الصفحة ما تشغّل رسالة بنفسها أبدًا (تترك اللاسلكي)،
+  // 17 نوفمبر: صارت للكل (تنطفي بـ '0' من لوحة التجارب). 16 نوفمبر (تجربة dalil_lab_pttwait — جوال أبو مالك أول): الجوال مقفل/بالخلفية → الصفحة ما تشغّل رسالة بنفسها أبدًا (تترك اللاسلكي)،
   // لأن صوت الصفحة يمسك صوت الجوال «تشغيل فقط» فترفض أبل تفعيل اللاسلكي للرسائل اللي بعدها (يعلّق بعد أول رسالة). والتطبيق قدامه: ننتظر 6 ث بدل 3.
-  const PTT_WAIT_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_pttwait') === '1'; }catch(e){ return false; } })();
+  const PTT_WAIT_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_pttwait') !== '0'; }catch(e){ return false; } })();
   const OWNER_LAB = (()=>{ try{ return localStorage.getItem('dalil_lab_owner') === '1'; }catch(e){ return false; } })();   // تجربة على جوال أبو مالك أول
   // 15 نوفمبر: صاحب الغرفة = أقدم عضو باقي (owner_id من السيرفر) — يقدر يخرج عضو ويغيّر الرمز السري
   const isOwner = ()=>!!(OWNER_LAB && R.room && R.sess && R.room.owner_id === R.sess.member_id);
