@@ -1268,8 +1268,9 @@ html.home2 #cpWeatherBadge, html.home2 #cpRainBadge, html.home2 #roomBtn, html.h
 html.home2:not(.h2guide) #carCard{display:none}
 html.home2 .cp-compass{width:min(100%, 330px, 37dvh)}
 html.home2 .cp-compass-card{padding:6px 12px 0; margin-bottom:8px}
-html.home2 #cpCompass:not(.h2near) .cp-center{display:none}
-html.home2 #cpCompass.h2near .h2needle{display:none}
+html.home2 #cpCompass.h2t .cp-center{display:none}
+html.home2 #cpCompass:not(.h2t) .h2needle{display:none}
+html.home2 #cpCompass:not(.h2near) #cpCSub2{display:none}
 html.home2 #cpCompass.h2t #targetArrow{visibility:hidden}
 .h2needle{transition:transform .35s ease-out}
 .h2needle{position:absolute; inset:0}
@@ -1279,6 +1280,7 @@ html.home2 #cpCompass.h2t #targetArrow{visibility:hidden}
 #h2Strip .h2s.l{text-align:left}
 #h2Strip .h2h{flex:none; text-align:center; line-height:1.05}
 #h2Strip .h2h b{display:block; font-size:34px; font-weight:900; color:var(--cp-ink); font-variant-numeric:tabular-nums}
+#h2Strip:not(.nav) .h2h b{font-size:24px}
 #h2Strip .h2h span{display:block; font-size:14.5px; font-weight:800; color:var(--cp-gold-ink, #8A5A12)}
 #h2Grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:8px}
 #h2Grid .h2t{flex-direction:column; justify-content:center; text-align:center!important; gap:1px!important; min-height:66px!important; padding:6px 4px!important}
@@ -3265,7 +3267,7 @@ html.home2 .cp-sos{margin-top:0}
     renderCorners(pos, t, nav, car);
     setText('cpCSub', sub);
     setText('cpCSub2', sub2);
-    if(window.__h2) window.__h2.head(haveHeading ? heading : null, !!t, t && nav && !near ? nav.brg : null, main, label);
+    if(window.__h2) window.__h2.head(haveHeading ? heading : null, !!t, t && nav && !near ? nav.brg : null, main, label, sub2);
 
     renderCarCard(car, t, nav, near);
   }
@@ -3600,13 +3602,14 @@ html.home2 .cp-sos{margin-top:0}
     window.__h2 = {
       // التوجيه لمكان: السهم الكبير يأشر على الهدف (داخل طبقة القرص: دوران القرص -اتجاهك + اتجاه الهدف = الهدف بالنسبة لك)،
       // والمسافة تطلع فوق مكان الرقم. قريب جدًا: يرجع كلام الوسط («انظر حولك»)
-      head(h, tgt, brg, main, label){
+      // 17 نوفمبر (طلب أبو مالك): بدون وجهة ما فيه سهم — الرقم يرجع وسط البوصلة، والشريط فيه القبلة
+      head(h, tgt, brg, main, label, qib){
         const go = tgt && brg != null;
         cmp.classList.toggle('h2t', go); cmp.classList.toggle('h2near', tgt && !go);
         const r = go ? Math.round(brg) : 0, cur = +(nd.dataset.r || 0), nx = cur + ((r - cur % 360 + 540) % 360) - 180; if(Math.round(nx) !== cur){ nd.dataset.r = Math.round(nx); nd.style.transform = 'rotate(' + Math.round(nx) + 'deg)'; }
-        sb.dir = go ? 'rtl' : 'ltr';
+        sb.dir = go ? 'rtl' : 'ltr'; strip.classList.toggle('nav', go);
         if(go){ setT(sb, String(main || '')); setT(ss, label || 'الهدف'); }
-        else{ setT(sb, h == null ? '--°' : iso(Math.round(h) + '°')); setT(ss, h == null ? 'بانتظار البوصلة' : cardinalSpaced(h)); }
+        else{ const m = /القبلة\s*(\S+)\s*·\s*(.+)/.exec(qib || ''); setT(sb, m ? '🕋 ' + m[1] : '🕋'); setT(ss, m ? 'القبلة · ' + m[2] : 'القبلة بانتظار الموقع'); }
       },
       car(key, car, pos){
         document.documentElement.classList.toggle('h2guide', !(key === 'none' || key === 'saved'));
