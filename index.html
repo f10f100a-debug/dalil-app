@@ -1264,7 +1264,8 @@ html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-
 html.home2 #screen-compass > *{order:20}
 html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #navActivation{order:2} html.home2 #screen-compass > #h2Strip{order:3} html.home2 #screen-compass > .cp-compass-card{order:4}
 html.home2 #screen-compass > #stormStrip{order:5} html.home2 #screen-compass > #carCard{order:6} html.home2 #screen-compass > #h2Grid{order:7} html.home2 #screen-compass > #emergencyBtn{order:8} html.home2 #screen-compass > #sosNote{order:9}
-html.home2 #cpWeatherBadge, html.home2 #cpRainBadge, html.home2 #roomBtn, html.home2 .cp-actions, html.home2 #cpSun{display:none!important}
+html.home2 #cpWeatherBadge, html.home2 #cpRainBadge, html.home2 #roomBtn, html.home2 .cp-actions{display:none!important}
+html.home2:not(.h2nav) #cpSun{display:none!important}
 html.home2:not(.h2guide) #carCard{display:none}
 html.home2.h2nav #screen-compass > #carCard{display:none}
 #h2Strip .h2nb{display:none; flex:1; justify-content:flex-end; gap:6px}
@@ -3195,8 +3196,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       coordEl.classList.remove('waiting');
     }
     const meta = [];
-    if(pos && Number.isFinite(pos.alt)) meta.push('الارتفاع ' + iso(Math.round(pos.alt)) + ' م');
-    if(pos && Number.isFinite(pos.speed) && pos.speed >= 0) meta.push('السرعة ' + iso(Math.round(pos.speed*3.6)) + ' كم/س');
+    if(pos && Number.isFinite(pos.alt)) meta.push((window.__h2 ? '↑ ' : 'الارتفاع ') + iso(Math.round(pos.alt)) + ' م');
+    if(!window.__h2 && pos && Number.isFinite(pos.speed) && pos.speed >= 0) meta.push('السرعة ' + iso(Math.round(pos.speed*3.6)) + ' كم/س');
     setText('cpLocMeta', meta.join('  ·  '));
     const driving = gpsCourseActive();
     const sourceEl = document.getElementById('cpSource');
