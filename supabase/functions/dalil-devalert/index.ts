@@ -75,7 +75,16 @@ Deno.serve(async (req) => {
       const { data: pk } = await sb.from("room_load").select("n,rooms").gte("at", new Date(Date.now() - 86400e3).toISOString()).order("n", { ascending: false }).limit(1);
       const nErr = (errs || []).reduce((a: number, e: any) => a + Number(e.users || 0), 0);
       const sum = (samples > 0 ? line : "ما فيه رسايل صوتية") + " · أعلى ضغط: " + (pk?.[0] ? pk[0].n + " متصل في " + pk[0].rooms + " غرفة" : "—") + " (الحد ~200) · أخطاء: " + (errs || []).length + " نوع عند " + nErr + " جهاز";
-      const res = await push("📋 ملخص دليل اليومي", sum);
+      // 17 نوفمبر: حالة الفياض (تاريخ آخر صورة، كم فيضة خضرا) وبلاغات «ربيع عندك؟» آخر 24 ساعة
+      let fy = "";
+      try {
+        const fj = await (await fetch(SITE + "data/fayd.json?t=" + Date.now())).json();
+        const g = (fj.rows || []).filter((r: any) => r[2] > 0).length, asof = String(fj.asof || "");
+        const old = asof && (Date.now() - Date.parse(asof + "T12:00:00Z")) > 3 * 86400e3;
+        const { count: rep } = await sb.from("spring_reports").select("id", { count: "exact", head: true }).gte("at", new Date(Date.now() - 86400e3).toISOString());
+        fy = " · الفياض: صورة " + asof.slice(5) + (old ? " ⚠️ قديمة" : "") + "، " + g + " خضرا، بلاغات " + (rep ?? 0);
+      } catch { fy = " · الفياض: تعذّر الفحص ⚠️"; }
+      const res = await push("📋 ملخص دليل اليومي", sum + fy);
       out.push({ health: h, sent: res.status }); if (res.ok) { seen.add(dayKey); changed = true; }
     }
     if (samples >= 30 && h.voice_ok_pct != null && h.voice_ok_pct < 80 && !seen.has(lowKey)) {
