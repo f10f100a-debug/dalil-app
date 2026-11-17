@@ -1127,6 +1127,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   /* 17 نوفمبر: «🌱 ربيع عندك؟» فوق قائمة الفياض */
   /* 17 نوفمبر (أبو مالك): الأخضر للقائمة الأساسية (الأقوى)، والبدايات بلون رملي هادي */
   .fy-row.fy-main{background:rgba(79,163,90,.07); border-inline-start:4px solid #4FA35A; border-radius:12px; margin:6px 0; padding-inline-start:8px}
+  .fy-filt{font-size:12.5px; color:var(--text-dim); margin:2px 2px 6px} .fy-filt b{color:var(--text); font-weight:800}
   .fy-early{margin:18px -6px 4px; padding:10px 10px 4px; border-top:2px solid var(--line); background:rgba(201,150,79,.08); border-radius:0 0 16px 16px}
   .fy-early-h{font-size:16px; font-weight:800; color:#8A6A3A} .fy-early-h span{font-weight:600; color:var(--text-dim); font-size:14px}
   .fy-early-s{font-size:12px; color:var(--text-dim); line-height:1.6; margin:2px 0 6px}
@@ -1643,8 +1644,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
             <div class="fy-rep-row" hidden><button type="button" data-fyr="1">🌱 بداية<small>عشب خفيف</small></button><button type="button" data-fyr="2">🌿 متوسط</button><button type="button" data-fyr="3">🌾 كثيف<small>ربيع واضح</small></button><button type="button" data-fyr="0">🏜️ ما فيه شي</button></div>
             <small class="fy-rep-note" hidden>موقعك تقريبي (~1 كم) ويظهر 3 أيام على طبقة الربيع — ويأكد الفياض قبل صور القمر. بدون نت؟ ينحفظ وينرسل أول ما ترجع الشبكة.</small></div>
           <div class="fy-chips" id="faydChips" role="radiogroup" aria-label="المنطقة">
-            <button type="button" data-fy="all" class="on">الكل</button><button type="button" data-fy="riyadh">الرياض</button><button type="button" data-fy="east">الصمان والشرقية</button><button type="button" data-fy="north">الشمال والجوف</button><button type="button" data-fy="hail">حائل والقصيم</button><button type="button" data-fy="near">الأقرب لي</button>
+            <button type="button" data-fy="all" class="on">الكل</button><button type="button" data-fy="near">📍 الأقرب لي</button><button type="button" data-fy="riyadh">الرياض</button><button type="button" data-fy="east">الصمان والشرقية</button><button type="button" data-fy="north">الحدود الشمالية والجوف</button><button type="button" data-fy="hail">حائل والقصيم</button>
           </div>
+          <div class="fy-filt" id="faydFilt" hidden></div>
           <div id="faydList"></div>
         </div>
         <div class="cp-card sp-card">
@@ -6752,6 +6754,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // «تحتاج تأكيد» (قفزة خضرة كبيرة = غالبًا محور زراعي جديد) تنزل آخر القائمة
     // 14 نوفمبر: الترتيب حسب النسبة المكتوبة (مساحة الخضرة) — كان حسب قوة الخضرة فتطلع 30٪ قبل 35٪ (الأقرب لي يبقى بالمسافة)
     const green = rows.filter(r=>r.st > 0 && r.st0 > 0).sort((a, b)=>(a.chk || 0) - (b.chk || 0) || a.stale - b.stale || (faydFilter === 'near' ? 0 : (b.pct || 0) - (a.pct || 0)));
+    // 17 نوفمبر: اسم الفلتر المختار وعدد الفياض فوق القائمة (الزر ممكن يكون برا الشاشة بعد سحب الشريط)
+    { const fl = document.getElementById('faydFilt'), FN = {near:'📍 الأقرب لي (خلال 150 كم)', riyadh:'الرياض', east:'الصمان والشرقية', north:'الحدود الشمالية والجوف', hail:'حائل والقصيم'};
+      if(fl){ fl.hidden = !FN[faydFilter]; if(FN[faydFilter]) fl.innerHTML = 'تعرض: <b>' + FN[faydFilter] + '</b> · ' + green.length + (green.length === 1 ? ' فيضة' : ' فيضة') + ' خضرا'; } }
     const people = rows.filter(r=>r.people).sort((a, b)=>(b.repLv || 0) - (a.repLv || 0) || (a.km ?? 1e9) - (b.km ?? 1e9)).slice(0, 5);
     const LV_AR = ['', 'بداية', 'متوسط', 'كثيف'];
     const peopleHtml = people.length ? `<div class="fy-sub" style="margin:12px 0 4px">🌱 بلاغات الناس — ما أكدها القمر بعد</div>` + people.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''} · بلاغ «${LV_AR[r.repLv] || 'ربيع'}» خلال 1.5 كم</span></span></button>`).join('') : '';
