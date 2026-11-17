@@ -6720,7 +6720,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     setText('faydSub', (faydData.s2 ? 'Sentinel-2 بدقة 10 م بدون غيم' : 'أقمار NASA') + ' · أحدث صورة ' + (faydData.asof ? fmt(faydData.asof) : '') + ' · كل فيضة مقارنة بنفسها قبل الموسم وبمعتادها' + (Array.isArray(faydData.farm) && faydData.farm.length ? ' · ' + faydData.farm.length + ' فيضة فيها زراعة ما تنقاس' : ''));
     document.querySelectorAll('#faydChips [data-fy]').forEach(b=>b.classList.toggle('on', b.dataset.fy === faydFilter));
     const pos = state.pos;
-    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], st0:r[2], pct:r[3], chk:r[5] === 5 ? 0 : (r[5] || 0), field:r[5] === 5, d:r[6] || ''} : null; }).filter(Boolean);
+    let rows = faydData.rows.map(r=>{ const s = faydSites[r[0]]; return s ? {i:r[0], name:s[0], lat:s[1], lng:s[2], region:s[3], g:r[1], st:r[2], st0:r[2], pct:r[3], s2:r[4], chk:r[5] === 5 ? 0 : (r[5] || 0), field:r[5] === 5, d:r[6] || ''} : null; }).filter(Boolean);
     // 16 نوفمبر — قاعدة الترتيب: (1) القمر هو الأساس (2) بلاغ الناس يأكد بس: خلال 1.5 كم ومتوسط+ وبشرط القمر شاف شي (3) القمر ما شاف شي → قسم «بلاغات الناس» لحاله
     // (4) صورة الفيضة أقدم من 10 أيام من آخر صورة → تنزل تحت الأحدث (5) المزارع مستبعدة
     const asofMs = faydData.asof ? Date.parse(faydData.asof + 'T12:00:00Z') : 0;
@@ -6731,6 +6731,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // وما يرفع الفيضة لـ«مثل المعتاد» إلا «متوسط» أو «كثيف» (2+). «بداية» بس يكتب «بلاغ قريب» بدون ما يغيّر ترتيبها
     if(FIELD_PTS.length) rows.forEach(r=>{ if(r.field) return; const near = FIELD_PTS.filter(p=>Math.abs(p[0] - r.lat) < .02 && Math.abs(p[1] - r.lng) < .02 && haversine(p[0], p[1], r.lat, r.lng) <= 1500); if(!near.length) return;
       r.repLv = Math.max(...near.map(p=>p[2] || 1));
+      // 17 نوفمبر (رفحاء): «بدايات أولى» (القمر شاف زيادة خفيفة g≥0.02) + بلاغ متوسط/كثيف قريب → ترتفع للقائمة «أكدها الميدان»
+      if(r.st0 < 1 && r.g >= 20 && r.s2 === 1 && r.repLv >= 2 && !r.stale){ r.field = true; r.chk = 0; r.st = 1; r.st0 = 1; return; }
       if(r.st0 < 1){ r.people = true; return; }   // القمر ما شاف شي: بلاغ ناس بس (قسم لحاله)
       if(r.repLv >= 2){ r.field = true; r.chk = 0; if(r.st < 2) r.st = 2; } else r.nearRep = true; });
     if(FY_GROUPS[faydFilter]) rows = rows.filter(r=>FY_GROUPS[faydFilter].includes(r.region));
@@ -6745,19 +6747,25 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const people = rows.filter(r=>r.people).sort((a, b)=>(b.repLv || 0) - (a.repLv || 0) || (a.km ?? 1e9) - (b.km ?? 1e9)).slice(0, 5);
     const LV_AR = ['', 'بداية', 'متوسط', 'كثيف'];
     const peopleHtml = people.length ? `<div class="fy-sub" style="margin:12px 0 4px">🌱 بلاغات الناس — ما أكدها القمر بعد</div>` + people.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''} · بلاغ «${LV_AR[r.repLv] || 'ربيع'}» خلال 1.5 كم</span></span></button>`).join('') : '';
-    try{ window.__faydDbg = {shown:[], people:people.map(r=>({i:r.i, st0:r.st0}))}; }catch(e){}
+    // 17 نوفمبر (رفحاء): «🌱 بدايات أولى» — القمر شاف زيادة خفيفة (تحت حد «بدأ الربيع») بصورة حديثة: عشب صغير يبان بالميدان أكثر من القمر.
+    // قسم لحاله، بدون تنبيهات ولا «وين أطلع»
+    const early = rows.filter(r=>r.st0 === 0 && r.st === 0 && !r.field && !r.people && r.s2 === 1 && r.g >= 20 && !r.stale && !(r.chk > 0))
+      .sort((a, b)=>faydFilter === 'near' ? a.km - b.km : b.g - a.g).slice(0, faydMore ? 20 : 6);
+    const earlyHtml = early.length ? `<div class="fy-sub" style="margin:14px 0 4px;font-weight:800;color:#5E7F3A">🌱 بدايات أولى — عشب صغير، يبان بالميدان أكثر من القمر</div><div class="pl-note" style="margin:0 0 6px;font-size:12px">القمر شاف زيادة خفيفة عن قبل الموسم. ما نرسل عليها تنبيه — شفتها؟ بلّغ من فوق 🌱</div>`
+      + early.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}${r.repLv ? ' · بلاغ قريب' : ''}</span></span><span class="fy-pill" style="background:#EEF5E4;color:#5E7F3A">بدايات أولى</span></button>`).join('') : '';
+    try{ window.__faydDbg = {shown:[], people:people.map(r=>({i:r.i, st0:r.st0})), early:early.map(r=>r.i)}; }catch(e){}
     const list = document.getElementById('faydList');
     renderFaydAlert();
     if(!green.length){
       const near = pos ? rows.filter(r=>r.km != null).sort((a, b)=>a.km - b.km).slice(0, 5) : [];
       list.innerHTML = (near.length ? `<div class="fy-sub" style="margin:4px 0 6px">أقرب الفياض لك — اضغط 🔔 وننبهك إذا اخضرّت</div>` + near.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)} كم</span></span><span class="fy-pill fy-p0">ما بدأ</span>${bell(r)}</button>`).join('') : '')
-        + `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل أسبوع.</span></div>` + peopleHtml;
+        + `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل يوم.</span></div>` + earlyHtml + peopleHtml;
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
     try{ window.__faydDbg.shown = green.slice(0, 10).map(r=>({i:r.i, st0:r.st0, stale:r.stale, chk:r.chk || 0, field:!!r.field})); }catch(e){}
     list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? ' · +' + r.pct + '٪ مساحة خضراء' : ''}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
-      + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '') + peopleHtml;
+      + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '') + earlyHtml + peopleHtml;
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------
   let spView = 'fayd', fqData = null, fqLoading = null;
