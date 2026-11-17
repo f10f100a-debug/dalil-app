@@ -1260,7 +1260,7 @@ html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #nav
 html.home2 #screen-compass > #stormStrip{order:5} html.home2 #screen-compass > #carCard{order:6} html.home2 #screen-compass > #h2Grid{order:7} html.home2 #screen-compass > #emergencyBtn{order:8} html.home2 #screen-compass > #sosNote{order:9}
 html.home2 #cpWeatherBadge, html.home2 #cpRainBadge, html.home2 #roomBtn, html.home2 .cp-actions, html.home2 #cpSun{display:none!important}
 html.home2:not(.h2guide) #carCard{display:none}
-html.home2 .cp-compass{width:min(100%, 330px, 39dvh)}
+html.home2 .cp-compass{width:min(100%, 330px, 37dvh)}
 html.home2 .cp-compass-card{padding:6px 12px 0; margin-bottom:8px}
 html.home2 #cpCompass:not(.h2near) .cp-center{display:none}
 html.home2 #cpCompass.h2near .h2needle{display:none}
@@ -1274,7 +1274,12 @@ html.home2 #cpCompass.h2t #targetArrow{visibility:hidden}
 #h2Strip .h2h{flex:none; text-align:center; line-height:1.05}
 #h2Strip .h2h b{display:block; font-size:34px; font-weight:900; color:var(--cp-ink); font-variant-numeric:tabular-nums}
 #h2Strip .h2h span{display:block; font-size:14.5px; font-weight:800; color:var(--cp-gold-ink, #8A5A12)}
-#h2Grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px}
+#h2Grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-bottom:8px}
+#h2Grid .h2t{flex-direction:column; justify-content:center; text-align:center!important; gap:1px!important; min-height:66px!important; padding:6px 4px!important}
+#h2Grid .h2t .i{width:auto!important; height:26px!important; background:none!important; font-size:22px!important}
+#h2Grid .h2t b{font-size:13.5px!important} #h2Grid .h2t small{font-size:11.5px!important}
+#h2Grid .h2t .x{flex:none; width:100%}
+html.home2 #screen-compass > .camp-card{order:5}
 #h2Grid .h2t{display:flex; align-items:center; gap:10px; min-height:58px; padding:8px 10px; background:var(--cp-card); border:1px solid var(--cp-line); border-radius:16px; color:var(--cp-ink); font-family:inherit; text-align:right; cursor:pointer; position:relative; min-width:0}
 #h2Grid .h2t .i{flex:none; width:38px; height:38px; border-radius:12px; background:var(--cp-soft, #F6EFE3); display:flex; align-items:center; justify-content:center; font-size:20px}
 #h2Grid .h2t .x{min-width:0; flex:1}
@@ -3548,14 +3553,19 @@ html.home2 .cp-sos{margin-top:0}
     const grid = document.createElement('div'); grid.id = 'h2Grid';
     grid.innerHTML = '<button type="button" class="h2t" data-h2="car"><span class="i">🚗</span><span class="x"><b>السيارة</b><small>احفظ مكانها</small></span></button>'
       + '<button type="button" class="h2t room" data-h2="room" hidden><span class="i">🎙️</span><span class="x"><b>غرفة الرحلة</b><small>كلّم جماعتك</small></span><span class="dot" hidden></span></button>'
-      + '<button type="button" class="h2t" data-h2="save"><span class="i">📍</span><span class="x"><b>حفظ مكان</b><small>أو 📋 لصق</small></span><span class="h2paste" data-h2="paste" role="button" aria-label="لصق موقع">📋</span></button>'
+      + '<button type="button" class="h2t" data-h2="camp" hidden><span class="i">⛺</span><span class="x"><b>مخيمي</b><small>احفظه وافحصه</small></span></button>'
+      + '<button type="button" class="h2t" data-h2="save"><span class="i">📍</span><span class="x"><b>حفظ مكان</b><small>هنا</small></span></button>'
+      + '<button type="button" class="h2t" data-h2="paste"><span class="i">📋</span><span class="x"><b>لصق موقع</b><small>من رسالة</small></span></button>'
       + '<button type="button" class="h2t" data-h2="share"><span class="i">📤</span><span class="x"><b>أرسل موقعي</b><small>واتساب أو رسالة</small></span></button>';
     scr.insertBefore(grid, document.getElementById('emergencyBtn'));
     const carT = grid.querySelector('[data-h2="car"]'), roomT = grid.querySelector('[data-h2="room"]');
     const cc = document.getElementById('carCard'), rb = document.getElementById('roomBtn');
     carT.onclick = ()=>{ const b = cc.querySelector('[data-act="go-car"]') || cc.querySelector('[data-act="save-car"]'); if(b) b.click(); };
     roomT.onclick = ()=>rb.click();
-    grid.querySelector('[data-h2="save"]').onclick = e=>{ if(e.target.closest('[data-h2="paste"]')) document.getElementById('pasteBtn').click(); else document.getElementById('saveHereBtn').click(); };
+    grid.querySelector('[data-h2="save"]').onclick = ()=>document.getElementById('saveHereBtn').click();
+    grid.querySelector('[data-h2="paste"]').onclick = ()=>document.getElementById('pasteBtn').click();
+    const campT = grid.querySelector('[data-h2="camp"]'), campBtn = ()=>[...document.querySelectorAll('.cp-actions button')].find(b=>b.textContent.indexOf('مخيمي') >= 0);
+    campT.onclick = ()=>{ const b = campBtn(); if(b) b.click(); };
     grid.querySelector('[data-h2="share"]').onclick = ()=>document.getElementById('shareCurrentBtn').click();
     const setT = (el, t)=>{ if(el.textContent !== t) el.textContent = t; };
     function mirror(){
@@ -3574,6 +3584,10 @@ html.home2 .cp-sos{margin-top:0}
       setT(roomT.querySelector('small'), bd && !bd.hidden && bd.textContent ? bd.textContent : 'كلّم جماعتك');
       roomT.querySelector('.dot').hidden = !dt || dt.hidden;
       grid.classList.toggle('three', roomT.hidden);
+      campT.hidden = !campBtn();
+      if(!campT.hidden){ const cc2 = scr.querySelector('.camp-card'); let st = 'احفظه وافحصه';
+        try{ if(localStorage.getItem('dalil_camp')) st = cc2 && !cc2.hidden ? (/warn/.test(cc2.className) ? '⚠️ انتبه' : /wait/.test(cc2.className) ? 'نفحص…' : '✅ آمن') : 'محفوظ'; }catch(e){}
+        setT(campT.querySelector('small'), st); }
     }
     mirror(); setInterval(()=>{ if(scr.classList.contains('active')) mirror(); }, 1500);
     new MutationObserver(mirror).observe(rb, {subtree:true, childList:true, characterData:true, attributes:true});
@@ -3592,7 +3606,7 @@ html.home2 .cp-sos{margin-top:0}
         document.documentElement.classList.toggle('h2guide', !(key === 'none' || key === 'saved'));
         const sm = carT.querySelector('small');
         if(key === 'none' || !car) setT(sm, 'احفظ مكانها');
-        else if(pos){ const d = haversine(pos.lat, pos.lng, car.lat, car.lng), b = bearing(pos.lat, pos.lng, car.lat, car.lng); setT(sm, ['⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️'][Math.round(b/45)%8] + ' ' + fmtDist(d) + ' ' + directionWord(b)); }
+        else if(pos){ const d = haversine(pos.lat, pos.lng, car.lat, car.lng), b = bearing(pos.lat, pos.lng, car.lat, car.lng); setT(sm, ['⬆️','↗️','➡️','↘️','⬇️','↙️','⬅️','↖️'][Math.round(b/45)%8] + ' ' + fmtDist(d)); }
         else setT(sm, 'محفوظة');
       }
     };
