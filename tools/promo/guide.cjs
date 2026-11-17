@@ -41,7 +41,9 @@ async function shot(p, n, fn) {
   try { if (fn) await fn(); await p.waitForTimeout(700); await p.screenshot({ path: `${OUT}/${n}.png` }); log('ok', n); }
   catch (e) { log('FAIL', n, e.message.split('\n')[0]); }
 }
-const tab = (p, s) => p.click(`.tab[data-screen="${s}"]`);
+// 17 نوفمبر: الترتيب الجديد — الإعدادات من ⚙️ (التبويب مخفي) و«البر» تبويب مستقل: نضغط بالكود
+const tab = (p, s) => p.evaluate(s => { const t = s === 'barr' ? document.querySelector('.tab[data-barr]') : document.querySelector(`.tab[data-screen="${s}"]`); t && t.click(); }, s);
+const barr = (p, k) => p.evaluate(k => { const b = document.querySelector(`[data-barrb="${k}"]`); b && b.click(); }, k);
 // الصفحة مقفولة (المحتوى يتمرر داخل main) — نرجّع كل الحاويات لأعلى
 const toTop = p => p.evaluate(() => { scrollTo(0, 0); document.querySelectorAll('main, .screen, .screen *').forEach(e => { if (e.scrollTop) e.scrollTop = 0; }); });
 const frame = p => p.frameLocator('#trackMapFrame');
@@ -63,6 +65,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await shot(p, '02-compass');
   await shot(p, '03-compass-lower', () => p.evaluate(() => document.getElementById('emergencyBtn').scrollIntoView({ block: 'end' })));
   await toTop(p);
+  await shot(p, '03d-rain-banner', () => p.evaluate(() => window.__rainBarDemo && window.__rainBarDemo()));
+  await p.evaluate(() => { const b = document.getElementById('rainBar'); if (b) b.classList.remove('on'); }).catch(() => {});
 
   // 3) الأماكن
   await tab(p, 'places'); await p.waitForTimeout(2500);
@@ -89,6 +93,18 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await mapGo(p, 27.52, 41.69, 12); await p.waitForTimeout(2000);
   await shot(p, '09-map-layers', async () => { await frame(p).locator('#layersBtn').click(); await p.waitForTimeout(1200); });
   await frame(p).locator('#lpClose').click().catch(() => {});
+  // المسطرة: من الأدوات ← نقطتين والخريطة تتحرك
+  await shot(p, '38-ruler', async () => {
+    await p.click('#trackToolsToggle'); await p.waitForTimeout(600);
+    await p.locator('#trackToolsPanel >> text=المسطرة').first().click(); await p.waitForTimeout(1200);
+    await mapGo(p, 27.535, 41.71, 13); await p.waitForTimeout(800);
+    await frame(p).locator('#rlBar .rl-add').click().catch(() => {}); await p.waitForTimeout(500);
+    await mapGo(p, 27.55, 41.69, 13); await p.waitForTimeout(1500); });
+  await frame(p).locator('#rlBar .rl-x, #rlBar [class*="rl-end"]').first().click().catch(() => {});
+  await p.waitForTimeout(800); await mapGo(p, 27.52, 41.69, 12); await p.waitForTimeout(1500);
+  // إحداثيات وسط الخريطة: الفقاعة ← كل الصيغ
+  await shot(p, '39-coords', async () => { await frame(p).locator('.cx-pill').first().click(); await p.waitForTimeout(1000); });
+  await p.keyboard.press('Escape').catch(() => {}); await frame(p).locator('body').click({ position: { x: 30, y: 400 } }).catch(() => {});
   await shot(p, '10-map-sat', async () => { await frame(p).locator('#onlineMode').click(); await p.waitForTimeout(7000); });
   await frame(p).locator('#localMode').click().catch(() => {});
   await mapGo(p, 27.6, 41.75, 9); await p.waitForTimeout(1500);
@@ -134,12 +150,18 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await toTop(p);
   for (const [k, n] of [['wind', '17-wind'], ['spring', '18-spring'], ['ev', '19-events']]) {
     if (k === 'spring') {
-      await shot(p, '18-spring', async () => { await p.click('[data-wxpane="spring"]'); await p.waitForTimeout(5000); await p.click('#faydChips [data-fy="all"]').catch(() => {}); await p.waitForTimeout(800); });
-      await shot(p, '18b-spring-fq', async () => { await p.click('#spSeg [data-sp="fq"]'); await p.waitForTimeout(2500); });
-      await shot(p, '18c-spring-around', async () => { await p.click('#spSeg [data-sp="fayd"]'); await p.waitForTimeout(1500); await p.evaluate(() => document.querySelector('#springPane .sp-card').scrollIntoView({ block: 'start' })); await p.waitForTimeout(6000); });
+      await tab(p, 'barr'); await p.waitForTimeout(5000);
+      await shot(p, '40-where', async () => { await p.evaluate(() => { const b = document.querySelector('[data-wh-open]'); if (b) b.click(); }); await p.waitForTimeout(1500); });
+      await shot(p, '18-spring', async () => { await p.click('#faydChips [data-fy="all"]').catch(() => {}); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('faydCard').scrollIntoView({ block: 'start' })); });
+      await shot(p, '41-fayd-report', async () => { await p.click('[data-fyr="open"]'); await p.waitForTimeout(500); await p.evaluate(() => document.getElementById('fyReport').scrollIntoView({ block: 'center' })); });
+      await p.click('[data-fyr="open"]').catch(() => {});
+      await shot(p, '18b-spring-fq', async () => { await barr(p, 'fq'); await p.waitForTimeout(2500); await toTop(p); });
+      await shot(p, '18c-spring-around', async () => { await barr(p, 'fayd'); await p.waitForTimeout(1500); await p.evaluate(() => document.querySelector('#springPane .sp-card').scrollIntoView({ block: 'start' })); await p.waitForTimeout(6000); });
       await toTop(p);
+      await tab(p, 'weather'); await p.waitForTimeout(1500);
       continue;
     }
+    if (k === 'ev') { await tab(p, 'barr'); await p.waitForTimeout(1500); await shot(p, n, async () => { await barr(p, 'ev'); await p.waitForTimeout(4000); await toTop(p); }); await tab(p, 'weather'); await p.waitForTimeout(1500); continue; }
     await shot(p, n, async () => { await p.click(`[data-wxpane="${k}"]`); await p.waitForTimeout(4000); });
     if (k === 'wind') {
       await shot(p, '17b-wind-chart', () => p.evaluate(() => { const e = document.getElementById('windChart'); if (e) e.scrollIntoView({ block: 'center' }); }));
@@ -165,6 +187,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 6) الإعدادات
   await tab(p, 'settings'); await p.waitForTimeout(1500);
   await shot(p, '20-settings');
+  await shot(p, '44-settings-look', () => p.evaluate(() => { const b = [...document.querySelectorAll('#screen-settings button')].find(x => /شكل البوصلة/.test(x.textContent)); if (b) b.scrollIntoView({ block: 'center' }); }));
+  await toTop(p);
   await shot(p, '21-settings-maps', () => p.evaluate(() => document.getElementById('importCatalogBtn').scrollIntoView({ block: 'center' })));
   await shot(p, '22-settings-push', () => p.evaluate(() => document.getElementById('pushTitle').scrollIntoView({ block: 'start' })));
   await shot(p, '22b-settings-near', () => p.evaluate(() => { const r = document.getElementById('nearRow'); if (r) { r.hidden = false; r.scrollIntoView({ block: 'center' }); } }));
@@ -188,14 +212,14 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
     await pp.evaluate(() => { const f = () => window.__dalilNativeHeading && window.__dalilNativeHeading(38, 8); f(); setInterval(f, 700); const a = document.getElementById('navActivation'); if (a) a.style.display = 'none'; });
     R.push(pp); }
   const [fahd, salem, saud] = R;
-  await fahd.click('#roomBtn'); await fahd.waitForSelector('#rmName');
+  await fahd.click('[data-h2="room"]'); await fahd.waitForSelector('#rmName');
   await fahd.click('[data-rm="tab-create"]');
   await fahd.fill('#rmName', 'فهد'); await fahd.fill('#rmTrip', 'كشتة النفود'); await fahd.fill('#rmPin', '2026');
   await shot(fahd, '24-room-create');
   await fahd.check('#rmTerms'); await fahd.click('#rmGo'); await fahd.waitForSelector('.rm-code', { timeout: 20000 });
   const code = (await fahd.textContent('.rm-code')).trim();
   for (const [pp, u] of [[salem, people[1]], [saud, people[2]]]) {
-    await pp.click('#roomBtn'); await pp.waitForSelector('#rmName');
+    await pp.click('[data-h2="room"]'); await pp.waitForSelector('#rmName');
     await pp.fill('#rmName', u.n); await pp.fill('#rmCode', code); await pp.fill('#rmPin', '2026');
     if (u.n === 'سالم') await shot(pp, '25-room-join');
     await pp.check('#rmTerms'); await pp.click('#rmGo');
