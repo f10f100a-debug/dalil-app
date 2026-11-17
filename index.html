@@ -3196,7 +3196,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       coordEl.classList.remove('waiting');
     }
     const meta = [];
-    if(pos && Number.isFinite(pos.alt)) meta.push((window.__h2 ? '↑ ' : 'الارتفاع ') + iso(Math.round(pos.alt)) + ' م');
+    if(pos && Number.isFinite(pos.alt)) meta.push('الارتفاع ' + iso(Math.round(pos.alt)) + ' م');
     if(!window.__h2 && pos && Number.isFinite(pos.speed) && pos.speed >= 0) meta.push('السرعة ' + iso(Math.round(pos.speed*3.6)) + ' كم/س');
     setText('cpLocMeta', meta.join('  ·  '));
     const driving = gpsCourseActive();
