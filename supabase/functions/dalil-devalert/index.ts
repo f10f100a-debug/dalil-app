@@ -70,13 +70,26 @@ Deno.serve(async (req) => {
     const line = "الصوت: " + (h.voice_ok_pct ?? "—") + "٪ وصل · " + (h.voice_smooth_pct ?? "—") + "٪ بدون تأخير (" + samples + " رسالة)"
       + (h.tx_fail ? " · فشل إرسال " + h.tx_fail : "") + " — المواقع: " + (h.pos_fresh_pct != null ? h.pos_fresh_pct + "٪ حديثة" : "ما فيه قياس بعد");
     const dayKey = "health:" + day, lowKey = "healthlow:" + day;
-    if (hr >= 9 && !seen.has(dayKey) && samples > 0) {
-      const res = await push("🎙️ صحة غرفة الرحلة (24 ساعة)", line);
+    if (hr >= 9 && !seen.has(dayKey)) {
+      // 17 نوفمبر (الإجازة): ملخص يومي كامل حتى لو ما فيه رسايل — الأخطاء وأعلى ضغط على الغرف
+      const { data: pk } = await sb.from("room_load").select("n,rooms").gte("at", new Date(Date.now() - 86400e3).toISOString()).order("n", { ascending: false }).limit(1);
+      const nErr = (errs || []).reduce((a: number, e: any) => a + Number(e.users || 0), 0);
+      const sum = (samples > 0 ? line : "ما فيه رسايل صوتية") + " · أعلى ضغط: " + (pk?.[0] ? pk[0].n + " متصل في " + pk[0].rooms + " غرفة" : "—") + " (الحد ~200) · أخطاء: " + (errs || []).length + " نوع عند " + nErr + " جهاز";
+      const res = await push("📋 ملخص دليل اليومي", sum);
       out.push({ health: h, sent: res.status }); if (res.ok) { seen.add(dayKey); changed = true; }
     }
     if (samples >= 30 && h.voice_ok_pct != null && h.voice_ok_pct < 80 && !seen.has(lowKey)) {
       const res = await push("⚠️ الصوت بغرفة الرحلة نزل", line + " — راجعه مع Claude");
       out.push({ healthLow: true, sent: res.status }); if (res.ok) { seen.add(lowKey); changed = true; }
+    }
+  }
+  // 17 نوفمبر: ضغط الغرف (الخطة المجانية: ~200 اتصال بنفس الوقت) — تنبيه عند 120 ثم 170، مرة لكل حد باليوم
+  const { data: ld } = await sb.from("room_load").select("n,rooms,at").gte("at", new Date(Date.now() - 3600e3).toISOString()).order("n", { ascending: false }).limit(1);
+  if (ld?.[0]) {
+    const n = ld[0].n, lvl = n >= 170 ? 170 : n >= 120 ? 120 : 0, k = "load" + lvl + ":" + day;
+    if (lvl && !seen.has(k)) {
+      const res = await push(lvl >= 170 ? "🚨 الغرف قربت من الحد" : "⚠️ ضغط على غرفة الرحلة", n + " متصل الحين في " + ld[0].rooms + " غرفة (الحد ~200 بالخطة المجانية)" + (lvl >= 170 ? " — فكّر بـ Supabase Pro الحين" : " — راقب، وكلّم Claude"));
+      out.push({ load: n, sent: res.status }); if (res.ok) { seen.add(k); changed = true; }
     }
   }
   if (changed) await sb.from("private_config").upsert({ key: "dev_alert_seen", value: [...seen].slice(-60).join("\n") });
