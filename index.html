@@ -1269,6 +1269,8 @@ html.home2 #screen-compass > *{max-width:100%; box-sizing:border-box; min-width:
 html.home2 .cp-compass-card{overflow:hidden}
 html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-v{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 #h2Grid .h2t{overflow:hidden}
+/* شاشات أقصر (آيفون 14/mini/SE…): يشيل السطر الثاني تحت الأزرار — يتقرر بالقياس (h2fit) */
+html.h2tight #h2Grid .h2t small{display:none} html.h2tight #h2Grid .h2t{min-height:52px!important}
 html.home2 #screen-compass > *{order:20}
 html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #navActivation{order:2} html.home2 #screen-compass > #h2Strip{order:3} html.home2 #screen-compass > .cp-compass-card{order:4}
 html.home2 #screen-compass > #stormStrip{order:5} html.home2 #screen-compass > #carCard{order:6} html.home2 #screen-compass > #h2Grid{order:7} html.home2 #screen-compass > #emergencyBtn{order:8} html.home2 #screen-compass > #sosNote{order:9}
@@ -3661,7 +3663,23 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
         try{ if(localStorage.getItem('dalil_camp')) st = cc2 && !cc2.hidden ? (/warn/.test(cc2.className) ? '⚠️ انتبه' : /wait/.test(cc2.className) ? 'نفحص…' : '✅ آمن') : 'محفوظ'; }catch(e){}
         setT(campT.querySelector('small'), st); }
     }
-    mirror(); setInterval(()=>{ if(scr.classList.contains('active')) mirror(); }, 1500);
+    mirror(); setInterval(()=>{ if(scr.classList.contains('active')){ mirror(); fit(); } }, 1500);
+    // 17 نوفمبر: كل شي لين الإحداثيات يدخل الشاشة — يقيس ويختصر بالتدريج (يشيل السطر الثاني، وبعدها يصغّر البوصلة شوي)
+    // يجرّب بالترتيب (بنفس اللحظة، فما يبان أي وميض): الشكل الكامل ← بدون السطر الثاني ← بوصلة أصغر شوي
+    function fit(){
+      const loc = scr.querySelector('.cp-loc'), tab = document.querySelector('.tabbar'); if(!loc || !tab || !scr.classList.contains('active') || scrollY > 4) return;
+      const H = document.documentElement, over = ()=>loc.getBoundingClientRect().bottom - tab.getBoundingClientRect().top + 4;
+      const w0 = cmp.style.width, t0 = H.classList.contains('h2tight');
+      cmp.style.width = ''; H.classList.remove('h2tight');
+      let o = over();
+      if(o > 0){ H.classList.add('h2tight'); o = over();
+        if(o > 0){ const w = cmp.getBoundingClientRect().width; cmp.style.width = Math.max(210, Math.floor(w - o)) + 'px'; } }
+      if(cmp.style.width !== w0 || H.classList.contains('h2tight') !== t0) window.__h2fitN = (window.__h2fitN || 0) + 1;
+    }
+    window.__h2fit = fit;
+    let lastWH = innerWidth + 'x' + innerHeight;
+    addEventListener('resize', ()=>{ const k = innerWidth + 'x' + innerHeight; if(k === lastWH) return; lastWH = k; setTimeout(fit, 80); setTimeout(fit, 400); });
+    [300, 800, 1500, 2500].forEach(t=>setTimeout(fit, t));
     new MutationObserver(mirror).observe(rb, {subtree:true, childList:true, characterData:true, attributes:true});
     window.__h2 = {
       // التوجيه لمكان: السهم الكبير يأشر على الهدف (داخل طبقة القرص: دوران القرص -اتجاهك + اتجاه الهدف = الهدف بالنسبة لك)،
