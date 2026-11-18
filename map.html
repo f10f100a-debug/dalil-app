@@ -1042,11 +1042,13 @@ const frameLabel=t=>t==null||t==='default'||String(t).startsWith('latest')||isNa
 const playSet=()=>LP.radar&&RADAR_FRAMES.length?{name:'الرادار',id:'radar',frames:RADAR_FRAMES.map(f=>new Date(f.time*1000).toISOString()),op:.8}:LP.radar?{name:'الرادار',id:'radar',frames:['latest:0'],op:.8}:LP.clouds?{name:'السحب',id:'clouds',frames:CLOUD_FRAMES,op:.85}:{name:'المطر',id:'rain',frames:RAIN_FRAMES,op:.8};
 // الشبكة الضعيفة: نحمّل صورة الرادار المعروضة فقط (وكل اللقطات وقت التحريك)، ونبقي الظاهرة حتى تكتمل التالية
 let radarShown='',radarWant='',radarWaitT=0;
+// 18 نوفمبر (تجربة dalil_lab_wkradar — جوال أبو مالك أول): الرادار الحين يختفي وقت لوحة «مطر الأسبوع»
+function wkHideLive(){try{return document.body.classList.contains('wk-on')&&localStorage.getItem('dalil_lab_wkradar')==='1'}catch(e){return false}}
 function radarApply(){
   const ids=RADAR_FRAMES.map(radarId);
   for(const id of new Set([...ids,radarShown]))if(gl.getLayer(id)){
     // 18 نوفمبر: لوحة «مطر الأسبوع» مفتوحة → نخفي الرادار الحين (كان يبان كأنه توقعات اليوم المختار)
-    const wk=document.body.classList.contains('wk-on'),on=!wk&&LP.radar&&(playTimer||id===radarWant||id===radarShown);
+    const wk=wkHideLive(),on=!wk&&LP.radar&&(playTimer||id===radarWant||id===radarShown);
     gl.setLayoutProperty(id,'visibility',on?'visible':'none');
     gl.setPaintProperty(id,'raster-opacity',!wk&&LP.radar&&id===radarShown?.8:0)}
 }
@@ -1081,7 +1083,7 @@ function radarRetry(id){
 let radarWatchT=0;
 function radarWatch(){clearTimeout(radarWatchT);radarWatchT=setTimeout(()=>{if(!LP.radar||playTimer)return;const id=radarWant||radarShown;if(!id)return;
   if(!radarTilesOk[id]){radarRetry(id);if((radarFix[id]||0)<RADAR_BACKOFF.length)radarWatch()}else radarNetMsg(false)},6000)}
-function showSetFrame(set,i){if(set.id==='radar'){radarSelect(i);return}const wk=document.body.classList.contains('wk-on');set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i&&!wk?set.op:0)})}
+function showSetFrame(set,i){if(set.id==='radar'){radarSelect(i);return}const wk=wkHideLive();set.frames.forEach((t,k)=>{if(gl.getLayer(set.id+'-'+k))gl.setPaintProperty(set.id+'-'+k,'raster-opacity',k===i&&!wk?set.op:0)})}
 function showFrame(i){const set=playSet(),n=set.frames.length;showSetFrame(set,i);
   if(set.id!=='rain')showSetFrame({id:'rain',frames:RAIN_FRAMES,op:.8},RAIN_FRAMES.length-1);
   if(set.id==='radar')showSetFrame({id:'clouds',frames:CLOUD_FRAMES,op:.85},CLOUD_FRAMES.length-1);
@@ -1463,7 +1465,7 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
         gl.addLayer({id:'nc30l',type:'line',source:'nc30',paint:{'line-color':'#8E44AD','line-width':1,'line-opacity':.5,'line-dasharray':[2,2]}})}
       has=true;sync()}catch(e){}}
   function sync(){if(!glReady||!has)return;const last=RADAR_FRAMES.length?radarId(RADAR_FRAMES[RADAR_FRAMES.length-1]):'';
-    const on=!!LP.radar&&!playTimer&&!document.body.classList.contains('wk-on')&&(!radarShown||radarShown===last);for(const id of['nc30','nc30l'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility',on?'visible':'none');
+    const on=!!LP.radar&&!playTimer&&!wkHideLive()&&(!radarShown||radarShown===last);for(const id of['nc30','nc30l'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility',on?'visible':'none');
     const lg=document.getElementById('radarLegend');if(lg&&on&&!leg.parentNode)lg.insertBefore(leg,document.getElementById('rlMotion'));if(!on&&leg.parentNode)leg.remove()}
   setInterval(()=>{load();sync()},3000);
 })();
@@ -1530,7 +1532,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       gl.addLayer({id:'wkt',type:'circle',source:'wkt',paint:{'circle-radius':5,'circle-color':'#F2C14E','circle-stroke-color':'#5C3A0E','circle-stroke-width':1.5}},'slot:dalil')}
     for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility',on?'visible':'none');render()}
   // الرادار والمطر الحين يختفون وقت لوحة الأسبوع، ويرجعون بعد ما تسكرها
-  function wkLive(show){try{radarApply()}catch(e){}try{for(const id of['nc30','nc30l'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility',show&&LP.radar?'visible':'none')}catch(e){}
+  function wkLive(show){try{if(localStorage.getItem('dalil_lab_wkradar')!=='1')return}catch(e){return}try{radarApply()}catch(e){}try{for(const id of['nc30','nc30l'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility',show&&LP.radar?'visible':'none')}catch(e){}
     try{for(const set of['rain','clouds'])for(let k=0;k<12;k++)if(gl.getLayer(set+'-'+k)&&!show)gl.setPaintProperty(set+'-'+k,'raster-opacity',0)}catch(e){}
     if(show){try{applyPrefs()}catch(e){}}render()}
   // أقرب مطر متوقع لموقعك (أو وسط الخريطة) في اليوم المختار — من «أقوى الأماكن» بكل المناطق
