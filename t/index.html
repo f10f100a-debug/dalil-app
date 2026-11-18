@@ -1,0 +1,107 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دليل — مسار في البر</title>
+<meta name="description" content="اضغط وافتح المسار في تطبيق دليل — يرسمه لك على الخريطة والسهم يمشيك عليه">
+<meta property="og:type" content="website"><meta property="og:site_name" content="دليل — بوصلة البر">
+<meta property="og:title" content="🧭 مسار في البر — افتحه في دليل"><meta property="og:description" content="اضغط هنا وتشوف المسار على الخريطة، والسهم يمشيك عليه خطوة بخطوة">
+<meta property="og:image" content="https://f10f100a-debug.github.io/dalil-app/assets/og-track.jpg"><meta property="og:image:width" content="800"><meta property="og:image:height" content="800">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="apple-itunes-app" content="app-id=6822651903">
+<meta name="theme-color" content="#F2EFE9">
+<style>
+@font-face{font-family:T;src:url(../fonts/Tajawal-Medium.ttf);font-weight:500}@font-face{font-family:T;src:url(../fonts/Tajawal-ExtraBold.ttf);font-weight:800}
+:root{--bg:#F2EFE9;--card:#fff;--ink:#2B2620;--dim:#7A6F62;--gold:#B8872E;--line:#E4DCCF;--map:#F6F1E7;--route:#C0392B}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1915;--card:#26221C;--ink:#F2EDE4;--dim:#B3A794;--line:#3A342B;--map:#2C2720;--route:#F0745F}}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{min-height:100vh;font:500 17px/1.6 T,-apple-system,"SF Arabic",Tahoma,sans-serif;display:flex;align-items:flex-start;justify-content:center;padding:22px 16px}
+.c{width:100%;max-width:440px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px 18px;text-align:center}
+.top{display:flex;align-items:center;gap:12px;justify-content:center}.top img{width:54px;height:54px;border-radius:14px}
+h1{font-size:22px;font-weight:800;margin:12px 0 2px}.sub{color:var(--dim);margin:0 0 14px}
+svg{width:100%;height:auto;background:var(--map);border:1px solid var(--line);border-radius:18px;display:block}
+a.b,button.b{display:block;width:100%;text-decoration:none;border-radius:16px;padding:14px;font:800 17px T,sans-serif;margin-top:10px;border:0;cursor:pointer}
+.g{background:var(--gold);color:#fff}.w{background:transparent;border:1px solid var(--line)!important;color:var(--ink)}
+small{display:block;color:var(--dim);margin-top:14px;font-size:13px;line-height:1.7}.err{color:#C0392B}
+.lg{display:flex;justify-content:center;gap:16px;color:var(--dim);font-size:13px;margin-top:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
+</style></head><body><main class="c">
+<div class="top"><img src="../assets/icon-192.png" alt=""><div style="text-align:right"><b style="font-size:19px">دليل</b><div style="color:var(--dim);font-size:14px">بوصلة البر</div></div></div>
+<h1 id="nm">🧭 مسار في البر</h1><p class="sub" id="st"></p>
+<div id="map"></div>
+<div class="lg" id="lg" hidden><span><i style="background:#2E7D52"></i>البداية</span><span><i style="background:var(--route)"></i>النهاية</span></div>
+<a class="b g" id="open" href="#">عندي دليل — افتح المسار فيه</a>
+<a class="b w" id="get" href="https://apps.apple.com/app/id6822651903">ما عندي دليل — حمّله مجانًا</a>
+<button class="b w" id="gpx" type="button">تنزيل ملف GPX (لتطبيقات ثانية)</button>
+<small id="note">في دليل ينرسم المسار على الخريطة، والسهم يمشيك عليه من أقرب نقطة لك لين آخره — حتى بدون شبكة.</small>
+</main>
+<script>
+// 18 نوفمبر: مشاركة المسار كرابط — المسار مضغوط داخل الرابط نفسه (بعد #) فما ينحفظ على أي سيرفر
+var DalilTrk = (function(){
+  function simplify(pts, tol){                       // Douglas–Peucker بالأمتار
+    if(pts.length < 3) return pts.slice();
+    const la0 = pts[0].lat * Math.PI / 180, kx = 111320 * Math.cos(la0), ky = 110540;
+    const P = pts.map(p=>[p.lng * kx, p.lat * ky]), keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+    const st = [[0, pts.length - 1]];
+    while(st.length){ const [a, b] = st.pop(); let md = 0, mi = -1; const [x1, y1] = P[a], [x2, y2] = P[b], dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1e-9;
+      for(let i = a + 1; i < b; i++){ const d = Math.abs(dy * P[i][0] - dx * P[i][1] + x2 * y1 - y2 * x1) / L; if(d > md){ md = d; mi = i; } }
+      if(md > tol && mi > 0){ keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+    return pts.filter((_, i)=>keep[i]);
+  }
+  function vput(out, n){ n = Math.max(0, Math.round(n)); while(n >= 128){ out.push((n & 127) | 128); n = Math.floor(n / 128); } out.push(n); }
+  const zz = n=>n < 0 ? -2 * n - 1 : 2 * n;
+  function b64u(bytes){ let s = ''; for(const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); while(s.length % 4) s += '='; const t = atob(s), o = new Uint8Array(t.length); for(let i = 0; i < t.length; i++) o[i] = t.charCodeAt(i); return o; }
+  function encode(track, maxPts){
+    maxPts = maxPts || 700;
+    const raw = (track.points || []).filter(p=>isFinite(p.lat) && isFinite(p.lng)).map(p=>({lat:+p.lat, lng:+p.lng}));
+    let tol = 3, s = simplify(raw, tol); while(s.length > maxPts && tol < 200){ tol *= 1.5; s = simplify(raw, tol); }
+    const out = [1], name = new TextEncoder().encode(String(track.name || 'مسار').slice(0, 60));
+    vput(out, name.length); for(const b of name) out.push(b);
+    vput(out, track.dist || 0); vput(out, (track.duration || 0) / 1000); vput(out, s.length);
+    let pl = 0, pg = 0;
+    for(const p of s){ const la = Math.round(p.lat * 1e5), lo = Math.round(p.lng * 1e5); vput(out, zz(la - pl)); vput(out, zz(lo - pg)); pl = la; pg = lo; }
+    return 'T1' + b64u(out);
+  }
+  function decode(str){
+    str = String(str || '').replace(/^#/, ''); const m = /T1([A-Za-z0-9_-]+)/.exec(str); if(!m) return null;
+    const b = unb64u(m[1]); let i = 0;
+    const vget = ()=>{ let n = 0, mul = 1, c; do{ if(i >= b.length) throw new Error('short'); c = b[i++]; n += (c & 127) * mul; mul *= 128; }while(c & 128); return n; };
+    const unz = n=>(n & 1) ? -(n + 1) / 2 : n / 2;
+    if(b[i++] !== 1) return null;
+    const nl = vget(), name = new TextDecoder().decode(b.slice(i, i + nl)); i += nl;
+    const dist = vget(), dur = vget(), n = vget(); if(n < 2 || n > 20000) return null;
+    const points = []; let la = 0, lo = 0;
+    for(let k = 0; k < n; k++){ la += unz(vget()); lo += unz(vget()); points.push({lat:la / 1e5, lng:lo / 1e5}); }
+    if(points.some(p=>!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180))) return null;
+    return {name, dist, duration:dur * 1000, points};
+  }
+  return {encode, decode, simplify};
+})();
+
+(function(){
+  var code=(location.hash||'').slice(1), d=null; try{ d=DalilTrk.decode(code); }catch(e){}
+  var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1), android=/Android/i.test(navigator.userAgent);
+  var open=document.getElementById('open'), get=document.getElementById('get');
+  if(!d){ document.getElementById('st').innerHTML='<span class="err">الرابط ناقص — اطلب من صاحب المسار يرسله مرة ثانية كامل.</span>'; open.hidden=true; document.getElementById('gpx').hidden=true; return; }
+  document.getElementById('nm').textContent='🧭 '+d.name;
+  var km=(d.dist||0)/1000, mins=Math.round((d.duration||0)/60000);
+  document.getElementById('st').textContent=(km?km.toFixed(1)+' كم':'')+(mins?' · '+(mins>=60?Math.floor(mins/60)+' س '+(mins%60)+' د':mins+' د'):'')+' · '+d.points.length+' نقطة';
+  // رسم المسار
+  var P=d.points, la0=P[0].lat*Math.PI/180, xs=P.map(function(p){return p.lng*Math.cos(la0)}), ys=P.map(function(p){return -p.lat});
+  var minx=Math.min.apply(0,xs),maxx=Math.max.apply(0,xs),miny=Math.min.apply(0,ys),maxy=Math.max.apply(0,ys),W=400,H=300,pad=26;
+  var s=Math.min((W-2*pad)/((maxx-minx)||1e-6),(H-2*pad)/((maxy-miny)||1e-6)), ox=(W-(maxx-minx)*s)/2, oy=(H-(maxy-miny)*s)/2;
+  var pts=P.map(function(_,i){return ((xs[i]-minx)*s+ox).toFixed(1)+','+((ys[i]-miny)*s+oy).toFixed(1)});
+  var a=pts[0].split(','), z=pts[pts.length-1].split(',');
+  document.getElementById('map').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="رسم المسار"><polyline points="'+pts.join(' ')+'" fill="none" stroke="var(--route)" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><circle cx="'+a[0]+'" cy="'+a[1]+'" r="8" fill="#2E7D52" stroke="#fff" stroke-width="3"/><circle cx="'+z[0]+'" cy="'+z[1]+'" r="8" fill="var(--route)" stroke="#fff" stroke-width="3"/></svg>';
+  document.getElementById('lg').hidden=false;
+  // الأزرار: الآيفون يفتح التطبيق مباشرة، وغيره يفتح دليل في المتصفح ومعه المسار
+  if(ios){ open.href='dalil://track#'+code; }
+  else { open.href='../#'+code; open.textContent='افتح المسار في دليل'; get.hidden=android?false:true;
+    if(android){ get.href='../'; get.textContent='دليل للأندرويد — قريبًا على Google Play'; document.getElementById('note').textContent='على الأندرويد ينفتح المسار في دليل داخل المتصفح، ويشتغل نفس التطبيق.'; } }
+  document.getElementById('gpx').onclick=function(){
+    var esc=function(t){return String(t).replace(/[<>&"']/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]})};
+    var g='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Dalil" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>'+esc(d.name)+'</name><trkseg>'+P.map(function(p){return '<trkpt lat="'+p.lat.toFixed(5)+'" lon="'+p.lng.toFixed(5)+'"></trkpt>'}).join('')+'</trkseg></trk></gpx>';
+    var f=new File([g],(d.name||'dalil-track').replace(/[\\/:*?"<>|]+/g,'-')+'.gpx',{type:'application/gpx+xml'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){ navigator.share({files:[f]}).catch(function(){}); return; }
+    var u=URL.createObjectURL(f),x=document.createElement('a');x.href=u;x.download=f.name;document.body.appendChild(x);x.click();x.remove();setTimeout(function(){URL.revokeObjectURL(u)},1500);
+  };
+})();
+</script></body></html>

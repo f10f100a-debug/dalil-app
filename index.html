@@ -25,6 +25,50 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F2EFE9">
 <script>
+// 18 نوفمبر: مشاركة المسار كرابط — المسار مضغوط داخل الرابط نفسه (بعد #) فما ينحفظ على أي سيرفر
+var DalilTrk = (function(){
+  function simplify(pts, tol){                       // Douglas–Peucker بالأمتار
+    if(pts.length < 3) return pts.slice();
+    const la0 = pts[0].lat * Math.PI / 180, kx = 111320 * Math.cos(la0), ky = 110540;
+    const P = pts.map(p=>[p.lng * kx, p.lat * ky]), keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+    const st = [[0, pts.length - 1]];
+    while(st.length){ const [a, b] = st.pop(); let md = 0, mi = -1; const [x1, y1] = P[a], [x2, y2] = P[b], dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1e-9;
+      for(let i = a + 1; i < b; i++){ const d = Math.abs(dy * P[i][0] - dx * P[i][1] + x2 * y1 - y2 * x1) / L; if(d > md){ md = d; mi = i; } }
+      if(md > tol && mi > 0){ keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+    return pts.filter((_, i)=>keep[i]);
+  }
+  function vput(out, n){ n = Math.max(0, Math.round(n)); while(n >= 128){ out.push((n & 127) | 128); n = Math.floor(n / 128); } out.push(n); }
+  const zz = n=>n < 0 ? -2 * n - 1 : 2 * n;
+  function b64u(bytes){ let s = ''; for(const b of bytes) s += String.fromCharCode(b); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64u(s){ s = s.replace(/-/g, '+').replace(/_/g, '/'); while(s.length % 4) s += '='; const t = atob(s), o = new Uint8Array(t.length); for(let i = 0; i < t.length; i++) o[i] = t.charCodeAt(i); return o; }
+  function encode(track, maxPts){
+    maxPts = maxPts || 700;
+    const raw = (track.points || []).filter(p=>isFinite(p.lat) && isFinite(p.lng)).map(p=>({lat:+p.lat, lng:+p.lng}));
+    let tol = 3, s = simplify(raw, tol); while(s.length > maxPts && tol < 200){ tol *= 1.5; s = simplify(raw, tol); }
+    const out = [1], name = new TextEncoder().encode(String(track.name || 'مسار').slice(0, 60));
+    vput(out, name.length); for(const b of name) out.push(b);
+    vput(out, track.dist || 0); vput(out, (track.duration || 0) / 1000); vput(out, s.length);
+    let pl = 0, pg = 0;
+    for(const p of s){ const la = Math.round(p.lat * 1e5), lo = Math.round(p.lng * 1e5); vput(out, zz(la - pl)); vput(out, zz(lo - pg)); pl = la; pg = lo; }
+    return 'T1' + b64u(out);
+  }
+  function decode(str){
+    str = String(str || '').replace(/^#/, ''); const m = /T1([A-Za-z0-9_-]+)/.exec(str); if(!m) return null;
+    const b = unb64u(m[1]); let i = 0;
+    const vget = ()=>{ let n = 0, mul = 1, c; do{ if(i >= b.length) throw new Error('short'); c = b[i++]; n += (c & 127) * mul; mul *= 128; }while(c & 128); return n; };
+    const unz = n=>(n & 1) ? -(n + 1) / 2 : n / 2;
+    if(b[i++] !== 1) return null;
+    const nl = vget(), name = new TextDecoder().decode(b.slice(i, i + nl)); i += nl;
+    const dist = vget(), dur = vget(), n = vget(); if(n < 2 || n > 20000) return null;
+    const points = []; let la = 0, lo = 0;
+    for(let k = 0; k < n; k++){ la += unz(vget()); lo += unz(vget()); points.push({lat:la / 1e5, lng:lo / 1e5}); }
+    if(points.some(p=>!(Math.abs(p.lat) <= 90 && Math.abs(p.lng) <= 180))) return null;
+    return {name, dist, duration:dur * 1000, points};
+  }
+  return {encode, decode, simplify};
+})();
+</script>
+<script>
 // داخل تطبيق الآيفون (Capacitor): نخفي عبارات المتصفح والتثبيت من Safari.
 window.DALIL_NATIVE=(function(){try{var C=window.Capacitor;if(C&&(C.isNativePlatform?C.isNativePlatform():(C.getPlatform&&C.getPlatform()!=='web')))return true}catch(e){}return /DalilApp/.test(navigator.userAgent||'')})();
 if(window.DALIL_NATIVE)document.documentElement.classList.add('in-app');
@@ -3306,7 +3350,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     lastAligned = aligned;
 
     const headingLine = haveHeading ? 'اتجاهك ' + iso(Math.round(heading) + '°') + ' · ' + cardinalSpaced(heading) : 'اتجاه الجوال غير متاح بعد';
-    const targetLabel = t ? (isCarTarget(t) ? 'إلى السيارة' : t._retrace ? 'العودة من نفس المسار' : 'إلى ' + t.name) : '';
+    const targetLabel = t ? (isCarTarget(t) ? 'إلى السيارة' : t._retrace ? (state.followMode ? 'اتباع المسار' : 'العودة من نفس المسار') : 'إلى ' + t.name) : '';
     let label = '', main, sub = '', sub2 = '', words = false;
     if(t && nav && near){
       main = 'قريب جدًا'; words = true; sub = 'انظر حولك';
@@ -3972,7 +4016,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const savedAt = car ? fmtSavedAt(car.time) : '';
     if(t){
       const isCar = isCarTarget(t);
-      const name = isCar ? '' : (t._retrace ? 'العودة من نفس المسار' : 'التوجّه إلى «' + t.name + '»');
+      const name = isCar ? '' : (t._retrace ? (state.followMode ? 'اتباع المسار' : 'العودة من نفس المسار') : 'التوجّه إلى «' + t.name + '»');
       if(near){
         key = 'near';
         title = isCar ? 'قريب جدًا من السيارة' : 'قريب جدًا من «' + t.name + '»';
@@ -4104,7 +4148,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const car = getCar(), t = state.navTarget;
     document.getElementById('carSheetTitle').textContent = t && !isCarTarget(t) ? 'خيارات التوجيه' : 'خيارات السيارة';
     document.getElementById('sheetStopNav').hidden = !t;
-    setText('sheetStopNavNote', isCarTarget(t) ? 'يبقى الموقع محفوظًا' : (t ? (t._retrace ? 'العودة من نفس المسار' : 'التوجّه إلى «' + t.name + '»') : ''));
+    setText('sheetStopNavNote', isCarTarget(t) ? 'يبقى الموقع محفوظًا' : (t ? (t._retrace ? (state.followMode ? 'اتباع المسار' : 'العودة من نفس المسار') : 'التوجّه إلى «' + t.name + '»') : ''));
     document.getElementById('sheetSaveCarNote').hidden = !car;
     document.getElementById('sheetShareCar').hidden = !car;
     document.getElementById('sheetRemoveCar').hidden = !car;
@@ -5796,6 +5840,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   // فتح دعوة غرفة من رابط dalil://room?code=…&pin=…
   window.__dalilOpenUrl = function(u){
     try{
+      // 18 نوفمبر: رابط مسار مشترك (…/dalil-app/t/#T1… أو dalil://track#T1…)
+      if(/\/t\/?#|^dalil:\/\/track/.test(String(u)) && /T1[A-Za-z0-9_-]{8,}/.test(String(u))){ importSharedTrack(String(u).split('#').slice(1).join('#') || String(u)); return true; }
       const url = new URL(String(u).replace(/^dalil:\/\//, 'https://x/'));
       // dalilbarr.com/r/رقم/رمز (الرابط القصير) أو ?room=…&pin=… أو dalil://room?code=…
       const g = String(u).match(/[?&]code=([A-Z0-9]{8})/);
@@ -5835,7 +5881,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     if(l && l.textContent !== lbl) l.textContent = lbl;
     if(c) c.textContent = open ? '⌄' : '⌃';
     const q = rec ? 'إيقاف وحفظ · ' + (trackDistance(state.trackPoints) / 1000).toFixed(1) + ' كم · ' + fmtDuration(Date.now() - state.trackStart)
-      : state.retracing ? '↩ جارٍ الرجوع من نفس المسار' : 'ابدأ التسجيل';
+      : state.retracing ? (state.followMode ? '🧭 جارٍ اتباع المسار' : '↩ جارٍ الرجوع من نفس المسار') : 'ابدأ التسجيل';
     const qe = trackQuickBtn.querySelector('.q'); if(qe.textContent !== q) qe.textContent = q;
     trackQuickBtn.classList.toggle('rec', rec); trackQuickBtn.classList.toggle('retr', !rec && !!state.retracing);
     if(!rec) ttConfirm.hidden = true;
@@ -6224,13 +6270,14 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     state.retracing = true;
     state.retraceIdx = 0; // counted from the end backward
     document.getElementById('retraceCard').style.display = 'block';
-    toast('اتّبع السهم للعودة من نفس المسار');
+    toast(state.followMode ? 'اتّبع السهم وامشِ على المسار' : 'اتّبع السهم للعودة من نفس المسار');
+    const rcn = document.querySelector('#retraceCard .place-name'); if(rcn) rcn.textContent = state.followMode ? '🧭 اتباع المسار' : '🔁 العودة من نفس المسار';
     updateRetrace();
   }
   document.getElementById('retraceBtn').addEventListener('click', startRetrace);
   document.getElementById('stopRetraceBtn').addEventListener('click', stopRetrace);
   function stopRetrace(){
-    state.retracing = false;
+    state.retracing = false; state.followMode = false;
     if(state.navTarget && state.navTarget._retrace) restoreDefaultTarget();
     document.getElementById('retraceCard').style.display = 'none';
     renderCompassScreen();
@@ -6244,6 +6291,18 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     let idxFromEnd = state.retraceIdx;
     let targetIdx = total - 1 - idxFromEnd;
     if(targetIdx < 0) targetIdx = 0;
+    // 18 نوفمبر (اتباع مسار مشترك): بالسيارة ممكن تعدي النقطة بأكثر من 15 م — نقفز لأقرب نقطة قدامك على المسار إذا أنت عليه (≤60 م)
+    if(state.followMode && targetIdx > 0){
+      // المسار المشترك مختصر (نقاط قليلة على الخط المستقيم) — نقيس البعد عن الخط بين النقاط، مو عن النقاط بس
+      const kx = 111320 * Math.cos(state.pos.lat * Math.PI / 180), ky = 110540, X = q=>[(q.lng - state.pos.lng) * kx, (q.lat - state.pos.lat) * ky];
+      let bj = targetIdx, bd = Infinity;
+      for(let j = targetIdx; j >= 1; j--){
+        const [ax, ay] = X(pts[j]), [bx, by] = X(pts[j - 1]), dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1e-9;
+        const tt = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L)), dj = Math.hypot(ax + tt * dx, ay + tt * dy);
+        if(dj < bd){ bd = dj; bj = j - 1; }
+      }
+      if(bj < targetIdx && bd <= 60){ targetIdx = bj; state.retraceIdx = total - 1 - bj; }
+    }
     const targetPt = pts[targetIdx];
     const d = haversine(state.pos.lat, state.pos.lng, targetPt.lat, targetPt.lng);
     if(d < 15 && targetIdx > 0){
@@ -6257,9 +6316,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     renderCompassScreen();
     drawTrackSvg();
     if(targetIdx === 0 && d < 15){
+      const wasFollow = state.followMode;
       stopRetrace();
       restoreDefaultTarget();
-      toast('وصلت إلى نقطة البداية 🎉'); if(window.__dalilHappy) window.__dalilHappy('retrace');
+      toast(wasFollow ? 'وصلت إلى نهاية المسار 🎉' : 'وصلت إلى نقطة البداية 🎉'); if(window.__dalilHappy) window.__dalilHappy('retrace');
     }
   }
 
@@ -6280,8 +6340,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
         <div class="th-stats"><span>${km} كم</span><span>${durMin} د</span><span>${t.points.length} نقطة</span><span>${date}</span></div>
         <div class="th-actions">
           <button class="btn ${shown ? 'btn-ghost' : 'btn-primary'}" data-track-view="${t.id}">${icoSpan('map')}${shown ? 'إخفاء' : 'عرض'}</button>
-          <button class="btn btn-ghost" data-track-retrace="${t.id}">${icoSpan('nav')}العودة منه</button>
-          <button class="btn btn-ghost" data-track-gpx="${t.id}">${icoSpan('send')}مشاركة GPX</button>
+          ${t.shared ? `<button class="btn btn-ghost" data-track-follow="${t.id}">${icoSpan('nav')}اتبعه</button>` : `<button class="btn btn-ghost" data-track-retrace="${t.id}">${icoSpan('nav')}العودة منه</button>`}
+          <button class="btn btn-ghost" data-track-share="${t.id}">${icoSpan('send')}مشاركة</button>
+          <button class="btn btn-ghost" data-track-gpx="${t.id}">GPX</button>
           <button class="btn btn-danger" data-track-delete="${t.id}">${icoSpan('trash')}حذف</button>
         </div>
       </div>`;
@@ -6307,6 +6368,14 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(!track || !loadSavedTrack(track)) return;
       startRetrace();
       document.querySelector('.tab[data-screen="compass"]').click();
+    }));
+    list.querySelectorAll('[data-track-share]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackShare);
+      if(track) shareTrackLink(track);
+    }));
+    list.querySelectorAll('[data-track-follow]').forEach(btn=>btn.addEventListener('click', ()=>{
+      const track = state.tracks.find(t=>t.id===btn.dataset.trackFollow);
+      if(track) startFollow(track);
     }));
     list.querySelectorAll('[data-track-gpx]').forEach(btn=>btn.addEventListener('click', ()=>{
       const track = state.tracks.find(t=>t.id===btn.dataset.trackGpx);
@@ -6353,6 +6422,54 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     return String(value ?? '').replace(/[<>&'\"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;',"'":'&apos;','"':'&quot;'}[c]));
   }
 
+  // 18 نوفمبر (أبو مالك: «كثير من الناس ما تعرف تستقبل ملف المسار»): المشاركة صارت رابط — اللي يضغطه يفتح دليل
+  // والمسار مرسوم ويقدر يمشي عليه. المسار مضغوط داخل الرابط بعد # (ما ينحفظ على أي سيرفر). ملف GPX باقي كخيار.
+  const TRK_BASE = 'https://f10f100a-debug.github.io/dalil-app/t/#';
+  async function shareTrackLink(track){
+    if(!track || !Array.isArray(track.points) || track.points.length < 2) return toast('لا توجد نقاط كافية للمشاركة');
+    let code = '';
+    try{ code = DalilTrk.encode(track); }catch(e){ return shareTrackGpx(track); }
+    const url = TRK_BASE + code, km = ((Number(track.dist) || trackDistance(track.points)) / 1000).toFixed(1);
+    const text = '🧭 مسار «' + (track.name || 'مسار') + '» · ' + km + ' كم\nاضغط الرابط وافتحه في تطبيق دليل وامشِ عليه:\n' + url;
+    if(navigator.share){
+      try{ await navigator.share({text}); return; }catch(err){ if(err && err.name === 'AbortError') return; }
+    }
+    try{ await navigator.clipboard.writeText(text); toast('نسخت رابط المسار — الصقه في الواتساب'); }
+    catch(e){ prompt('انسخ رابط المسار:', url); }
+  }
+  // استقبال مسار من رابط (من التطبيق أو المتصفح): يحفظه في «مساراتي» ويعرضه، ويسأل إذا تبي تمشي عليه
+  function importSharedTrack(code){
+    let d = null; try{ d = DalilTrk.decode(code); }catch(e){}
+    if(!d){ toast('رابط المسار ناقص أو تالف — اطلب من صاحبه يرسله مرة ثانية'); return false; }
+    const m = /T1[A-Za-z0-9_-]+/.exec(String(code)), sig = m ? m[0].length + ':' + m[0].slice(-40) : '';
+    let track = sig && state.tracks.find(t=>t.sig === sig);
+    if(!track){
+      track = {id:'shr-' + Date.now().toString(36), name:(d.name || 'مسار مستلم').slice(0, 60), points:d.points.map(p=>({lat:p.lat, lng:p.lng})),
+        dist:d.dist || trackDistance(d.points), duration:d.duration || 0, createdAt:Date.now(), imported:true, shared:true, sig};
+      state.tracks.unshift(track); save();
+    }
+    renderTrackHistory();
+    const tab = document.querySelector('.tab[data-screen="track"]'); if(tab) tab.click();
+    setTimeout(()=>{
+      if(!loadSavedTrack(track)) return;
+      setTimeout(()=>{ try{ syncTrackMap(); }catch(e){} }, 2500);
+      const km = ((Number(track.dist) || 0) / 1000).toFixed(1);
+      setTimeout(()=>{ if(confirm('وصلك مسار «' + track.name + '» (' + km + ' كم) وانحفظ في مساراتك.\n\nتبي تمشي عليه الحين؟ (السهم يوجهك من أقرب نقطة عليه لين آخره)')) startFollow(track); }, 900);
+    }, 700);
+    return true;
+  }
+  // اتباع مسار شخص ثاني: من أقرب نقطة لك على المسار لين نهايته (نفس «العودة منه» بس بالاتجاه الصحيح)
+  function startFollow(track){
+    if(!loadSavedTrack({...track, points:track.points.slice().reverse()})) return;
+    state.followMode = true;
+    startRetrace();
+    if(state.pos){
+      const pts = state.trackPoints; let bi = pts.length - 1, bd = Infinity;
+      pts.forEach((p, i)=>{ const dd = haversine(state.pos.lat, state.pos.lng, p.lat, p.lng); if(dd < bd){ bd = dd; bi = i; } });
+      state.retraceIdx = Math.max(0, pts.length - 1 - bi); updateRetrace();
+    }
+    document.querySelector('.tab[data-screen="compass"]').click();
+  }
   async function shareTrackGpx(track){
     if(!track || !Array.isArray(track.points) || track.points.length < 2) return toast('لا توجد نقاط كافية للتصدير');
     const segments = track.points.map(p=>{
@@ -8208,6 +8325,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
 
   // ---------- init ----------
   const launchParams = new URLSearchParams(location.search);
+  // 18 نوفمبر: فتح مسار مشترك في المتصفح (…/dalil-app/#T1…)
+  if(/^#T1[A-Za-z0-9_-]{8,}/.test(location.hash)){ const h = location.hash.slice(1); try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){} setTimeout(()=>importSharedTrack(h), 1500); }
   const requestedScreen = launchParams.get('screen');
   // فتح الخريطة من رابط (تنبيه مطر ?screen=track): الخريطة تعرض المنطقة ولا تركّز على موقعك تلقائيًا
   if(window.__dalilAlertLaunch) window.__dalilAlertLaunch(launchParams);
