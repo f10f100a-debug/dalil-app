@@ -1850,4 +1850,29 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   b.onclick=e=>{e.stopPropagation();if(!targetPoint)return;let n=(navName.textContent||'').replace(/^[🛰️💬✓\s]+/u,'').trim();if(GEN.test(n)||/^بلاغ من الناس|^ربيع مؤكد/.test(n))n='';
     try{parent.postMessage({type:'DALIL_SAVE_POINT',lat:targetPoint.lat,lng:targetPoint.lng,name:n},location.origin)}catch(err){}};
 })();
+</script><script>
+// 19 نوفمبر (تجربة dalil_lab_fylbl): أسماء الفياض والرياض على الخريطة — اللي فيها خضرة الحين من بعيد بالأخضر، والباقي لما تقرّب
+(function(){let on=false;try{on=localStorage.getItem('dalil_lab_fylbl')==='1'}catch(e){}if(!on)return;
+  let done=false;
+  async function add(){if(done)return;if(typeof gl==='undefined'||!glOk()||!gl.isStyleLoaded())return;done=true;
+    let D;try{D=await faydData()}catch(e){done=false;return}
+    const feats=[];D.sites.forEach((s,i)=>{if(!s||!s[0])return;const r=D.row.get(i),st=r?r[2]:0,g=r?r[1]:0,farm=D.farm.has(i)||(r&&r[5]===8);
+      feats.push({type:'Feature',properties:{n:s[0],gr:(st>=1&&!farm)?1:0,k:-(g||0)},geometry:{type:'Point',coordinates:[s[2],s[1]]}})});
+    // نفس الاسم مكرر (فياض القليب ×8): نخلي واحد لكل 12 كم — الأخضر أول
+    feats.sort((a,b)=>(b.properties.gr-a.properties.gr)||(a.properties.k-b.properties.k));const kept=[];
+    for(const f of feats){const[x,y]=f.geometry.coordinates;if(kept.some(q=>q.properties.n===f.properties.n&&Math.hypot((q.geometry.coordinates[0]-x)*96,(q.geometry.coordinates[1]-y)*111)<12))continue;kept.push(f)}
+    feats.length=0;feats.push(...kept);
+    if(gl.getSource('fy-lbl'))return;
+    gl.addSource('fy-lbl',{type:'geojson',data:{type:'FeatureCollection',features:feats}});
+    const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
+    const H=dark?'#1F1B16':'#FBF6EA';
+    gl.addLayer({id:'fy-lbl-g',type:'symbol',source:'fy-lbl',minzoom:8.3,filter:['==',['get','gr'],1],
+      layout:{'text-field':['get','n'],'text-font':TF,'text-size':['interpolate',['linear'],['zoom'],8.3,TS(11),12,TS(13.5)],'symbol-sort-key':['get','k'],'text-padding':4,'text-optional':false},
+      paint:{'text-color':dark?'#8FD9A2':'#1E6B34','text-halo-color':H,'text-halo-width':2}});
+    gl.addLayer({id:'fy-lbl-o',type:'symbol',source:'fy-lbl',minzoom:10.4,filter:['==',['get','gr'],0],
+      layout:{'text-field':['get','n'],'text-font':TF,'text-size':TS(11.5),'text-padding':4},
+      paint:{'text-color':dark?'#D8C9AE':'#6B5434','text-halo-color':H,'text-halo-width':2}});
+    try{render()}catch(e){}}
+  const iv=setInterval(()=>{add();if(done)clearInterval(iv)},800);
+})();
 </script></body></html>
