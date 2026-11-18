@@ -76,8 +76,13 @@ const sess = p=>p.evaluate(()=>{ try{ return JSON.parse(localStorage.getItem('da
     await A.evaluate(()=>{ const b = document.querySelector('[data-mm="kick-yes"]'); b && b.click(); }); await sleep(2500);
     let outB = false; for(let i = 0; i < 25 && !outB; i++){ outB = !(await sess(Bp)); if(!outB) await sleep(1000); }
     ok('العضو المُخرج طلع من الغرفة', outB);
-    await A.evaluate(()=>{ const b = document.querySelector('[data-mm="repin"]'); b && b.click(); }); await sleep(2500);
-    const pin1 = (await sess(A) || {}).pin;
+    // 18 نوفمبر: مرة فشل لأن الضغط صار قبل ما تجهز القائمة (تنبيه كاذب) — ننتظر الزر، ونعيد المحاولة مرتين قبل ما نحكم
+    let pin1 = pin0;
+    for(let t = 0; t < 3 && (!pin1 || pin1 === pin0); t++){
+      await A.waitForSelector('[data-mm="repin"], [data-rm="repin"]', {timeout:8000}).catch(()=>{});
+      await A.evaluate(()=>{ const b = document.querySelector('[data-mm="repin"]') || document.querySelector('[data-rm="repin"]'); b && b.click(); });
+      for(let i = 0; i < 8 && (!pin1 || pin1 === pin0); i++){ await sleep(1000); pin1 = (await sess(A) || {}).pin; }
+    }
     ok('تغيير الرمز السري', !!pin1 && pin1 !== pin0, (pin0 || '') + ' → ' + (pin1 || ''));
     // الخروج
     for(const p of [Bp, A]){ await p.evaluate(()=>{ const b = document.querySelector('[data-rm="leave"]') || document.getElementById('rmLeave'); b && b.click(); }); await sleep(2500); }
