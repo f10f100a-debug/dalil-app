@@ -1486,6 +1486,8 @@ function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':
 .wk-panel.open .wk-row{padding:7px 0}.wk-row>span{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.wk-row .wk-t{display:inline;margin:0 4px 0 0;font-size:11.5px;color:#7A6A55}
 .wk-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#C9C1B3;flex:none;vertical-align:middle;margin-inline-end:4px}.wk-dot.a3{background:#2E7D4F}.wk-dot.a2{background:#E0A93B}
 .wk-panel{transition:max-height .22s ease}.wk-panel.open{max-height:62vh}.wk-panel.open .wk-leg{display:none!important}
+.wk-allr{display:block;width:100%;margin:8px 0 2px;padding:10px 12px;border-radius:12px;border:1px solid;font:inherit;font-size:14px;font-weight:800;text-align:start;box-shadow:none;height:auto;line-height:1.3}.wk-card .wk-row b{white-space:nowrap}.wk-allb{margin-inline-start:6px;color:#5B1F86;background:#F1E9F8;border-color:#DCCBEC}.wk-hv,.wk-md,.wk-lt{font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;margin-inline-end:4px}.wk-hv{background:#5B1F86;color:#fff}.wk-md{background:#4A90D9;color:#fff}.wk-lt{background:#CFE8FB;color:#2457A6}
+:is(html[data-theme=dark],html[data-theme=red]) .wk-allb{background:#2A2035;border-color:#3D2E4F;color:#C9AEE6}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-tog{background:#1E2A3A;border-color:#2C3B50;color:#9DB6D3}
 .wk-bar h3{align-items:center}.wk-x{flex:none;width:30px;height:30px;border-radius:50%;border:1px solid #E4DED3;background:#fff;color:#5C4A32;font-size:14px;line-height:1;padding:0}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-x{background:#2C251D;border-color:#353027;color:#EFE8DC}
@@ -1541,13 +1543,29 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     if(!best)return'';const [x,rg]=best,b=(Math.atan2((x[5]-p.lng)*Math.cos(p.lat*Math.PI/180),x[4]-p.lat)*180/Math.PI+360)%360;
     return' · أقرب مطر متوقع: '+esc(x[0])+' ('+esc(rg)+') على بعد '+Math.round(bd)+' كم '+['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]}
   function regName(){try{const c=stageToLatLng(innerWidth/2,innerHeight/2),r=regionAt(c.lng,c.lat);return r?r.name:''}catch(e){return''}}
-  function setSize(v){size=Math.max(0,Math.min(2,v));open=size===2;document.body.classList.toggle('wk-full',size===2);drawCard()}
+  function setSize(v){size=Math.max(0,Math.min(2,v));open=size===2;if(!open)allK=false;document.body.classList.toggle('wk-full',size===2);drawCard()}
+  // «وين الأمطار القوية؟»: أقوى المتوقع بكل المملكة لليوم المختار، مع بعده واتجاهه منك
+  let allK=false;
+  function kingdomTop(){const p=(typeof gps!=='undefined'&&gps)||stageToLatLng(innerWidth/2,innerHeight/2),k=Math.cos(p.lat*Math.PI/180),A=[];
+    for(const [rg,days] of Object.entries(D.top||{}))for(const x of (days[day]||[])){if(x[1]<1)continue;const d=Math.hypot((x[4]-p.lat)*111,(x[5]-p.lng)*111*k),b=(Math.atan2((x[5]-p.lng)*k,x[4]-p.lat)*180/Math.PI+360)%360;A.push({x,rg,d,dir:['شمال','شمال شرق','شرق','جنوب شرق','جنوب','جنوب غرب','غرب','شمال غرب'][Math.round(b/45)%8]})}
+    A.sort((a,b)=>b.x[1]-a.x[1]);return A.slice(0,8)}
+  function drawAll(dn,xs,bindX){const A=kingdomTop(),mx=A.length?A[0].x[1]:0,lv=m=>m>=10?'<span class="wk-hv">قوي</span>':m>=4?'<span class="wk-md">متوسط</span>':'<span class="wk-lt">خفيف</span>';
+    card.innerHTML='<div class="hd">'+xs+'<span>🌧️ وين الأمطار القوية · '+esc(dn)+'</span><button type="button" class="wk-tog wk-allb">رجوع ⌄</button></div>'+
+      (!A.length?'<div class="wk-note">ما فيه مطر متوقع يُذكر في المملكة هذا اليوم.</div>':
+       (mx<10?'<div class="wk-note">ما فيه أمطار قوية متوقعة هذا اليوم — هذا أقوى المتوقع وهو خفيف.</div>':'')+
+       A.map((a,i)=>{const w=when(a.x[6],day);return'<div class="wk-row" data-i="'+i+'"><span><i class="wk-dot a'+a.x[2]+'"></i>'+esc(a.x[0])+(a.x[3]>=2?' ⚡':'')+' <small class="wk-t">'+esc(a.rg)+' · '+(a.d<15?'قريب منك':Math.round(a.d)+' كم '+a.dir)+(w?' · '+esc(w):'')+'</small></span><b>'+lv(a.x[1])+' '+mmr(a.x[1])+'</b></div>'}).join(''))+
+      '<div class="wk-note">مرتبة من الأقوى · <i class="wk-dot a3"></i>الثلاثة متفقة · <i class="wk-dot a2"></i>نموذجين من 3'+(day>=3?' · بعد 3 أيام دقتها أقل':'')+'</div>';
+    card.querySelector('.wk-allb').onclick=e=>{e.stopPropagation();allK=false;setSize(1)};bindX();
+    card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=A[+r.dataset.i].x;z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;allK=false;setSize(1)})}
   function drawCard(){if(!card||!D)return;if(panel){panel.classList.toggle('open',open);panel.classList.toggle('s0',size===0)}const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
     const xs=size===0?'<button type="button" class="wk-x wk-x0" aria-label="إغلاق مطر الأسبوع">✕</button>':'';
     const bindX=()=>{const x0=card.querySelector('.wk-x0');if(x0)x0.onclick=e=>{e.stopPropagation();btn.click()}};
     const agree=a=>a===3?'<span class="wk-ok">الثلاثة متفقة</span>':a===2?'<span class="wk-mx">نموذجين من 3</span>':'';
-    if(!rn){card.innerHTML='<div class="hd">'+xs+'<span>حرّك الخريطة على منطقة داخل المملكة</span></div>';bindX();return}
-    if(!L.length){card.innerHTML='<div class="hd">'+xs+'<span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر'+nearestRain()+'</span></div><div class="wk-note">⚡ الزخات المحلية المفاجئة ما تبان في التوقعات — تابعها على الرادار.</div>';bindX();return}
+    if(allK&&open){drawAll(dn,xs,bindX);return}
+    const kb='',kr='<button type="button" class="wk-allb wk-allr">🌧️ وين الأمطار القوية بالمملكة؟ ‹</button>';
+    const bindK=()=>{const b=card.querySelector('.wk-allb');if(b)b.onclick=e=>{e.stopPropagation();allK=true;setSize(2)}};
+    if(!rn){card.innerHTML='<div class="hd">'+xs+'<span>حرّك الخريطة على منطقة داخل المملكة</span></div>'+kr;bindX();bindK();return}
+    if(!L.length){card.innerHTML='<div class="hd">'+xs+'<span>📍 '+esc(rn)+' · '+esc(dn)+': ما فيه مطر متوقع يُذكر'+nearestRain()+'</span></div>'+kr+'<div class="wk-note">⚡ الزخات المحلية المفاجئة ما تبان في التوقعات — تابعها على الرادار.</div>';bindX();bindK();return}
     const t=L[0],tw=when(t[6],day),tg='<button type="button" class="wk-tog">'+(open?'إخفاء ⌄':'الخمسة ⌃')+'</button>';
     // مفتوحة: قائمة مضغوطة (سطر لكل مكان) بدون تكرار «أقوى مكان»
     card.innerHTML=(open
@@ -1555,8 +1573,8 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
         L.map((x,i)=>{const w=when(x[6],day);return'<div class="wk-row" data-i="'+i+'"><span><i class="wk-dot a'+x[2]+'"></i>'+esc(x[0])+(x[3]>=2?' ⚡':'')+(w?'<small class="wk-t">'+esc(w)+'</small>':'')+'</span><b>'+mmr(x[1])+'</b></div>'}).join('')+
         (rn==='مكة'||rn==='جازان'?'<div class="wk-note">🌊 على الساحل (تهامة) التوقع أضعف — النماذج غلطت هناك أكثر من مرة، تابع الرادار.</div>':'')+
         '<div class="wk-note"><i class="wk-dot a3"></i>النماذج الثلاثة متفقة · <i class="wk-dot a2"></i>نموذجين من 3'+(day>=3?' · بعد 3 أيام دقتها أقل':'')+'. تأكد من الرادار يوم الطلعة، والمصدر الرسمي المركز الوطني للأرصاد.</div>'
-      :'<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+mmr(t[1])+'</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span>'+tg+'</div>');
-    card.querySelector('.wk-tog').onclick=e=>{e.stopPropagation();setSize(open?1:2)};
+      :'<div class="hd">'+xs+'<span>📍 أقوى مكان في '+esc(rn)+' '+esc(dn)+': '+esc(t[0])+' <b>'+mmr(t[1])+'</b>'+(tw?' <span class="wk-tw">· 🕐 '+esc(tw)+'</span>':'')+'</span>'+tg+'</div>'+kr);
+    bindK();card.querySelector('.wk-tog:not(.wk-allb)').onclick=e=>{e.stopPropagation();setSize(open?1:2)};
     bindX();
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;setSize(1)});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
