@@ -1866,11 +1866,13 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     gl.addSource('fy-lbl',{type:'geojson',data:{type:'FeatureCollection',features:feats}});
     const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
     const H=dark?'#1F1B16':'#FBF6EA';
+    // نفس خط الخريطة (خط دليل العريض من «شكل الخريطة الجديد» أو اللي اختاره من الإعدادات)
+    let FF=TF;try{if(localStorage.getItem('dalil_lab_style')!=='0'){const f=localStorage.getItem('dalil_map_font');FF=[/^Dalil [A-Za-z ]+$/.test(f||'')?f:'Dalil Kufi Bold']}}catch(e){}
     gl.addLayer({id:'fy-lbl-g',type:'symbol',source:'fy-lbl',minzoom:8.3,filter:['==',['get','gr'],1],
-      layout:{'text-field':['get','n'],'text-font':TF,'text-size':['interpolate',['linear'],['zoom'],8.3,TS(11),12,TS(13.5)],'symbol-sort-key':['get','k'],'text-padding':4,'text-optional':false},
+      layout:{'text-field':['get','n'],'text-font':FF,'text-size':['interpolate',['linear'],['zoom'],8.3,TS(10.5),12,TS(12)],'symbol-sort-key':['get','k'],'text-padding':4,'text-optional':false},
       paint:{'text-color':dark?'#8FD9A2':'#1E6B34','text-halo-color':H,'text-halo-width':2}});
     gl.addLayer({id:'fy-lbl-o',type:'symbol',source:'fy-lbl',minzoom:10.4,filter:['==',['get','gr'],0],
-      layout:{'text-field':['get','n'],'text-font':TF,'text-size':TS(11.5),'text-padding':4},
+      layout:{'text-field':['get','n'],'text-font':FF,'text-size':TS(10.5),'text-padding':4},
       paint:{'text-color':dark?'#D8C9AE':'#6B5434','text-halo-color':H,'text-halo-width':2}});
     try{render()}catch(e){}}
   const iv=setInterval(()=>{add();if(done)clearInterval(iv)},800);
