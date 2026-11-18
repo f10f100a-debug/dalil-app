@@ -24,8 +24,8 @@ export default {
     // 18 نوفمبر: مسار مشترك dalilbarr.com/t#… → صفحة المسار (المتصفح ينقل اللي بعد # مع التحويل، والمسار ما يوصل السيرفر أبد)
     // نعرض الصفحة نفسها من dalilbarr.com (العنوان يبقى dalilbarr.com — أوثق للناس من github.io)
     if (p === "/t" || p === "/t/") {
-      const r = await fetch(APP + "t/", { cf: { cacheTtl: 300 } }).catch(() => null);
-      if (r && r.ok) return new Response(await r.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=300" } });
+      const r = await fetch(APP + "t/", { cf: { cacheTtl: 86400, cacheEverything: true } }).catch(() => null);
+      if (r && r.ok) return new Response(await r.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=3600" } });
       return new Response(null, { status: 302, headers: { location: APP + "t/" } });
     }
     if (p === "/" || p === "") return Response.redirect(STORE, 302);

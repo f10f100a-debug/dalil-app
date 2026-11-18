@@ -9,7 +9,7 @@
 <meta name="apple-itunes-app" content="app-id=6822651903">
 <meta name="theme-color" content="#F2EFE9">
 <style>
-@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-Medium.ttf);font-weight:500}@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-ExtraBold.ttf);font-weight:800}
+@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-Medium.ttf);font-weight:500;font-display:swap}@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-ExtraBold.ttf);font-weight:800;font-display:swap}
 :root{--bg:#F2EFE9;--card:#fff;--ink:#2B2620;--dim:#7A6F62;--gold:#B8872E;--line:#E4DCCF;--map:#F6F1E7;--route:#C0392B}
 @media (prefers-color-scheme:dark){:root{--bg:#1C1915;--card:#26221C;--ink:#F2EDE4;--dim:#B3A794;--line:#3A342B;--map:#2C2720;--route:#F0745F}}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink)}
@@ -25,9 +25,9 @@ small{display:block;color:var(--dim);margin-top:14px;font-size:13px;line-height:
 </style></head><body><main class="c">
 <div class="top"><img src="https://f10f100a-debug.github.io/dalil-app/assets/icon-192.png" alt=""><div style="text-align:right"><b style="font-size:19px">دليل</b><div style="color:var(--dim);font-size:14px">بوصلة البر</div></div></div>
 <h1 id="nm">🧭 مسار في البر</h1><p class="sub" id="st"></p>
-<div id="map"></div>
-<div class="lg" id="lg" hidden><span><i style="background:#2E7D52"></i>البداية</span><span><i style="background:var(--route)"></i>النهاية</span></div>
 <a class="b g" id="open" href="#">عندي دليل — افتح المسار فيه</a>
+<div id="map" style="margin-top:12px"></div>
+<div class="lg" id="lg" hidden><span><i style="background:#2E7D52"></i>البداية</span><span><i style="background:var(--route)"></i>النهاية</span></div>
 <a class="b w" id="get" href="https://apps.apple.com/app/id6822651903">ما عندي دليل — حمّله مجانًا</a>
 <button class="b w" id="gpx" type="button">تنزيل ملف GPX (لتطبيقات ثانية)</button>
 <small id="note">في دليل ينرسم المسار على الخريطة، والسهم يمشيك عليه من أقرب نقطة لك لين آخره — حتى بدون شبكة.</small>

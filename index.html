@@ -1332,6 +1332,10 @@ html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-
 #h2Grid .h2t{overflow:hidden}
 /* شاشات أقصر (آيفون 14/mini/SE…): يشيل السطر الثاني تحت الأزرار — يتقرر بالقياس (h2fit) */
 #clearCatalogBtn[hidden]{display:none!important}
+.shr-bar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:16px;background:var(--panel);color:var(--text);border:1.5px solid rgba(46,125,82,.45)}
+.shr-bar[hidden]{display:none}.shr-bar .shr-t{flex:1;min-width:0;display:flex;flex-direction:column}.shr-bar .shr-t b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shr-bar .shr-t small{font-size:12.5px;color:var(--text-dim)}.shr-bar .btn{width:auto;min-height:44px;padding:0 14px;white-space:nowrap;margin:0}
+.shr-bar .shr-x{border:0;background:transparent;font-size:18px;color:var(--text-dim);padding:6px;cursor:pointer}
 /* 18 نوفمبر: الضغط المطوّل على البوصلة كان يحدد حروف الاتجاهات بالأزرق (تحديد نص الآيفون) */
 #screen-compass .cp-compass-card,#screen-compass .cp-compass,#cpLetters,#h2Strip,#h2Grid,#screen-compass .cp-center{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html.h2tight #h2Grid .h2t small{display:none} html.h2tight #h2Grid .h2t{min-height:52px!important}
@@ -1533,10 +1537,12 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261115-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261118-1" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
+      <!-- 18 نوفمبر: مسار وصلك من رابط — ينعرض على الخريطة، وهذا الشريط فيه «اتبعه بالسهم» -->
+      <div class="shr-bar" id="shrBar" hidden><div class="shr-t"><b id="shrName"></b><small id="shrSub">وصلك من رابط وانحفظ في مساراتك</small></div><button type="button" class="btn btn-primary" id="shrFollow">اتبعه بالسهم</button><button type="button" class="shr-x" id="shrClose" aria-label="إغلاق">✕</button></div>
       <div class="tt-bar" id="ttBar">
         <button type="button" class="tt-rec" id="trackQuickBtn"><span class="d" aria-hidden="true"></span><span class="q">ابدأ التسجيل</span></button>
         <button class="btn btn-ghost track-tools-toggle" id="trackToolsToggle" aria-expanded="false" aria-label="أدوات المسار"><span class="tt-lbl">الأدوات</span><span class="tt-ch" aria-hidden="true">⌃</span></button>
@@ -6085,6 +6091,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     }
   });
 
+  document.getElementById('clearTrackBtn').addEventListener('click', ()=>{ const b = document.getElementById('shrBar'); if(b) b.hidden = true; });
   document.getElementById('clearTrackBtn').addEventListener('click', ()=>{
     if(state.tracking && !confirm('إلغاء التسجيل الحالي دون حفظه؟')) return;
     const wasRecording = state.tracking;
@@ -6452,14 +6459,17 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     }
     renderTrackHistory();
     const tab = document.querySelector('.tab[data-screen="track"]'); if(tab) tab.click();
+    // 18 نوفمبر (أبو مالك: «مسار — ليش ما يطلع على طول على الخريطة»): يفتح الخريطة والمسار مرسوم، وشريط تحتها فيه «اتبعه بالسهم»
     setTimeout(()=>{
       if(!loadSavedTrack(track)) return;
       setTimeout(()=>{ try{ syncTrackMap(); }catch(e){} }, 2500);
-      const km = ((Number(track.dist) || 0) / 1000).toFixed(1);
-      setTimeout(()=>{ if(confirm('وصلك مسار «' + track.name + '» (' + km + ' كم) وانحفظ في مساراتك.\n\nتبي تمشي عليه الحين؟ (السهم يوجهك من أقرب نقطة عليه لين آخره)')) startFollow(track); }, 900);
+      const km = ((Number(track.dist) || 0) / 1000).toFixed(1), bar = document.getElementById('shrBar');
+      if(bar){ document.getElementById('shrName').textContent = '🧭 ' + track.name + ' · ' + km + ' كم'; bar.dataset.id = track.id; bar.hidden = false; }
     }, 700);
     return true;
   }
+  document.getElementById('shrFollow').addEventListener('click', ()=>{ const bar = document.getElementById('shrBar'), t = state.tracks.find(x=>x.id === bar.dataset.id); bar.hidden = true; if(t) startFollow(t); });
+  document.getElementById('shrClose').addEventListener('click', ()=>{ document.getElementById('shrBar').hidden = true; });
   // اتباع مسار شخص ثاني: من أقرب نقطة لك على المسار لين نهايته (نفس «العودة منه» بس بالاتجاه الصحيح)
   function startFollow(track){
     if(!loadSavedTrack({...track, points:track.points.slice().reverse()})) return;

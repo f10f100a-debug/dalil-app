@@ -808,7 +808,9 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
   if(gps&&autoFollowPending){autoFollowPending=false;applyAutoFollow()}
   trackPoints=Array.isArray(e.data.points)?e.data.points.filter(p=>p&&Number.isFinite(p.lat)&&Number.isFinite(p.lng)):[];
   let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');
-  if(view==='follow'||view==='heading'){if(gps)centerOnGps()}
+  // 18 نوفمبر: مسار جديد انعرض (مثل مسار وصل من رابط أو «عرض») → الخريطة تتكبّر عليه كامل حتى لو كانت تتبع موقعك
+  if(mode==='view'&&trackPoints.length>1&&signature!==lastTrackSignature){setView('free');fitTrackClose()}
+  else if(view==='follow'||view==='heading'){if(gps)centerOnGps()}
   else if((mode==='record'||mode==='retrace')&&gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
   else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}
   else if(gps&&!embeddedCentered){z=detailZ();[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
