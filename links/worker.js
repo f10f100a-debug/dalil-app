@@ -1,13 +1,14 @@
 // روابط دليل القصيرة على dalilbarr.com (Cloudflare Worker)
 //   dalilbarr.com/r/789014/0000  → صفحة دعوة غرفة الرحلة (بطاقة واتساب + زر يفتح التطبيق)
 //   dalilbarr.com                → صفحة التطبيق في App Store
+//   dalilbarr.com/t#…           → صفحة مسار مشترك (18 نوفمبر)
 //   /.well-known/apple-app-site-association → لفتح التطبيق مباشرة من 1.5 فما فوق
 const APP = "https://f10f100a-debug.github.io/dalil-app/";
 const STORE = "https://apps.apple.com/app/id6822651903";
 const GUIDE = "https://f10f100a-debug.github.io/dalil-app/guide/dalil-guide.pdf";
 const OG_IMG = APP + "assets/og-room.jpg", ICON = APP + "assets/icon-192.png";
 const AASA = {
-  applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }] }] },
+  applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }, { "/": "/t", "comment": "مسار مشترك" }, { "/": "/t/*" }] }] },
 };
 
 export default {
@@ -20,6 +21,8 @@ export default {
     const m = p.match(/^\/r\/(\d{4,8})(?:\/([0-9A-Za-z]{1,12}))?\/?$/);
     // الرمز من المسار أو ?p= — أرقام وحروف إنجليزية فقط، وإلا يُتجاهل (حماية من حقن الصفحة)
     if (m) { const pin = m[2] || url.searchParams.get("p") || ""; return room(m[1], /^[0-9A-Za-z]{1,12}$/.test(pin) ? pin : ""); }
+    // 18 نوفمبر: مسار مشترك dalilbarr.com/t#… → صفحة المسار (المتصفح ينقل اللي بعد # مع التحويل، والمسار ما يوصل السيرفر أبد)
+    if (p === "/t" || p === "/t/") return new Response(null, { status: 302, headers: { location: APP + "t/", "cache-control": "max-age=300" } });
     if (p === "/" || p === "") return Response.redirect(STORE, 302);
     // دليل المستخدم (PDF على Google Drive) — نغيّر الرابط هنا فقط إذا تحدّث الدليل
     if (/^\/(guide|dalil|manual|دليل)\/?$/i.test(decodeURIComponent(p))) return Response.redirect(GUIDE, 302);
