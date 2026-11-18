@@ -1332,6 +1332,7 @@ html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-
 #h2Grid .h2t{overflow:hidden}
 /* شاشات أقصر (آيفون 14/mini/SE…): يشيل السطر الثاني تحت الأزرار — يتقرر بالقياس (h2fit) */
 #clearCatalogBtn[hidden]{display:none!important}
+.rc-src{font-size:12px;font-weight:600;color:var(--text-dim);margin-inline-start:6px}.storm-card .st-src{display:block;font-style:normal;font-size:12px;font-weight:600;color:var(--text-dim);margin-bottom:1px}
 .shr-bar{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:16px;background:var(--panel);color:var(--text);border:1.5px solid rgba(46,125,82,.45)}
 .shr-bar[hidden]{display:none}.shr-bar .shr-t{flex:1;min-width:0;display:flex;flex-direction:column}.shr-bar .shr-t b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shr-bar .shr-t small{font-size:12.5px;color:var(--text-dim)}.shr-bar .btn{width:auto;min-height:44px;padding:0 14px;white-space:nowrap;margin:0}
@@ -3646,7 +3647,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // شفافية: عمر صورة الرادار اللي انبنى عليها الكلام (RainViewer يتأخر عادة 5–15 د)
     const age = r.time ? Math.max(0, Math.round((Date.now() / 1000 - r.time) / 60)) : null;
     const ageTxt = age == null ? '' : ' · صورة الرادار ' + (age < 2 ? 'الحين' : 'قبل\u00A0' + iso(age) + '\u00A0د');
-    card.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}${ageTxt}</small></span>`;
+    card.innerHTML = `<span class="sx">${icon}</span><span><em class="st-src">📡 الرادار الحين</em><b>${t}</b><small>${sub}${ageTxt}</small></span>`;
+    try{ if(RAIN_OUT.data) renderRainOutlook(); }catch(e){}   // جملة «متى المطر؟» تتبع الرادار
     strip.hidden = !showStrip; strip.className = 'storm-strip ' + cls;
     if(showStrip) strip.innerHTML = `<span class="sx">${icon}</span><span><b>${t}</b><small>${sub}</small></span>`;
     // تنبيه مرة واحدة لكل موجة مطر قريبة
@@ -3855,7 +3857,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const hrs = rainHours(j), wins = rainWindows(hrs);
     const main = wins.find(w=>w.lv >= 2) || wins[0];
     let sum;
-    if(!main) sum = '☀️ لا يُتوقع مطر على ' + where + ' خلال <b>7 أيام</b> — النماذج الثلاثة متفقة.';
+    // 18 نوفمبر (أبو مالك: «خيار يقول مطر والثاني يقول لا مطر»): إذا الرادار الحين يشوف مطر قريب، ما نقول «لا مطر» بشكل حاسم
+    const rr = where === 'مكانك' && STORM.res, rNear = rr && ['here', 'coming', 'nearing', 'close'].includes(rr.kind) && !(rr.dbz != null && rr.dbz <= 20 && !rr.storm);
+    if(!main) sum = rNear ? '☀️ التوقعات ما تشوف مطر <b>يوصل الأرض</b> على ' + where + ' خلال <b>7 أيام</b>' + ((rr.weak || rr.virga) ? ' — والمطر الخفيف اللي يشوفه الرادار فوق غالبًا يتبخر قبل ما يوصل.' : ' — بس الرادار يشوف مطر قريب منك الحين، صدّق الرادار للساعة الجاية.')
+      : '☀️ لا يُتوقع مطر على ' + where + ' خلال <b>7 أيام</b> — النماذج الثلاثة متفقة.';
     else{
       const end = new Date(main.end.getTime() + 3600e3), same = main.start.toDateString() === end.toDateString();
       sum = 'احتمال مطر <span class="rc-lv l' + main.lv + '">' + LV_WORD[main.lv] + '</span> <b>' + dayWord(main.start) + ' من ' + hm(main.start) + ' لين ' + (same ? '' : dayWord(end) + ' ') + hm(end) + '</b>'
@@ -3864,7 +3869,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       const more = wins.filter(w=>w !== main && w.lv >= 2).slice(0, 2);
       if(more.length) sum += '<br>وبعدها: ' + more.map(w=>dayWord(w.start) + ' ' + hm(w.start) + ' (' + LV_WORD[w.lv] + ')').join('، ') + '.';
     }
-    if(!wins.length) return {wins, html:'<h3>🌧️ متى المطر؟</h3><div class="rc-sum" style="margin-bottom:0">' + sum + '</div>'};
+    if(!wins.length) return {wins, html:'<h3>🌧️ متى المطر؟ <small class="rc-src">📅 التوقعات</small></h3><div class="rc-sum" style="margin-bottom:0">' + sum + '</div>'};
     // شريط 48 ساعة
     const now = Date.now() - 3600e3, next = hrs.filter(h=>h.t.getTime() >= now).slice(0, 48);
     const bars = next.map(h=>'<i class="' + (h.lv ? 'l' + h.lv : '') + (h.thunder ? ' t' : '') + '" style="height:' + Math.max(6, h.lv ? 30 + h.prob * 0.7 : 6) + '%" title="' + hm(h.t) + ' ' + h.prob + '%"></i>').join('');
@@ -3873,7 +3878,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // الأيام السبعة
     const days = {}; for(const h of hrs){ const k = h.t.toDateString(); const d = days[k] || (days[k] = {t:h.t, lv:0, mm:0, prob:0}); d.lv = Math.max(d.lv, h.lv); d.mm += h.mm; d.prob = Math.max(d.prob, h.prob); }
     const dayHtml = Object.values(days).slice(0, 7).map(d=>'<div><b>' + (dayWord(d.t) === 'اليوم' || dayWord(d.t) === 'بكرة' ? dayWord(d.t) : d.t.toLocaleDateString('ar-SA-u-ca-gregory-nu-latn', {weekday:'short'})) + '</b><span class="d ' + (d.lv ? 'l' + d.lv : '') + '"></span>' + (d.lv ? iso(d.prob) + '%' : '—') + '</div>').join('');
-    return {wins, html:'<h3>🌧️ متى المطر؟</h3><div class="rc-sum">' + sum + '</div><div class="rc-bars">' + bars + '</div><div class="rc-ticks">' + ticks + '</div><div class="rc-days">' + dayHtml + '</div>'};
+    return {wins, html:'<h3>🌧️ متى المطر؟ <small class="rc-src">📅 التوقعات</small></h3><div class="rc-sum">' + sum + '</div><div class="rc-bars">' + bars + '</div><div class="rc-ticks">' + ticks + '</div><div class="rc-days">' + dayHtml + '</div>'};
   }
   function renderRainOutlook(){
     const card = document.getElementById('rainCard'), badge = document.getElementById('cpRainBadge');
