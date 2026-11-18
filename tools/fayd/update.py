@@ -296,6 +296,10 @@ print("::notice::light rain (kept, needs confirmation) " + str(len(light)) + ": 
 # سجل: الفياض اللي بانت خضراء وشالها فلتر المطر (نراجعها: ربيع فاتته المصادر ولا مزارع مسقية؟)
 print("::notice::dropped " + str(len(dropped)) + ": " + " · ".join(dropped)[:3500], flush=True)
 print(f"::notice::green {len(green)} → after rain check {sum(r[2] > 0 for r in rows)}", flush=True)
+# 18 نوفمبر (فياض مريحات): خضرة المحاور الزراعية حول الفيضة — انظر tools/fayd/farmguard.py
+import farmguard
+_g, _m = farmguard.guard(rows, farm, SITES, CROP)
+print(f"::notice::farm guard: dropped {len(_g)} " + " · ".join(_g) + f" | near farms {len(_m)} " + " · ".join(_m)[:1500], flush=True)
 # ---- تأكيد من الميدان (7 نوفمبر): القمر الصناعي يتأخر بأول أسبوعين (العشب قصير والتراب غالب من فوق) ----
 # فيضة حولها (5 كم) نقطة مؤكدة من الميدان — من data/fayd-field.json أو بلاغات «ربيع عندك؟» من جهازين فأكثر —
 # والقمر يشوف فيها بداية خضرة (3% فأكثر من مساحتها) → «بداية ربيع — مؤكدة من الميدان» (check=5)
