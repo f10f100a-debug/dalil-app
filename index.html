@@ -1287,6 +1287,7 @@ html.home2 .cp-compass-card{overflow:hidden}
 html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-v{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 #h2Grid .h2t{overflow:hidden}
 /* شاشات أقصر (آيفون 14/mini/SE…): يشيل السطر الثاني تحت الأزرار — يتقرر بالقياس (h2fit) */
+#clearCatalogBtn[hidden]{display:none!important}
 /* 18 نوفمبر: الضغط المطوّل على البوصلة كان يحدد حروف الاتجاهات بالأزرق (تحديد نص الآيفون) */
 #screen-compass .cp-compass-card,#screen-compass .cp-compass,#cpLetters,#h2Strip,#h2Grid,#screen-compass .cp-center{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html.h2tight #h2Grid .h2t small{display:none} html.h2tight #h2Grid .h2t{min-height:52px!important}
@@ -1728,18 +1729,21 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       </div>
 
       <div class="section-title">خرائط البر</div>
-      <div class="banner">
-        يتضمن التطبيق أكثر من 45 ألف موقع داخل المملكة في 13 منطقة: مواقع برية ومحطات وقود ومراكز إسعاف وصيانة للبحث في تبويب الأماكن والتوجّه إليها بالبوصلة أو على الخريطة، وتعمل بلا إنترنت. ويمكنك استيراد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (حزمة دليل DLMap · PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). خريطة أبو مالك v63 تُستورد باختيار ملف DLMap واحد. اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.
+      <!-- 18 نوفمبر (أبو مالك: «هذي آخذة مساحة»): سطر واحد + الأزرار المهمة، والتفاصيل التقنية داخل «تفاصيل» -->
+      <div class="banner">مواقع البر ومحطات الوقود والإسعاف في 13 منطقة — تبحث عنها في «الأماكن» وتتوجّه لها، وتشتغل بدون نت.</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="newMapBtn" type="button">حفظ خرائط المناطق للاستخدام بدون إنترنت</button>
+        <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملف (خرائط، مواقع، مسارات)</button>
+        <button class="btn btn-ghost" id="clearCatalogBtn" hidden>حذف المستورد</button>
+        <input type="file" id="importCatalogInput" multiple hidden>
+      </div>
+      <details class="banner licenses" id="mapDetails">
+        <summary style="font-weight:700; cursor:pointer;">تفاصيل (الملفات المدعومة ومصدر المواقع)</summary>
+        <div style="margin-top:8px; font-size:13px; line-height:1.8;">تقدر تستورد ملفاتك: <b>مواقع ومسارات</b> (KML · KMZ · GPX · GeoJSON · CSV · OSM · PLT · WPT) و<b>خرائط</b> (حزمة دليل DLMap · PMTiles · MBTiles · GeoTIFF · OsmAnd ‎.osf/‎.sqlitedb · KMZ مصوّرة/Garmin · OziExplorer ‎.map مع صورتها · صورة مع ‎.jgw/‎.pgw). خريطة أبو مالك v63 تُستورد باختيار ملف DLMap واحد. اختر ملف المعايرة مع صورته معًا. تُحوَّل وتُحفظ في جوالك فقط وتعمل بلا إنترنت.</div>
         <div id="catalogStatus" style="margin-top:6px; font-weight:600; color:var(--text); white-space:pre-line;"></div>
         <div style="margin-top:8px; font-weight:700;">مصدر المواقع المدمجة</div>
         <div class="btn-row places-src" id="placesSrc" style="margin-top:6px;"><button type="button" class="chip" data-places-src="osm">المصادر المفتوحة (OSM + GeoNames)</button><button type="button" class="chip" data-places-src="barr">خرائط البر + OpenStreetMap</button></div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملف (خرائط، مواقع، مسارات)</button>
-        <button class="btn btn-ghost" id="newMapBtn" type="button">حفظ خرائط المناطق للاستخدام بدون إنترنت</button>
-        <button class="btn btn-ghost" id="clearCatalogBtn">حذف المستورد</button>
-        <input type="file" id="importCatalogInput" multiple hidden>
-      </div>
+      </details>
       <div id="userMapsList" class="user-maps"></div>
       <div id="storageInfo" class="permission-note" style="margin-top:8px"></div>
 
@@ -4752,6 +4756,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     if(!bundledCatalog) lines.push(bundledLoading ? 'جارٍ تحميل المواقع البرية…' : 'تُحمَّل المواقع البرية عند أول بحث.');
     lines.push(userCatalog.p.length ? 'مستورد منك: ' + fmt(userCatalog.p.length) + (userCatalog.p.length > 2 && userCatalog.p.length < 11 ? ' مواقع (' : ' موقعًا (') + '' + userCatalog.regions.join('، ') + ').' : 'لم تستورد ملفات إضافية.');
     el.textContent = lines.join('\n');
+    const cb = document.getElementById('clearCatalogBtn'); if(cb) cb.hidden = !userCatalog.p.length;   // 18 نوفمبر: يطلع بس إذا فيه ملفات مستوردة
   }
   function renderPlacesSrc(){ document.querySelectorAll('[data-places-src]').forEach(b=>b.classList.toggle('active', b.dataset.placesSrc === placesSrc)); }
   document.getElementById('placesSrc').addEventListener('click', e=>{
