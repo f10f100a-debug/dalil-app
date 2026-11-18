@@ -1287,6 +1287,8 @@ html.home2 .cp-compass-card{overflow:hidden}
 html.home2 .cp-corner{max-width:34%; overflow:hidden} html.home2 .cp-corner .cp-v{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 #h2Grid .h2t{overflow:hidden}
 /* شاشات أقصر (آيفون 14/mini/SE…): يشيل السطر الثاني تحت الأزرار — يتقرر بالقياس (h2fit) */
+/* 18 نوفمبر: الضغط المطوّل على البوصلة كان يحدد حروف الاتجاهات بالأزرق (تحديد نص الآيفون) */
+#screen-compass .cp-compass-card,#screen-compass .cp-compass,#cpLetters,#h2Strip,#h2Grid,#screen-compass .cp-center{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 html.h2tight #h2Grid .h2t small{display:none} html.h2tight #h2Grid .h2t{min-height:52px!important}
 html.home2 #screen-compass > *{order:20}
 html.home2 #screen-compass > .cp-head{order:1} html.home2 #screen-compass > #navActivation{order:2} html.home2 #screen-compass > #h2Strip{order:3} html.home2 #screen-compass > .cp-compass-card{order:4}
@@ -3700,6 +3702,15 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(cmp.style.width !== w0 || H.classList.contains('h2tight') !== t0) window.__h2fitN = (window.__h2fitN || 0) + 1;
     }
     window.__h2fit = fit;
+    // 18 نوفمبر: بعد ما تنسكر بطاقة (مثل «وصلت إلى…») أو ترجع الصفحة لفوق، نعيد الضبط فورًا —
+    // كان يبقى على الشكل المختصر (بدون السطر الثاني تحت الأزرار) مع فراغ تحت الإحداثيات إذا كانت الصفحة منزّلة شوي
+    let fitT = 0; const fitSoon = ()=>{ clearTimeout(fitT); fitT = setTimeout(()=>{ fit(); setTimeout(fit, 350); }, 60); };
+    // نراقب بس البطاقات اللي تطلع وتختفي (مو القرص اللي يدور) — ونعيد الضبط إذا تغيّر ارتفاعها فعلًا
+    let cardSig = ''; const cards = ()=>[...scr.querySelectorAll('#carCard, .camp-card, .cp-calib, .cp-hint')];
+    const checkCards = ()=>{ const g = cards().map(c=>(c.hidden ? 0 : c.offsetHeight)).join(','); if(g !== cardSig){ cardSig = g; fitSoon(); } };
+    new MutationObserver(checkCards).observe(scr, {subtree:true, attributes:true, attributeFilter:['hidden'], childList:true});
+    const cc0 = document.getElementById('carCard'); if(cc0) new MutationObserver(checkCards).observe(cc0, {attributes:true, attributeFilter:['class', 'style']});
+    let wasDown = false; addEventListener('scroll', ()=>{ const d = scrollY > 4; if(wasDown && !d) fitSoon(); wasDown = d; }, {passive:true});
     let lastWH = innerWidth + 'x' + innerHeight;
     addEventListener('resize', ()=>{ const k = innerWidth + 'x' + innerHeight; if(k === lastWH) return; lastWH = k; setTimeout(fit, 80); setTimeout(fit, 400); });
     [300, 800, 1500, 2500].forEach(t=>setTimeout(fit, t));
