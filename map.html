@@ -494,7 +494,8 @@ async function loadSpringReports(force){if(!glReady||(!force&&Date.now()-srAt<12
     if(gl.getSource('spring-reports'))gl.getSource('spring-reports').setData(fc);
     else{gl.addSource('spring-reports',{type:'geojson',data:fc});
       srIcons();gl.addLayer({id:'spring-reports',type:'symbol',source:'spring-reports',layout:{'icon-image':['concat','sr',['to-string',['get','level']]],'icon-anchor':'bottom','icon-allow-overlap':true,
-        'icon-size':['interpolate',['linear'],['zoom'],5,.55,10,.85,14,1.05]},paint:{'icon-opacity':['interpolate',['linear'],['get','age'],0,1,72,.4]}})}
+        // أبو مالك: «تشوّه المنظر إلا عند التكبير 500 م» — مبعّد: نقطة صغيرة خفيفة، ومن 500 م وأقرب: الفقاعة كاملة
+        'icon-size':['interpolate',['linear'],['zoom'],5,.22,12,.3,13.3,.42,13.9,1,15.5,1.15]},paint:{'icon-opacity':['interpolate',['linear'],['zoom'],13.3,['*',.75,['interpolate',['linear'],['get','age'],0,1,72,.4]],13.9,['interpolate',['linear'],['get','age'],0,1,72,.4]]}})}
     vis('spring-reports',LP.ndvi)}catch(e){}}
 setInterval(()=>{if(LP.ndvi)loadSpringReports()},180e3);
 $('#springAsk').addEventListener('click',()=>{if(!gps){status.textContent='بانتظار تحديد موقعك… (البلاغ يكون عن المكان اللي أنت فيه)';return}$('#springSheet').hidden=false});
@@ -1345,7 +1346,7 @@ async function loadFieldFayd(){if(ffLoaded)return;ffLoaded=true;try{const t=Math
   FF=(a.rows||[]).map(r=>({lat:r[0],lng:r[1],name:r[2],d:r[3],src:r[4]}));
   try{const r=await fetch(RR_URL+'/rest/v1/rpc/spring_field_points',{method:'POST',headers:{apikey:RR_KEY,'content-type':'application/json'},body:'{"p_days":10}',cache:'no-store'});if(r.ok){const j=await r.json();(j||[]).forEach(x=>FF.push({lat:+x.lat,lng:+x.lng,name:'ربيع مؤكد من بلاغات الناس',d:String(x.at||'').slice(0,10),src:x.n+' بلاغات من أجهزة مختلفة'}))}}catch(e){}
   if(glOk()&&FF.length&&!gl.getSource('fayd-field')){gl.addSource('fayd-field',{type:'geojson',data:{type:'FeatureCollection',features:FF.map(x=>({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
-    srIcons();gl.addLayer({id:'fayd-field',type:'symbol',source:'fayd-field',layout:{visibility:LP.ndvi?'visible':'none','icon-image':'srOK','icon-anchor':'bottom','icon-allow-overlap':true,'icon-size':['interpolate',['linear'],['zoom'],5,.65,10,.95,14,1.15]}})}}catch(e){ffLoaded=false}}
+    srIcons();gl.addLayer({id:'fayd-field',type:'symbol',source:'fayd-field',layout:{visibility:LP.ndvi?'visible':'none','icon-image':'srOK','icon-anchor':'bottom','icon-allow-overlap':true,'icon-size':['interpolate',['linear'],['zoom'],5,.26,12,.36,13.3,.48,13.9,1.05,15.5,1.2]}})}}catch(e){ffLoaded=false}}
 function fieldNear(p,km){let best=km||0.7,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FF){const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
 function fieldAt(sx,sy){if(!LP.ndvi||!FF.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=24;
   for(const x of FF){const q=world(x.lat,x.lng),d=Math.hypot(q[0]+ox-sx,q[1]+oy-sy);if(d<best){best=d;hit=x}}return hit}
