@@ -1841,7 +1841,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 })();
 </script><script>
 // 19 نوفمبر (تجربة dalil_lab_pinsave): «📌 حفظ في أماكني» ببطاقة الدبوس — التطبيق يفتح نافذة الحفظ (الاسم والأيقونة)
-(function(){let on=false;try{on=localStorage.getItem('dalil_lab_pinsave')==='1'}catch(e){}
+(function(){let on=true;try{on=localStorage.getItem('dalil_lab_pinsave')!=='0'}catch(e){}
   const b=document.getElementById('saveNav');if(!on||!b||!isEmbedded)return;
   const st=document.createElement('style');st.textContent='.save-nav{background:#FBF1DF!important;color:#7A4E12!important;border:1px solid #E6CFA6!important}.save-nav[hidden]{display:none!important}:is(html[data-theme=dark],html[data-theme=red]) .save-nav{background:#2E2416!important;color:#E8C27A!important;border-color:#4A3A22!important}';document.head.appendChild(st);
   const GEN=/^(نقطة محددة على الخريطة|الموقع المحفوظ|نقطة وسط الخريطة)$/;
