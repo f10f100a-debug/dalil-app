@@ -793,6 +793,7 @@ $('#navClose').onclick=e=>{e.stopPropagation();if(navCard.classList.contains('mi
 stopNav.onclick=()=>{navigationActive=false;navCard.classList.remove('mini');try{navCloseGlyph()}catch(e){}releaseScreen();if(view==='fit')setView('free');startNav.style.display='block';compassNav.style.display='block';stopNav.style.display='none';status.textContent='تم إلغاء التوجيه';updateNavigation();render()};
 
 // ---------- embedded in the app (track tab) ----------
+let lastEmbMode='view';
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_TRACK_UPDATE')return;
   loadSavedMarks();
   let pos=e.data.position,mode=e.data.mode||'view';
@@ -810,11 +811,13 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
   let signature=trackPoints.length+':'+(trackPoints[0]?.lat||'')+':'+(trackPoints[trackPoints.length-1]?.lat||'');
   // 18 نوفمبر: مسار جديد انعرض (مثل مسار وصل من رابط أو «عرض») → الخريطة تتكبّر عليه كامل حتى لو كانت تتبع موقعك
   if(mode==='view'&&trackPoints.length>1&&signature!==lastTrackSignature){setView('free');fitTrackClose()}
-  else if(view==='follow'||view==='heading'){if(gps)centerOnGps()}
-  else if((mode==='record'||mode==='retrace')&&gps){z=Math.max(z,detailZ());[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
-  else if(trackPoints.length>1&&signature!==lastTrackSignature){fitTrackClose()}
+  else if(view==='follow'||view==='heading'){if(gps){centerOnGps();embeddedCentered=true}}
+  // 18 نوفمبر (فيديو أبو مالك): كان كل تحديث موقع يرجّع الزوم 500 م على موقعك وقت التسجيل/الاتباع — الحين مرة وحدة أول ما يبدأ،
+  // وبعدها تتبع موقعك بالزوم اللي تختاره (التصغير بالإصبعين ما يوقف التتبع، والسحب يوقفه وزر الموقع يرجّعه)
+  else if((mode==='record'||mode==='retrace')&&gps&&mode!==lastEmbMode){z=Math.max(z,detailZ());setView('follow');centerOnGps();embeddedCentered=true}
+  // (كانت هنا: أي نقطة جديدة بالتسجيل تعيد التكبير على المسار كله — شلناها؛ المسار المعروض يتكبّر عليه فوق)
   else if(gps&&!embeddedCentered){z=detailZ();[cx,cy]=world(gps.lat,gps.lng);embeddedCentered=true}
-  lastTrackSignature=signature;render();updateNavigation()});
+  lastTrackSignature=signature;lastEmbMode=mode;render();updateNavigation()});
 
 // ---------- gestures ----------
 // إصبعين: تكبير ناعم + تدوير. النقطة اللي بين الإصبعين تبقى تحتهم (مثل خرائط أبل وقوقل).
