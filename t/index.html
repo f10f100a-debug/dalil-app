@@ -9,7 +9,7 @@
 <meta name="apple-itunes-app" content="app-id=6822651903">
 <meta name="theme-color" content="#F2EFE9">
 <style>
-@font-face{font-family:T;src:url(../fonts/Tajawal-Medium.ttf);font-weight:500}@font-face{font-family:T;src:url(../fonts/Tajawal-ExtraBold.ttf);font-weight:800}
+@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-Medium.ttf);font-weight:500}@font-face{font-family:T;src:url(https://f10f100a-debug.github.io/dalil-app/fonts/Tajawal-ExtraBold.ttf);font-weight:800}
 :root{--bg:#F2EFE9;--card:#fff;--ink:#2B2620;--dim:#7A6F62;--gold:#B8872E;--line:#E4DCCF;--map:#F6F1E7;--route:#C0392B}
 @media (prefers-color-scheme:dark){:root{--bg:#1C1915;--card:#26221C;--ink:#F2EDE4;--dim:#B3A794;--line:#3A342B;--map:#2C2720;--route:#F0745F}}
 *{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink)}
@@ -23,7 +23,7 @@ a.b,button.b{display:block;width:100%;text-decoration:none;border-radius:16px;pa
 small{display:block;color:var(--dim);margin-top:14px;font-size:13px;line-height:1.7}.err{color:#C0392B}
 .lg{display:flex;justify-content:center;gap:16px;color:var(--dim);font-size:13px;margin-top:6px}.lg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-inline-end:5px;vertical-align:-1px}
 </style></head><body><main class="c">
-<div class="top"><img src="../assets/icon-192.png" alt=""><div style="text-align:right"><b style="font-size:19px">دليل</b><div style="color:var(--dim);font-size:14px">بوصلة البر</div></div></div>
+<div class="top"><img src="https://f10f100a-debug.github.io/dalil-app/assets/icon-192.png" alt=""><div style="text-align:right"><b style="font-size:19px">دليل</b><div style="color:var(--dim);font-size:14px">بوصلة البر</div></div></div>
 <h1 id="nm">🧭 مسار في البر</h1><p class="sub" id="st"></p>
 <div id="map"></div>
 <div class="lg" id="lg" hidden><span><i style="background:#2E7D52"></i>البداية</span><span><i style="background:var(--route)"></i>النهاية</span></div>
@@ -94,8 +94,8 @@ var DalilTrk = (function(){
   document.getElementById('lg').hidden=false;
   // الأزرار: الآيفون يفتح التطبيق مباشرة، وغيره يفتح دليل في المتصفح ومعه المسار
   if(ios){ open.href='dalil://track#'+code; }
-  else { open.href='../#'+code; open.textContent='افتح المسار في دليل'; get.hidden=android?false:true;
-    if(android){ get.href='../'; get.textContent='دليل للأندرويد — قريبًا على Google Play'; document.getElementById('note').textContent='على الأندرويد ينفتح المسار في دليل داخل المتصفح، ويشتغل نفس التطبيق.'; } }
+  else { open.href='https://f10f100a-debug.github.io/dalil-app/#'+code; open.textContent='افتح المسار في دليل'; get.hidden=android?false:true;
+    if(android){ get.href='https://f10f100a-debug.github.io/dalil-app/'; get.textContent='دليل للأندرويد — قريبًا على Google Play'; document.getElementById('note').textContent='على الأندرويد ينفتح المسار في دليل داخل المتصفح، ويشتغل نفس التطبيق.'; } }
   document.getElementById('gpx').onclick=function(){
     var esc=function(t){return String(t).replace(/[<>&"']/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]})};
     var g='<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Dalil" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>'+esc(d.name)+'</name><trkseg>'+P.map(function(p){return '<trkpt lat="'+p.lat.toFixed(5)+'" lon="'+p.lng.toFixed(5)+'"></trkpt>'}).join('')+'</trkseg></trk></gpx>';

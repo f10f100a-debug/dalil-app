@@ -22,7 +22,12 @@ export default {
     // الرمز من المسار أو ?p= — أرقام وحروف إنجليزية فقط، وإلا يُتجاهل (حماية من حقن الصفحة)
     if (m) { const pin = m[2] || url.searchParams.get("p") || ""; return room(m[1], /^[0-9A-Za-z]{1,12}$/.test(pin) ? pin : ""); }
     // 18 نوفمبر: مسار مشترك dalilbarr.com/t#… → صفحة المسار (المتصفح ينقل اللي بعد # مع التحويل، والمسار ما يوصل السيرفر أبد)
-    if (p === "/t" || p === "/t/") return new Response(null, { status: 302, headers: { location: APP + "t/", "cache-control": "max-age=300" } });
+    // نعرض الصفحة نفسها من dalilbarr.com (العنوان يبقى dalilbarr.com — أوثق للناس من github.io)
+    if (p === "/t" || p === "/t/") {
+      const r = await fetch(APP + "t/", { cf: { cacheTtl: 300 } }).catch(() => null);
+      if (r && r.ok) return new Response(await r.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=300" } });
+      return new Response(null, { status: 302, headers: { location: APP + "t/" } });
+    }
     if (p === "/" || p === "") return Response.redirect(STORE, 302);
     // دليل المستخدم (PDF على Google Drive) — نغيّر الرابط هنا فقط إذا تحدّث الدليل
     if (/^\/(guide|dalil|manual|دليل)\/?$/i.test(decodeURIComponent(p))) return Response.redirect(GUIDE, 302);
