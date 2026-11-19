@@ -7,7 +7,12 @@ days = int(sys.argv[1]) if len(sys.argv) > 1 else 9
 q = {'latitude': ','.join(str(p[1]) for p in P), 'longitude': ','.join(str(p[2]) for p in P),
      'daily': 'precipitation_sum,precipitation_probability_max', 'models': 'ecmwf_ifs025,gfs_seamless,icon_seamless',
      'forecast_days': days, 'timezone': 'Asia/Riyadh'}
-d = json.load(urllib.request.urlopen('https://api.open-meteo.com/v1/forecast?' + urllib.parse.urlencode(q), timeout=60))
+import time
+for k in range(5):
+    try:
+        d = json.load(urllib.request.urlopen('https://api.open-meteo.com/v1/forecast?' + urllib.parse.urlencode(q), timeout=60)); break
+    except Exception as e:
+        print('retry', k, e, file=sys.stderr); time.sleep(10)
 d = d if isinstance(d, list) else [d]
 print('days', ' '.join(t[5:] for t in d[0]['daily']['time']))
 for p, x in zip(P, d):
