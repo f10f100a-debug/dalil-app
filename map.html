@@ -1852,7 +1852,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 })();
 </script><script>
 // 19 نوفمبر (تجربة dalil_lab_fylbl): أسماء الفياض والرياض على الخريطة — اللي فيها خضرة الحين من بعيد بالأخضر، والباقي لما تقرّب
-(function(){let on=false;try{on=localStorage.getItem('dalil_lab_fylbl')==='1'}catch(e){}if(!on)return;
+(function(){let on=true;try{on=localStorage.getItem('dalil_lab_fylbl')!=='0'}catch(e){}if(!on)return;
   let done=false;
   async function add(){if(done)return;if(typeof gl==='undefined'||!glOk()||!gl.isStyleLoaded())return;done=true;
     let D;try{D=await faydData()}catch(e){done=false;return}
