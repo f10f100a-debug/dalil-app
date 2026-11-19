@@ -72,6 +72,11 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         if why == "echo": echo[k] += radar.mm_at(R[day], la, lo) or 0
         if v > rain[k].get(day, 0): rain[k][day] = min(v, 120); src[k][day] = "radar"
 
+def gkm(la, lo, gname):
+    for wid, (n, a, b) in synop.STATIONS.items():
+        if n == gname: return 6371 * 2 * math.asin(math.sqrt(math.sin(math.radians(a - la) / 2) ** 2 + math.cos(math.radians(la)) * math.cos(math.radians(a)) * math.sin(math.radians(b - lo) / 2) ** 2))
+    return 80
+gdist = [None] * len(AREAS)
 # المحطة خلال 35 كم تحكم: صفر = صفر، وإلا اليوم ما يتجاوز ضعف رقمها (المطر يختلف شوي من مكان لمكان)
 gauge = [None] * len(AREAS); gtot = [0.0] * len(AREAS)
 for k, (name, region, la, lo) in enumerate(AREAS):
@@ -81,7 +86,7 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     gtot[k] = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
     for day, v in g[1].items():
         if fetch0.isoformat() <= day <= end.isoformat():
-            rain[k][day] = min(rainqc.cap(rain[k].get(day, 0), v), 150); src[k].pop(day, None)
+            rain[k][day] = min(0.0 if v <= rainqc.DRY else max(v, min(rain[k].get(day, 0), 1.5 * v)), 150); src[k].pop(day, None)   # 19 نوفمبر: 1.5× بدل الضعف
 
 # 13 نوفمبر (فحص الفقع: بريدة 37 ملم ومحطة القصيم 16): أيام بدون تقرير من المحطة كانت تنحسب من الرادار كامل.
 # الحين: إذا فيه محطة خلال 80 كم والمجموع طلع أكثر من ضعفها (أو +15 ملم)، نصغّر أيام الرادار بنفس النسبة.
@@ -90,7 +95,9 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     if not g: continue
     gt = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
     tot = sum(v for d, v in rain[k].items() if start.isoformat() <= d <= end.isoformat())
-    lim = max(2 * gt, gt + 15)
+    # 19 نوفمبر (اختبار الدقة: بريدة 32 ومحطة القصيم 16، حائل 25 ومحطتها 17، القيصومة 40 ومحطتها 22): الحد يقرب من المحطة كل ما قربت
+    gk = gkm(la, lo, g[0]); gdist[k] = gk
+    lim = gt * (1 + gk / 80) + 2
     # كل الأيام اللي المحطة ما بلّغت فيها (رادار أو نموذج) — أول تشغيل: بريدة الزايد كان من النموذج مو الرادار
     rad = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and d not in g[1] and rain[k][d] > 0]
     rsum = sum(rain[k][d] for d in rad)
@@ -98,6 +105,30 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         f = max(0.0, (rsum - (tot - lim)) / rsum)
         for d in rad: rain[k][d] = round(rain[k][d] * f, 1)
         print(f"::notice::fq cap {name}: {tot:.0f} → {lim:.0f} (محطة {g[0]} {gt:.0f} ملم)")
+
+# 19 نوفمبر: مطر الأقمار الصناعية (CHIRPS) — المناطق اللي ما فيها محطة: إذا الرادار أعلى بكثير من الأقمار في نفس الأيام نصغّر أيام الرادار،
+# و«مطر كافي» بدون محطة يحتاج الأقمار تقول قريب منه (مصدرين متفقين) — وإلا «غير مؤكد»
+import chirps
+CH = None
+try: CH = chirps.update(AREAS, start, min(end, today))
+except Exception as e: print("::warning::chirps skipped " + repr(e)[:200])
+ch_cov = [0.0] * len(AREAS); ch_ext = [None] * len(AREAS)
+if CH and CH.get("days"):
+    cdays = sorted(d for d in CH["days"] if start.isoformat() <= d <= end.isoformat())
+    span = max(1, (min(end, today) - start).days)
+    for k, (name, region, la, lo) in enumerate(AREAS):
+        cv = sum((CH["days"][d]["v"][k] or 0) for d in cdays)
+        ours_cov = sum(rain[k].get(d, 0) for d in cdays)
+        ch_cov[k] = cv; ch_ext[k] = cv * span / max(1, len(cdays)) if len(cdays) >= 10 else None
+        if gdist[k] is not None or len(cdays) < 10: continue
+        lim = 1.5 * cv + 10
+        if ours_cov > lim:
+            rd = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and src[k].get(d) == "radar" and rain[k][d] > 0]
+            rs = sum(rain[k][d] for d in rd)
+            if rs > 0:
+                f = max(0.0, (rs - (ours_cov - lim)) / rs)
+                for d in rd: rain[k][d] = round(rain[k][d] * f, 1)
+                print(f"::notice::fq chirps {name}: رادار {ours_cov:.0f} → {lim:.0f} (أقمار {cv:.0f} في {len(cdays)} يوم)")
 
 # تأكيد من الخضرة: فياض خلال 60 كم صارت «مثل المعتاد» أو أخضر
 fy_near = [0] * len(AREAS)
@@ -125,14 +156,20 @@ for k, (name, region, la, lo) in enumerate(AREAS):
         w = [(r + dt.timedelta(days=60)).isoformat(), (r + dt.timedelta(days=75)).isoformat()]
     rows.append({"name": name, "region": region, "lat": la, "lng": lo, "mm": round(tot), "st": st, "best": best[1], "bestmm": round(best[0]),
                  "reached": reached, "window": w, "pre": round(pre), "fc7": round(fc[k]), "radar": radar_days[k], "gauge": gauge[k], "green": fy_near[k],
-                 "est": int(not gauge[k] and sum(rain[k][d] for d in days if src[k].get(d) == "radar") >= 0.5 * max(tot, 1)), "echo": round(echo[k])})
+                 "est": int(not gauge[k] and sum(rain[k][d] for d in days if src[k].get(d) == "radar") >= 0.5 * max(tot, 1)), "echo": round(echo[k]),
+                 "sat": None if ch_ext[k] is None else round(ch_ext[k]), "gkm": None if gdist[k] is None else round(gdist[k]),
+                 # الثقة: g محطة قريبة · c مصدرين متفقين (رادار/نماذج + أقمار) أو خضرة · u مصدر واحد
+                 "conf": "g" if (gdist[k] is not None and gdist[k] <= 35) else ("c" if (fy_near[k] or (ch_ext[k] is not None and ch_ext[k] >= 0.6 * min(tot, GREAT))) else "u")})
+for r in rows:
+    if r["st"] >= 1 and r["conf"] == "u" and r["sat"] is not None:
+        r["unc"] = 1; r["st_raw"] = r["st"]; r["st"] = 0      # 19 نوفمبر: «كافي» من مصدر واحد بس → غير مؤكد (ما ينعرض «مطر جيد»)
 # ---- فحص قبل النشر: أي رقم مشكوك فيه ما ينشر كـ«مطر جيد» — يطلع «يحتاج تأكيد» ويوصل تنبيه للمطوّر (Issue في GitHub) ----
 try: prev = {r["name"]: r for r in json.load(open("data/fq.json")).get("rows", [])}
 except Exception: prev = {}
 flags = []
 for k, r in enumerate(rows):
     why = []
-    if r["gauge"] and r["mm"] > max(2 * gtot[k], gtot[k] + 15): why.append(f"أعلى بكثير من محطة {r['gauge']} ({gtot[k]:.0f} ملم)")
+    if r["gauge"] and r["mm"] > gtot[k] * 1.5 + 5: why.append(f"أعلى بكثير من محطة {r['gauge']} ({gtot[k]:.0f} ملم)")
     if r["est"] and r["st"] >= 1 and not r["green"]: why.append("«مطر جيد» من الرادار بس، بدون محطة ولا خضرة تأكده")
     spike = [d for d in days_of[k] if src[k].get(d) == "radar" and rain[k][d] > 80]
     if spike and not r["gauge"]: why.append("يوم رادار فوق 80 ملم: " + ",".join(spike))

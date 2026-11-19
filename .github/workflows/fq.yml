@@ -6,16 +6,17 @@ on:
 jobs:
   fq:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions: { contents: write, issues: write }
     steps:
       - uses: actions/checkout@v4
+      - run: pip install -q rasterio numpy
       - run: python3 tools/fayd/fq.py   # + مطر محطات الأرصاد (Ogimet) → data/synop-rain.json
       - run: python3 tools/fayd/modelskill.py || echo "::warning::model skill failed"   # دقة النماذج مقابل المحطات
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add data/fq.json data/fq-qa.json data/synop-rain.json data/model-skill.json
+          git add data/fq.json data/fq-qa.json data/synop-rain.json data/model-skill.json data/chirps-fq.json
           git diff --cached --quiet && exit 0
           git commit -qm "مؤشر الفقع: تحديث يومي"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
