@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for u in "https://dalilbarr.com/t" "https://dalilbarr.com/.well-known/apple-app-site-association" "https://dalilbarr.com/r/123456" "https://dalilbarr.com/p/1wXkM9jLD"; do
+          for u in "https://app-site-association.cdn-apple.com/a/v1/dalilbarr.com" "https://dalilbarr.com/t" "https://dalilbarr.com/.well-known/apple-app-site-association" "https://dalilbarr.com/r/123456" "https://dalilbarr.com/p/1wXkM9jLD"; do
             code=$(curl -s -o body.txt -D h.txt -w '%{http_code}' "$u"); loc=$(grep -i '^location:' h.txt | tr -d '\r')
             echo "::notice::$u -> $code $loc | $(tr -d '\n' < body.txt | head -c 260)"
           done
