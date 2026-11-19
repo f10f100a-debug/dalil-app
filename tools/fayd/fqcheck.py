@@ -25,18 +25,16 @@ def fetch(url):
 from concurrent.futures import ThreadPoolExecutor
 MODE = os.environ.get("MODE", "current")
 
-def day_tif(d, res):
-    """(src, data) ليوم: نجرب النهائي ثم المبدئي"""
+V3 = "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily"
+def day_tif(d, res=None):
+    """(النوع، بايتات) ليوم — CHIRPS v3 (الإصدار 2.0 انشال): النهائي ثم المبدئي"""
     y, m, dd = d.year, d.month, d.day
-    name = f"chirps-v2.0.{y}.{m:02d}.{dd:02d}.tif"
-    for kind, url in (("final", f"{BASE}/global_daily/tifs/{res}/{y}/{name}.gz"), ("prelim", f"{BASE}/prelim/global_daily/tifs/{res}/{y}/{name}"),
-                      ("prelim", f"{BASE}/prelim/global_daily/tifs/{res}/{y}/{name}.gz")):
-        p = f"{CACHE}/{res}-{kind}-{name}"
+    for kind, url in (("final", f"{V3}/final/sat/{y}/chirps-v3.0.sat.{y}.{m:02d}.{dd:02d}.tif"),
+                      ("prelim", f"{V3}/prelim/sat/{y}/chirps-v3.0.prelim.{y}.{m:02d}.{dd:02d}.tif")):
+        p = f"{CACHE}/{kind}-{y}{m:02d}{dd:02d}.tif"
         if os.path.exists(p): return kind, open(p, "rb").read()
         b = fetch(url)
-        if b:
-            if url.endswith(".gz"): b = gzip.decompress(b)
-            open(p, "wb").write(b); return kind, b
+        if b: open(p, "wb").write(b); return kind, b
     return None, None
 
 def sample(b, pts):
@@ -55,7 +53,7 @@ rep = {"made": dt.date.today().isoformat(), "current": [], "past": {}, "missing"
 start = dt.date(2026, 10, 16); today = dt.date.today() if MODE == "current" else dt.date(2026, 10, 15)
 tot = [0.0] * len(AREAS); last = None; kinds = {}
 days = [start + dt.timedelta(days=i) for i in range((today - start).days + 1)]
-with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: (d, day_tif(d, "p05")), days))
+with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: (d, day_tif(d)), days))
 for d, (kind, b) in res:
     if b:
         for k, v in enumerate(sample(b, pts)):
@@ -78,10 +76,10 @@ def era5(la, lo, a, b):
     b_ = fetch(u); 
     if not b_: return None
     v = json.loads(b_)["daily"]["precipitation_sum"]; return round(sum(x or 0 for x in v), 1)
-for Y in ((2018, 2019, 2022, 2025) if MODE == 'past' else ()):
+for Y in ((2022, 2023, 2024, 2025) if MODE == 'past' else ()):
     a, b = dt.date(Y, 10, 16), dt.date(Y, 12, 15); ct = [0.0] * len(AREAS); n = 0
     ds = [a + dt.timedelta(days=i) for i in range((b - a).days + 1)]
-    with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: day_tif(d, "p25"), ds))
+    with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: day_tif(d), ds))
     for kind, raw in res:
         if raw:
             n += 1
