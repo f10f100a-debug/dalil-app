@@ -13,14 +13,17 @@ FQ = json.load(open("data/fq.json")); AREAS = [(r["name"], r["region"], r["lat"]
 CACHE = "/tmp/chirps"; os.makedirs(CACHE, exist_ok=True)
 
 def fetch(url):
-    for i in range(3):
+    for i in range(2):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=180) as r: return r.read()
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r: return r.read()
         except urllib.error.HTTPError as e:
-            if e.code == 404: return None
-            time.sleep(5 * (i + 1))
-        except Exception: time.sleep(5 * (i + 1))
+            if e.code in (403, 404): return None
+            time.sleep(3)
+        except Exception as e:
+            print("fetch", url[-40:], str(e)[:60], flush=True); time.sleep(3)
     return None
+from concurrent.futures import ThreadPoolExecutor
+MODE = os.environ.get("MODE", "current")
 
 def day_tif(d, res):
     """(src, data) ليوم: نجرب النهائي ثم المبدئي"""
@@ -49,17 +52,17 @@ def sample(b, pts):
 pts = [(a[2], a[3]) for a in AREAS]
 rep = {"made": dt.date.today().isoformat(), "current": [], "past": {}, "missing": []}
 # ---------- 1) الموسم الحالي (دقة 0.05° ≈ 5 كم) ----------
-start = dt.date(2026, 10, 16); today = dt.date.today()
+start = dt.date(2026, 10, 16); today = dt.date.today() if MODE == "current" else dt.date(2026, 10, 15)
 tot = [0.0] * len(AREAS); last = None; kinds = {}
-d = start
-while d <= today:
-    kind, b = day_tif(d, "p05")
+days = [start + dt.timedelta(days=i) for i in range((today - start).days + 1)]
+with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: (d, day_tif(d, "p05")), days))
+for d, (kind, b) in res:
     if b:
         for k, v in enumerate(sample(b, pts)):
             if v is not None: tot[k] += v
         last = d.isoformat(); kinds[kind] = kinds.get(kind, 0) + 1
     else: rep["missing"].append(d.isoformat())
-    d += dt.timedelta(days=1)
+print("current done", kinds, flush=True)
 SY = json.load(open(synop.FILE)).get("stations", {})
 for k, (name, region, la, lo) in enumerate(AREAS):
     row = FQ["rows"][k]; g = synop.near({"stations": SY}, la, lo, 35)
@@ -75,19 +78,18 @@ def era5(la, lo, a, b):
     b_ = fetch(u); 
     if not b_: return None
     v = json.loads(b_)["daily"]["precipitation_sum"]; return round(sum(x or 0 for x in v), 1)
-for Y in (2018, 2019, 2022, 2025):
+for Y in ((2018, 2019, 2022, 2025) if MODE == 'past' else ()):
     a, b = dt.date(Y, 10, 16), dt.date(Y, 12, 15); ct = [0.0] * len(AREAS); n = 0
-    d = a
-    while d <= b:
-        kind, raw = day_tif(d, "p25")
+    ds = [a + dt.timedelta(days=i) for i in range((b - a).days + 1)]
+    with ThreadPoolExecutor(8) as ex: res = list(ex.map(lambda d: day_tif(d, "p25"), ds))
+    for kind, raw in res:
         if raw:
             n += 1
             for k, v in enumerate(sample(raw, pts)):
                 if v is not None: ct[k] += v
-        d += dt.timedelta(days=1)
     rows = []
     for k, (name, region, la, lo) in enumerate(AREAS):
         rows.append({"name": name, "chirps": round(ct[k], 1), "era5": era5(la, lo, a.isoformat(), b.isoformat())})
     rep["past"][str(Y)] = {"days": n, "rows": rows}
     print(f"::notice::موسم {Y} ({n} يوم): " + " · ".join(f"{r['name']} {r['chirps']}/{r['era5']}" for r in rows)[:3500])
-json.dump(rep, open("data/fq-check.json", "w"), ensure_ascii=False, indent=1)
+json.dump(rep, open(f"data/fq-check-{MODE}.json", "w"), ensure_ascii=False, indent=1)
