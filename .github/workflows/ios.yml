@@ -853,6 +853,11 @@ jobs:
           print("::notice::Background location + links: " + ("OK" if "DalilBg.shared.openURL(url)" in open(p).read() and "DalilBg.shared.start()" in open(p).read() else "MISSING"))
           PY
 
+      - name: iPhone 1.11 (GPX files + review)
+        run: |
+          # 1.11: دليل يفتح ملفات المسار (GPX) + نافذة التقييم من آبل
+          if [ -f patch_111.py ]; then python3 patch_111.py; plutil -lint ios/App/App/Info.plist; fi
+
       - name: Build check (unsigned)
         if: env.DO_UPLOAD != 'true'
         run: |
