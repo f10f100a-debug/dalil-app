@@ -1543,7 +1543,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-15" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-16" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5412,7 +5412,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
     let text = `${name}\nالإحداثيات: ${lat}, ${lng}\n${mapUrl}`;
     // 19 نوفمبر (تجربة dalil_lab_plink): مثل التطبيقات الرسمية — رابط دليل القصير أول (واتساب يسوي له بطاقة كبيرة بشعار دليل تفتح التطبيق)، وقوقل تحته
-    try{ if(localStorage.getItem('dalil_lab_plink') === '1') text = `📍 ${name} — افتحه في دليل:\ndalilbarr.com/p/${pEnc(lat, lng)}\n\nقوقل ماب: ${mapUrl}`; }catch(e){}
+    try{ if(localStorage.getItem('dalil_lab_plink') === '1') text = `📍 ${name} — افتحه في دليل:\nhttps://dalilbarr.com/p/${pEnc(lat, lng)}\n\nقوقل ماب: ${mapUrl}`; }catch(e){}
     if(navigator.share){
       try{
         await navigator.share({title:name, text});
