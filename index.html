@@ -1538,7 +1538,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-13" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-14" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2362,7 +2362,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_fydens', '🌱 كثافة الخضرة بصدق (خفيفة/متوسطة/كثيفة)'], ['dalil_lab_fylbl', '🌱 أسماء الفياض على الخريطة (الخضراء من بعيد)'], ['dalil_lab_pinsave', '📌 حفظ الدبوس من الخريطة في أماكني'], ['dalil_lab_rlfit', '📏 أزرار المسطرة تتضبط بالشاشات الضيقة'], ['dalil_lab_wkheavy', '🌧️ وين الأمطار القوية بالمملكة (لوحة الأسبوع)'], ['dalil_lab_xclr', '✕ علامة الإغلاق بلون واضح'], ['dalil_lab_wkradar', '🗓️ مطر الأسبوع يخفي الرادار الحين'], ['dalil_lab_trkdom', '🔗 رابط المسار على dalilbarr.com'], ['dalil_lab_font', '🔤 خط Tajawal (محفوظ داخل التطبيق)'], ['dalil_lab_icons', '🎨 أيقونات ملوّنة لأزرار البوصلة'], ['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
+      const LABS = [['dalil_lab_shrfab', '🧭 زر «اتبع المسار» فوق الخريطة'], ['dalil_lab_plink', '📍 «أرسل موقعي» فيه رابط يفتح دليل'], ['dalil_lab_fydens', '🌱 كثافة الخضرة بصدق (خفيفة/متوسطة/كثيفة)'], ['dalil_lab_fylbl', '🌱 أسماء الفياض على الخريطة (الخضراء من بعيد)'], ['dalil_lab_pinsave', '📌 حفظ الدبوس من الخريطة في أماكني'], ['dalil_lab_rlfit', '📏 أزرار المسطرة تتضبط بالشاشات الضيقة'], ['dalil_lab_wkheavy', '🌧️ وين الأمطار القوية بالمملكة (لوحة الأسبوع)'], ['dalil_lab_xclr', '✕ علامة الإغلاق بلون واضح'], ['dalil_lab_wkradar', '🗓️ مطر الأسبوع يخفي الرادار الحين'], ['dalil_lab_trkdom', '🔗 رابط المسار على dalilbarr.com'], ['dalil_lab_font', '🔤 خط Tajawal (محفوظ داخل التطبيق)'], ['dalil_lab_icons', '🎨 أيقونات ملوّنة لأزرار البوصلة'], ['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ if(k === 'dalil_lab_icons') return localStorage.getItem(k) !== '0';
         if(k === 'dalil_lab_font') return localStorage.getItem(k) !== '0';
         if(k === 'dalil_lab_home'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && Date.now() >= Date.parse('2026-11-17T17:30:00+03:00')); } return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait', 'dalil_lab_wkheavy', 'dalil_lab_xclr', 'dalil_lab_rlfit', 'dalil_lab_pinsave', 'dalil_lab_fylbl', 'dalil_lab_fydens'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
@@ -2373,7 +2373,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait', 'dalil_lab_wkheavy', 'dalil_lab_xclr', 'dalil_lab_rlfit', 'dalil_lab_pinsave', 'dalil_lab_fylbl', 'dalil_lab_fydens'].includes(c.dataset.lab)) c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');   // 14 نوفمبر: الرادار بعد 30 د ومخيمك آمن ووين أطلع للكل (تنطفي بـ '0')
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_fydens' || c.dataset.lab === 'dalil_lab_fylbl' || c.dataset.lab === 'dalil_lab_pinsave' || c.dataset.lab === 'dalil_lab_rlfit' || c.dataset.lab === 'dalil_lab_wkheavy' || c.dataset.lab === 'dalil_lab_xclr' || c.dataset.lab === 'dalil_lab_wkradar' || c.dataset.lab === 'dalil_lab_trkdom' || c.dataset.lab === 'dalil_lab_font' || c.dataset.lab === 'dalil_lab_icons' || c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_shrfab' || c.dataset.lab === 'dalil_lab_plink' || c.dataset.lab === 'dalil_lab_fydens' || c.dataset.lab === 'dalil_lab_fylbl' || c.dataset.lab === 'dalil_lab_pinsave' || c.dataset.lab === 'dalil_lab_rlfit' || c.dataset.lab === 'dalil_lab_wkheavy' || c.dataset.lab === 'dalil_lab_xclr' || c.dataset.lab === 'dalil_lab_wkradar' || c.dataset.lab === 'dalil_lab_trkdom' || c.dataset.lab === 'dalil_lab_font' || c.dataset.lab === 'dalil_lab_icons' || c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       if(window.__rainbarLab){ const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'btn'; rd.style.cssText = 'margin-top:8px;width:100%'; rd.textContent = '👀 شوف شكل شريط المطر (مثال)'; rd.onclick = ()=>window.__rainBarDemo && window.__rainBarDemo(); box.appendChild(rd); }
@@ -5405,7 +5405,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const lng = Number(place.lng).toFixed(6);
     const name = place.name || 'موقعي الحالي';
     const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-    const text = `${name}\nالإحداثيات: ${lat}, ${lng}\n${mapUrl}`;
+    let text = `${name}\nالإحداثيات: ${lat}, ${lng}\n${mapUrl}`;
+    // 19 نوفمبر (تجربة dalil_lab_plink): سطر يفتح الموقع في دليل مباشرة (dalilbarr.com/p) — ورابط قوقل يبقى
+    try{ if(localStorage.getItem('dalil_lab_plink') === '1') text += `\n🧭 افتحه في دليل: https://dalilbarr.com/p/${lat},${lng}`; }catch(e){}
     if(navigator.share){
       try{
         await navigator.share({title:name, text});
@@ -6112,7 +6114,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     }
   });
 
-  document.getElementById('clearTrackBtn').addEventListener('click', ()=>{ const b = document.getElementById('shrBar'); if(b) b.hidden = true; });
+  document.getElementById('clearTrackBtn').addEventListener('click', ()=>{ const b = document.getElementById('shrBar'); if(b) b.hidden = true; try{ shrFabHide(); }catch(e){} });
   document.getElementById('clearTrackBtn').addEventListener('click', ()=>{
     if(state.tracking && !confirm('إلغاء التسجيل الحالي دون حفظه؟')) return;
     const wasRecording = state.tracking;
@@ -6490,11 +6492,18 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       setTimeout(()=>{ try{ syncTrackMap(); }catch(e){} }, 2500);
       const km = ((Number(track.dist) || 0) / 1000).toFixed(1), bar = document.getElementById('shrBar');
       if(bar){ document.getElementById('shrName').textContent = '🧭 ' + track.name + ' · ' + km + ' كم'; bar.dataset.id = track.id; bar.hidden = false; }
+      // 19 نوفمبر (تجربة dalil_lab_shrfab): الخريطة على الشاشة كاملة تغطي الشريط — زر «اتبع المسار» عائم فوق الخريطة نفسها
+      try{ if(localStorage.getItem('dalil_lab_shrfab') === '1'){ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_SHR', name:track.name, km}, location.origin); window.__shrId = track.id; } }catch(e){}
     }, 700);
     return true;
   }
-  document.getElementById('shrFollow').addEventListener('click', ()=>{ const bar = document.getElementById('shrBar'), t = state.tracks.find(x=>x.id === bar.dataset.id); bar.hidden = true; if(t) startFollow(t); });
-  document.getElementById('shrClose').addEventListener('click', ()=>{ document.getElementById('shrBar').hidden = true; });
+  document.getElementById('shrFollow').addEventListener('click', ()=>{ const bar = document.getElementById('shrBar'), t = state.tracks.find(x=>x.id === bar.dataset.id); bar.hidden = true; shrFabHide(); if(t) startFollow(t); });
+  // الزر العائم في الخريطة يرسل «اتبع» أو «✕» — نفس أزرار الشريط
+  window.addEventListener('message', e=>{ if(e.origin !== location.origin || !e.data) return;
+    if(e.data.type === 'DALIL_SHR_FOLLOW'){ const t = state.tracks.find(x=>x.id === window.__shrId); document.getElementById('shrBar').hidden = true; if(t) startFollow(t); }
+    else if(e.data.type === 'DALIL_SHR_CLOSE'){ document.getElementById('shrBar').hidden = true; } });
+  document.getElementById('shrClose').addEventListener('click', ()=>{ document.getElementById('shrBar').hidden = true; shrFabHide(); });
+  function shrFabHide(){ try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_SHR_HIDE'}, location.origin); }catch(e){} }
   // اتباع مسار شخص ثاني: من أقرب نقطة لك على المسار لين نهايته (نفس «العودة منه» بس بالاتجاه الصحيح)
   function startFollow(track){
     if(!loadSavedTrack({...track, points:track.points.slice().reverse()})) return;
