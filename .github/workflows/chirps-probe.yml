@@ -5,13 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for u in https://data.chc.ucsb.edu/products/CHIRPS-2.0/prelim/global_daily/tifs/p05/2026/ \
-                   https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/tifs/p05/2026/ \
-                   https://data.chc.ucsb.edu/products/CHIRPS-2.0/global_daily/tifs/p25/2025/ \
-                   https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/ \
-                   https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/ \
-                   https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/prelim/ \
-                   https://data.chc.ucsb.edu/products/CHIRP/daily/ ; do
+          for u in https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/sat/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/rnl/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/prelim/sat/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/sat/tifs/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/prelim/sat/tifs/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/sat/2025/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/prelim/sat/2026/ https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily/final/readme.txt; do
             code=$(curl -s -o b.html -w '%{http_code}' -A "dalil-app/1.0" "$u")
-            echo "::notice::$u -> $code | $(grep -o 'href="[^"]*"' b.html | tail -6 | tr '\n' ' ' | head -c 600)"
+            echo "::notice::$u -> $code | $(grep -o 'href="[^"]*"' b.html | tail -8 | tr '\n' ' ' | head -c 600)"
           done
