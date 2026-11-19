@@ -29,6 +29,9 @@ export default {
       return new Response(null, { status: 302, headers: { location: APP + "t/" } });
     }
     // 19 نوفمبر: «أرسل موقعي» dalilbarr.com/p/lat,lng → صفحة فيها: افتح في دليل · قوقل ماب · حمّل دليل (عند اللي ما عنده دليل 1.11)
+    // الرابط القصير dalilbarr.com/p/k9Fz2Qxa1 (9 حروف = الإحداثيات بدقة ~1 م) أو الطويل /p/lat,lng
+    const ps = p.match(/^\/p\/([0-9A-Za-z]{9})\/?$/);
+    if (ps) { const d = pDec(ps[1]); if (d && Math.abs(d[0]) <= 90 && Math.abs(d[1]) <= 180) return place(d[0].toFixed(5), d[1].toFixed(5), ps[1]); }
     const pm = p.match(/^\/p\/(-?\d{1,2}(?:\.\d{1,7})?),(-?\d{1,3}(?:\.\d{1,7})?)\/?$/);
     if (pm) { const la = +pm[1], lo = +pm[2]; if (Math.abs(la) <= 90 && Math.abs(lo) <= 180) return place(pm[1], pm[2]); }
     if (p === "/" || p === "") return Response.redirect(STORE, 302);
@@ -72,15 +75,15 @@ a.b{display:block;text-decoration:none;border-radius:16px;padding:15px;font-weig
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=300" } });
 }
 
-function place(lat, lng) {
+function place(lat, lng, code) {
   const g = "https://www.google.com/maps?q=" + lat + "," + lng, scheme = "dalil://p?lat=" + lat + "&lng=" + lng;
   const html = `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>دليل — موقع مُرسَل</title>
 <meta property="og:type" content="website"><meta property="og:site_name" content="دليل — بوصلة البر">
-<meta property="og:title" content="📍 موقع مُرسَل لك"><meta property="og:description" content="افتحه في دليل وتوجّه له بالبوصلة حتى بدون شبكة — أو افتحه في خرائط قوقل">
-<meta property="og:image" content="${OG_IMG}"><meta property="og:image:width" content="800"><meta property="og:image:height" content="800">
-<meta property="og:url" content="https://dalilbarr.com/p/${lat},${lng}"><meta name="twitter:card" content="summary_large_image">
+<meta property="og:title" content="📍 موقع مُرسَل لك — افتحه في دليل"><meta property="og:description" content="اضغط وتوجّه له بالبوصلة حتى بدون شبكة في البر">
+<meta property="og:image" content="${APP}assets/og-place.jpg"><meta property="og:image:width" content="800"><meta property="og:image:height" content="800">
+<meta property="og:url" content="https://dalilbarr.com/p/${code || lat + "," + lng}"><meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#F2EFE9">
 <style>
 :root{--bg:#F2EFE9;--card:#fff;--ink:#2B2620;--dim:#7A6F62;--gold:#B8872E;--line:#E4DCCF}
@@ -103,3 +106,7 @@ a.b{display:block;text-decoration:none;border-radius:16px;padding:15px;font-weig
 </main></body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=3600" } });
 }
+
+const P62='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function pEnc(lat,lng){let n=Math.round((+lat+90)*1e5)*36000001+Math.round((+lng+180)*1e5),s='';for(let i=0;i<9;i++){s=P62[n%62]+s;n=Math.floor(n/62)}return s}
+function pDec(s){if(!/^[0-9A-Za-z]{9}$/.test(s))return null;let n=0;for(const c of s)n=n*62+P62.indexOf(c);const b=n%36000001,a=(n-b)/36000001;return [+(a/1e5-90).toFixed(5),+(b/1e5-180).toFixed(5)]}

@@ -25,6 +25,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#F2EFE9">
 <script>
+// 19 نوفمبر: رابط الموقع القصير dalilbarr.com/p/xxxxxxxxx (9 حروف ≈ دقة 1 م) — نفس الترميز في links/worker.js
+const P62='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+function pEnc(lat,lng){let n=Math.round((+lat+90)*1e5)*36000001+Math.round((+lng+180)*1e5),s='';for(let i=0;i<9;i++){s=P62[n%62]+s;n=Math.floor(n/62)}return s}
+function pDec(s){if(!/^[0-9A-Za-z]{9}$/.test(s))return null;let n=0;for(const c of s)n=n*62+P62.indexOf(c);const b=n%36000001,a=(n-b)/36000001;return [+(a/1e5-90).toFixed(5),+(b/1e5-180).toFixed(5)]}
+</script><script>
 // 18 نوفمبر: مشاركة المسار كرابط — المسار مضغوط داخل الرابط نفسه (بعد #) فما ينحفظ على أي سيرفر
 var DalilTrk = (function(){
   function simplify(pts, tol){                       // Douglas–Peucker بالأمتار
@@ -1538,7 +1543,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-14" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-15" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5406,8 +5411,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const name = place.name || 'موقعي الحالي';
     const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
     let text = `${name}\nالإحداثيات: ${lat}, ${lng}\n${mapUrl}`;
-    // 19 نوفمبر (تجربة dalil_lab_plink): سطر يفتح الموقع في دليل مباشرة (dalilbarr.com/p) — ورابط قوقل يبقى
-    try{ if(localStorage.getItem('dalil_lab_plink') === '1') text += `\n🧭 افتحه في دليل: https://dalilbarr.com/p/${lat},${lng}`; }catch(e){}
+    // 19 نوفمبر (تجربة dalil_lab_plink): مثل التطبيقات الرسمية — رابط دليل القصير أول (واتساب يسوي له بطاقة كبيرة بشعار دليل تفتح التطبيق)، وقوقل تحته
+    try{ if(localStorage.getItem('dalil_lab_plink') === '1') text = `📍 ${name} — افتحه في دليل:\ndalilbarr.com/p/${pEnc(lat, lng)}\n\nقوقل ماب: ${mapUrl}`; }catch(e){}
     if(navigator.share){
       try{
         await navigator.share({title:name, text});
@@ -5856,7 +5861,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       // 18 نوفمبر: رابط مسار مشترك (…/dalil-app/t/#T1… أو dalil://track#T1…)
       if(/\/t\/?#|^dalil:\/\/track/.test(String(u)) && /T1[A-Za-z0-9_-]{8,}/.test(String(u))){ importSharedTrack(String(u).split('#').slice(1).join('#') || String(u)); return true; }
       // 1.11 (محجوزة): رابط «أرسل موقعي» dalilbarr.com/p/lat,lng أو dalil://p?lat=&lng= → نافذة الحفظ والإحداثيات معبّاة ويبدأ التوجّه بعد الحفظ
-      const pm = String(u).match(/dalilbarr\.com\/p\/(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/) || String(u).match(/^dalil:\/\/p\?lat=(-?[\d.]+)&lng=(-?[\d.]+)/);
+      const pc = String(u).match(/dalilbarr\.com\/p\/([0-9A-Za-z]{9})(?![0-9A-Za-z])/), pcd = pc ? pDec(pc[1]) : null;
+      const pm = (pcd ? [0, pcd[0], pcd[1]] : null) || String(u).match(/dalilbarr\.com\/p\/(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)/) || String(u).match(/^dalil:\/\/p\?lat=(-?[\d.]+)&lng=(-?[\d.]+)/);
       if(pm){ const lat = +pm[1], lng = +pm[2];
         if(validLatLng(lat, lng)){ const tab = document.querySelector('.tab[data-screen="compass"]'); if(tab) tab.click(); openSaveSheet(lat, lng); navigateAfterSave = true; toast('📍 موقع مستلم — اكتب اسمه واحفظه ويبدأ التوجّه'); }
         return true; }
