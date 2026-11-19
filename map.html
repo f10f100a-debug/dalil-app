@@ -1336,7 +1336,7 @@ gl.on('load',async()=>{
 // أخضر = مؤكدة · أصفر = «تحتاج تأكيد» · الحجم حسب الخضرة. الضغط عليها يحددها كوجهة باسمها
 let FY=[],fyLoaded=false,FYD=null;
 // 19 نوفمبر (تجربة dalil_lab_fydens): نكتب كثافة الخضرة بصدق (خفيفة/متوسطة/كثيفة) بدل «زادت الخضرة 59%» اللي توحي بروضة كاملة
-let FYDENS=false;try{FYDENS=localStorage.getItem('dalil_lab_fydens')==='1'}catch(e){}
+let FYDENS=true;try{FYDENS=localStorage.getItem('dalil_lab_fydens')!=='0'}catch(e){}
 function faydData(){if(!FYD){const t=Math.floor(Date.now()/36e5);
   FYD=Promise.all([fetch('data/fayd.json?h='+t).then(r=>r.json()),fetch('data/fayd-sites.json?h='+t).then(r=>r.json())]).then(([f,sites])=>({f,sites,row:new Map((f.rows||[]).map(r=>[r[0],r])),farm:new Set(f.farm||[])})).catch(e=>{FYD=null;throw e})}
   return FYD}
