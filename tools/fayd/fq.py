@@ -83,10 +83,11 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     g = Q.gauge(la, lo)
     if not g: continue
     gauge[k] = g[0]
+    gk0 = gkm(la, lo, g[0])
     gtot[k] = sum(v for d, v in g[1].items() if start.isoformat() <= d <= end.isoformat())
     for day, v in g[1].items():
         if fetch0.isoformat() <= day <= end.isoformat():
-            rain[k][day] = min(0.0 if v <= rainqc.DRY else max(v, min(rain[k].get(day, 0), 1.5 * v)), 150); src[k].pop(day, None)   # 19 نوفمبر: 1.5× بدل الضعف
+            rain[k][day] = min(0.0 if v <= rainqc.DRY else max(v, min(rain[k].get(day, 0), min(1.5, 1 + gk0 / 40) * v)), 150); src[k].pop(day, None)   # 19 نوفمبر: كل ما قربت المحطة قرب اليوم من رقمها (القيصومة 3 كم)
 
 # 13 نوفمبر (فحص الفقع: بريدة 37 ملم ومحطة القصيم 16): أيام بدون تقرير من المحطة كانت تنحسب من الرادار كامل.
 # الحين: إذا فيه محطة خلال 80 كم والمجموع طلع أكثر من ضعفها (أو +15 ملم)، نصغّر أيام الرادار بنفس النسبة.
@@ -174,7 +175,7 @@ for k, r in enumerate(rows):
     spike = [d for d in days_of[k] if src[k].get(d) == "radar" and rain[k][d] > 80]
     if spike and not r["gauge"]: why.append("يوم رادار فوق 80 ملم: " + ",".join(spike))
     p0 = prev.get(r["name"])
-    if p0 and r["st"] - p0.get("st", 0) >= 2: why.append(f"قفز من {p0.get('mm')} إلى {r['mm']} ملم في تحديث واحد")
+    if p0 and r["st"] - p0.get("st_raw", p0.get("st", 0)) >= 2: why.append(f"قفز من {p0.get('mm')} إلى {r['mm']} ملم في تحديث واحد")
     if why:
         r["check"] = 1; r["st_raw"] = r["st"]; r["st"] = 0
         flags.append(f"- **{r['name']}** ({r['region']}): {r['mm']} ملم — " + " · ".join(why))

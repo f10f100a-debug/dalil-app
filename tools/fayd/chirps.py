@@ -7,13 +7,15 @@ FILE = "data/chirps-fq.json"
 V3 = "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/daily"
 UA = {"User-Agent": "dalil-app/1.0 (+https://dalilbarr.com)"}
 
+ERR = {}
 def _get(url):
     for _ in range(2):
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r: return r.read()
         except urllib.error.HTTPError as e:
+            ERR[e.code] = ERR.get(e.code, 0) + 1
             if e.code in (403, 404): return None
-        except Exception: pass
+        except Exception as e: ERR[type(e).__name__] = ERR.get(type(e).__name__, 0) + 1
     return None
 
 def _day(d, pts):
@@ -36,7 +38,7 @@ def update(areas, start, end, max_new=60):
     pts = [(a[2], a[3]) for a in areas]
     try: db = json.load(open(FILE))
     except Exception: db = {}
-    if db.get("pts") != pts: db = {"pts": pts, "days": {}}
+    if [list(p) for p in db.get("pts") or []] != [list(p) for p in pts]: db = {"pts": pts, "days": {}}
     today = dt.date.today(); want = []
     d = start
     while d <= min(end, today - dt.timedelta(days=1)):
@@ -49,5 +51,6 @@ def update(areas, start, end, max_new=60):
         for d, x in res:
             if x: db["days"][d.isoformat()] = x
     except Exception as e: print("::warning::chirps " + repr(e)[:200])
+    print(f"::notice::chirps: طلبنا {len(want)} يوم، صار عندنا {len(db['days'])} — أخطاء {ERR}")
     json.dump(db, open(FILE, "w"), separators=(",", ":"))
     return db
