@@ -1356,15 +1356,15 @@ async function loadNewFayd(){if(fnLoaded)return;fnLoaded=true;try{const t=Math.f
     gl.addLayer({id:'fayd-new',type:'circle',source:'fayd-new',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':'#7BC67E','circle-opacity':.10,'circle-stroke-color':'#4FA35A','circle-stroke-width':2,'circle-stroke-opacity':.9,
       'circle-radius':['interpolate',['linear'],['zoom'],5,['interpolate',['linear'],['get','ha'],20,4,300,9],10,['interpolate',['linear'],['get','ha'],20,10,300,22],14,['interpolate',['linear'],['get','ha'],20,26,300,50]]}})}}catch(e){fnLoaded=false}}
 // «مؤكدة من الميدان»: نقاط تأكد فيها الربيع على الأرض (ملف مراجَع + بلاغات من جهازين فأكثر) — علامة خضراء بإطار ذهبي
-let FF=[],ffLoaded=false;
+var FF=[],ffLoaded=false;   // var: «الربيع» مفعّل وقت فتح الخريطة يرسم قبل ما يوصل هذا السطر (كان ReferenceError)
 async function loadFieldFayd(){if(ffLoaded)return;ffLoaded=true;try{const t=Math.floor(Date.now()/36e5);
   const a=await fetch('data/fayd-field.json?h='+t).then(r=>r.ok?r.json():{rows:[]}).catch(()=>({rows:[]}));
   FF=(a.rows||[]).map(r=>({lat:r[0],lng:r[1],name:r[2],d:r[3],src:r[4]}));
   try{const r=await fetch(RR_URL+'/rest/v1/rpc/spring_field_points',{method:'POST',headers:{apikey:RR_KEY,'content-type':'application/json'},body:'{"p_days":10}',cache:'no-store'});if(r.ok){const j=await r.json();(j||[]).forEach(x=>FF.push({lat:+x.lat,lng:+x.lng,name:'ربيع مؤكد من بلاغات الناس',d:String(x.at||'').slice(0,10),src:x.n+' بلاغات من أجهزة مختلفة'}))}}catch(e){}
   if(glOk()&&FF.length&&!gl.getSource('fayd-field')){gl.addSource('fayd-field',{type:'geojson',data:{type:'FeatureCollection',features:FF.map(x=>({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
     srIcons();gl.addLayer({id:'fayd-field',type:'symbol',source:'fayd-field',layout:{visibility:LP.ndvi?'visible':'none','icon-image':'srOK','icon-anchor':'bottom','icon-allow-overlap':true,'icon-size':['interpolate',['linear'],['zoom'],5,.26,12,.36,13.3,.48,13.9,1.05,15.5,1.2]}})}}catch(e){ffLoaded=false}}
-function fieldNear(p,km){let best=km||0.7,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FF){const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
-function fieldAt(sx,sy){if(!LP.ndvi||!FF.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=24;
+function fieldNear(p,km){if(!FF||!FF.length)return null;let best=km||0.7,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FF){const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
+function fieldAt(sx,sy){if(!LP.ndvi||!FF||!FF.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=24;
   for(const x of FF){const q=world(x.lat,x.lng),d=Math.hypot(q[0]+ox-sx,q[1]+oy-sy);if(d<best){best=d;hit=x}}return hit}
 function newNear(p){let best=1,hit=null;const k=Math.cos(p.lat*Math.PI/180);for(const x of FN){if(Math.abs(x.lat-p.lat)>.02)continue;const d=Math.hypot((x.lat-p.lat)*111,(x.lng-p.lng)*111*k);if(d<best){best=d;hit=x}}return hit}
 function newAt(sx,sy){if(!LP.ndvi||!FN.length)return null;const ox=innerWidth/2-cx,oy=innerHeight/2-cy;let hit=null,best=26;
@@ -1874,12 +1874,12 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
     const H=dark?'#1F1B16':'#FBF6EA';
     // نفس خط الخريطة (خط دليل العريض من «شكل الخريطة الجديد» أو اللي اختاره من الإعدادات)
-    let FF=TF;try{if(localStorage.getItem('dalil_lab_style')!=='0'){const f=localStorage.getItem('dalil_map_font');FF=[/^Dalil [A-Za-z ]+$/.test(f||'')?f:'Dalil Kufi Bold']}}catch(e){}
+    let FONT=TF;try{if(localStorage.getItem('dalil_lab_style')!=='0'){const f=localStorage.getItem('dalil_map_font');FONT=[/^Dalil [A-Za-z ]+$/.test(f||'')?f:'Dalil Kufi Bold']}}catch(e){}
     gl.addLayer({id:'fy-lbl-g',type:'symbol',source:'fy-lbl',minzoom:8.3,filter:['==',['get','gr'],1],
-      layout:{'text-field':['get','n'],'text-font':FF,'text-size':['interpolate',['linear'],['zoom'],8.3,TS(10.5),12,TS(12)],'symbol-sort-key':['get','k'],'text-padding':4,'text-optional':false},
+      layout:{'text-field':['get','n'],'text-font':FONT,'text-size':['interpolate',['linear'],['zoom'],8.3,TS(10.5),12,TS(12)],'symbol-sort-key':['get','k'],'text-padding':4,'text-optional':false},
       paint:{'text-color':dark?'#8FD9A2':'#1E6B34','text-halo-color':H,'text-halo-width':2}});
     gl.addLayer({id:'fy-lbl-o',type:'symbol',source:'fy-lbl',minzoom:10.4,filter:['==',['get','gr'],0],
-      layout:{'text-field':['get','n'],'text-font':FF,'text-size':TS(10.5),'text-padding':4},
+      layout:{'text-field':['get','n'],'text-font':FONT,'text-size':TS(10.5),'text-padding':4},
       paint:{'text-color':dark?'#D8C9AE':'#6B5434','text-halo-color':H,'text-halo-width':2}});
     try{render()}catch(e){}}
   const iv=setInterval(()=>{add();if(done)clearInterval(iv)},800);
