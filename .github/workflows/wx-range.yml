@@ -1,0 +1,14 @@
+# فحص يدوي: توقع المطر اليومي لمواقع الشمال من 3 نماذج
+name: WX range
+on:
+  workflow_dispatch:
+    inputs:
+      days: { description: "عدد الأيام", default: "9" }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/wx }
+      - run: python3 tools/wx/range.py ${{ inputs.days }} | tee out.txt
