@@ -53,14 +53,13 @@ jobs:
                   if not quiet: print("HTTP", e.code, method, path, msg)
                   return None
           V, B, MODE = os.environ["VERSION"], os.environ["BUILD"], os.environ["MODE"]
-          WHATS_NEW = ("• غرفة الرحلة: تحسين كبير لثبات اللاسلكي والجوال مقفل — الرسائل المتتالية تشتغل كاملة بدون تقطيع أو تأخير\n"
-                       "• الخروج من الغرفة والرجوع لها صار يشتغل مباشرة بدون إعادة فتح التطبيق\n"
-                       "• زر «تحدّث» أسرع وأثبت\n"
-                       "• إذا كان إذن الموقع مرفوض: زر يفتح إعدادات دليل مباشرة\n"
+          WHATS_NEW = ("• روابط المسار والموقع تفتح دليل مباشرة من واتساب والرسائل\n"
+                       "• افتح ملفات المسار (GPX) في دليل من واتساب والملفات والإيميل\n"
+                       "• تقدر تقيّم دليل من داخل التطبيق\n"
                        "• تحسينات وإصلاحات عامة")
-          WHATS_NEW_EN = ("• Trip room: much more reliable walkie-talkie while the phone is locked — consecutive messages play fully without cuts or delays\n"
-                          "• Leaving and rejoining a room now works right away without reopening the app\n"
-                          "• Faster, steadier Talk button\n"
+          WHATS_NEW_EN = ("• Shared route and location links now open Dalil directly from WhatsApp and Messages\n"
+                          "• Open route files (GPX) in Dalil from WhatsApp, Files and Mail\n"
+                          "• Rate Dalil from inside the app\n"
                           "• General improvements and fixes")
           app = api("/v1/apps?filter[bundleId]=com.alluhaybi.dalil")["data"][0]; aid = app["id"]
           if MODE == "cancel":
@@ -102,6 +101,12 @@ jobs:
               vid = r["data"]["id"]; print("created version", V)
           # 3) ربط البناء
           print("attach build:", api(f"/v1/appStoreVersions/{vid}/relationships/build", "PATCH", {"data": {"type": "builds", "id": bid}}) is not None)
+          # 19 نوفمبر (1.11): النشر التدريجي (7 أيام للتحديث التلقائي) — يبدأ لما أبو مالك يضغط «نشر» بعد موافقة أبل
+          ph = api(f"/v1/appStoreVersions/{vid}/appStoreVersionPhasedRelease", quiet=True)
+          if not (ph and ph.get("data")):
+              print("phased release:", api("/v1/appStoreVersionPhasedReleases", "POST", {"data": {"type": "appStoreVersionPhasedReleases", "attributes": {"phasedReleaseState": "INACTIVE"},
+                  "relationships": {"appStoreVersion": {"data": {"type": "appStoreVersions", "id": vid}}}}}) is not None)
+          else: print("phased release: exists", ph["data"]["attributes"].get("phasedReleaseState"))
           # 4) «ما الجديد» لكل لغة
           locs = api(f"/v1/appStoreVersions/{vid}/appStoreVersionLocalizations")["data"]
           for l in locs:
