@@ -8,7 +8,7 @@ const STORE = "https://apps.apple.com/app/id6822651903";
 const GUIDE = "https://f10f100a-debug.github.io/dalil-app/guide/dalil-guide.pdf";
 const OG_IMG = APP + "assets/og-room.jpg", ICON = APP + "assets/icon-192.png";
 const AASA = {
-  applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }, { "/": "/t", "comment": "مسار مشترك" }, { "/": "/t/*" }] }] },
+  applinks: { details: [{ appIDs: ["M3FNP2GR5Z.com.alluhaybi.dalil"], components: [{ "/": "/r/*" }, { "/": "/t", "comment": "مسار مشترك" }, { "/": "/t/*" }, { "/": "/p/*", "comment": "أرسل موقعي (1.11)" }, { "/": "/f/*", "comment": "رابط فيضة (محجوز)" }] }] },
 };
 
 export default {
