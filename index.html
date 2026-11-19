@@ -1543,7 +1543,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-17" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261119-18" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2367,7 +2367,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(++taps < 5) return; taps = 0;
       let box = document.getElementById('labBox'); if(box){ box.remove(); return; }
       box = document.createElement('div'); box.id = 'labBox'; box.style.cssText = 'margin-top:10px;text-align:right;border:1px dashed var(--line);border-radius:14px;padding:10px 12px;line-height:1.9';
-      const LABS = [['dalil_lab_shrfab', '🧭 زر «اتبع المسار» فوق الخريطة'], ['dalil_lab_plink', '📍 «أرسل موقعي» فيه رابط يفتح دليل'], ['dalil_lab_fydens', '🌱 كثافة الخضرة بصدق (خفيفة/متوسطة/كثيفة)'], ['dalil_lab_fylbl', '🌱 أسماء الفياض على الخريطة (الخضراء من بعيد)'], ['dalil_lab_pinsave', '📌 حفظ الدبوس من الخريطة في أماكني'], ['dalil_lab_rlfit', '📏 أزرار المسطرة تتضبط بالشاشات الضيقة'], ['dalil_lab_wkheavy', '🌧️ وين الأمطار القوية بالمملكة (لوحة الأسبوع)'], ['dalil_lab_xclr', '✕ علامة الإغلاق بلون واضح'], ['dalil_lab_wkradar', '🗓️ مطر الأسبوع يخفي الرادار الحين'], ['dalil_lab_trkdom', '🔗 رابط المسار على dalilbarr.com'], ['dalil_lab_font', '🔤 خط Tajawal (محفوظ داخل التطبيق)'], ['dalil_lab_icons', '🎨 أيقونات ملوّنة لأزرار البوصلة'], ['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
+      const LABS = [['dalil_lab_mapfollow', '🗺️ اتباع المسار على الخريطة (خط لبدايته)'], ['dalil_lab_shrfab', '🧭 زر «اتبع المسار» فوق الخريطة'], ['dalil_lab_plink', '📍 «أرسل موقعي» فيه رابط يفتح دليل'], ['dalil_lab_fydens', '🌱 كثافة الخضرة بصدق (خفيفة/متوسطة/كثيفة)'], ['dalil_lab_fylbl', '🌱 أسماء الفياض على الخريطة (الخضراء من بعيد)'], ['dalil_lab_pinsave', '📌 حفظ الدبوس من الخريطة في أماكني'], ['dalil_lab_rlfit', '📏 أزرار المسطرة تتضبط بالشاشات الضيقة'], ['dalil_lab_wkheavy', '🌧️ وين الأمطار القوية بالمملكة (لوحة الأسبوع)'], ['dalil_lab_xclr', '✕ علامة الإغلاق بلون واضح'], ['dalil_lab_wkradar', '🗓️ مطر الأسبوع يخفي الرادار الحين'], ['dalil_lab_trkdom', '🔗 رابط المسار على dalilbarr.com'], ['dalil_lab_font', '🔤 خط Tajawal (محفوظ داخل التطبيق)'], ['dalil_lab_icons', '🎨 أيقونات ملوّنة لأزرار البوصلة'], ['dalil_lab_home', '🧭 شاشة البوصلة الجديدة (سهم 3D + أزرار مرتبة)'], ['dalil_lab_rainbar', '⛈️ شريط تنبيه المطر فوق + جهة الفياض'], ['dalil_lab_pttwait', '🎙️ اللاسلكي والجوال مقفل (الصفحة ما تشغّل بالخلفية)'], ['dalil_lab_tiltcmp', '🧭 بوصلة الأندرويد والجوال قايم (اتجاه الكاميرا)'], ['dalil_lab_owner', '👑 صاحب الغرفة (إخراج عضو وتغيير الرمز)'], ['dalil_lab_ruler', '📏 المسطرة (من الأدوات)'], ['dalil_lab_style', '🎨 شكل الخريطة الجديد (ليلي حقيقي + كتابة أوضح)'], ['dalil_lab_poi', '⛽ أيقونات المواقع (محطة، بئر، خبراء…)'], ['dalil_lab_coords', '🎯 الإحداثيات بالخريطة (وسط + كل الصيغ)'], ['dalil_lab_fastgps', '📍 تحديد الموقع السريع'], ['dalil_lab_week', '🗓️ مطر الأسبوع على الخريطة'], ['dalil_lab_layout', '🧭 الترتيب الجديد (تبويب البر + ⚙️ فوق)'], ['dalil_lab_mapfull', '🗺️ الخريطة على الشاشة كاملة'], ['dalil_lab_nc', '🔮 الرادار بعد 30 دقيقة'], ['dalil_lab_camp', '⛺ مخيّمك آمن؟ (البوصلة)'], ['dalil_lab_where', '🧭 وين أطلع؟ (البر)']];
       const get = k=>{ try{ if(k === 'dalil_lab_icons') return localStorage.getItem(k) !== '0';
         if(k === 'dalil_lab_font') return localStorage.getItem(k) !== '0';
         if(k === 'dalil_lab_home'){ const v = localStorage.getItem(k); return v === '1' || (v !== '0' && Date.now() >= Date.parse('2026-11-17T17:30:00+03:00')); } return ['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait', 'dalil_lab_wkheavy', 'dalil_lab_xclr', 'dalil_lab_rlfit', 'dalil_lab_pinsave', 'dalil_lab_fylbl', 'dalil_lab_fydens', 'dalil_lab_plink', 'dalil_lab_shrfab'].includes(k) ? localStorage.getItem(k) !== '0' : k === 'dalil_lab_mapfull' && /iPhone|iPad|iPod|DalilApp\/|Android/i.test(navigator.userAgent || '') ? localStorage.getItem(k) !== '0' : localStorage.getItem(k) === '1'; }catch(e){ return false; } };
@@ -2378,7 +2378,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
           else if(c.dataset.lab === 'dalil_lab_mapfull') localStorage.setItem(c.dataset.lab, c.checked ? '1' : '0');
           else if(['dalil_lab_layout', 'dalil_lab_week', 'dalil_lab_nc', 'dalil_lab_camp', 'dalil_lab_where', 'dalil_lab_coords', 'dalil_lab_style', 'dalil_lab_poi', 'dalil_lab_ruler', 'dalil_lab_rainbar', 'dalil_lab_fastgps', 'dalil_lab_pttwait', 'dalil_lab_wkheavy', 'dalil_lab_xclr', 'dalil_lab_rlfit', 'dalil_lab_pinsave', 'dalil_lab_fylbl', 'dalil_lab_fydens', 'dalil_lab_plink', 'dalil_lab_shrfab'].includes(c.dataset.lab)) c.checked ? localStorage.removeItem(c.dataset.lab) : localStorage.setItem(c.dataset.lab, '0');   // 14 نوفمبر: الرادار بعد 30 د ومخيمك آمن ووين أطلع للكل (تنطفي بـ '0')
           else c.checked ? localStorage.setItem(c.dataset.lab, '1') : localStorage.removeItem(c.dataset.lab); }catch(e){}
-        if(c.dataset.lab === 'dalil_lab_shrfab' || c.dataset.lab === 'dalil_lab_plink' || c.dataset.lab === 'dalil_lab_fydens' || c.dataset.lab === 'dalil_lab_fylbl' || c.dataset.lab === 'dalil_lab_pinsave' || c.dataset.lab === 'dalil_lab_rlfit' || c.dataset.lab === 'dalil_lab_wkheavy' || c.dataset.lab === 'dalil_lab_xclr' || c.dataset.lab === 'dalil_lab_wkradar' || c.dataset.lab === 'dalil_lab_trkdom' || c.dataset.lab === 'dalil_lab_font' || c.dataset.lab === 'dalil_lab_icons' || c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
+        if(c.dataset.lab === 'dalil_lab_mapfollow' || c.dataset.lab === 'dalil_lab_shrfab' || c.dataset.lab === 'dalil_lab_plink' || c.dataset.lab === 'dalil_lab_fydens' || c.dataset.lab === 'dalil_lab_fylbl' || c.dataset.lab === 'dalil_lab_pinsave' || c.dataset.lab === 'dalil_lab_rlfit' || c.dataset.lab === 'dalil_lab_wkheavy' || c.dataset.lab === 'dalil_lab_xclr' || c.dataset.lab === 'dalil_lab_wkradar' || c.dataset.lab === 'dalil_lab_trkdom' || c.dataset.lab === 'dalil_lab_font' || c.dataset.lab === 'dalil_lab_icons' || c.dataset.lab === 'dalil_lab_home' || c.dataset.lab === 'dalil_lab_rainbar' || c.dataset.lab === 'dalil_lab_pttwait' || c.dataset.lab === 'dalil_lab_tiltcmp' || c.dataset.lab === 'dalil_lab_owner' || c.dataset.lab === 'dalil_lab_ruler' || c.dataset.lab === 'dalil_lab_style' || c.dataset.lab === 'dalil_lab_poi' || c.dataset.lab === 'dalil_lab_coords' || c.dataset.lab === 'dalil_lab_fastgps' || c.dataset.lab === 'dalil_lab_layout' || c.dataset.lab === 'dalil_lab_mapfull' || c.dataset.lab === 'dalil_lab_camp' || c.dataset.lab === 'dalil_lab_where'){ toast(c.checked ? 'شغّلنا التجربة — يعيد فتح التطبيق' : 'رجّعنا الشكل الأصلي'); setTimeout(()=>location.reload(), 900); }
         else{ toast(c.dataset.lab === 'dalil_lab_nc' ? (c.checked ? '🔮 شغّلنا الرادار بعد 30 د — افتح الرادار في الخريطة' : 'أُطفئ تنبؤ الرادار') : c.checked ? '🧪 شغّلنا مطر الأسبوع — تلقاه في الخريطة' : 'أُطفئ مطر الأسبوع'); const f = document.getElementById('trackMapFrame'); if(f && f.src) f.src = f.src; }
       });
       if(window.__rainbarLab){ const rd = document.createElement('button'); rd.type = 'button'; rd.className = 'btn'; rd.style.cssText = 'margin-top:8px;width:100%'; rd.textContent = '👀 شوف شكل شريط المطر (مثال)'; rd.onclick = ()=>window.__rainBarDemo && window.__rainBarDemo(); box.appendChild(rd); }
@@ -5887,7 +5887,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       position:state.pos ? {lat:state.pos.lat, lng:state.pos.lng, accuracy:state.pos.accuracy, speed:state.pos.speed, course:state.pos.courseRaw} : null,
       points:state.trackPoints.map(p=>({lat:p.lat, lng:p.lng})),
       tracking:state.tracking,
-      mode:state.retracing ? 'retrace' : (state.tracking ? 'record' : 'view')
+      mode:state.retracing ? 'retrace' : (state.tracking ? 'record' : 'view'),
+      follow:(state.retracing && state.followMode && mapFollowOn() && Number.isFinite(state.folIdx)) ? {idx:state.folIdx, approach:!!state.folApproach, d:state.folD, rem:state.folRem} : null
     }, location.origin);
   }
   document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
@@ -6341,9 +6342,23 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     }
     const targetPt = pts[targetIdx];
     const d = haversine(state.pos.lat, state.pos.lng, targetPt.lat, targetPt.lng);
+    if(state.followMode && mapFollowOn()){
+      // بعدك عن خط المسار نفسه (مو عن النقطة): أقل من 30 م = وصلت المسار، أكثر من 100 م = طلعت عنه ويرجع الخط المتقطع
+      const kx = 111320 * Math.cos(state.pos.lat * Math.PI / 180), ky = 110540, X = q=>[(q.lng - state.pos.lng) * kx, (q.lat - state.pos.lat) * ky];
+      let dl = Infinity; for(let j = Math.min(total - 1, Math.max(1, targetIdx + 1)); j >= 1 && j >= targetIdx - 400; j--){ const [ax, ay] = X(pts[j]), [bx, by] = X(pts[j - 1]), dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1e-9, tt = Math.max(0, Math.min(1, -(ax * dx + ay * dy) / L)); dl = Math.min(dl, Math.hypot(ax + tt * dx, ay + tt * dy)); }
+      dl = Math.min(dl, d);
+      if(state.folApproach && dl < 30){ state.folApproach = false; toast('✅ وصلت المسار — امشِ على الخط الأحمر'); }
+      else if(!state.folApproach && dl > 100){ state.folApproach = true; }
+    }
     if(d < 15 && targetIdx > 0){
       state.retraceIdx++;
       return updateRetrace();
+    }
+    if(state.followMode && mapFollowOn()){
+      // لين توصل أول نقطة: خط متقطع. بعدها تمشي على الأحمر، ولو بعدت عنه أكثر من 100 م يرجع المتقطع لأقرب نقطة قدامك
+      let rem = d; for(let j = targetIdx; j >= 1; j--) rem += haversine(pts[j].lat, pts[j].lng, pts[j-1].lat, pts[j-1].lng);
+      state.folIdx = targetIdx; state.folRem = rem; state.folD = d;
+      setTimeout(syncTrackMap, 0);
     }
     document.getElementById('retraceDist').textContent = d>=1000 ? (d/1000).toFixed(2)+' كم' : Math.round(d)+' م';
     document.getElementById('retraceProgress').textContent = `نقطة ${total-targetIdx} من ${total}`;
@@ -6504,6 +6519,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     return true;
   }
   document.getElementById('shrFollow').addEventListener('click', ()=>{ const bar = document.getElementById('shrBar'), t = state.tracks.find(x=>x.id === bar.dataset.id); bar.hidden = true; shrFabHide(); if(t) startFollow(t); });
+  window.addEventListener('message', e=>{ if(e.origin !== location.origin || !e.data || e.data.type !== 'DALIL_FOL_CMD') return;
+    if(e.data.cmd === 'compass') document.querySelector('.tab[data-screen="compass"]').click();
+    else if(e.data.cmd === 'stop'){ stopRetrace(); syncTrackMap(); toast('وقّفنا اتباع المسار'); } });
   // الزر العائم في الخريطة يرسل «اتبع» أو «✕» — نفس أزرار الشريط
   window.addEventListener('message', e=>{ if(e.origin !== location.origin || !e.data) return;
     if(e.data.type === 'DALIL_SHR_FOLLOW'){ const t = state.tracks.find(x=>x.id === window.__shrId); document.getElementById('shrBar').hidden = true; if(t) startFollow(t); }
@@ -6511,16 +6529,35 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   document.getElementById('shrClose').addEventListener('click', ()=>{ document.getElementById('shrBar').hidden = true; shrFabHide(); });
   function shrFabHide(){ try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_SHR_HIDE'}, location.origin); }catch(e){} }
   // اتباع مسار شخص ثاني: من أقرب نقطة لك على المسار لين نهايته (نفس «العودة منه» بس بالاتجاه الصحيح)
-  function startFollow(track){
-    if(!loadSavedTrack({...track, points:track.points.slice().reverse()})) return;
+  // 19 نوفمبر (تجربة dalil_lab_mapfollow): اتباع المسار على الخريطة — خط متقطع من موقعك لبداية المسار، وبعدها تمشي على الخط الأحمر
+  function mapFollowOn(){ try{ return localStorage.getItem('dalil_lab_mapfollow') === '1'; }catch(e){ return false; } }
+  function startFollow(track, flip){
+    if(mapFollowOn() && flip === undefined && state.pos && track.points.length > 1){
+      const P = track.points, a = P[0], b = P[P.length - 1];
+      const ds = haversine(state.pos.lat, state.pos.lng, a.lat, a.lng), de = haversine(state.pos.lat, state.pos.lng, b.lat, b.lng);
+      let dl = Infinity; P.forEach(q=>{ const dd = haversine(state.pos.lat, state.pos.lng, q.lat, q.lng); if(dd < dl) dl = dd; });
+      // النهاية أقرب لك بكثير (ممكن صاحبه سجّله وهو راجع) — نسأل مرة وحدة
+      if(dl > 100 && ds > 500 && de < ds / 3){
+        softCard('<b>🧭 نهاية المسار أقرب لك</b><span style="font-size:14px">البداية على بعد ' + (ds >= 1000 ? (ds/1000).toFixed(1) + ' كم' : Math.round(ds) + ' م') + ' والنهاية ' + (de >= 1000 ? (de/1000).toFixed(1) + ' كم' : Math.round(de) + ' م') + '. من وين تبدأ؟</span>'
+          + '<button type="button" class="cp-btn cp-btn-gold" data-sc="near">من الطرف القريب</button><button type="button" class="oab-x" data-sc="start">من البداية</button>',
+          act=>startFollow(track, act === 'near'));
+        return;
+      }
+    }
+    const pts0 = flip ? track.points.slice() : track.points.slice().reverse();
+    if(!loadSavedTrack({...track, points:pts0})) return;
     state.followMode = true;
     startRetrace();
     if(state.pos){
       const pts = state.trackPoints; let bi = pts.length - 1, bd = Infinity;
       pts.forEach((p, i)=>{ const dd = haversine(state.pos.lat, state.pos.lng, p.lat, p.lng); if(dd < bd){ bd = dd; bi = i; } });
-      state.retraceIdx = Math.max(0, pts.length - 1 - bi); updateRetrace();
+      // على الخريطة: من البداية، إلا إذا أنت أصلًا على المسار (≤100 م) فيكمل من مكانك
+      if(!mapFollowOn() || bd <= 100){ state.retraceIdx = Math.max(0, pts.length - 1 - bi); }
+      state.folApproach = mapFollowOn() && bd > 100;
+      updateRetrace();
     }
-    document.querySelector('.tab[data-screen="compass"]').click();
+    if(mapFollowOn()){ state.folApproach = state.folApproach !== false; document.querySelector('.tab[data-screen="track"]').click(); setTimeout(syncTrackMap, 300); }
+    else document.querySelector('.tab[data-screen="compass"]').click();
   }
   async function shareTrackGpx(track){
     if(!track || !Array.isArray(track.points) || track.points.length < 2) return toast('لا توجد نقاط كافية للتصدير');
