@@ -23,6 +23,9 @@ export default {
     if (m) { const pin = m[2] || url.searchParams.get("p") || ""; return room(m[1], /^[0-9A-Za-z]{1,12}$/.test(pin) ? pin : ""); }
     // 18 نوفمبر: مسار مشترك dalilbarr.com/t#… → صفحة المسار (المتصفح ينقل اللي بعد # مع التحويل، والمسار ما يوصل السيرفر أبد)
     // نعرض الصفحة نفسها من dalilbarr.com (العنوان يبقى dalilbarr.com — أوثق للناس من github.io)
+    // 19 نوفمبر: رابط المسار القصير dalilbarr.com/t/ID (7 حروف) — المسار محفوظ 30 يوم في Supabase (share_track/get_track)
+    const tm = p.match(/^\/t\/([2-9A-Za-z]{7})\/?$/);
+    if (tm) return shortTrack(tm[1]);
     if (p === "/t" || p === "/t/") {
       const r = await fetch(APP + "t/", { cf: { cacheTtl: 86400, cacheEverything: true } }).catch(() => null);
       if (r && r.ok) return new Response(await r.text(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=3600" } });
@@ -110,3 +113,21 @@ a.b{display:block;text-decoration:none;border-radius:16px;padding:15px;font-weig
 const P62='0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 function pEnc(lat,lng){let n=Math.round((+lat+90)*1e5)*36000001+Math.round((+lng+180)*1e5),s='';for(let i=0;i<9;i++){s=P62[n%62]+s;n=Math.floor(n/62)}return s}
 function pDec(s){if(!/^[0-9A-Za-z]{9}$/.test(s))return null;let n=0;for(const c of s)n=n*62+P62.indexOf(c);const b=n%36000001,a=(n-b)/36000001;return [+(a/1e5-90).toFixed(5),+(b/1e5-180).toFixed(5)]}
+
+const SB = "https://penhpgvjtxytgyrhmetg.supabase.co", SBK = "sb_publishable_WUbfRD9na71sHZ1rxFwImQ_JGzDOyXw";
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function shortTrack(id) {
+  let t = null;
+  try {
+    const r = await fetch(SB + "/rest/v1/rpc/get_track", { method: "POST", headers: { apikey: SBK, authorization: "Bearer " + SBK, "content-type": "application/json" }, body: JSON.stringify({ p_id: id }) });
+    if (r.ok) t = await r.json();
+  } catch (e) {}
+  if (!t || !t.code || !/^T1[A-Za-z0-9_-]+$/.test(t.code)) return new Response("الرابط انتهى (المسارات تنحفظ 30 يوم) — اطلب من صاحبه يرسله مرة ثانية", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+  const page = await fetch(APP + "t/", { cf: { cacheTtl: 86400, cacheEverything: true } }).catch(() => null);
+  if (!page || !page.ok) return Response.redirect("https://dalilbarr.com/t#" + t.code, 302);
+  const title = "🧭 مسار «" + (t.name || "مسار") + "»" + (t.km ? " · " + t.km + " كم" : "") + " — افتحه في دليل";
+  let html = await page.text();
+  html = html.replace(/<meta property="og:title" content="[^"]*">/, '<meta property="og:title" content="' + esc(title) + '"><meta property="og:url" content="https://dalilbarr.com/t/' + id + '">')
+             .replace("<head>", "<head><script>if(!location.hash)history.replaceState(null,'','#'+" + JSON.stringify(t.code) + ")</script>");
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "max-age=600" } });
+}
