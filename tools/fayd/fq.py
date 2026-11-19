@@ -98,7 +98,7 @@ for k, (name, region, la, lo) in enumerate(AREAS):
     tot = sum(v for d, v in rain[k].items() if start.isoformat() <= d <= end.isoformat())
     # 19 نوفمبر (اختبار الدقة: بريدة 32 ومحطة القصيم 16، حائل 25 ومحطتها 17، القيصومة 40 ومحطتها 22): الحد يقرب من المحطة كل ما قربت
     gk = gkm(la, lo, g[0]); gdist[k] = gk
-    lim = gt * (1 + gk / 80) + 2
+    lim = gt * (1 + gk / 80) + gk / 20     # القيصومة (3 كم) = رقم المحطة تقريبًا
     # كل الأيام اللي المحطة ما بلّغت فيها (رادار أو نموذج) — أول تشغيل: بريدة الزايد كان من النموذج مو الرادار
     rad = [d for d in rain[k] if start.isoformat() <= d <= end.isoformat() and d not in g[1] and rain[k][d] > 0]
     rsum = sum(rain[k][d] for d in rad)
