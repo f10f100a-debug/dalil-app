@@ -1,0 +1,252 @@
+{
+ "made": "2026-11-19",
+ "current": [
+  {
+   "name": "رفحاء",
+   "region": "الحدود الشمالية",
+   "ours": 14,
+   "chirps": 0.0,
+   "gauge": "رفحاء",
+   "gauge_mm": 0,
+   "st": 0
+  },
+  {
+   "name": "لينة",
+   "region": "الحدود الشمالية",
+   "ours": 26,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 1
+  },
+  {
+   "name": "العويقيلة",
+   "region": "الحدود الشمالية",
+   "ours": 15,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "عرعر",
+   "region": "الحدود الشمالية",
+   "ours": 69,
+   "chirps": 0.0,
+   "gauge": "عرعر",
+   "gauge_mm": 0,
+   "st": 2
+  },
+  {
+   "name": "طريف",
+   "region": "الحدود الشمالية",
+   "ours": 39,
+   "chirps": 0.0,
+   "gauge": "طريف",
+   "gauge_mm": 0,
+   "st": 1
+  },
+  {
+   "name": "سكاكا",
+   "region": "الجوف",
+   "ours": 19,
+   "chirps": 0.0,
+   "gauge": "الجوف",
+   "gauge_mm": 0,
+   "st": 0
+  },
+  {
+   "name": "دومة الجندل",
+   "region": "الجوف",
+   "ours": 18,
+   "chirps": 0.0,
+   "gauge": "الجوف",
+   "gauge_mm": 0,
+   "st": 0
+  },
+  {
+   "name": "الجوف - النبك",
+   "region": "الجوف",
+   "ours": 5,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "حفر الباطن",
+   "region": "الشرقية",
+   "ours": 39,
+   "chirps": 0.0,
+   "gauge": "القيصومة",
+   "gauge_mm": 0,
+   "st": 1
+  },
+  {
+   "name": "القيصومة",
+   "region": "الشرقية",
+   "ours": 40,
+   "chirps": 0.0,
+   "gauge": "القيصومة",
+   "gauge_mm": 0,
+   "st": 1
+  },
+  {
+   "name": "الدبدبة",
+   "region": "الشرقية",
+   "ours": 51,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "الصمان",
+   "region": "الشرقية",
+   "ours": 60,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 1
+  },
+  {
+   "name": "النعيرية",
+   "region": "الشرقية",
+   "ours": 135,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "حائل",
+   "region": "حائل",
+   "ours": 25,
+   "chirps": 0.0,
+   "gauge": "حائل",
+   "gauge_mm": 0,
+   "st": 1
+  },
+  {
+   "name": "جبة (النفود)",
+   "region": "حائل",
+   "ours": 22,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "بقعاء",
+   "region": "حائل",
+   "ours": 34,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "الشملي",
+   "region": "حائل",
+   "ours": 14,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  },
+  {
+   "name": "بريدة",
+   "region": "القصيم",
+   "ours": 32,
+   "chirps": 0.0,
+   "gauge": "القصيم",
+   "gauge_mm": 0,
+   "st": 1
+  },
+  {
+   "name": "الأسياح",
+   "region": "القصيم",
+   "ours": 33,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 1
+  },
+  {
+   "name": "الزلفي",
+   "region": "الرياض",
+   "ours": 31,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 1
+  },
+  {
+   "name": "الأرطاوية",
+   "region": "الرياض",
+   "ours": 40,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 1
+  },
+  {
+   "name": "تبوك",
+   "region": "تبوك",
+   "ours": 2,
+   "chirps": 0.0,
+   "gauge": "تبوك",
+   "gauge_mm": 0,
+   "st": 0
+  },
+  {
+   "name": "تيماء",
+   "region": "تبوك",
+   "ours": 8,
+   "chirps": 0.0,
+   "gauge": null,
+   "gauge_mm": null,
+   "st": 0
+  }
+ ],
+ "past": {},
+ "missing": [
+  "2026-10-16",
+  "2026-10-17",
+  "2026-10-18",
+  "2026-10-19",
+  "2026-10-20",
+  "2026-10-21",
+  "2026-10-22",
+  "2026-10-23",
+  "2026-10-24",
+  "2026-10-25",
+  "2026-10-26",
+  "2026-10-27",
+  "2026-10-28",
+  "2026-10-29",
+  "2026-10-30",
+  "2026-10-31",
+  "2026-11-01",
+  "2026-11-02",
+  "2026-11-03",
+  "2026-11-04",
+  "2026-11-05",
+  "2026-11-06",
+  "2026-11-07",
+  "2026-11-08",
+  "2026-11-09",
+  "2026-11-10",
+  "2026-11-11",
+  "2026-11-12",
+  "2026-11-13",
+  "2026-11-14",
+  "2026-11-15",
+  "2026-11-16",
+  "2026-11-17",
+  "2026-11-18",
+  "2026-11-19"
+ ],
+ "current_until": null,
+ "kinds": {}
+}
