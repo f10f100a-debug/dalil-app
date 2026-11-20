@@ -1545,7 +1545,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-7" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-8" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6919,7 +6919,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   }
   // 20 نوفمبر (الشفلحية): الرقم القديم (pct) = كم من البقعة خضرت، مو قوة النبات — كانت تطلع «كثيفة» وهي خفيفة متصلة.
   // الحين: قوة الخضرة من متوسط NDVI (من مسح 21 نوفمبر)، وإذا ما فيه نكتب متفرقة/متصلة بس
-  const fnDens = (p, nd)=>nd != null ? (nd < 22 ? '🌱 خضرة خفيفة' : nd < 30 ? '🌱 خضرة متوسطة' : '🌿 خضرة كثيفة') + (p < 35 ? ' متفرقة' : ' متصلة') : (p < 35 ? '🌱 خضرة متفرقة' : '🌱 خضرة متصلة');
+  const fnDens = (p, nd)=>(nd != null ? (nd < 22 ? '🌱 خضرة خفيفة' : nd < 30 ? '🌱 خضرة متوسطة' : '🌿 خضرة كثيفة') + ' · ' : '🌱 ') + (p < 35 ? 'بقع متفرقة' : 'تغطي أغلب المكان');
   // بقعة خلال 5 كم من فيضة معروفة → «قرب فيضة X · 4 كم شمال غرب» (غالبًا من نفس المجرى، أو إحداثيات الفيضة مو بقلبها)
   function fnNear(r){
     if(r._near !== undefined) return r._near; r._near = null;
@@ -6994,7 +6994,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const join = a=>a.filter(Boolean).join(' · ');
     const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), dens(r), r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان</em>' : r.nearRep ? '<em>🌱 بلاغ قريب — القمر لسه ما أكده</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
     const eCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), img(r)])}</span></span><span class="fs-tag">بداية</span></button>`;
-    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', kmT(r)])}</span></span><span class="fs-tag">${fnDens(r.pct, r.nd).replace(/^\S+\s/, '').replace('خضرة ', '')}</span></button>`;
+    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', r.pct < 35 ? 'بقع متفرقة' : 'تغطي أغلب المكان', kmT(r)])}</span></span>${r.nd != null ? `<span class="fs-tag">${r.nd < 22 ? 'خفيفة' : r.nd < 30 ? 'متوسطة' : 'كثيفة'}</span>` : ''}</button>`;
     const pCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span><span class="fs-tag">${LV_AR[r.repLv || 1] || 'بداية'}</span></button>`;
     const farmN = Array.isArray(faydData.farm) ? faydData.farm.length : 0;
     let h = `<div class="fs-src">🛰️ أحدث صورة ${faydData.asof ? fmt(faydData.asof) : ''}${farmN ? ' · ' + farmN + ' فيضة فيها زراعة ما تنقاس' : ''}</div>`;
