@@ -173,8 +173,8 @@ def _d(a, b):
     try: return (dtm.date.fromisoformat(a) - dtm.date.fromisoformat(b)).days
     except Exception: return 99
 twice = []        # فياض أحدث صورة فيها أخضر من اللي قبلها (ما اعتمدناها لين تتكرر)
-try: FIELD_NO = {int(r[0]) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= 30}
-except Exception: FIELD_NO = set()
+try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= 30}
+except Exception: FIELD_NO = {}
 SKIP = {1703}      # «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع)
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
@@ -210,9 +210,11 @@ for i, s in enumerate(SITES):
         if st_ >= 2 and not check and len(pair) < 2: st_ = 1; check = 7     # صورة وحدة بس: ننتظر الثانية تأكدها (برا التنبيه و«وين أطلع»)
         # 20 نوفمبر (الزقلا — زيارة أبو مالك: «سدر كثيف بدون ربيع»): فيضة فيها شجر (خضراء بالصيف: ربع أرضها أو أكثر، أو p75 ≥ 0.18)
         #   بعد المطر الشجر يورّق والقمر يحسبه خضرة → ما تتعدى «بداية» وتحتاج تأكيد (بدون تنبيه) إلا إذا أكدها الميدان
-        if st_ >= 1 and (sb[1] >= 0.2 or sb[0] >= 0.18): st_ = 1; check = 9
+        #   إلا إذا الخضرة زادت كثير (40٪ من المساحة فأكثر) — أكثر من أي شجر يورّق → تنقاس عادي
+        if st_ >= 1 and (sb[1] >= 0.2 or sb[0] >= 0.18) and gf < 40: st_ = 1; check = 9
         # زيارة ميدانية قالت «ما فيها ربيع» (data/fayd-field-no.json، صالحة 30 يوم من تاريخها)
-        if i in FIELD_NO: st_ = 0; check = 10
+        #   ترجع قبل الـ30 يوم إذا زادت مساحة الخضرة 10٪ فوق اللي كانت يوم الزيارة (شي جديد غير الشجر — غالبًا عشب) → «تحتاج تأكيد»
+        if i in FIELD_NO: (st_, check) = (1, 11) if gf >= FIELD_NO[i] + 10 else (0, 10)
         rows.append([i, round(max(0, g) * 1000), st_, round(max(0, gain_frac) * 100), 1, check, d8]); s2dates.append(d8)   # النسبة = زيادة المساحة الخضراء عن قبل الموسم
     elif v and modis_fresh:
         g = max(v) - dry; idx = g / span                 # بديل: MODIS (250 م)
