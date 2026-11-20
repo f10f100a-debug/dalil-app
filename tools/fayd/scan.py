@@ -230,7 +230,10 @@ def do_tile(tile, now_items, dry_items, last_items=None):
         rr, cc = np.nonzero(sel); w = gc[sel].astype(float)
         hh, ww = int(rr.max() - rr.min() + 1), int(cc.max() - cc.min() + 1)
         if float(nearfarm[sel].mean()) >= 0.5 and max(hh, ww) <= 7 and max(hh, ww) / min(hh, ww) <= 1.8 and ncell / (hh * ww) >= 0.45:
-            PIVOT[0] += 1; continue
+            PIVOT[0] += 1
+            if TEST:
+                x_, y_ = trc * (cc.mean() + .5, rr.mean() + .5); lo_, la_ = wtransform(crs, "EPSG:4326", [x_], [y_]); print("PIVOT-DROP", round(la_[0], 4), round(lo_[0], 4), round(a, 1), hh, ww, ncell, flush=True)
+            continue
         r0 = float((rr * w).sum() / w.sum()); c0 = float((cc * w).sum() / w.sum())
         # أقرب مربع أخضر فعلي للمركز (الشعيب ممكن يكون منحني والمركز خارجه)
         j = int(np.argmin((rr - r0) ** 2 + (cc - c0) ** 2)); r0, c0 = rr[j], cc[j]
@@ -338,12 +341,16 @@ def main():
                 now99 = max([x[3] for x in v if x[0] >= cut_now] or [0])
                 last99 = max([x[3] for x in v for yy in (y - 2, y - 1, y) if f"{yy}-01-01" <= x[0] <= f"{yy}-05-31"] or [0])
                 summer = max([x[4] for x in v for yy in (y - 2, y - 1, y) if f"{yy}-06-01" <= x[0] <= f"{yy}-09-30"] or [0])
+                if TEST: print("CDSE", r[:3], "now99", now99, "last99", last99, "summer", summer, flush=True)
                 if now99 >= 0.8 or last99 >= 0.85 or summer >= 0.3: farm_n += 1; continue
                 kept.append(r)
             print(f"::notice::copernicus farm check: {len(rows)} → {len(kept)} (farms {farm_n}, requests {cdse.calls})", flush=True)
             rows = kept
     except Exception as e:
         print("::warning::copernicus check skipped: " + str(e)[:150], flush=True)
+    if TEST:
+        for r in rows: print("KEPT", r[:4], label(r[0], r[1])[0], flush=True)
+        return
     out = []
     for la, lo, ha, pct, ncell, hf, tile in rows:
         lb, ref = label(la, lo)
