@@ -1545,7 +1545,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-10" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-11" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -7014,6 +7014,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     h += shelf('n', 'fs-x', '✨ خضرة جديدة', 'أماكن خضرت وما هي فيضة معروفة' + (faydNew && faydNew.asof ? ' (مسح ' + fmt(faydNew.asof) + ')' : ''), newAll, xCard);
     h += shelf('p', 'fs-p', '👥 بلاغات الناس', 'ناس شافوا ربيع والقمر ما أكده للحين', peopleAll, pCard);
     list.innerHTML = h;
+    // فحص الشاشات الآلي (tools/qa/ui_check.js) يقرأ هذا
+    try{ window.__faydDbg = {shown:green.slice(0, 10).map(r=>({i:r.i, st0:r.st0, stale:r.stale, chk:r.chk || 0, field:!!r.field})), people:peopleAll.slice(0, 5).map(r=>({i:r.i, st0:r.st0})), early:earlyAll.slice(0, 6).map(r=>r.i), shelf:true}; }catch(e){}
   }
   const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
   const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم']};

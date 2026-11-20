@@ -44,11 +44,11 @@ const sleep = ms=>new Promise(r=>setTimeout(r, ms));
       await shot('fayd'); await bodyBad('الفياض');
       // «🧭 وين أطلع؟» للكل: البطاقة موجودة فوق الفياض
       if(!(await p.evaluate(()=>!!document.querySelector('.wh-card')))) F('الفياض: بطاقة «وين أطلع» ما ظهرت'); await dupes('.fy-row', 'قائمة الفياض');
-      const sp = await p.evaluate(()=>{ const b = document.getElementById('springBody'); const big = b && b.querySelector('.big'); return {lvl:big ? big.innerText.trim() : '', txt:b ? b.innerText : ''}; });
+      const sp = await p.evaluate(()=>{ const b = document.getElementById('springBody'), lv = document.getElementById('fsLevel'); const big = (lv && lv.querySelector('.fs-lv')) || (b && b.querySelector('.big')); return {lvl:big ? big.innerText.trim() : '', txt:(lv ? lv.innerText + '\n' : '') + (b ? b.innerText : '')}; });   // 20 نوفمبر: صفحة الرفوف (#fsLevel)
       if(LEVEL_GREEN.includes(sp.lvl)){
         const m = sp.txt.match(/على بعد ([\d.]+) كم/); if(m && Number(m[1]) > 10) F(`بطاقة الربيع: «${sp.lvl}» والفيضة على بعد ${m[1]} كم (لازم «حولك ما اخضرّ»)`);
       }
-      const rows = await p.$$eval('#faydList .fy-row', a=>a.map(e=>({t:e.innerText.replace(/\s+/g, ' '), pill:(e.querySelector('.fy-pill') || {}).innerText || ''})));
+      const rows = await p.$$eval('#faydList .fy-row, #faydList .fs-g .fs-card', a=>a.map(e=>({t:e.innerText.replace(/\s+/g, ' '), pill:(e.querySelector('.fy-pill, .fs-tag') || {}).innerText || ''})));
       // الترتيب (غير «الأقرب لي») لازم ينزل مع النسبة بين الفياض المؤكدة
       await p.evaluate(()=>{ const c = document.querySelector('#faydChips [data-fy="all"]'); c && c.click(); }); await sleep(800);
       const pcts = await p.$$eval('#faydList .fy-row', a=>a.filter(e=>!/تحتاج تأكيد|\(قديمة\)/.test(e.innerText)).map(e=>{ const m = e.innerText.match(/\+(\d+)٪/); return m ? +m[1] : null; }).filter(x=>x != null));
