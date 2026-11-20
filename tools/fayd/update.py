@@ -119,6 +119,19 @@ if len(sys.argv) > 1 and sys.argv[1] == "baseline":
     print("baseline done", sum(b is not None for b in base))
     sys.exit()
 
+if len(sys.argv) > 1 and sys.argv[1] == "s2fix":
+    # 20 نوفمبر: فيضة انصحح مكانها (الهرارة) — نعيد خضرة الصيف (10 م) لها بس: python3 update.py s2fix 257,300
+    y = dtm.date.today().year if dtm.date.today().month >= 8 else dtm.date.today().year - 1
+    ids = [int(x) for x in (sys.argv[2] if len(sys.argv) > 2 else os.environ.get("S2FIX", "")).split(",") if x.strip()]
+    B = json.load(open("data/fayd-s2base.json"))
+    sub = [SITES[i] for i in ids]
+    res = s2.sample(sub, f"{y}-08-25", f"{y}-10-05", max_cloud=30, keep=3)
+    for k, v in res.items():
+        B["base"][ids[k]] = [round(st.median(x[1] for x in v), 3), round(st.median(x[3] for x in v), 3), len(v)]
+    json.dump(B, open("data/fayd-s2base.json", "w"), separators=(",", ":"))
+    print(f"::notice::s2fix {ids} → " + str([B["base"][i] for i in ids]), flush=True)
+    sys.exit()
+
 if len(sys.argv) > 1 and sys.argv[1] == "s2base":
     # خضرة الجفاف (قبل مطر الموسم): متوسط 3 قراءات صافية بين 25 أغسطس و5 أكتوبر
     y = dtm.date.today().year if dtm.date.today().month >= 8 else dtm.date.today().year - 1
