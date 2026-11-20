@@ -1545,7 +1545,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6913,12 +6913,22 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   let faydNew = null, faydNewLoading = null;
   function loadFaydNew(){
     if(!faydNewLoading) faydNewLoading = fetch('data/fayd-new.json?h=' + Math.floor(Date.now() / 36e5)).then(r=>r.ok ? r.json() : null)
-      .then(j=>{ faydNew = j && Array.isArray(j.rows) ? {asof:j.asof || '', rows:j.rows.map((r, i)=>({i, lat:+r[0], lng:+r[1], ha:+r[2] || 0, pct:+r[3] || 0, label:String(r[4] || '')}))} : {asof:'', rows:[]}; })
+      .then(j=>{ faydNew = j && Array.isArray(j.rows) ? {asof:j.asof || '', rows:j.rows.map((r, i)=>({i, lat:+r[0], lng:+r[1], ha:+r[2] || 0, pct:+r[3] || 0, label:String(r[4] || ''), nd:r[5] != null ? +r[5] : null}))} : {asof:'', rows:[]}; })
       .catch(()=>{ faydNewLoading = null; });
     return faydNewLoading;
   }
-  const fnDens = p=>p < 30 ? '🌱 خضرة خفيفة متفرقة' : p < 55 ? '🌱 خضرة متوسطة' : '🌿 خضرة كثيفة';
-  const fnName = r=>'خضرة جديدة' + (r.label.includes('·') ? ' · ' + r.label.split('·').slice(1).join('·').trim() : '');
+  // 20 نوفمبر (الشفلحية): الرقم القديم (pct) = كم من البقعة خضرت، مو قوة النبات — كانت تطلع «كثيفة» وهي خفيفة متصلة.
+  // الحين: قوة الخضرة من متوسط NDVI (من مسح 21 نوفمبر)، وإذا ما فيه نكتب متفرقة/متصلة بس
+  const fnDens = (p, nd)=>nd != null ? (nd < 22 ? '🌱 خضرة خفيفة' : nd < 30 ? '🌱 خضرة متوسطة' : '🌿 خضرة كثيفة') + (p < 35 ? ' متفرقة' : ' متصلة') : (p < 35 ? '🌱 خضرة متفرقة' : '🌱 خضرة متصلة');
+  // بقعة خلال 5 كم من فيضة معروفة → «قرب فيضة X · 4 كم شمال غرب» (غالبًا من نفس المجرى، أو إحداثيات الفيضة مو بقلبها)
+  function fnNear(r){
+    if(r._near !== undefined) return r._near; r._near = null;
+    if(Array.isArray(faydSites)){ let best = null;
+      for(const s of faydSites){ if(!s || Math.abs(s[1] - r.lat) > .06 || Math.abs(s[2] - r.lng) > .06) continue; const d = haversine(s[1], s[2], r.lat, r.lng) / 1000; if(d <= 5 && (!best || d < best.d)) best = {d, s}; }
+      if(best){ const dir = window.__dirTo ? window.__dirTo(best.s[1], best.s[2], r.lat, r.lng) : null; r._near = 'قرب ' + best.s[0] + ' · ' + (best.d < 1 ? 'أقل من كم' : Math.round(best.d) + ' كم') + (dir ? ' ' + dir.word : ''); } }
+    return r._near;
+  }
+  const fnName = r=>fnNear(r) || 'خضرة جديدة' + (r.label.includes('·') ? ' · ' + r.label.split('·').slice(1).join('·').trim() : '');
   // 20 نوفمبر (تجربة dalil_lab_fyshelf): صفحة الفياض بالرفوف
   function fyShelfOn(){ try{ return localStorage.getItem('dalil_lab_fyshelf') === '1'; }catch(e){ return false; } }
   const fyShelfOpen = {};
@@ -6983,7 +6993,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const join = a=>a.filter(Boolean).join(' · ');
     const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), dens(r), r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان</em>' : r.nearRep ? '<em>🌱 بلاغ قريب — القمر لسه ما أكده</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
     const eCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), img(r)])}</span></span><span class="fs-tag">بداية</span></button>`;
-    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', kmT(r)])}</span></span><span class="fs-tag">${fnDens(r.pct).replace(/^\S+\s/, '').replace('خضرة ', '')}</span></button>`;
+    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', kmT(r)])}</span></span><span class="fs-tag">${fnDens(r.pct, r.nd).replace(/^\S+\s/, '').replace('خضرة ', '')}</span></button>`;
     const pCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span><span class="fs-tag">${LV_AR[r.repLv || 1] || 'بداية'}</span></button>`;
     const farmN = Array.isArray(faydData.farm) ? faydData.farm.length : 0;
     let h = `<div class="fs-src">🛰️ أحدث صورة ${faydData.asof ? fmt(faydData.asof) : ''}${farmN ? ' · ' + farmN + ' فيضة فيها زراعة ما تنقاس' : ''}</div>`;
@@ -7122,7 +7132,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
         else nr.sort((a, b)=>b.ha - a.ha);
         newAll = nr.slice(); const tot = nr.length; nr = nr.slice(0, faydMore ? 20 : 5);
         if(nr.length) newHtml = `<div class="fy-early fy-new"><div class="fy-early-h">🌱 خضرة جديدة خارج الفياض <span>(${tot})</span></div><div class="fy-early-s">أماكن خضرت هالموسم وما هي فيضة معروفة — من مسح القمر الصناعي كل سبت${faydNew.asof ? ' (آخر مسح ' + fmt(faydNew.asof) + ')' : ''}. نشيل منها المزارع والعمران، ولازم جاها مطر. شفت واحد منها؟ بلّغ من فوق 🌱</div>`
-          + nr.map(r=>`<button type="button" class="fy-row" data-fn-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(fnName(r))}</span><span class="fy-meta" style="display:block">${fnDens(r.pct)} · ${r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار'}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}</span></span></button>`).join('')
+          + nr.map(r=>`<button type="button" class="fy-row" data-fn-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(fnName(r))}</span><span class="fy-meta" style="display:block">${fnDens(r.pct, r.nd)} · ${r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار'}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}</span></span></button>`).join('')
           + '</div>';
       }
     }

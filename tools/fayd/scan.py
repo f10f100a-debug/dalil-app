@@ -197,6 +197,7 @@ def do_tile(tile, now_items, dry_items, last_items=None):
     n2 = NC * C
     blk = lambda a: a[:n2, :n2].reshape(NC, C, NC, C).sum((1, 3))
     gc, vc, hc = blk(g), blk(ok), blk(hi)
+    ndc = blk(np.where(g, np.nan_to_num(now), 0))   # 20 نوفمبر: مجموع NDVI للبكسلات الخضراء — قوة الخضرة (خفيفة/متوسطة/كثيفة) مو بس مساحتها
     trc = tr * tr.scale(C, C)
     wc = worldcover(trc, crs, NC)
     with np.errstate(invalid="ignore", divide="ignore"):
@@ -240,7 +241,8 @@ def do_tile(tile, now_items, dry_items, last_items=None):
         j = int(np.argmin((rr - r0) ** 2 + (cc - c0) ** 2)); r0, c0 = rr[j], cc[j]
         x, yv = trc * (c0 + .5, r0 + .5)
         lo, la = wtransform(crs, "EPSG:4326", [x], [yv]); lo, la = lo[0], la[0]
-        out.append([round(la, 4), round(lo, 4), round(a, 1), round(mf * 100), ncell, round(hf, 2), tile])
+        nd = float(ndc[sel].sum() / max(1, gc[sel].sum()))
+        out.append([round(la, 4), round(lo, 4), round(a, 1), round(mf * 100), ncell, round(hf, 2), tile, round(nd * 100)])
     return out
 
 def main():
@@ -353,9 +355,9 @@ def main():
         for r in rows: print("KEPT", r[:4], label(r[0], r[1])[0], flush=True)
         return
     out = []
-    for la, lo, ha, pct, ncell, hf, tile in rows:
+    for la, lo, ha, pct, ncell, hf, tile, nd in rows:
         lb, ref = label(la, lo)
-        out.append([la, lo, round(ha), pct, lb])                  # [lat, lng, هكتار أخضر, % من أرض البقعة, الاسم]
+        out.append([la, lo, round(ha), pct, lb, nd])              # [lat, lng, هكتار أخضر, % من أرض البقعة, الاسم, متوسط NDVI×100]
     nowdate = max((i["properties"]["datetime"][:10] for i in nowi), default=today.isoformat())
     res = {"asof": nowdate, "made": today.isoformat(), "n": len(out), "rows": out}
     try: prev = json.load(open("data/fayd-new.json"))
