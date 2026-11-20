@@ -1373,7 +1373,7 @@ function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)retur
   if(p.sr){el.textContent=agoTxt(p.sr.at)+' · موقعه تقريبي (~1 كم) · يختفي بعد 3 أيام';el.className='nav-fayd'+(p.sr.level<2?' chk':'');el.hidden=false;try{syncNavCardSpace()}catch(e){}return}
   const ff=fieldNear(p);if(ff){el.textContent=(/بلاغات الناس/.test(ff.name||'')?'بلّغ عنه أكثر من جوال':(ff.name||'تأكد على الأرض'))+(ff.d?' · '+fyDate(ff.d):'')+(ff.src?' · '+ff.src:'');el.className='nav-fayd';el.hidden=false;satPoint={lat:ff.lat,lng:ff.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}return}
   faydData().then(D=>{if(fyKey!==key)return;let best=1.5,hit=-1;const k=Math.cos(p.lat*Math.PI/180);
-    D.sites.forEach((s,i)=>{if(!s||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
+    D.sites.forEach((s,i)=>{if(!s||!s[0]||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
     if(hit<0){const nw=newNear(p);if(!nw)return;
       el.textContent='🛰️ اكتشفها القمر الصناعي — تحتاج تأكيد من الميدان · مساحتها '+nw.ha+' هكتار'+(FNasof?' · صورة '+fyDate(FNasof):'');el.className='nav-fayd chk';el.hidden=false;
       satPoint={lat:nw.lat,lng:nw.lng};namePoint=satPoint;b.hidden=false;$('#nameNav').hidden=false;try{syncNavCardSpace()}catch(e){}return}
