@@ -1545,7 +1545,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-4" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-5" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6930,7 +6930,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     { const lab = sp.querySelector('.sp-loc'), form = document.getElementById('springSearch'), hits = document.getElementById('springHits');
       if(lab && form){ const row = document.createElement('div'); row.className = 'fs-locrow'; row.id = 'fsLocRow'; lab.after(row); row.appendChild(lab);
         const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'fs-sbtn'; sb.textContent = '🔍 بحث'; row.appendChild(sb);
-        form.hidden = true; row.after(form); if(hits) form.after(hits);
+        form.hidden = true; row.after(form); if(hits) form.after(hits); window.__fsEls = {row, form, hits};
         sb.onclick = ()=>{ form.hidden = !form.hidden; if(!form.hidden){ const q = document.getElementById('springQ'); if(q) q.focus(); } }; } }
     const rep = document.getElementById('fyReport'), bd = document.getElementById('springBody'); if(rep && bd){ bd.after(rep); const ob = rep.querySelector('.fy-rep-open'); if(ob) ob.innerHTML = '🌱 <span>أنت في البر؟ وش تشوف حولك؟</span> <b>بلّغ ▾</b>'; }
     const st = document.createElement('style'); st.textContent = `
@@ -7360,7 +7360,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
           return `<div class="fs-near">أقرب الفياض: ${N.map(x=>`<b>${escapeHtml(x.name)}</b> ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم` + (same ? '' : ' (' + (ST[x.st] || '') + ')')).join(' · ')}${same ? ' — ' + (ST[N[0].st] || '') : ''}</div>`; })() : '')
         + (tip ? `<div class="sp-tip" style="padding:8px 10px;font-size:12.5px;line-height:1.7">${tip}</div>` : '')
         + `<div class="fs-pos">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
-      { const row = document.getElementById('fsLocRow'), lv = body.querySelector('.fs-lvw'); if(row && lv){ lv.after(row); const f = document.getElementById('springSearch'), h = document.getElementById('springHits'); if(f) row.after(f); if(f && h) f.after(h); } }
+      // الصف والبحث محفوظين بمتغير (springBody يتعاد رسمه كل مرة فلو كانوا داخله ينمسحون)
+      { const E = window.__fsEls || {}, lv = body.querySelector('.fs-lvw'); if(E.row && lv){ lv.after(E.row); if(E.form) E.row.after(E.form); if(E.form && E.hits) E.form.after(E.hits); } }
       return;
     }
     body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>${g.ref ? 'الاخضرار الجديد' : 'نسبة الاخضرار'} ضمن نحو 5 كم: ${fmt(g.pct)}٪ <span style="opacity:.7">(تقريبي، 250 م)</span></small>` : ''}</div></div>`
