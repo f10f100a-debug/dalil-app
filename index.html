@@ -1545,7 +1545,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-3" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-4" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6927,8 +6927,16 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     document.body.classList.add('fy-shelf');
     const fc = document.getElementById('faydCard'), sp = document.querySelector('#springPane .sp-card'); if(!fc || !sp) return;
     const first = document.querySelector('#springPane .wh-card') || fc; first.parentNode.insertBefore(sp, first);
+    { const lab = sp.querySelector('.sp-loc'), form = document.getElementById('springSearch'), hits = document.getElementById('springHits');
+      if(lab && form){ const row = document.createElement('div'); row.className = 'fs-locrow'; row.id = 'fsLocRow'; lab.after(row); row.appendChild(lab);
+        const sb = document.createElement('button'); sb.type = 'button'; sb.className = 'fs-sbtn'; sb.textContent = '🔍 بحث'; row.appendChild(sb);
+        form.hidden = true; row.after(form); if(hits) form.after(hits);
+        sb.onclick = ()=>{ form.hidden = !form.hidden; if(!form.hidden){ const q = document.getElementById('springQ'); if(q) q.focus(); } }; } }
     const rep = document.getElementById('fyReport'), bd = document.getElementById('springBody'); if(rep && bd){ bd.after(rep); const ob = rep.querySelector('.fy-rep-open'); if(ob) ob.innerHTML = '🌱 <span>أنت في البر؟ وش تشوف حولك؟</span> <b>بلّغ ▾</b>'; }
     const st = document.createElement('style'); st.textContent = `
+.fs-locrow{display:flex;gap:6px;align-items:center;margin:8px 0 2px}.fs-locrow .sp-loc{flex:1;margin:0!important}.fs-locrow .sp-loc select{font-size:13.5px}
+.fs-sbtn{all:unset;cursor:pointer;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font-size:13.5px;font-weight:700;white-space:nowrap}
+.fy-shelf #springSearch[hidden]{display:none!important}
 .fy-shelf .fy-rep-row[hidden],.fy-shelf .fy-rep-note[hidden]{display:none!important}
 .fy-shelf #faydCard>.fy-head,.fy-shelf #faydSub,.fy-shelf #faydFilt{display:none!important}
 .fy-shelf #springPane .sp-card{background:linear-gradient(160deg,#FBF8F1,#F1EADC);border:1px solid #E6DECF}
@@ -6940,7 +6948,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
 .fs-near{margin-top:9px;font-size:12.5px;color:var(--text-dim);line-height:1.7}.fs-near b{color:var(--text)}
 .fs-pos{font-size:11.5px;color:var(--text-faint,#9A8F80);margin-top:6px}
 .fs-src{font-size:12px;color:var(--text-dim);margin:2px 0 8px}
-.fs-shelf{margin-top:16px}.fs-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}.fs-h h3{font-size:17.5px;font-weight:800;display:flex;align-items:center;gap:7px;margin:0}
+.fs-shelf{margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}.fs-src+.fs-shelf,.pl-note+.fs-shelf{border-top:0;padding-top:0;margin-top:10px}.fs-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}.fs-h h3{font-size:17.5px;font-weight:800;display:flex;align-items:center;gap:7px;margin:0}
 .fs-n{font-size:12.5px;font-weight:700;color:#fff;border-radius:999px;padding:1px 8px}
 .fs-all{all:unset;cursor:pointer;font-size:14px;font-weight:800;color:#8A6A3A;padding:4px 2px}
 .fs-sub{font-size:12px;color:var(--text-dim);margin:-3px 0 8px}
@@ -6962,9 +6970,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   function fyShelfRender(o){
     const list = document.getElementById('faydList'); if(!list) return;
     const {green, earlyAll, newAll, peopleAll, rows, pos, fmt, LV_AR} = o;
-    const kmT = r=>r.km != null ? (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : '';
+    const kmT = r=>r.km != null ? (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : '';
     const dens = r=>r.pct != null ? (r.g < 150 ? 'خفيفة' : r.g < 300 ? 'متوسطة' : 'كثيفة') : '';
-    const img = r=>r.d ? 'صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : '';
+    const img = r=>r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : '';
     const CHK = {8:'حولها مزارع — تحتاج تأكيد من الميدان', 7:'ظهرت بصورة وحدة — ننتظر صورة ثانية', 6:'خضرة مفاجئة بعد المطر — ننتظر صورة أحدث', 2:'ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان', 3:'المطر المسجل هنا قليل — تحتاج تأكيد من الميدان', 4:'خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان'};
     const max = Math.max(...green.map(r=>r.g), 60);
     const shelf = (key, cls, title, sub, items, cardFn)=>{
@@ -6973,9 +6981,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       return `<div class="fs-shelf ${cls}"><div class="fs-h"><h3>${title} <span class="fs-n">${items.length}</span></h3>${items.length > lim ? `<button type="button" class="fs-all" data-fs-more="${key}">${open ? 'أقل' : 'الكل (' + Math.min(cap, items.length) + ') ‹'}</button>` : ''}</div>${sub ? `<div class="fs-sub">${sub}</div>` : ''}${show.map(cardFn).join('')}</div>`;
     };
     const join = a=>a.filter(Boolean).join(' · ');
-    const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), dens(r), kmT(r), img(r)])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان (بلاغات وصور من المكان)</em>' : r.nearRep ? '<em>🌱 بلاغ «بداية» قريب — القمر لسه ما أكده</em>' : ''}${r.chk ? '<em>⚠️ ' + (CHK[r.chk] || 'قفزة خضرة كبيرة — غالبًا زراعة جديدة') + '</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
+    const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), dens(r), r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان</em>' : r.nearRep ? '<em>🌱 بلاغ قريب — القمر لسه ما أكده</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
     const eCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), img(r)])}</span></span><span class="fs-tag">بداية</span></button>`;
-    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', kmT(r)])}</span></span><span class="fs-tag">${fnDens(r.pct).replace(/^\S+\s/, '').replace('خضرة ', '')}</span></button>`;
+    const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', kmT(r)])}</span></span><span class="fs-tag">${fnDens(r.pct).replace(/^\S+\s/, '').replace('خضرة ', '')}</span></button>`;
     const pCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span><span class="fs-tag">${LV_AR[r.repLv || 1] || 'بداية'}</span></button>`;
     const farmN = Array.isArray(faydData.farm) ? faydData.farm.length : 0;
     let h = `<div class="fs-src">🛰️ أحدث صورة ${faydData.asof ? fmt(faydData.asof) : ''}${farmN ? ' · ' + farmN + ' فيضة فيها زراعة ما تنقاس' : ''}</div>`;
@@ -7119,7 +7127,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       }
     }
     // 20 نوفمبر (تجربة dalil_lab_fyshelf): رفوف — «الربيع حولك» فوق، وتحته رف لكل نوع (الخضرا، بدايات، خضرة جديدة، بلاغات) أول 3 و«الكل ‹»
-    if(fyShelfOn()){ fyShelfRender({green, earlyAll, newAll, peopleAll, rows, pos, fmt, LV_AR}); return; }
+    if(fyShelfOn()){ fyShelfRender({green, earlyAll, newAll, peopleAll, rows, pos, fmt, LV_AR}); renderFaydAlert(); return; }
     try{ window.__faydDbg = {shown:[], people:people.map(r=>({i:r.i, st0:r.st0})), early:early.map(r=>r.i)}; }catch(e){}
     const list = document.getElementById('faydList');
     renderFaydAlert();
@@ -7348,9 +7356,11 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       const ds = !rain ? '—' : rain.daysSince === null ? 'ما فيه' : rain.daysSince === 0 ? 'اليوم' : rain.daysSince === 1 ? 'أمس' : rain.daysSince === 2 ? 'قبل يومين' : 'قبل ' + fmt(rain.daysSince) + (rain.daysSince <= 10 ? ' أيام' : ' يوم');
       body.innerHTML = `<div class="fs-lvw"><div><div class="fs-lv">${level}<i style="background:${dot}"></i></div><small class="fs-note">${note}</small></div></div>`
         + `<div class="fs-tiles"><div><b>${rain ? fmt(rain.sum30) + ' ملم' : '—'}</b><span>مطر آخر 30 يوم</span></div><div><b>${ds}</b><span>آخر مطر</span></div><div><b>${g ? fmt(Math.round(g.pct)) + '٪' : '—'}</b><span>خضرة حولك</span></div></div>`
-        + (near.length ? `<div class="fs-near">أقرب الفياض: ${near.filter((x, i, A)=>A.findIndex(y=>y.name === x.name) === i).slice(0, 3).map(x=>`<b>${escapeHtml(x.name)}</b> ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم (${['ما اخضرّت','بداية','مثل المعتاد','أخضر من المعتاد','أخضر بكثير'][x.st] || ''})`).join(' · ')}</div>` : '')
+        + (near.length ? (()=>{ const N = near.filter((x, i, A)=>A.findIndex(y=>y.name === x.name) === i).slice(0, 2), ST = ['ما اخضرّت','بداية','مثل المعتاد','أخضر من المعتاد','أخضر بكثير'], same = N.every(x=>x.st === N[0].st);
+          return `<div class="fs-near">أقرب الفياض: ${N.map(x=>`<b>${escapeHtml(x.name)}</b> ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم` + (same ? '' : ' (' + (ST[x.st] || '') + ')')).join(' · ')}${same ? ' — ' + (ST[N[0].st] || '') : ''}</div>`; })() : '')
         + (tip ? `<div class="sp-tip" style="padding:8px 10px;font-size:12.5px;line-height:1.7">${tip}</div>` : '')
         + `<div class="fs-pos">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
+      { const row = document.getElementById('fsLocRow'), lv = body.querySelector('.fs-lvw'); if(row && lv){ lv.after(row); const f = document.getElementById('springSearch'), h = document.getElementById('springHits'); if(f) row.after(f); if(f && h) f.after(h); } }
       return;
     }
     body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>${g.ref ? 'الاخضرار الجديد' : 'نسبة الاخضرار'} ضمن نحو 5 كم: ${fmt(g.pct)}٪ <span style="opacity:.7">(تقريبي، 250 م)</span></small>` : ''}</div></div>`
