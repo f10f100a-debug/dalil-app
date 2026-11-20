@@ -229,7 +229,8 @@ def do_tile(tile, now_items, dry_items, last_items=None):
         if hf >= 0.25: continue      # ربعها خضرة قوية (NDVI ≥ 0.55 على 40 م) بأول الموسم = مزرعة جديدة مو ربيع
         rr, cc = np.nonzero(sel); w = gc[sel].astype(float)
         hh, ww = int(rr.max() - rr.min() + 1), int(cc.max() - cc.min() + 1)
-        if not os.environ.get("SCAN_NOPIVOT") and float(nearfarm[sel].mean()) >= 0.5 and max(hh, ww) <= 7 and max(hh, ww) / min(hh, ww) <= 1.8 and ncell / (hh * ww) >= 0.45:
+        # 20 نوفمبر (فحص): قاعدة المحور شالت بقع طبيعية حول طريف (القمر ما شاف فيها زراعة أبد) — موقفة، وفحص الـ3 مواسم يكفي (شال الرزة ومسيج)
+        if os.environ.get("SCAN_PIVOT") and float(nearfarm[sel].mean()) >= 0.5 and max(hh, ww) <= 7 and max(hh, ww) / min(hh, ww) <= 1.8 and ncell / (hh * ww) >= 0.45:
             PIVOT[0] += 1
             if TEST:
                 x_, y_ = trc * (cc.mean() + .5, rr.mean() + .5); lo_, la_ = wtransform(crs, "EPSG:4326", [x_], [y_]); print("PIVOT-DROP", round(la_[0], 4), round(lo_[0], 4), round(a, 1), hh, ww, ncell, flush=True)
