@@ -14,7 +14,8 @@ from scipy import ndimage
 sys.path.insert(0, os.path.dirname(__file__))
 import s2
 
-BBOX = [38.0, 24.5, 50.0, 32.3]   # شرق 38: نتجنب الساحل والجزر (جزيرة المقيطع طلعت خضرة شاطئ)
+BBOX = [float(x) for x in os.environ["SCAN_BBOX"].split(",")] if os.environ.get("SCAN_BBOX") else [38.0, 24.5, 50.0, 32.3]   # 20 نوفمبر: SCAN_BBOX لتجربة مناطق جديدة (تبوك، المدينة، وادي الدواسر)
+# الأصل: شرق 38: نتجنب الساحل والجزر (جزيرة المقيطع طلعت خضرة شاطئ)
 TEST = os.environ.get("SCAN_ONLY", "")   # نقاط lat:lng للتجربة: نمسح البلاطات اللي تغطيها بس          # الجوف والشمال وحائل والقصيم والشرقية وشمال الرياض
 PX = 2745                                # 10980/4 → 40 م
 C = 5                                    # المربع = 5×5 بكسل = 200 م
@@ -155,8 +156,11 @@ def _edge_km(la, lo):
             dx, dy = bx - ax, by - ay; t = max(0, min(1, -(ax * dx + ay * dy) / ((dx * dx + dy * dy) or 1)))
             best = min(best, math.hypot(ax + t * dx, ay + t * dy))
     return best
+def mountains(la, lo):
+    # 20 نوفمبر: الحجاز وعسير والباحة والطائف وجازان ونجران الجبلية — خضرة دائمة وزراعة مدرجات، مو ربيع
+    return (la < 23.5 and lo < 42.6) or (la < 19.0 and lo < 44.5)
 def in_ksa(la, lo):
-    return _inside(la, lo) and _edge_km(la, lo) >= 1.0
+    return _inside(la, lo) and _edge_km(la, lo) >= 1.0 and not mountains(la, lo)
 
 def rain75(pts, until=None):
     import urllib.request, urllib.parse
@@ -364,6 +368,12 @@ def main():
     except Exception: prev = None
     pn = prev["n"] if prev else 0
     held = TEST or lim or "publish" not in sys.argv[1:] and (prev is None or (max(pn, len(out)) >= 10 and abs(len(out) - pn) > 0.5 * max(pn, 1)))
+    if os.environ.get("SCAN_OUT"):   # تجربة: ملف لحاله، بدون نشر ولا تنبيه
+        json.dump(res, open(os.environ["SCAN_OUT"], "w"), ensure_ascii=False, separators=(",", ":"))
+        print(f"::notice::trial {len(out)} patches → {os.environ['SCAN_OUT']}", flush=True)
+        from collections import Counter
+        print("::notice::trial top: " + " · ".join(f"{r[4]} ({r[2]} ه, nd {r[5]})" for r in out[:30])[:3000], flush=True)
+        return
     fn = "data/fayd-new-pending.json" if held else "data/fayd-new.json"
     json.dump(res, open(fn, "w"), ensure_ascii=False, separators=(",", ":"))
     if held:
