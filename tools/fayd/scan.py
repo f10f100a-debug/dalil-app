@@ -179,6 +179,7 @@ def rain75(pts, until=None):
 def near_named(la, lo, r=2.0):
     return any(abs(a - la) < .03 and abs(b - lo) < .03 and km(la, lo, a, b) < r for _, a, b in NAMED)
 
+PIVOT = [0]   # بقع شكلها محور بين مزارع (انشالت)
 def do_tile(tile, now_items, dry_items, last_items=None):
     now, water, geo = composite(now_items[:5], "min")
     if now is None: return []
@@ -202,6 +203,10 @@ def do_tile(tile, now_items, dry_items, last_items=None):
         frac = np.where(vc >= 13, gc / np.maximum(vc, 1), 0)
     m = (frac >= FRAC) & ~np.isin(wc, (40, 50, 80, 90, 95))
     lab, n = ndimage.label(m, structure=np.ones((3, 3)))
+    # 20 نوفمبر (جبل الرزة، حائل): محور متروك (بور العام) خضر بالمطر وطلع «خضرة جديدة» بين محاور شغالة.
+    # مربعات الزراعة (الموسم الماضي ≥ 0.7 أو WorldCover زراعة) ونطاقها 1.4 كم — البقعة اللي أغلبها داخل النطاق وشكلها مدوّر مرتب بحجم محور = مزرعة
+    farmc = (blk(farm) > 0) | (wc == 40)
+    nearfarm = ndimage.binary_dilation(farmc, iterations=7) if farmc.any() else farmc
     print(f"tile {tile}: green px {int(g.sum())} cells {int(m.sum())} patches {n} now {[i['properties']['datetime'][:10] for i in now_items[:5]]} ", flush=True)
     if TEST:
         for la, lo in [tuple(map(float, x.split(":"))) for x in TEST.split(",") if ":" in x]:
@@ -223,6 +228,9 @@ def do_tile(tile, now_items, dry_items, last_items=None):
         ncell = int(sel.sum()); mf = float(frac[sel].mean()); hf = float(hc[sel].sum() / max(1, gc[sel].sum()))
         if hf >= 0.25: continue      # ربعها خضرة قوية (NDVI ≥ 0.55 على 40 م) بأول الموسم = مزرعة جديدة مو ربيع
         rr, cc = np.nonzero(sel); w = gc[sel].astype(float)
+        hh, ww = int(rr.max() - rr.min() + 1), int(cc.max() - cc.min() + 1)
+        if float(nearfarm[sel].mean()) >= 0.5 and max(hh, ww) <= 7 and max(hh, ww) / min(hh, ww) <= 1.8 and ncell / (hh * ww) >= 0.45:
+            PIVOT[0] += 1; continue
         r0 = float((rr * w).sum() / w.sum()); c0 = float((cc * w).sum() / w.sum())
         # أقرب مربع أخضر فعلي للمركز (الشعيب ممكن يكون منحني والمركز خارجه)
         j = int(np.argmin((rr - r0) ** 2 + (cc - c0) ** 2)); r0, c0 = rr[j], cc[j]
@@ -271,6 +279,7 @@ def main():
         for k, res in enumerate(ex.map(lambda t: (t, do_tile(t, N[t], D[t], L.get(t))), tiles)):
             t, r = res; found += r
             if k % 10 == 0: print("tile", k, "/", len(tiles), t, len(r), round(time.time() - T0), "s", flush=True)
+    print(f"::notice::pivot-shaped patches near farms dropped: {PIVOT[0]}", flush=True)
     # دمج المكرر بين البلاطات + شيل القريب من فيضة لها اسم
     found.sort(key=lambda r: -r[2] * r[3])
     if TEST:
@@ -320,14 +329,15 @@ def main():
         os.environ.setdefault("CDSE_HALF_M", "150")
         import cdse
         if cdse.available() and rows:
-            sr = cdse.series([(k, r[0], r[1]) for k, r in enumerate(rows)], f"{y}-01-01", today.isoformat(), workers=3)
+            # 20 نوفمبر: 3 مواسم ورا بدل موسم واحد — المحور المتروك هالسنة انزرع قبل (جبل الرزة)
+            sr = cdse.series([(k, r[0], r[1]) for k, r in enumerate(rows)], f"{y - 2}-01-01", today.isoformat(), workers=3)
             cut_now = (today - dtm.timedelta(days=16)).isoformat(); farm_n = 0; kept = []
             for k, r in enumerate(rows):
                 v = sr.get(k)
                 if not v: kept.append(r); continue
                 now99 = max([x[3] for x in v if x[0] >= cut_now] or [0])
-                last99 = max([x[3] for x in v if f"{y}-01-01" <= x[0] <= f"{y}-05-31"] or [0])
-                summer = max([x[4] for x in v if f"{y}-06-01" <= x[0] <= f"{y}-09-30"] or [0])
+                last99 = max([x[3] for x in v for yy in (y - 2, y - 1, y) if f"{yy}-01-01" <= x[0] <= f"{yy}-05-31"] or [0])
+                summer = max([x[4] for x in v for yy in (y - 2, y - 1, y) if f"{yy}-06-01" <= x[0] <= f"{yy}-09-30"] or [0])
                 if now99 >= 0.8 or last99 >= 0.85 or summer >= 0.3: farm_n += 1; continue
                 kept.append(r)
             print(f"::notice::copernicus farm check: {len(rows)} → {len(kept)} (farms {farm_n}, requests {cdse.calls})", flush=True)
