@@ -13,7 +13,9 @@ on:
       bbox: { description: "مستطيل تجربة: غرب,جنوب,شرق,شمال", type: string, default: "" }
       out: { description: "ملف التجربة (بدون نشر)", type: string, default: "" }
 jobs:
+  # تجربة يدوية (مستطيل أو نقاط محددة): وظيفة وحدة زي قبل
   scan:
+    if: inputs.bbox != '' || inputs.only != ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
     permissions: { contents: write, issues: write }
@@ -28,6 +30,52 @@ jobs:
           git add -A data/fayd-new*.json data/fayd-new-qa.md 2>/dev/null || git add -A data/fayd-new*.json
           git diff --cached --quiet && exit 0
           git commit -qm "فياض بدون اسم: مسح أسبوعي"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+      - name: Alert developer if held
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          [ -f data/fayd-new-qa.md ] || exit 0
+          T="⚠️ فحص الفياض بدون اسم $(date -u +%F)"
+          gh issue list --state open --search "$T in:title" --json number -q '.[0].number' | grep -q . && exit 0
+          gh issue create --title "$T" --body-file data/fayd-new-qa.md
+
+  # 20 نوفمبر: المسح الأسبوعي صار 3 أجزاء مع بعض (الأساسي + الغرب: تبوك والعلا + الجنوب: المدينة ووادي الدواسر) وبعدها دمج
+  parts:
+    if: inputs.bbox == '' && inputs.only == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: main, bbox: "" }
+          - { name: west, bbox: "35.8,24.0,38.0,32.3" }
+          - { name: south, bbox: "38.0,19.5,50.5,24.5" }
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy scipy
+      - run: python3 tools/fayd/scan.py
+        env: { CDSE_CLIENT_ID: "${{ secrets.CDSE_CLIENT_ID }}", CDSE_CLIENT_SECRET: "${{ secrets.CDSE_CLIENT_SECRET }}", SCAN_NOW: "${{ inputs.now }}", SCAN_D: "${{ inputs.d }}", SCAN_PIVOT: "${{ inputs.pivot }}", SCAN_BBOX: "${{ matrix.bbox }}", SCAN_OUT: "part-${{ matrix.name }}.json" }
+      - uses: actions/upload-artifact@v4
+        with: { name: "part-${{ matrix.name }}", path: "part-${{ matrix.name }}.json" }
+  merge:
+    needs: parts
+    if: always() && needs.parts.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions: { contents: write, issues: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: parts, pattern: "part-*" }
+      - run: python3 tools/fayd/scan_merge.py ${{ inputs.mode }}
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add -A data/fayd-new.json data/fayd-new-pending.json data/fayd-new-qa.md 2>/dev/null || git add -A data/fayd-new*.json
+          git diff --cached --quiet && exit 0
+          git commit -qm "فياض بدون اسم: مسح أسبوعي (3 أجزاء)"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
       - name: Alert developer if held
         if: always()
