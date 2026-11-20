@@ -188,7 +188,7 @@ def _d(a, b):
 twice = []        # فياض أحدث صورة فيها أخضر من اللي قبلها (ما اعتمدناها لين تتكرر)
 try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= 30}
 except Exception: FIELD_NO = {}
-SKIP = {1703}      # «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع)
+SKIP = {1703, 257} # 1703 «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع) · 257 نقطة مكررة للهرارة (21 نوفمبر، الاسم فاضي) — الصحيحة 178
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
 for i, s in enumerate(SITES):
     b = base[i]; v = [r[i] for r in res.values() if i in r]
