@@ -1595,7 +1595,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-16" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261120-17" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -7080,11 +7080,11 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   // 17 نوفمبر: نحفظ الفياض والفقع ومطر الأسبوع بالجوال أول ما يفتح التطبيق وعنده نت (بعد 10 ث) — عشان تشتغل بالبر بدون شبكة حتى لو ما فتح التبويب
   setTimeout(()=>{ if(navigator.onLine === false || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
     const d = new Date().toISOString().slice(0, 10);
-    ['data/fayd.json?d=' + d, 'data/fayd-sites.json?v=4', 'data/fq.json?d=' + d, 'data/rain-week.json?t=' + d].forEach(u=>fetch(u).then(r=>r.body && r.body.cancel && r.body.cancel()).catch(()=>{})); }, 10000);
+    ['data/fayd.json?d=' + d, 'data/fayd-sites.json?v=5', 'data/fq.json?d=' + d, 'data/rain-week.json?t=' + d].forEach(u=>fetch(u).then(r=>r.body && r.body.cancel && r.body.cancel()).catch(()=>{})); }, 10000);
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
-      fetch('data/fayd-sites.json?v=4').then(r=>r.ok ? r.json() : null)
+      fetch('data/fayd-sites.json?v=5').then(r=>r.ok ? r.json() : null)
     ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
