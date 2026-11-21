@@ -111,9 +111,12 @@ def main():
     for (la, lo), (G, DL) in sorted(chunks.items()):
         if not np.isfinite(G).any(): continue
         veg, man = worldcover(la, lo)
-        f = np.nan_to_num(G)
+        f0 = np.nan_to_num(G)
+        # تنعيم 3×3 (~300 م): العشب يطلع بقع متصلة بالمجاري مو نقاط متفرقة — المتوسط يجمعها ويشيل التشويش
+        f = sum(np.roll(np.roll(f0, a, 0), b, 1) for a in (-1, 0, 1) for b in (-1, 0, 1)) / 9
+        dl = np.nan_to_num(DL)
         cls = np.zeros((N, N), "uint8")
-        cls[f >= .15] = 1; cls[f >= .3] = 2; cls[(f >= .5) & (np.nan_to_num(DL) >= .06)] = 3
+        cls[f >= .12] = 1; cls[f >= .25] = 2; cls[(f >= .45) & (dl >= .06)] = 3
         # بقعة وحدة معزولة (100 م) = غالبًا تشويش
         m = cls > 0; nb = sum(np.roll(np.roll(m, a, 0), b, 1) for a in (-1, 0, 1) for b in (-1, 0, 1))
         cls[nb < 2] = 0
