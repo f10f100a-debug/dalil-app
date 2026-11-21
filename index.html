@@ -18,12 +18,17 @@ var A=document.getElementById('carColA');if(!A){A=document.createElement('div');
 if(!x){x=document.createElement('div');x.id='carDash';x.innerHTML='<div><small>السرعة</small><b data-sp>—</b></div><div><small data-pk>الصلاة الجاية</small><b data-pv>—</b></div>';document.getElementById('carColB').appendChild(x)}
 var sp=document.querySelector('#cpSpeed [data-v]'),spd=document.getElementById('cpSpeed'),v=sp&&spd&&!spd.hidden?(sp.textContent||'').trim():'';var n=parseFloat(v.replace(/[^\d.]/g,''));
 x.querySelector('[data-sp]').innerHTML=isFinite(n)?Math.round(n)+'<i>كم/س</i>':'0<i>كم/س</i>';
-var sun=document.querySelector('#h2Strip [data-h2="sun"]'),t=sun?(sun.innerText||'').trim().split('\n').filter(Boolean):[];if(t.length){x.querySelector('[data-pk]').textContent=t[0];x.querySelector('[data-pv]').textContent=(t[1]||'').replace(/س$/,' س')}},1000);addEventListener('orientationchange',function(){setTimeout(chk,300)})})();</script>
+var sun=document.querySelector('#h2Strip [data-h2="sun"]'),tx=sun?(sun.innerText||'').replace(/[\u2066-\u2069\u200e\u200f]/g,'').replace(/\s+/g,' ').trim():'',m=tx.match(/^(.*?بعد)\s*([\d:٠-٩]+)\s*(س|د|ساعة|دقيقة)?/);if(m){x.querySelector('[data-pk]').textContent=m[1];x.querySelector('[data-pv]').textContent=m[2]+(m[3]?' '+m[3]:'')}else if(tx){x.querySelector('[data-pk]').textContent='الصلاة الجاية';x.querySelector('[data-pv]').textContent=tx}},1000);addEventListener('orientationchange',function(){setTimeout(chk,300)})})();</script>
 <style>
-html.car{--rail:96px}
+html.car{--rail:118px}
 html.car #app{max-width:none;padding-right:var(--rail)}
 html.car .tabbar{top:0;bottom:0;right:0;left:auto;transform:none;width:var(--rail);max-width:none;flex-direction:column;justify-content:center;gap:6px;border-top:0;border-left:1px solid var(--line);padding:10px 6px;box-shadow:none}
-html.car .tabbar .tab{flex:none;padding:10px 2px;font-size:12.5px}html.car .tabbar .tab .ic{transform:scale(1.15)}
+html.car .tabbar{gap:10px}html.car .tabbar .tab{flex:none;min-height:84px;justify-content:center;padding:10px 4px;font-size:15px;border-radius:18px}
+html.car .tabbar .tab .ic{transform:scale(1.55);margin-bottom:10px;font-size:19px!important}
+html.car .tabbar .tab.active{background:rgba(201,150,79,.22);color:var(--text)}
+html.car #screen-compass .cp-loc{padding:12px 16px}html.car #screen-compass .cp-loc .cp-coords{font-size:clamp(22px,4.6dvh,30px)!important;font-weight:800;letter-spacing:.3px}
+html.car #screen-compass .cp-loc .cp-label,html.car #screen-compass .cp-loc .cp-loc-meta{font-size:14px!important;font-weight:700}
+html.car #screen-compass .cp-loc #copyCoordBtn{width:48px;height:48px;transform:scale(1.15)}
 html.car #moreFade{display:none}
 html.car main{padding:6px 22px 30px!important}
 html.car main>.screen,html.car main>#screen-compass,html.car .topbar{max-width:1240px!important;margin-inline:auto;width:100%;box-sizing:border-box}
@@ -1595,7 +1600,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-2" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-3" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
