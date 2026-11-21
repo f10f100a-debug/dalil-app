@@ -186,6 +186,8 @@ def _d(a, b):
     try: return (dtm.date.fromisoformat(a) - dtm.date.fromisoformat(b)).days
     except Exception: return 99
 twice = []        # فياض أحدث صورة فيها أخضر من اللي قبلها (ما اعتمدناها لين تتكرر)
+try: COVER = json.load(open("data/fayd-cover.json"))["cover"]
+except Exception: COVER = {}
 try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= (r[4] if len(r) > 4 else 30)}   # r[4] = مدة الإخفاء بالأيام (21 نوفمبر: أبو مالك «بعد أسبوعين أو ثلاثة» = 21)
 except Exception: FIELD_NO = {}
 SKIP = {1703, 257} # 1703 «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع) · 257 نقطة مكررة للهرارة (21 نوفمبر، الاسم فاضي) — الصحيحة 178
@@ -225,6 +227,10 @@ for i, s in enumerate(SITES):
         #   بعد المطر الشجر يورّق والقمر يحسبه خضرة → ما تتعدى «بداية» وتحتاج تأكيد (بدون تنبيه) إلا إذا أكدها الميدان
         #   إلا إذا الخضرة زادت كثير (40٪ من المساحة فأكثر) — أكثر من أي شجر يورّق → تنقاس عادي
         if st_ >= 1 and (sb[1] >= 0.2 or sb[0] >= 0.18) and gf < 40: st_ = 1; check = 9
+        # 21 نوفمبر (الهرارة والغرب الشمالي — زيارة أبو مالك: «شجيرات كثيفة قديمة»): نصها أو أكثر غطاء نباتي دائم (WorldCover عشب/شجيرات)
+        #   الشجيرات يابسة بالصيف فقاعدة الشجر ما تمسكها، وبعد المطر تورّق والقمر يحسبها ربيع → «بداية» وتحتاج تأكيد إلا إذا زادت كثير
+        cov = COVER.get(str(i))
+        if st_ >= 1 and check != 9 and cov and cov[1] + cov[2] >= 50 and gf < 40: st_ = 1; check = 12
         # زيارة ميدانية قالت «ما فيها ربيع» (data/fayd-field-no.json، صالحة 30 يوم من تاريخها)
         #   ترجع قبل الـ30 يوم إذا زادت مساحة الخضرة 10٪ فوق اللي كانت يوم الزيارة (شي جديد غير الشجر — غالبًا عشب) → «تحتاج تأكيد»
         if i in FIELD_NO: (st_, check) = (1, 11) if gf >= FIELD_NO[i] + 10 else (0, 10)
