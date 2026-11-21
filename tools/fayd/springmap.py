@@ -53,6 +53,19 @@ def box(name, bb):
     nows = sorted([(d, cut(a)) for d, a, _ in Nw], reverse=True)
     good = [(d, a) for d, a in nows if np.isfinite(a).mean() > .8][:2]
     print(f"== {name} tile {tile} dry {[x[0] for x in D]} now {[d for d, _ in good]} shape {shp}", flush=True)
+    if os.environ.get("SPRING_MODE") == "raw":   # 21 نوفمبر: آخر صورة صافية كما هي بألوان NDVI حق Copernicus
+        nd = good[0][1]; H, W = nd.shape
+        TH = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.025, "fff9cc"), (.05, "ede8b5"), (.075, "ddd89b"), (.1, "ccc682"), (.125, "bcb76b"), (.15, "afc160"), (.175, "a3cc59"), (.2, "91bf51"), (.25, "7fb247"), (.3, "70a33f"), (.35, "609635"), (.4, "4f892d"), (.45, "3f7c23"), (.5, "307016"), (.55, "216011"), (.6, "0f540a")]
+        img = np.zeros((H, W, 3), "uint8"); v = np.nan_to_num(nd, nan=0)
+        for t, hx in TH: img[v >= t] = tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4))
+        im = Image.fromarray(img); dr = ImageDraw.Draw(im)
+        for p in PTS:
+            la, lo = float(p[0]), float(p[1])
+            if s_ <= la <= n_ and w_ <= lo <= e_:
+                r, c = int((n_ - la) / (n_ - s_) * H), int((lo - w_) / (e_ - w_) * W); dr.ellipse([c - 9, r - 9, c + 9, r + 9], outline=(220, 0, 0), width=3)
+        sc = max(1, 1400 // max(H, W)); im = im.resize((W * sc, H * sc), Image.NEAREST) if sc > 1 else im
+        if max(im.size) > 1600: im.thumbnail((1600, 1600))
+        im.save(f"diag/raw-{name}-{good[0][0]}.png"); print("raw", name, good[0][0], flush=True); return
     nowv = np.fmin(good[0][1], good[1][1]) if len(good) > 1 else good[0][1]
     d = nowv - base
     ok = np.isfinite(d)

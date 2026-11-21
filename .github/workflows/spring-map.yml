@@ -5,6 +5,7 @@ on:
     inputs:
       boxes: { description: "اسم:جنوب:غرب:شمال:شرق;...", type: string, default: "" }
       pts: { description: "lat:lng:اسم,...", type: string, default: "" }
+      mode: { description: "raw = آخر صورة بألوان NDVI", type: string, default: "" }
 permissions: { contents: write }
 jobs:
   run:
@@ -13,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet rasterio numpy pillow
-      - env: { SPRING_BOXES: "${{ inputs.boxes }}", SPRING_PTS: "${{ inputs.pts }}" }
+      - env: { SPRING_BOXES: "${{ inputs.boxes }}", SPRING_PTS: "${{ inputs.pts }}", SPRING_MODE: "${{ inputs.mode }}" }
         run: python3 tools/fayd/springmap.py
       - name: push images to diag-out branch
         run: |
