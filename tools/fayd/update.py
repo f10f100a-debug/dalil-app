@@ -186,7 +186,7 @@ def _d(a, b):
     try: return (dtm.date.fromisoformat(a) - dtm.date.fromisoformat(b)).days
     except Exception: return 99
 twice = []        # فياض أحدث صورة فيها أخضر من اللي قبلها (ما اعتمدناها لين تتكرر)
-try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= 30}
+try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open("data/fayd-field-no.json"))["rows"] if (today - dtm.date.fromisoformat(r[1])).days <= (r[4] if len(r) > 4 else 30)}   # r[4] = مدة الإخفاء بالأيام (21 نوفمبر: أبو مالك «بعد أسبوعين أو ثلاثة» = 21)
 except Exception: FIELD_NO = {}
 SKIP = {1703, 257} # 1703 «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع) · 257 نقطة مكررة للهرارة (21 نوفمبر، الاسم فاضي) — الصحيحة 178
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
@@ -340,7 +340,7 @@ if FIELD:
         la, lo = SITES[r[0]][1], SITES[r[0]][2]
         near = any(abs(a - la) < .06 and abs(b - lo) < .07 and math.hypot((a - la) * 111, (b - lo) * 111 * math.cos(math.radians(la))) <= km for a, b, km in FIELD)
         # 21 نوفمبر (أم دمام): فيضة القمر قال عنها «مثل المعتاد» وأكدها فيديو — تاخذ «أكدها الميدان» بعد (بدون ما تنزل درجتها)
-        if near and r[4] == 1 and (r[3] or 0) >= 3 and r[5] != 1 and r[0] not in farm:
+        if near and r[4] == 1 and (r[3] or 0) >= 3 and r[5] not in (1, 10) and r[0] not in farm:
             if r[2] <= 1: r[2] = 2
             r[5] = 5; fieldn += 1
     print(f"::notice::field-confirmed: {fieldn} fayd near {len(FIELD)} field points", flush=True)
