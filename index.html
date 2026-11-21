@@ -62,6 +62,10 @@ html.car #screen-places .pl-toolbar,html.car #screen-places #plSeg,html.car #scr
 html.car #screen-track .track-map-frame{height:calc(100vh - 120px)!important;height:calc(100dvh - 120px)!important;min-height:360px;width:100%}
 html.car body.map-fs #trackMapFrame{left:0!important;right:auto!important;top:0!important;bottom:0!important;width:calc(100vw - var(--rail))!important;height:100vh!important;z-index:30}
 html.car body.map-fs .tabbar{visibility:visible!important;z-index:31}
+/* 21 نوفمبر (قياس شاشة السيارة 1280×662: الإطار 1280×360): تجربة «الخريطة على الشاشة كاملة» تحسب أسفل الخريطة فوق شريط التبويبات (--tabh)، وفي السيارة الشريط عمود جنب = طول الشاشة كلها */
+html.car{--tabh:0px!important}
+html.car body.lab-mapfull.on-track #trackMapFrame{left:0!important;right:auto!important;top:0!important;bottom:0!important;width:calc(100vw - var(--rail))!important;height:100vh!important}
+html.car body.lab-mapfull.on-track #trackToolsPanel.open{left:0!important;right:var(--rail)!important;bottom:0!important}
 </style><style>:is(html.lab-x .shr-x,html.lab-x .wxo-x,html.lab-x .ask-x,html.lab-x .rb-x,html.lab-x .al-x,html.lab-x .lab-tools-x){background:#1F1B16!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.35)!important;font-weight:900!important;opacity:1!important}:is(html[data-theme=dark],html[data-theme=red]).lab-x .shr-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .wxo-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .ask-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .rb-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .al-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .lab-tools-x{background:#F3EDE2!important;color:#1F1B16!important;border-color:#1F1B16!important}</style>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1601,7 +1605,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-8" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-9" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6038,15 +6042,6 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // 21 نوفمبر (شاشة سيارة: الخريطة نص الشاشة بعد ملء الشاشة): نبلغ الإطار يعيد حساب حجمه بعد التكبير/التصغير (بعض المتصفحات القديمة ما تبلغه لحالها)
     const kick = ()=>{ const f = document.getElementById('trackMapFrame'); [80, 350, 900].forEach(t=>setTimeout(()=>{ try{ f && f.contentWindow && f.contentWindow.dispatchEvent(new Event('resize')); }catch(e){} }, t)); };
     const set = on=>{ if(fs === on) return; fs = on; document.body.classList.toggle('map-fs', on); tell(); kick(); if(!on) fitTrackSoon(); };
-    // 21 نوفمبر (تشخيص مؤقت — شاشة سيارة: الخريطة نص الشاشة): مرة وحدة لكل فتحة، نرسل المقاسات بعد ملء الشاشة
-    let diagSent = false;
-    const diag = ()=>{ if(diagSent || !document.documentElement.classList.contains('car')) return; diagSent = true; setTimeout(()=>{ try{
-      const f = document.getElementById('trackMapFrame'), r = f.getBoundingClientRect(), w = f.contentWindow, cs = getComputedStyle(f);
-      let inner = '-', cv = '-'; try{ inner = w.innerWidth + 'x' + w.innerHeight; const c = w.document.querySelector('canvas.maplibregl-canvas'); cv = c ? c.clientWidth + 'x' + c.clientHeight : 'none'; const m = w.document.getElementById('map'); if(m) cv += ' map:' + m.clientWidth + 'x' + m.clientHeight; }catch(e){ inner = 'x:' + e.message; }
-      window.__dalilReport && window.__dalilReport((fs ? 'diag:carfs' : 'diag:carmap') + ' win ' + innerWidth + 'x' + innerHeight + ' vv ' + (window.visualViewport ? Math.round(visualViewport.width) + 'x' + Math.round(visualViewport.height) : '-') + ' dpr ' + devicePixelRatio + ' frame ' + Math.round(r.left) + ',' + Math.round(r.top) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' pos ' + cs.position + ' inner ' + inner + ' canvas ' + cv, String(navigator.userAgent).slice(0, 150));
-    }catch(e){} }, 2500); };
-    window.addEventListener('message', e=>{ if(e.data && e.data.type === 'DALIL_MAP_FS' && e.data.on) diag(); });
-    document.addEventListener('click', e=>{ const t = e.target.closest && e.target.closest('.tab[data-screen="track"]'); if(t) setTimeout(diag, 2500); }, true);
     window.addEventListener('message', e=>{
       if(e.origin !== location.origin || !e.data || e.data.type !== 'DALIL_MAP_FS') return;
       if(e.data.on){ if(!fs){ try{ history.pushState({dalilMapFs:1}, ''); }catch(err){} set(true); } }
