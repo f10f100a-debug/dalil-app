@@ -339,8 +339,10 @@ if FIELD:
     for r in rows:
         la, lo = SITES[r[0]][1], SITES[r[0]][2]
         near = any(abs(a - la) < .06 and abs(b - lo) < .07 and math.hypot((a - la) * 111, (b - lo) * 111 * math.cos(math.radians(la))) <= km for a, b, km in FIELD)
-        if near and r[4] == 1 and (r[3] or 0) >= 3 and (r[2] <= 1) and r[5] != 1 and r[0] not in farm:
-            r[2] = 2; r[5] = 5; fieldn += 1
+        # 21 نوفمبر (أم دمام): فيضة القمر قال عنها «مثل المعتاد» وأكدها فيديو — تاخذ «أكدها الميدان» بعد (بدون ما تنزل درجتها)
+        if near and r[4] == 1 and (r[3] or 0) >= 3 and r[5] != 1 and r[0] not in farm:
+            if r[2] <= 1: r[2] = 2
+            r[5] = 5; fieldn += 1
     print(f"::notice::field-confirmed: {fieldn} fayd near {len(FIELD)} field points", flush=True)
 # ---- متابعة نقاط الميدان: سجل خضرتها من القمر الصناعي (نعرف بعد كم يوم يبين الربيع من فوق) ----
 try:
