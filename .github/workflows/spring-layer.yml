@@ -1,0 +1,24 @@
+# طبقة الربيع الدقيقة (تجربة dalil_lab_spring): وين اخضرّت الأرض بعد المطر — صور 1°×1° في data/spring
+name: Spring layer
+on:
+  workflow_dispatch:
+    inputs:
+      bbox: { description: "غرب,جنوب,شرق,شمال", type: string, default: "43.5,28.0,45.5,29.5" }
+      d: { description: "حد الزيادة عن الصيف (افتراضي 0.03)", type: string, default: "" }
+permissions: { contents: write }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy pillow
+      - env: { SPRING_BBOX: "${{ inputs.bbox }}", SPRING_D: "${{ inputs.d }}" }
+        run: python3 tools/fayd/springlayer.py
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add -A data/spring
+          git diff --cached --quiet && exit 0
+          git commit -qm "طبقة الربيع الدقيقة"
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
