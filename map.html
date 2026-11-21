@@ -1936,19 +1936,23 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
   function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;h.textContent=gl.getZoom()<MINZ[mode==='sat'&&SX?'sat':'cls']?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
-  function layerSet(list,pre,u,minz,want){const bb=gl.getBounds(),zz=gl.getZoom();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));let n=0;
-    for(const c of list){const id=pre+nm(c);const vis=want&&zz>=minz&&c[0]<bb.getNorth()&&c[0]+.25>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+.25>bb.getWest();
-      if(vis&&!ADDED[id]&&n<12){n++;ADDED[id]=1;const la=c[0],lo=c[1],d=.25;
-        gl.addSource(id,{type:'image',url:u(c),coordinates:[[lo,la+d],[lo+d,la+d],[lo+d,la],[lo,la]]});
-        gl.addLayer({id,type:'raster',source:id,layout:{visibility:'visible'},paint:{'raster-opacity':pre==='sps-'?.92:.95,'raster-fade-duration':0,'raster-resampling':'nearest'}},before)}
-      else if(ADDED[id]&&gl.getLayer(id)){const v=vis?'visible':'none';if(gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)}}}
+  // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
+  // والتحميل بعد ما توقف الحركة
+  function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
+    const inV=c=>c[0]<bb.getNorth()&&c[0]+.25>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+.25>bb.getWest();
+    const vis=want&&zz>=minz?list.filter(inV).sort((a,b)=>Math.hypot(a[0]+.125-ct.lat,a[1]+.125-ct.lng)-Math.hypot(b[0]+.125-ct.lat,b[1]+.125-ct.lng)).slice(0,cap):[];
+    const keep=new Set(vis.map(c=>pre+nm(c)));
+    for(const id in ADDED){if(!id.startsWith(pre)||keep.has(id))continue;try{if(gl.getLayer(id))gl.removeLayer(id);if(gl.getSource(id))gl.removeSource(id)}catch(e){}delete ADDED[id]}
+    for(const c of vis){const id=pre+nm(c);if(ADDED[id])continue;ADDED[id]=1;const la=c[0],lo=c[1],d=.25;
+      try{gl.addSource(id,{type:'image',url:u(c),coordinates:[[lo,la+d],[lo+d,la+d],[lo+d,la],[lo,la]]});
+        gl.addLayer({id,type:'raster',source:id,paint:{'raster-opacity':pre==='sps-'?.92:.95,'raster-fade-duration':0,'raster-resampling':'nearest'}},before)}catch(e){delete ADDED[id]}}}
   // 21 نوفمبر: لما تقرّب والطبقة تبان، هالات الفياض الكبيرة وحلقات «خضرة جديدة» (مسح 40 م القديم) تختفي — كانت تغطي بقع الربيع.
   // من بعيد تبقى زي ما هي (الطبقة ما تبان من بعيد). نقطة الفيضة واسمها يبقون
   const FADED={};function fade(){const Z=(a,b)=>['interpolate',['linear'],['zoom'],10,a,11.5,b];
     [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id))return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
   function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
-    const sat=mode==='sat'&&!!SX;layerSet(IX.chunks,'spr-',url,MINZ.cls,show&&!sat);if(SX)layerSet(SX.chunks,'sps-',surl,MINZ.sat,show&&sat);try{render()}catch(e){}}
-  function px(c){const k=nm(c);if(C[k])return C[k];
+    if(gl.isMoving&&gl.isMoving())return;const sat=mode==='sat'&&!!SX;layerSet(IX.chunks,'spr-',url,MINZ.cls,show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,MINZ.sat,show&&sat,4);try{render()}catch(e){}}
+  function px(c){const k=nm(c);if(C[k])return C[k];{const ks=Object.keys(C);if(ks.length>=2)delete C[ks[0]]}
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
   window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+IX.ch&&p.lng>=c[1]&&p.lng<c[1]+IX.ch);if(!c)return null;
     const P=await px(c),r0=Math.floor((c[0]+IX.ch-p.lat)/IX.res),c0=Math.floor((p.lng-c[1])/IX.res);let sp=0,sh=0,cnt={1:0,2:0,3:0};
