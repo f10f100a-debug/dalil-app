@@ -15,6 +15,10 @@ jobs:
       - run: pip install --quiet rasterio numpy pillow
       - env: { SPRING_BBOX: "${{ inputs.bbox }}", SPRING_D: "${{ inputs.d }}" }
         run: python3 tools/fayd/springlayer.py
+      - name: Push raw (for fast re-classify)
+        run: |
+          cd raw && git init -q && git checkout -q -b spring-raw && git add . && git -c user.name=bot -c user.email=bot@x commit -qm raw
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" spring-raw
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"

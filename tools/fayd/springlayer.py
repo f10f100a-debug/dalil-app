@@ -62,8 +62,9 @@ def quad_delta(now_items, dry_items, qr, qc):
     dry = np.nanmedian(np.stack(drys), 0); del drys
     ok = np.isfinite(now) & np.isfinite(dry) & (dry < 0.15)
     g = np.where(ok, ((now - dry) >= D_MIN).astype("float32"), np.nan)
+    g2 = np.where(ok, ((now - dry) >= 0.02).astype("float32"), np.nan)
     dl = np.where(ok, now - dry, np.nan).astype("float32")
-    return g, dl, tr, crs, dates
+    return g, g2, dl, tr, crs, dates
 
 WC = {}
 def worldcover(la0, lo0):
@@ -85,6 +86,19 @@ def worldcover(la0, lo0):
             print("worldcover retry", la0, lo0, str(e)[:120], flush=True); time.sleep(8)
     return np.zeros((N, N)), np.zeros((N, N))
 
+def cells(f, f2, dl, veg, man):
+    """مربعات 20 م: f = نسبة بكسلات 10 م اللي زادت ≥0.03 عن الصيف بالصورتين، f2 نفسها بحد 0.02، dl متوسط الزيادة"""
+    nb = lambda m: sum(np.roll(np.roll(m, a, 0), b, 1) for a in (-1, 0, 1) for b in (-1, 0, 1))
+    core = f >= .5                           # أغلب المربع زاد ≥0.03
+    edge = (f2 >= .5) & (nb(core) >= 1)      # أطراف البقعة (زيادة ≥0.02) جنب قلبها
+    m = core | edge
+    m &= nb(m) >= 2                          # مربع وحيد بدون جار = تشويش
+    cls = np.zeros(f.shape, "uint8")
+    cls[m] = 1; cls[m & (dl >= .05)] = 2; cls[m & (dl >= .09)] = 3   # خفيفة / متوسطة / كثيفة
+    cls[(cls > 0) & (veg >= .6)] = 4         # غطاء دائم (شجيرات/عشب معمّر) — الهرارة والغرب
+    cls[man >= .3] = 0
+    return cls
+
 def rng(a, b): 
     x = math.floor(a / CH) * CH
     while x < b: yield round(x, 2); x += CH
@@ -97,7 +111,7 @@ def main():
     NI, DI = by(nowi), by(dryi)
     tiles = sorted(set(NI) & set(DI))
     print(f"::notice::spring layer bbox {BBOX} tiles {len(tiles)}", flush=True)
-    chunks = {(la, lo): [np.full((N, N), np.nan, "float32"), np.full((N, N), np.nan, "float32")] for la in rng(s_, n) for lo in rng(w, e)}
+    chunks = {(la, lo): [np.full((N, N), np.nan, "float32") for _ in range(3)] for la in rng(s_, n) for lo in rng(w, e)}
     alld = set()
     for t in tiles:
         full = sorted([i for i in DI[t] if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5], key=lambda i: i["properties"]["datetime"])
@@ -107,31 +121,38 @@ def main():
             for qc in (0, 1):
                 r = quad_delta(now, dry, qr, qc)
                 if r is None: continue
-                g, dl, tr, crs, dates = r; alld |= set(dates)
+                g, g2, dl, tr, crs, dates = r; alld |= set(dates)
                 tb = transform_bounds(crs, "EPSG:4326", *rasterio.transform.array_bounds(g.shape[0], g.shape[1], tr))
-                for (la, lo), (G, DL) in chunks.items():
+                for (la, lo), (G, G2, DL) in chunks.items():
                     if tb[0] > lo + CH or tb[2] < lo or tb[1] > la + CH or tb[3] < la: continue
                     dt = from_origin(lo, la + CH, RES, RES)
-                    for src, dst in ((g, G), (dl, DL)):
+                    for src, dst in ((g, G), (g2, G2), (dl, DL)):
                         tmp = np.full((N, N), np.nan, "float32")
                         reproject(src, tmp, src_transform=tr, src_crs=crs, dst_transform=dt, dst_crs="EPSG:4326", resampling=Resampling.average, src_nodata=np.nan, dst_nodata=np.nan)
                         np.fmax(dst, tmp, out=dst)
-                del g, dl
+                del g, g2, dl
         print(f"tile {t}: now {sorted(alld)[-3:]} t={round(time.time() - T0)}s", flush=True)
+    # الخام (مكمّم 0–255) في raw/ — عشان نعيد التصنيف بسرعة بدون تحميل الصور من جديد
+    os.makedirs("raw", exist_ok=True)
+    for (la, lo), (G, G2, DL) in sorted(chunks.items()):
+        if not np.isfinite(G).any(): continue
+        veg, man = worldcover(la, lo)
+        q = lambda a: np.clip(np.nan_to_num(a) * 255, 0, 255).astype("uint8")
+        np.savez_compressed(f"raw/{la:.2f}_{lo:.2f}.npz", f=q(G), f2=q(G2), d=np.clip((np.nan_to_num(DL) + .1) * 500, 0, 255).astype("uint8"), veg=q(veg), man=q(man))
+    json.dump({"asof": max(alld) if alld else today.isoformat(), "bbox": BBOX}, open("raw/meta.json", "w"))
+    del chunks
+    classify("raw", BBOX)
+
+def classify(raw, bb):
+    w, s_, e, n = bb
+    meta = json.load(open(f"{raw}/meta.json")); asof = meta["asof"]
     idx = []
     PAL = {1: (196, 228, 110, 175), 2: (96, 186, 70, 205), 3: (22, 112, 44, 230), 4: (160, 130, 215, 160)}
-    for (la, lo), (G, DL) in sorted(chunks.items()):
-        if not np.isfinite(G).any(): continue
-        f = np.nan_to_num(G); dl = np.nan_to_num(DL)
-        m = f >= .5                     # أغلب بكسلات المربع (20 م) اخضرّت بالصورتين
-        nb = sum(np.roll(np.roll(m, a, 0), b, 1) for a in (-1, 0, 1) for b in (-1, 0, 1))
-        m &= nb >= 3                    # مربع معزول بدون جيران = تشويش
-        if not m.any(): continue
-        veg, man = worldcover(la, lo)
-        cls = np.zeros((N, N), "uint8")
-        cls[m] = 1; cls[m & (dl >= .05)] = 2; cls[m & (dl >= .09)] = 3   # خفيفة / متوسطة / كثيفة
-        cls[(cls > 0) & (veg >= .5)] = 4
-        cls[man >= .3] = 0
+    for fn in sorted(os.listdir(raw)):
+        if not fn.endswith(".npz"): continue
+        la, lo = map(float, fn[:-4].split("_")); Z = np.load(f"{raw}/{fn}")
+        f = Z["f"] / 255; f2 = Z["f2"] / 255; dl = Z["d"] / 500 - .1; veg = Z["veg"] / 255; man = Z["man"] / 255
+        cls = cells(f, f2, dl, veg, man)
         if not cls.any(): continue
         img = np.zeros((N, N, 4), "uint8")
         for c, col in PAL.items(): img[cls == c] = col
@@ -139,6 +160,7 @@ def main():
         Image.fromarray(img, "RGBA").save(f"{OUT}/{nm}.png", optimize=True)
         cnt = [int((cls == c).sum()) for c in (1, 2, 3, 4)]
         idx.append([la, lo, cnt]); print("chunk", nm, cnt, flush=True)
+    alld = {asof}
     old = {}
     try: old = json.load(open(f"{OUT}/index.json"))
     except Exception: pass
@@ -153,4 +175,6 @@ def main():
                "chunks": sorted(keep.values())}, open(f"{OUT}/index.json", "w"), ensure_ascii=False)
     print(f"::notice::spring chunks {len(idx)} asof {max(alld) if alld else '-'} t={round(time.time() - T0)}s", flush=True)
 
-main()
+if os.environ.get("SPRING_FROM_RAW"):
+    _m = json.load(open(os.environ["SPRING_FROM_RAW"] + "/meta.json")); classify(os.environ["SPRING_FROM_RAW"], _m["bbox"])
+else: main()
