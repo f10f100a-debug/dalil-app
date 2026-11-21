@@ -1,0 +1,18 @@
+# تجربة طبقة الربيع الدقيقة: فرق خضرة كل بكسل 10 م عن الصيف → صور + إحصاءات
+name: Spring map test
+on:
+  workflow_dispatch:
+    inputs:
+      boxes: { description: "اسم:جنوب:غرب:شمال:شرق;...", type: string, default: "" }
+      pts: { description: "lat:lng:اسم,...", type: string, default: "" }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy pillow
+      - env: { SPRING_BOXES: "${{ inputs.boxes }}", SPRING_PTS: "${{ inputs.pts }}" }
+        run: python3 tools/fayd/springmap.py
+      - uses: actions/upload-artifact@v4
+        with: { name: spring-map, path: diag/ }
