@@ -23,6 +23,9 @@ for i in pick:
         if abs(s[1] - la) < .35 and abs(s[2] - lo) < .4 and F.get(j) and F[j][3] == 0 and F[j][1] < 10:
             ref.append(j); break
 pts = [(i, SITES[i][1], SITES[i][2]) for i in pick + ref]
+# 21 نوفمبر: نقاط حرة (lat:lng:اسم) — مواقع ربيع مؤكدة ميدانيًا
+for k, x in enumerate([x for x in os.environ.get("PTS", "").split(",") if x.count(":") >= 1]):
+    a = x.split(":"); SITES.append([a[2] if len(a) > 2 else x, float(a[0]), float(a[1]), "نقطة"]); j = len(SITES) - 1; pick.append(j); pts.append((j, float(a[0]), float(a[1])))
 H = 20
 def read(it, inside):
     off = 1000 if str(it["properties"].get("s2:processing_baseline", "00.00")) >= "04.00" else 0
@@ -45,7 +48,8 @@ def read(it, inside):
                     if ok.mean() < .5: out[idx] = (date, None, None, None, None, None, round(float(ok.mean()), 2), sorted(set(S.ravel().tolist()))); continue
                     R = np.clip(B["B04"][ok] - off, 1, None); N = np.clip(B["B08"][ok] - off, 1, None); BL = np.clip(B["B02"][ok] - off, 1, None)
                     nd = (N - R) / (N + R)
-                    out[idx] = (date, round(float(np.percentile(nd, 75)), 3), round(float((nd > .18).mean()), 2), int(np.median(BL)), int(np.median(R)),
+                    out[idx] = (date, round(float(np.percentile(nd, 50)), 3), round(float(np.percentile(nd, 75)), 3), round(float(np.percentile(nd, 90)), 3),
+                                round(float((nd > .12).mean()), 2), round(float((nd > .15).mean()), 2), round(float((nd > .18).mean()), 2), int(np.median(BL)), int(np.median(R)),
                                 round(float(np.median(B["AOT"][ok])) / 1000, 3), round(float(ok.mean()), 2), "")
                 for s_ in src.values(): s_.close()
             return out
@@ -64,7 +68,7 @@ res = {}
 with ThreadPoolExecutor(8) as ex:
     for it_out, (it, _) in zip(ex.map(lambda j: read(*j), jobs), jobs):
         for idx, v in it_out.items(): res.setdefault(idx, {})[v[0] + " " + it["id"][-13:-7]] = v[1:] + (it["properties"].get("eo:cloud_cover"),)
-lines = ["# تشخيص صور الفياض " + start + " → " + end, "", "الأعمدة: NDVI75 · نسبة الخضرة · الأزرق B02 · الأحمر B04 · AOT · نسبة البكسل الصافي · غيم المشهد٪", ""]
+lines = ["# تشخيص صور الفياض " + start + " → " + end, "", "الأعمدة: NDVI50 · NDVI75 · NDVI90 · خضرة>0.12 · >0.15 · >0.18 · الأزرق B02 · الأحمر B04 · AOT · نسبة البكسل الصافي · غيم المشهد٪", ""]
 for i in pick + ref:
     lines.append(("## " if i in pick else "## [مرجع جرداء] ") + SITES[i][0] + f" ({SITES[i][3]}) {SITES[i][1]},{SITES[i][2]}")
     for d in sorted(res.get(i, {})):

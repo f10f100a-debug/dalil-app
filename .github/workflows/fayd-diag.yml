@@ -6,6 +6,7 @@ on:
       names: { description: "أسماء الفياض مفصولة بفاصلة", type: string, default: "" }
       start: { description: "من", type: string, default: "2026-11-01" }
       end: { description: "إلى", type: string, default: "2026-11-14" }
+      pts: { description: "نقاط lat:lng:اسم مفصولة بفاصلة", type: string, default: "" }
 jobs:
   diag:
     runs-on: ubuntu-latest
@@ -13,6 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet rasterio numpy
-      - run: python3 tools/fayd/diag_dates.py "${{ inputs.names }}" "${{ inputs.start }}" "${{ inputs.end }}"
+      - env: { PTS: "${{ inputs.pts }}" }
+        run: python3 tools/fayd/diag_dates.py "${{ inputs.names }}" "${{ inputs.start }}" "${{ inputs.end }}"
       - uses: actions/upload-artifact@v4
         with: { name: fayd-diag, path: diag/ }
