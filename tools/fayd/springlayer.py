@@ -54,9 +54,11 @@ def quad_delta(now_items, dry_items, qr, qc):
         f1 = np.isnan(v1) & np.isfinite(nd); f2 = ~f1 & np.isnan(v2) & np.isfinite(nd)
         if f1.any() or f2.any(): dates.append(d)
         v1[f1] = nd[f1]; v2[f2] = nd[f2]
-        if np.isfinite(v2).mean() > .97: break
+        if np.isfinite(v1).mean() > .97: break
     tr, crs = nows[0][2], nows[0][3]
-    now = np.where(np.isfinite(v2), np.fmin(v1, v2), np.nan); del v1, v2, nows
+    # 21 نوفمبر (طراح): كانت «أقل قراءة من آخر صورتين» — صورة 8 نوفمبر كانت الأرض فيها مغمورة/مبلولة بعد المطر (NDVI سالب)
+    # فمسحت ربيع 20 نوفمبر كله. الحين: آخر قراءة صافية لكل بكسل (نفس اللي يعرضه Copernicus)
+    now = v1; del v2, nows
     with ThreadPoolExecutor(4) as ex: drys = [x[1] for x in ex.map(lambda i: read(i, qr, qc), dry_items) if x and x[1].shape == now.shape]
     if len(drys) < 2: return None
     dry = np.nanmedian(np.stack(drys), 0); del drys
@@ -81,7 +83,7 @@ def worldcover(la0, lo0):
                 A = src.read(1, window=from_bounds(lo0, la0, lo0 + CH, la0 + CH, src.transform), out_shape=(3000, 3000), resampling=Resampling.nearest)
             M = N // 5
             blk = lambda m: np.repeat(np.repeat(m.reshape(M, 12, M, 12).mean((1, 3)), 5, 0), 5, 1)
-            return blk(np.isin(A, (10, 20, 30))), blk(np.isin(A, (40, 50, 80)))
+            return blk(np.isin(A, (10, 20, 30))), blk(np.isin(A, (50, 80)))   # الزراعة (40) لا: WorldCover يحسب فياض كثير زراعة (طراح 35٪) — المزارع الحقيقية خضراء بالصيف وتنشال
         except Exception as e:
             print("worldcover retry", la0, lo0, str(e)[:120], flush=True); time.sleep(8)
     return np.zeros((N, N)), np.zeros((N, N))
