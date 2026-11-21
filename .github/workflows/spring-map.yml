@@ -5,6 +5,7 @@ on:
     inputs:
       boxes: { description: "اسم:جنوب:غرب:شمال:شرق;...", type: string, default: "" }
       pts: { description: "lat:lng:اسم,...", type: string, default: "" }
+permissions: { contents: write }
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -14,5 +15,7 @@ jobs:
       - run: pip install --quiet rasterio numpy pillow
       - env: { SPRING_BOXES: "${{ inputs.boxes }}", SPRING_PTS: "${{ inputs.pts }}" }
         run: python3 tools/fayd/springmap.py
-      - uses: actions/upload-artifact@v4
-        with: { name: spring-map, path: diag/ }
+      - name: push images to diag-out branch
+        run: |
+          cd diag && git init -q && git checkout -q -b diag-out && git add . && git -c user.name=bot -c user.email=bot@x commit -qm out
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" diag-out

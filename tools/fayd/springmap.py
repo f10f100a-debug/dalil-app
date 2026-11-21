@@ -77,7 +77,8 @@ def box(name, bb):
     for p in PTS:
         la, lo = float(p[0]), float(p[1])
         if s_ <= la <= n_ and w_ <= lo <= e_:
-            r, c = pix(la, lo); dr.ellipse([c - 14, r - 14, c + 14, r + 14], outline=(220, 0, 0), width=3)
+            r, c = pix(la, lo); col = (220, 0, 0) if (len(p) > 2 and p[2].endswith("NO")) else (20, 60, 230)
+            dr.ellipse([c - 20, r - 20, c + 20, r + 20], outline=col, width=4); dr.text((c + 24, r - 8), p[2] if len(p) > 2 else "", fill=col)
     if max(im.size) > 1600: im.thumbnail((1600, 1600))
     im.save(f"diag/spring-{name}.png")
 
