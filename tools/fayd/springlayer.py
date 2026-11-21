@@ -20,6 +20,8 @@ T0 = time.time()
 today = dtm.date.today(); y = today.year
 BBOX = [float(x) for x in (os.environ.get("SPRING_BBOX") or "43.5,28.0,45.5,29.5").split(",")]
 RES = 0.0002; CH = 0.25; N = 1250          # مربعات ~20 م، قطع ربع درجة
+RS = 0.0001; NS = 2500                     # صورة القمر الخام ~10 م
+NDVI_PAL = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.025, "fff9cc"), (.05, "ede8b5"), (.075, "ddd89b"), (.1, "ccc682"), (.125, "bcb76b"), (.15, "afc160"), (.175, "a3cc59"), (.2, "91bf51"), (.25, "7fb247"), (.3, "70a33f"), (.35, "609635"), (.4, "4f892d"), (.45, "3f7c23"), (.5, "307016"), (.55, "216011"), (.6, "0f540a")]
 D_MIN = float(os.environ.get("SPRING_D") or 0.03)
 OUT = "data/spring"; os.makedirs(OUT, exist_ok=True)
 env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3")
@@ -66,7 +68,7 @@ def quad_delta(now_items, dry_items, qr, qc):
     g = np.where(ok, ((now - dry) >= D_MIN).astype("float32"), np.nan)
     g2 = np.where(ok, ((now - dry) >= 0.02).astype("float32"), np.nan)
     dl = np.where(ok, now - dry, np.nan).astype("float32")
-    return g, g2, dl, tr, crs, dates
+    return g, g2, dl, tr, crs, dates, now
 
 WC = {}
 def worldcover(la0, lo0):
@@ -114,6 +116,7 @@ def main():
     tiles = sorted(set(NI) & set(DI))
     print(f"::notice::spring layer bbox {BBOX} tiles {len(tiles)}", flush=True)
     chunks = {(la, lo): [np.full((N, N), np.nan, "float32") for _ in range(3)] for la in rng(s_, n) for lo in rng(w, e)}
+    SAT = {k: None for k in chunks}
     alld = set()
     for t in tiles:
         full = sorted([i for i in DI[t] if i["properties"].get("s2:nodata_pixel_percentage", 0) <= 5], key=lambda i: i["properties"]["datetime"])
@@ -123,7 +126,17 @@ def main():
             for qc in (0, 1):
                 r = quad_delta(now, dry, qr, qc)
                 if r is None: continue
-                g, g2, dl, tr, crs, dates = r; alld |= set(dates)
+                g, g2, dl, tr, crs, dates, nowv = r; alld |= set(dates)
+                # صورة القمر الخام (آخر قراءة صافية) بدقة ~10 م — وضع «صورة القمر» زي Copernicus
+                tb0 = transform_bounds(crs, "EPSG:4326", *rasterio.transform.array_bounds(nowv.shape[0], nowv.shape[1], tr))
+                for key in SAT:
+                    la, lo = key
+                    if tb0[0] > lo + CH or tb0[2] < lo or tb0[1] > la + CH or tb0[3] < la: continue
+                    tmp = np.full((NS, NS), np.nan, "float32")
+                    reproject(nowv, tmp, src_transform=tr, src_crs=crs, dst_transform=from_origin(lo, la + CH, RS, RS), dst_crs="EPSG:4326", resampling=Resampling.bilinear, src_nodata=np.nan, dst_nodata=np.nan)
+                    if SAT[key] is None: SAT[key] = np.full((NS, NS), np.nan, "float16")
+                    np.fmax(SAT[key], tmp.astype("float16"), out=SAT[key]); del tmp
+                del nowv
                 tb = transform_bounds(crs, "EPSG:4326", *rasterio.transform.array_bounds(g.shape[0], g.shape[1], tr))
                 for (la, lo), (G, G2, DL) in chunks.items():
                     if tb[0] > lo + CH or tb[2] < lo or tb[1] > la + CH or tb[3] < la: continue
@@ -143,6 +156,24 @@ def main():
         np.savez_compressed(f"raw/{la:.2f}_{lo:.2f}.npz", f=q(G), f2=q(G2), d=np.clip((np.nan_to_num(DL) + .1) * 500, 0, 255).astype("uint8"), veg=q(veg), man=q(man))
     json.dump({"asof": max(alld) if alld else today.isoformat(), "bbox": BBOX}, open("raw/meta.json", "w"))
     del chunks
+    # صورة القمر بألوان NDVI حق Copernicus (نفس الدرجات) → data/spring/sat/*.webp
+    os.makedirs(f"{OUT}/sat", exist_ok=True); sat = []
+    for (la, lo), A in sorted(SAT.items()):
+        if A is None or not np.isfinite(A).any(): continue
+        v = np.nan_to_num(A.astype("float32"), nan=-9); img = np.zeros((NS, NS, 3), "uint8")
+        img[:] = (234, 234, 234)
+        for t, hx in NDVI_PAL: img[v >= t] = tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4))
+        img[v == -9] = (200, 200, 200)
+        Image.fromarray(img).save(f"{OUT}/sat/{la:.2f}_{lo:.2f}.webp", quality=78, method=4)
+        sat.append([la, lo])
+    old = {}
+    try: old = json.load(open(f"{OUT}/sat.json"))
+    except Exception: pass
+    keep = {(c[0], c[1]): c for c in old.get("chunks", []) if not (w <= c[1] + CH / 2 <= e and s_ <= c[0] + CH / 2 <= n)}
+    for c in sat: keep[(c[0], c[1])] = c
+    json.dump({"v": 1, "asof": max(alld) if alld else today.isoformat(), "res": RS, "ch": CH, "chunks": sorted(keep.values())}, open(f"{OUT}/sat.json", "w"))
+    print(f"::notice::sat chunks {len(sat)}", flush=True)
+    del SAT
     classify("raw", BBOX)
 
 def classify(raw, bb):
