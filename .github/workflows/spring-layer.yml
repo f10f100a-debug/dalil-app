@@ -48,7 +48,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: parts, pattern: "spring-*" }
       - run: python3 tools/fayd/spring_merge.py prev parts outd
-      - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd   # درجة كل فيضة من الطبقة → update.py يقراها
+      - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd && python3 tools/fayd/spring_tiles.py outd   # درجة كل فيضة + بلاطات الخريطة
       - name: Push spring-data (single commit)
         run: |
           cd outd && git init -q && git checkout -q -b spring-data && git add . && git -c user.name=dalil-bot -c user.email=ci@dalil commit -qm "طبقة الربيع $(date -u +%F)"

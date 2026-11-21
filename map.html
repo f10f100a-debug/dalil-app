@@ -1935,7 +1935,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;h.textContent=gl.getZoom()<MINZ[mode==='sat'&&SX?'sat':'cls']?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
+  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];h.textContent=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
@@ -1950,8 +1950,15 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   // من بعيد تبقى زي ما هي (الطبقة ما تبان من بعيد). نقطة الفيضة واسمها يبقون
   const FADED={};function fade(){const Z=(a,b)=>['interpolate',['linear'],['zoom'],10,a,11.5,b];
     [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id))return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
+  // 22 نوفمبر: بلاطات 256 (z7–z12) زي الخريطة الأساسية — ناعمة وتبان من بعيد. فوق z12.5 القطع الأصلية (1–4 حولك) للتفاصيل
+  function tileSet(show,sat){if(!IX.tiles)return;const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
+    let w=180,so=90,e=-180,n=-90;IX.chunks.forEach(c=>{w=Math.min(w,c[1]);so=Math.min(so,c[0]);e=Math.max(e,c[1]+.25);n=Math.max(n,c[0]+.25)});
+    [['sprt-c','c','png',IX,!sat],['sprt-s','s','webp',SX,sat]].forEach(([id,k,ext,X,on])=>{if(!X||!IX.tiles[k])return;const zr=IX.tiles[k];
+      if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
+        gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
+      const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
   function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
-    if(gl.isMoving&&gl.isMoving())return;const sat=mode==='sat'&&!!SX;layerSet(IX.chunks,'spr-',url,MINZ.cls,show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,MINZ.sat,show&&sat,4);try{render()}catch(e){}}
+    const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?12.5:0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];{const ks=Object.keys(C);if(ks.length>=2)delete C[ks[0]]}
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
   window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+IX.ch&&p.lng>=c[1]&&p.lng<c[1]+IX.ch);if(!c)return null;
