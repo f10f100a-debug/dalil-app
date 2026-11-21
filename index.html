@@ -60,7 +60,8 @@ html.car #springPane>.wh-card,html.car #springPane>#faydCard{grid-column:2}html.
 html.car #screen-places .pl-toolbar,html.car #screen-places #plSeg,html.car #screen-places #filterChips{max-width:none}
 /* الخريطة: تملأ المساحة */
 html.car #screen-track .track-map-frame{height:calc(100vh - 120px)!important;height:calc(100dvh - 120px)!important;min-height:360px;width:100%}
-html.car body.map-fs #trackMapFrame{left:0!important;right:auto!important;width:calc(100vw - var(--rail))!important;height:100vh!important}
+html.car body.map-fs #trackMapFrame{left:0!important;right:auto!important;top:0!important;bottom:0!important;width:calc(100vw - var(--rail))!important;height:100vh!important;z-index:30}
+html.car body.map-fs .tabbar{visibility:visible!important;z-index:31}
 </style><style>:is(html.lab-x .shr-x,html.lab-x .wxo-x,html.lab-x .ask-x,html.lab-x .rb-x,html.lab-x .al-x,html.lab-x .lab-tools-x){background:#1F1B16!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.35)!important;font-weight:900!important;opacity:1!important}:is(html[data-theme=dark],html[data-theme=red]).lab-x .shr-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .wxo-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .ask-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .rb-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .al-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .lab-tools-x{background:#F3EDE2!important;color:#1F1B16!important;border-color:#1F1B16!important}</style>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -517,7 +518,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-compass-card{padding:10px 12px 8px;}
   .cp-compass{position:relative; width:min(100%, 290px, 38dvh); aspect-ratio:1; margin:0 auto; min-width:220px;}
   .cp-compass svg{width:100%; height:100%; display:block; overflow:visible;}
-  .cp-layer, .cp-rot, .cp-letters{position:absolute; inset:0; pointer-events:none;}
+  .cp-layer, .cp-rot, .cp-letters{position:absolute; top:0;right:0;bottom:0;left:0; pointer-events:none;}
   .cp-rot{transform-origin:50% 50%; will-change:transform;}
   .cp-letters{--u:1px;}
   .cp-l{position:absolute; left:0; top:0; width:calc(30 * var(--u)); height:calc(30 * var(--u)); margin:calc(-15 * var(--u)) 0 0 calc(-15 * var(--u)); display:grid; place-items:center; font-size:calc(19 * var(--u)); font-weight:700; line-height:1; color:var(--cp-dim); will-change:transform;}
@@ -799,7 +800,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .cp-room:active{transform:scale(.98);}
   .cp-room .rm-ic{position:relative; flex:0 0 auto; width:38px; height:38px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.16);}
   .cp-room .rm-ic .cp-ic{width:22px; height:22px; color:#fff;}
-  .cp-room.live .rm-ic::before, .cp-room.live .rm-ic::after{content:""; position:absolute; inset:0; border-radius:50%; border:2px solid rgba(255,255,255,.55); animation:rmPulse 2.2s ease-out infinite;}
+  .cp-room.live .rm-ic::before, .cp-room.live .rm-ic::after{content:""; position:absolute; top:0;right:0;bottom:0;left:0; border-radius:50%; border:2px solid rgba(255,255,255,.55); animation:rmPulse 2.2s ease-out infinite;}
   .cp-room.live .rm-ic::after{animation-delay:1.1s;}
   @keyframes rmPulse{0%{transform:scale(1); opacity:.9} 100%{transform:scale(1.7); opacity:0}}
   .cp-room .rm-txt{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;}
@@ -817,7 +818,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     font-family:inherit; font-size:15px; font-weight:700; padding:0 14px;
     -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; touch-action:manipulation;
   }
-  .cp-sos-fill{position:absolute; inset:0; background:rgba(142,30,23,.16); transform:scaleX(0); transform-origin:right center;}
+  .cp-sos-fill{position:absolute; top:0;right:0;bottom:0;left:0; background:rgba(142,30,23,.16); transform:scaleX(0); transform-origin:right center;}
   .cp-sos.holding .cp-sos-fill{transform:scaleX(1); transition:transform 1s linear;}
   .cp-sos.armed{background:#EFCAC4;}
   .cp-sos-body{position:relative; display:flex; align-items:center; justify-content:center; gap:8px;}
@@ -994,7 +995,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .tab{color:#4E463C; font-size:12.5px; font-weight:800;}
   .tab .ic{position:relative; z-index:0;}
   .tab.active{color:var(--sand-dim);}
-  .tab.active .ic::before{content:""; position:absolute; inset:-3px -17px -2px; border-radius:15px; background:rgba(201,150,79,.22); z-index:-1;}
+  .tab.active .ic::before{content:""; position:absolute; top:-3px;right:-17px;bottom:-2px;left:-17px; border-radius:15px; background:rgba(201,150,79,.22); z-index:-1;}
   .tabbar{border-top-color:#DCCFBC; box-shadow:0 -6px 20px rgba(60,45,20,.10);}
   .btn{border-radius:16px; font-weight:600; min-height:48px; padding:12px 16px; line-height:1.35;}
   .btn.small{min-height:44px; border-radius:14px; font-size:13px;}
@@ -1060,7 +1061,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .th-actions .cp-ic{width:18px; height:18px;}
   /* modal */
   .overlay{
-    position:fixed; inset:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
+    position:fixed; top:0;right:0;bottom:0;left:0; background:rgba(6,9,11,.65); backdrop-filter: blur(2px);
     display:none; align-items:flex-end; justify-content:center; z-index:50;
   }
   .overlay.show{display:flex;}
@@ -1076,7 +1077,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
     width:54px; height:5px; background:var(--line); border-radius:10px; margin:0 auto 16px;
     cursor:grab; touch-action:none; position:relative;
   }
-  .sheet-handle::before{content:""; position:absolute; inset:-15px -34px;}
+  .sheet-handle::before{content:""; position:absolute; top:-15px;right:-34px;bottom:-15px;left:-34px;}
   .sheet-handle:active{cursor:grabbing;}
   .sheet h3{margin:0 0 14px; font-size:16px; font-weight:800;}
   .field-label{font-size:12px; color:var(--text-dim); margin:14px 0 6px; font-weight:700;}
@@ -1101,7 +1102,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
 
   .perm-ready #onboard{display:none;}
   .onboard{
-    position:fixed; inset:0; background:var(--bg); z-index:80; display:flex; flex-direction:column;
+    position:fixed; top:0;right:0;bottom:0;left:0; background:var(--bg); z-index:80; display:flex; flex-direction:column;
     align-items:center; justify-content:center; padding:30px; text-align:center; gap:16px;
   }
   .onboard .mark{
@@ -1122,7 +1123,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .onboard p.ob-why{font-size:13px; margin:2px 0 0;}
   .onboard .ob-skip{max-width:300px; margin-top:-6px; min-height:40px; background:none; border:0; color:var(--text-dim); font-size:14px;}
   .onboard p{font-size:13px; color:var(--text-dim); line-height:1.9; max-width:320px;}
-  .push-ask{position:fixed; inset:0; z-index:85; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; gap:14px;}
+  .push-ask{position:fixed; top:0;right:0;bottom:0;left:0; z-index:85; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:30px; text-align:center; gap:14px;}
   .push-ask[hidden]{display:none!important;}
   .push-ask h2{font-size:20px; margin:4px 0 0;}
   .push-ask p{font-size:13.5px; color:var(--text-dim); line-height:1.9; max-width:320px; margin:0;}
@@ -1162,8 +1163,8 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ev-chips{margin-bottom:4px;}
   .ev-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
   .ev-tile{position:relative; display:block; aspect-ratio:4/5; padding:0; border:0; border-radius:18px; overflow:hidden; background:#E4DED3; cursor:pointer; font-family:inherit; text-align:right; color:#fff;}
-  .ev-tile img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
-  .ev-tile::after{content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(20,16,10,.78), rgba(20,16,10,0) 55%, rgba(20,16,10,.25));}
+  .ev-tile img{position:absolute; top:0;right:0;bottom:0;left:0; width:100%; height:100%; object-fit:cover;}
+  .ev-tile::after{content:""; position:absolute; top:0;right:0;bottom:0;left:0; background:linear-gradient(to top, rgba(20,16,10,.78), rgba(20,16,10,0) 55%, rgba(20,16,10,.25));}
   .ev-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:17px;line-height:1;pointer-events:none}.ev-play small{font-size:10px;margin-top:2px}
   .ev-v-img video{display:block;width:100%;max-height:70vh;background:#000;object-fit:contain}
   .ev-photo video{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:inherit}
@@ -1186,7 +1187,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   .ev-ago{font-size:11.5px; font-weight:600; background:rgba(20,16,10,.45); color:#fff; padding:3px 8px; border-radius:100px;}
   .ev-note{font-size:11.5px; color:var(--text-faint); line-height:1.7; margin:12px 2px 0; text-align:center;}
   .ev-retry{width:auto; margin:12px auto 0; padding:0 18px;}
-  .ev-viewer{position:fixed; inset:0; z-index:70; display:none; flex-direction:column; background:#14100B; color:#fff;
+  .ev-viewer{position:fixed; top:0;right:0;bottom:0;left:0; z-index:70; display:none; flex-direction:column; background:#14100B; color:#fff;
     padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);}
   .ev-viewer.show{display:flex;}
   /* الشريط فوق دايم، والصورة/الفيديو ياخذ المساحة اللي بينه وبين الأزرار بس (كان الفيديو يطلع برّا مكانه ويغطي زر الإغلاق) */
@@ -1307,7 +1308,7 @@ var m=document.querySelector('meta[name=theme-color]');if(m)m.content=t==='light
   :is(html[data-theme="dark"], html[data-theme="red"]) .overlay{background:rgba(0,0,0,.72);}
   :is(html[data-theme="dark"], html[data-theme="red"]) .track-map-frame{background:#1F1B16;}
   /* الوضع الأحمر: كل ما على الشاشة بدرجات الأحمر للحفاظ على الرؤية الليلية */
-  #redTint{display:none; position:fixed; inset:0; z-index:2147483647; pointer-events:none; background:#9A0000; mix-blend-mode:multiply;}
+  #redTint{display:none; position:fixed; top:0;right:0;bottom:0;left:0; z-index:2147483647; pointer-events:none; background:#9A0000; mix-blend-mode:multiply;}
   html[data-theme="red"] #redTint{display:block;}
   .theme-chips{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:6px;}
   .theme-chips .chip{justify-content:center; padding:0 6px; min-height:44px;}
@@ -1427,7 +1428,7 @@ html.home2 #cpCompass:not(.h2t) .h2needle{display:none}
 html.home2 #cpCompass:not(.h2near) #cpCSub2{display:none}
 html.home2 #cpCompass.h2t #targetArrow{visibility:hidden}
 .h2needle{transition:transform .35s ease-out}
-.h2needle{position:absolute; inset:0}
+.h2needle{position:absolute; top:0;right:0;bottom:0;left:0}
 #h2Strip{display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--cp-card); border:1px solid var(--cp-line); border-radius:18px; padding:6px 14px; margin-bottom:8px; min-height:64px; box-sizing:border-box}
 #h2Strip .h2s{flex:1; min-width:0; font-size:13.5px; line-height:1.55; color:var(--cp-dim); background:none; border:0; padding:0; font-family:inherit; text-align:right; cursor:pointer}
 #h2Strip .h2s b{color:var(--cp-ink); font-weight:800}
@@ -1600,7 +1601,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-6" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -6034,7 +6035,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // الإطار ما يعرف مساحة شريط الرجوع أسفل الآيفون (env داخل iframe = صفر) — نقيسها هنا ونرسلها
     const safeBottom = ()=>{ const d = document.createElement('div'); d.style.cssText = 'position:fixed;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);visibility:hidden'; document.body.appendChild(d); const v = parseFloat(getComputedStyle(d).paddingBottom) || 0; d.remove(); return Math.round(v); };
     const tell = ()=>{ try{ const f = document.getElementById('trackMapFrame'); if(f && f.contentWindow) f.contentWindow.postMessage({type:'DALIL_MAP_FS_STATE', on:fs, sab:safeBottom()}, location.origin); }catch(e){} };
-    const set = on=>{ if(fs === on) return; fs = on; document.body.classList.toggle('map-fs', on); tell(); if(!on) fitTrackSoon(); };
+    // 21 نوفمبر (شاشة سيارة: الخريطة نص الشاشة بعد ملء الشاشة): نبلغ الإطار يعيد حساب حجمه بعد التكبير/التصغير (بعض المتصفحات القديمة ما تبلغه لحالها)
+    const kick = ()=>{ const f = document.getElementById('trackMapFrame'); [80, 350, 900].forEach(t=>setTimeout(()=>{ try{ f && f.contentWindow && f.contentWindow.dispatchEvent(new Event('resize')); }catch(e){} }, t)); };
+    const set = on=>{ if(fs === on) return; fs = on; document.body.classList.toggle('map-fs', on); tell(); kick(); if(!on) fitTrackSoon(); };
     window.addEventListener('message', e=>{
       if(e.origin !== location.origin || !e.data || e.data.type !== 'DALIL_MAP_FS') return;
       if(e.data.on){ if(!fs){ try{ history.pushState({dalilMapFs:1}, ''); }catch(err){} set(true); } }
