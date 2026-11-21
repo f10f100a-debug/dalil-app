@@ -1,6 +1,6 @@
 """18 نوفمبر (فياض مريحات): حماية الفياض من خضرة المزارع حولها.
 1) فيضة جنبها (≤5 كم) فيضة بنفس الاسم مستبعدة كمزارع → تُستبعد معها (نفس المكان، المحاور حولها).
-2) فيضة فيها زراعة 10–32٪ (WorldCover) أو جنبها (≤3 كم) فيضة مستبعدة كمزارع → تبقى ظاهرة بس «حولها مزارع — تحتاج تأكيد» (check=8)
+2) فيضة فيها زراعة 10٪ فأكثر (من 21 نوفمبر: حتى الثلث فأكثر ما تنشال) (WorldCover) أو جنبها (≤3 كم) فيضة مستبعدة كمزارع → تبقى ظاهرة بس «حولها مزارع — تحتاج تأكيد» (check=8)
    بدون تنبيه وبرا «وين أطلع» (st=1)، لين يأكدها بلاغ من الميدان.
 تشغيل مستقل: python3 tools/fayd/farmguard.py  → يطبّقها على data/fayd.json الحالي."""
 import json, math, re
@@ -21,7 +21,7 @@ def guard(rows, farm, SITES, CROP):
             if any(_base(SITES[f][0]) == _base(s[0]) and _km(SITES[f], s) <= 5 for f in near):
                 farm.append(i); gone.append(s[0] + " (" + s[3] + ")"); continue
             c = CROP.get(str(i), 0)
-            if 10 <= c < 33 or any(_km(SITES[f], s) <= 3 for f in near):
+            if c >= 10 or any(_km(SITES[f], s) <= 3 for f in near):
                 r[2] = 1; r[5] = r[5] or 8; marked.append(f"{s[0]} ({s[3]}) زراعة {c}٪")
         out.append(r)
     rows[:] = out
