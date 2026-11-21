@@ -23,7 +23,11 @@ RES = 0.0002; CH = 0.25; N = 1250          # مربعات ~20 م، قطع ربع
 RS = 0.0001; NS = 2500                     # صورة القمر الخام ~10 م
 NDVI_PAL = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.025, "fff9cc"), (.05, "ede8b5"), (.075, "ddd89b"), (.1, "ccc682"), (.125, "bcb76b"), (.15, "afc160"), (.175, "a3cc59"), (.2, "91bf51"), (.25, "7fb247"), (.3, "70a33f"), (.35, "609635"), (.4, "4f892d"), (.45, "3f7c23"), (.5, "307016"), (.55, "216011"), (.6, "0f540a")]
 D_MIN = float(os.environ.get("SPRING_D") or 0.03)
-OUT = "data/spring"; os.makedirs(OUT, exist_ok=True)
+OUT = os.environ.get("SPRING_OUT") or "data/spring"; os.makedirs(OUT, exist_ok=True)
+# صورة القمر الخام (ثقيلة) بس للقطع اللي فيها ربيع (≥ SAT_MIN مربع) وحولها فيضة مسجلة — التعميم 21 نوفمبر
+SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 200)
+_FS = json.load(open("data/fayd-sites.json"))
+FAYD_CH = {(math.floor(x[1] / .25), math.floor(x[2] / .25)) for x in _FS if x and x[0]}
 env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3")
 Q = 5490   # ربع البلاطة بدقة 10 م (نقسمها 4 عشان الذاكرة)
 
@@ -156,15 +160,19 @@ def main():
         np.savez_compressed(f"raw/{la:.2f}_{lo:.2f}.npz", f=q(G), f2=q(G2), d=np.clip((np.nan_to_num(DL) + .1) * 500, 0, 255).astype("uint8"), veg=q(veg), man=q(man))
     json.dump({"asof": max(alld) if alld else today.isoformat(), "bbox": BBOX}, open("raw/meta.json", "w"))
     del chunks
-    # صورة القمر بألوان NDVI حق Copernicus (نفس الدرجات) → data/spring/sat/*.webp
+    idx = classify("raw", BBOX)
+    spr = {(c[0], c[1]): sum(c[2][:3]) for c in idx}
+    near = lambda la, lo: any((math.floor(la / .25) + a, math.floor(lo / .25) + b) in FAYD_CH for a in (-1, 0, 1) for b in (-1, 0, 1))
+    # صورة القمر بألوان NDVI حق Copernicus (نفس الدرجات) → sat/*.webp
     os.makedirs(f"{OUT}/sat", exist_ok=True); sat = []
     for (la, lo), A in sorted(SAT.items()):
         if A is None or not np.isfinite(A).any(): continue
+        if spr.get((la, lo), 0) < SAT_MIN or not near(la + .01, lo + .01): continue
         v = np.nan_to_num(A.astype("float32"), nan=-9); img = np.zeros((NS, NS, 3), "uint8")
         img[:] = (234, 234, 234)
         for t, hx in NDVI_PAL: img[v >= t] = tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4))
         img[v == -9] = (200, 200, 200)
-        Image.fromarray(img).save(f"{OUT}/sat/{la:.2f}_{lo:.2f}.webp", quality=78, method=4)
+        Image.fromarray(img).save(f"{OUT}/sat/{la:.2f}_{lo:.2f}.webp", quality=72, method=4)
         sat.append([la, lo])
     old = {}
     try: old = json.load(open(f"{OUT}/sat.json"))
@@ -174,7 +182,6 @@ def main():
     json.dump({"v": 1, "gen": int(time.time()), "asof": max(alld) if alld else today.isoformat(), "res": RS, "ch": CH, "chunks": sorted(keep.values())}, open(f"{OUT}/sat.json", "w"))
     print(f"::notice::sat chunks {len(sat)}", flush=True)
     del SAT
-    classify("raw", BBOX)
 
 def classify(raw, bb):
     w, s_, e, n = bb
@@ -207,6 +214,7 @@ def classify(raw, bb):
     json.dump({"v": 2, "gen": int(time.time()), "asof": max(alld) if alld else today.isoformat(), "res": RES, "ch": CH, "pal": {str(k): list(v) for k, v in PAL.items()},
                "chunks": sorted(keep.values())}, open(f"{OUT}/index.json", "w"), ensure_ascii=False)
     print(f"::notice::spring chunks {len(idx)} asof {max(alld) if alld else '-'} t={round(time.time() - T0)}s", flush=True)
+    return idx
 
 if os.environ.get("SPRING_FROM_RAW"):
     _m = json.load(open(os.environ["SPRING_FROM_RAW"] + "/meta.json")); classify(os.environ["SPRING_FROM_RAW"], _m["bbox"])

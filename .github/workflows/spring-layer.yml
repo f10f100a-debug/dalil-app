@@ -1,28 +1,54 @@
-# طبقة الربيع الدقيقة (تجربة dalil_lab_spring): وين اخضرّت الأرض بعد المطر — صور 1°×1° في data/spring
+# طبقة الربيع الدقيقة: وين اخضرّت الأرض بعد المطر (تصنيف ~20 م + صورة القمر ~10 م حول الفياض)
+# مرتين بالأسبوع (الثلاثاء والسبت) — أجزاء 2°×2° مع بعض، وبعدها دمج ورفع لفرع spring-data (بدون تاريخ عشان المستودع ما يكبر)
 name: Spring layer
 on:
+  schedule: [{ cron: "23 1 * * 2,6" }]
   workflow_dispatch:
     inputs:
-      bbox: { description: "غرب,جنوب,شرق,شمال", type: string, default: "43.5,28.0,45.5,29.5" }
+      bbox: { description: "جزء واحد للتجربة: غرب,جنوب,شرق,شمال (فاضي = كل المناطق)", type: string, default: "" }
       d: { description: "حد الزيادة عن الصيف (افتراضي 0.03)", type: string, default: "" }
 permissions: { contents: write }
 jobs:
-  run:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    outputs: { m: "${{ steps.p.outputs.m }}" }
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        env: { BBOX: "${{ inputs.bbox }}" }
+        run: echo "m=$(python3 tools/fayd/spring_parts.py)" >> "$GITHUB_OUTPUT"
+  parts:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJson(needs.plan.outputs.m) }}
     steps:
       - uses: actions/checkout@v4
       - run: pip install --quiet rasterio numpy pillow
-      - env: { SPRING_BBOX: "${{ inputs.bbox }}", SPRING_D: "${{ inputs.d }}" }
-        run: python3 tools/fayd/springlayer.py
-      - name: Push raw (for fast re-classify)
+      - env: { SPRING_BBOX: "${{ matrix.bbox }}", SPRING_D: "${{ inputs.d }}", SPRING_OUT: "out" }
         run: |
-          cd raw && git init -q && git checkout -q -b spring-raw && git add . && git -c user.name=bot -c user.email=bot@x commit -qm raw
-          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" spring-raw
-      - name: Commit
+          python3 tools/fayd/springlayer.py
+          python3 -c "import json;json.dump({'bbox':[float(x) for x in '${{ matrix.bbox }}'.split(',')]},open('out/part.json','w'))"
+      - uses: actions/upload-artifact@v4
+        with: { name: "spring-${{ matrix.i }}", path: out/, retention-days: 3 }
+  merge:
+    needs: parts
+    if: always() && needs.parts.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Previous data
         run: |
-          git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add -A data/spring
-          git diff --cached --quiet && exit 0
-          git commit -qm "طبقة الربيع الدقيقة"
-          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+          mkdir prev
+          if git fetch -q origin spring-data 2>/dev/null; then git archive FETCH_HEAD | tar -x -C prev; fi
+      - uses: actions/download-artifact@v4
+        with: { path: parts, pattern: "spring-*" }
+      - run: python3 tools/fayd/spring_merge.py prev parts outd
+      - name: Push spring-data (single commit)
+        run: |
+          cd outd && git init -q && git checkout -q -b spring-data && git add . && git -c user.name=dalil-bot -c user.email=ci@dalil commit -qm "طبقة الربيع $(date -u +%F)"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" spring-data
