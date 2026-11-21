@@ -1924,15 +1924,16 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     lg.addEventListener('click',e=>{const m=e.target.closest('[data-sm]');if(m){mode=m.dataset.sm;try{localStorage.setItem('dalil_spring_mode',mode)}catch(_){}draw();sync();return}
       if(e.target.closest('[data-lgt]')){small=!small;try{localStorage.setItem('dalil_spring_lg',small?'1':'0')}catch(_){}draw()}});
     document.body.appendChild(lg);draw()}
-  function draw(){if(!lg)return;const chip=(k,t)=>'<span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap"><i style="width:11px;height:11px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</span>';
-    const seg=(k,t)=>'<b data-sm="'+k+'" style="padding:3px 8px;border-radius:999px;cursor:pointer;white-space:nowrap;'+(mode===k?'background:#2E7D3E;color:#fff':'color:#5a5246')+'">'+t+'</b>';
-    let h='<div style="pointer-events:auto;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;background:rgba(255,253,247,.95);color:#2b2620;border-radius:16px;padding:5px 8px;font:700 11.5px/1.3 system-ui,-apple-system,\'Segoe UI\',Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-user-select:none;user-select:none;max-width:100%">';
-    h+='<span data-lgt style="cursor:pointer;font-size:14px">🌱</span>';
-    if(!small){h+=(SX?'<span style="display:inline-flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'');
-      if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">جرداء<i style="width:56px;height:9px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
+  function draw(){if(!lg)return;const chip=(k,t)=>'<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><i style="width:12px;height:12px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</span>';
+    // 21 نوفمبر: زر التبديل كبير (~38 نقطة) بسطر لحاله — يتضغط مريح بالبر والسيارة
+    const seg=(k,t)=>'<b data-sm="'+k+'" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:34px;padding:0 12px;border-radius:999px;cursor:pointer;white-space:nowrap;font-size:14px;'+(mode===k?'background:#2E7D3E;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'color:#4a4338')+'">'+t+'</b>';
+    let h='<div style="pointer-events:auto;display:flex;flex-direction:column;gap:6px;background:rgba(255,253,247,.96);color:#2b2620;border-radius:18px;padding:6px 8px;font:700 12px/1.3 system-ui,-apple-system,\'Segoe UI\',Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-user-select:none;user-select:none;max-width:100%;'+(small?'':'width:100%;box-sizing:border-box')+'">';
+    if(!small){h+='<div style="display:flex;align-items:center;gap:6px"><span data-lgt style="cursor:pointer;font-size:18px;padding:0 4px;min-height:34px;display:flex;align-items:center">🌱</span>'+(SX?'<span style="flex:1;display:flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'<span style="font-weight:800">الربيع من القمر</span>')+'</div>';
+      h+='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px 2px">';
+      if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">جرداء<i style="width:70px;height:10px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
       else h+=chip(1,'خفيف')+chip(2,'متوسط')+chip(3,'كثيف')+chip(4,'شجيرات');
-      h+='<span id="sprHint" style="font-weight:500;font-size:10.5px;opacity:.7;white-space:nowrap"></span>'}
-    else h+='<span data-lgt style="cursor:pointer;font-weight:600">'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
+      h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
+    else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
   function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;h.textContent=gl.getZoom()<MINZ[mode==='sat'&&SX?'sat':'cls']?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
   function layerSet(list,pre,u,minz,want){const bb=gl.getBounds(),zz=gl.getZoom();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));let n=0;
