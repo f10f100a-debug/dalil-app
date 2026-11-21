@@ -345,6 +345,28 @@ try:
     # 16 نوفمبر: بلاغات الناس تحسب بس «متوسط/كثيف» (2+) وخلال 1.5 كم (كانت «بداية» و5 كم — بلاغات من البلد رفعت فياض حولها)
     with urllib.request.urlopen(q, timeout=60) as r: FIELD += [(float(x["lat"]), float(x["lng"]), 1.5) for x in json.load(r) or [] if int(x.get("level") or 1) >= 2]
 except Exception as e: print("field reports", e)
+# 21 نوفمبر: طبقة الربيع الدقيقة (مربعات ~20 م، آخر صورة صافية) — طراح كانت صفر هنا لأن «أقل قراءة من آخر صورتين» أخذت صورة 8 نوفمبر
+# (الفيضة مغمورة بعد المطر). الحين: درجة الفيضة ما تقل عن درجتها بالطبقة (متوسط+كثيف حول مركزها 600 م). الشجيرات الغالبة ما ترفع.
+# «خفيف» بالطبقة لحاله ما يرفع (ممكن فرق إضاءة الموسم) — اللي يرفع: متوسط وكثيف.
+SPR = {}
+try:
+    with urllib.request.urlopen(urllib.request.Request("https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/fayd-spr.json", headers={"User-Agent": "dalil"}), timeout=60) as rr:
+        SPR = json.load(rr).get("s", {})
+except Exception as e: print("spring layer stats", e)
+sprn = []
+for r in rows:
+    v = SPR.get(str(r[0]))
+    if not v or r[5] == 10 or r[0] in farm: continue
+    n1, n2, n3, n4, tot = v; sp = n1 + n2 + n3; md = (n2 + n3) / tot
+    if n4 > sp: continue
+    lv = 3 if n3 / tot >= .05 else 2 if md >= .04 else 1 if md >= .015 else 0
+    if lv > r[2]:
+        if r[5] == 8: lv = min(lv, 1)
+        if lv <= r[2]: continue
+        r[2] = lv; r[1] = max(r[1], (0, 120, 220, 350)[lv]); r[3] = max(r[3] or 0, round(100 * sp / tot))
+        if r[5] in (0, 4, 6): r[5] = 13               # 13 = من طبقة الربيع الدقيقة
+        sprn.append(f"{SITES[r[0]][0]}→{lv}")
+print(f"::notice::spring layer raised {len(sprn)}: " + " · ".join(sprn[:30]), flush=True)
 fieldn = 0
 if FIELD:
     for r in rows:
@@ -379,7 +401,7 @@ def _days(a, b):
 jumpn = []
 for r in rows:
     pr = PREVR.get(r[0])
-    if not pr or r[2] < 2 or r[5] == 5 or len(r) < 7 or len(pr) < 7: continue
+    if not pr or r[2] < 2 or r[5] in (5, 13) or len(r) < 7 or len(pr) < 7: continue
     fresh = pr[2] == 0 and pr[1] < 20 and 0 <= _days(r[6], pr[6]) < 6
     still = pr[5] in (2, 6) and pr[2] == 1 and pr[6] == r[6]     # نفس الصورة اللي انشكّ فيها، ما جات صورة أحدث
     if fresh or still:

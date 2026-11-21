@@ -1605,7 +1605,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-21" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261121-22" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1778,8 +1778,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
           <div id="springBody"><div class="pl-note">جارٍ التحميل…</div></div>
         </div>
         <button type="button" class="cp-btn cp-btn-gold" id="springMap" style="width:100%;margin-top:10px">اعرض الربيع على الخريطة</button>
-        <a class="cp-btn cp-btn-white" id="springCopernicus" target="_blank" rel="noopener" href="#" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none">تفاصيل أدق (10 م) في Copernicus <span class="cp-ic" data-ico="external"></span></a>
-        <div class="weather-source-note">الفياض القريبة من صور القمر الأوروبي Sentinel-2 بدقة 10 م بدون غيم. والاخضرار حول النقطة من أقمار NASA (250 م، تقريبي) بعد استبعاد اللي كان أخضر قبل الموسم كالمزارع. الأمطار من Open-Meteo مع رادارات الأرصاد. يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع من مطر جيد. يحتاج اتصالًا بالإنترنت.</div>
+        <button type="button" class="cp-btn cp-btn-white" id="springCopernicus" style="width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:6px">🛰️ صورة القمر (10 م) على الخريطة</button>
+        <div class="weather-source-note">الفياض وطبقة الربيع من صور القمر الأوروبي Sentinel-2 بدقة 10 م بدون غيم: كل مكان مقارن بنفسه في الصيف، والمزارع (خضراء في الصيف) مستبعدة، والشجيرات المعمّرة لها لون لحالها. تتحدث الطبقة كل ثلاثاء وسبت. الأمطار من Open-Meteo مع رادارات الأرصاد. يظهر الربيع عادة بعد أسبوعين إلى ستة أسابيع من مطر جيد. يحتاج اتصالًا بالإنترنت.</div>
       </div>
       <div id="evPane" hidden></div>
     </section>
@@ -7055,7 +7055,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const kmT = r=>r.km != null ? (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : '';
     const dens = r=>r.pct != null ? (r.g < 150 ? 'خفيفة' : r.g < 300 ? 'متوسطة' : 'كثيفة') : '';
     const img = r=>r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : '';
-    const CHK = {12:'🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات (ورّقت بعد المطر) مو عشب', 11:'🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر', 9:'🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر مو ربيع', 8:'حولها مزارع — تحتاج تأكيد من الميدان', 7:'ظهرت بصورة وحدة — ننتظر صورة ثانية', 6:'خضرة مفاجئة بعد المطر — ننتظر صورة أحدث', 2:'ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان', 3:'المطر المسجل هنا قليل — تحتاج تأكيد من الميدان', 4:'خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان'};
+    const CHK = {13:'🛰️ من طبقة الربيع الدقيقة (20 م)', 12:'🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات (ورّقت بعد المطر) مو عشب', 11:'🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر', 9:'🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر مو ربيع', 8:'حولها مزارع — تحتاج تأكيد من الميدان', 7:'ظهرت بصورة وحدة — ننتظر صورة ثانية', 6:'خضرة مفاجئة بعد المطر — ننتظر صورة أحدث', 2:'ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان', 3:'المطر المسجل هنا قليل — تحتاج تأكيد من الميدان', 4:'خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان'};
     const max = Math.max(...green.map(r=>r.g), 60);
     const shelf = (key, cls, title, sub, items, cardFn)=>{
       if(!items.length) return '';
@@ -7086,7 +7086,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     // فحص الشاشات الآلي (tools/qa/ui_check.js) يقرأ هذا
     try{ window.__faydDbg = {shown:green.slice(0, 10).map(r=>({i:r.i, st0:r.st0, stale:r.stale, chk:r.chk || 0, field:!!r.field})), people:peopleAll.slice(0, 5).map(r=>({i:r.i, st0:r.st0})), early:earlyAll.slice(0, 6).map(r=>r.i), shelf:true}; }catch(e){}
   }
-  const FY_ST = [['ما بدأ','fy-p0'],['بداية اخضرار','fy-p1'],['مثل المعتاد','fy-p2'],['أخضر من المعتاد','fy-p3'],['أخضر من المعتاد بكثير','fy-p4']];
+  const FY_ST = [['ما بدأ','fy-p0'],['بداية ربيع','fy-p1'],['ربيع متوسط','fy-p2'],['ربيع كثيف','fy-p3'],['ربيع كثيف جدًا','fy-p4']];   // 21 نوفمبر: كانت «مثل المعتاد/أخضر من المعتاد» — تلخبط على فيضة مؤكدة
   const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم'], west:['تبوك','المدينة'], south:['مكة','عسير','الباحة','جازان','نجران']};
   let faydData = null, faydSites = null, faydLoading = null, faydFilter = '', faydMore = false;
   // 17 نوفمبر: نحفظ الفياض والفقع ومطر الأسبوع بالجوال أول ما يفتح التطبيق وعنده نت (بعد 10 ث) — عشان تشتغل بالبر بدون شبكة حتى لو ما فتح التبويب
@@ -7444,7 +7444,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       const lvBox = document.getElementById('fsLevel');
       const lvHtml = `<div class="fs-lvw"><div><div class="fs-lv">${level}<i style="background:${dot}"></i></div><small class="fs-note">${note}</small></div></div>`;
       body.innerHTML = (lvBox ? '' : lvHtml) + `<div class="fs-tiles"><div><b>${rain ? fmt(rain.sum30) + ' ملم' : '—'}</b><span>مطر آخر 30 يوم</span></div><div><b>${ds}</b><span>آخر مطر</span></div><div><b>${g ? fmt(Math.round(g.pct)) + '٪' : '—'}</b><span>خضرة حولك</span></div></div>`
-        + (near.length ? (()=>{ const N = near.filter((x, i, A)=>A.findIndex(y=>y.name === x.name) === i).slice(0, 2), ST = ['ما اخضرّت','بداية','مثل المعتاد','أخضر من المعتاد','أخضر بكثير'], same = N.every(x=>x.st === N[0].st);
+        + (near.length ? (()=>{ const N = near.filter((x, i, A)=>A.findIndex(y=>y.name === x.name) === i).slice(0, 2), ST = ['ما اخضرّت','بداية','ربيع متوسط','ربيع كثيف','كثيف جدًا'], same = N.every(x=>x.st === N[0].st);
           return `<div class="fs-near">أقرب الفياض: ${N.map(x=>`<b>${escapeHtml(x.name)}</b> ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم` + (same ? '' : ' (' + (ST[x.st] || '') + ')')).join(' · ')}${same ? ' — ' + (ST[N[0].st] || '') : ''}</div>`; })() : '')
         + (tip ? `<div class="sp-tip" style="padding:8px 10px;font-size:12.5px;line-height:1.7">${tip}</div>` : '')
         + `<div class="fs-pos">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
@@ -7453,15 +7453,16 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       return;
     }
     body.innerHTML = `<div class="sp-level" style="--sp-bg:${color}"><span class="cp-ic" style="width:34px;height:34px;color:#4E8A2E">${ico('leaf')}</span><div style="flex:1"><div class="big">${level}</div><small>${note}</small>${g ? `<div class="sp-bar"><i style="width:${Math.min(100, g.pct)}%"></i></div><small>${g.ref ? 'الاخضرار الجديد' : 'نسبة الاخضرار'} ضمن نحو 5 كم: ${fmt(g.pct)}٪ <span style="opacity:.7">(تقريبي، 250 م)</span></small>` : ''}</div></div>`
-      + (near.length ? `<div class="sp-row" style="display:block"><span style="display:block;margin-bottom:4px">أقرب الفياض (قمر أوروبي 10 م${c.asof ? ' · ' + new Date(c.asof + 'T12:00:00Z').toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short'}) : ''})</span>${near.map(x=>`<b style="display:block;font-weight:600">${escapeHtml(x.name)} <small style="font-weight:400">· ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم · ${['ما اخضرّت','بداية اخضرار','مثل المعتاد','أخضر من المعتاد','أخضر من المعتاد بكثير'][x.st]}${x.st > 0 && x.pct ? ' · +' + x.pct + '٪ مساحة خضراء' : ''}</small></b>`).join('')}</div>` : '')
+      + (near.length ? `<div class="sp-row" style="display:block"><span style="display:block;margin-bottom:4px">أقرب الفياض (قمر أوروبي 10 م${c.asof ? ' · ' + new Date(c.asof + 'T12:00:00Z').toLocaleDateString('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'short'}) : ''})</span>${near.map(x=>`<b style="display:block;font-weight:600">${escapeHtml(x.name)} <small style="font-weight:400">· ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} كم · ${['ما اخضرّت','بداية ربيع','ربيع متوسط','ربيع كثيف','ربيع كثيف جدًا'][x.st]}${x.st > 0 && x.pct ? ' · +' + x.pct + '٪ مساحة خضراء' : ''}</small></b>`).join('')}</div>` : '')
       + (rain ? `<div class="sp-row"><span>أمطار آخر 30 يومًا${rain.radar ? ' <small style="opacity:.7">(نموذج + رادار)</small>' : ''}</span><b>${fmt(rain.sum30)} مم</b></div><div class="sp-row"><span>آخر مطر يُذكر</span><b>${rain.daysSince === null ? 'لا يوجد خلال 45 يومًا' : rain.daysSince === 0 ? 'اليوم' : rain.daysSince === 1 ? 'أمس' : rain.daysSince === 2 ? 'قبل يومين' : 'قبل ' + fmt(rain.daysSince) + (rain.daysSince <= 10 ? ' أيام' : ' يومًا')}</b></div>` : '<div class="sp-row"><span>الأمطار</span><b>تعذّر التحميل</b></div>')
       + (tip ? `<div class="sp-tip">${tip}</div>` : '')
  + `<div class="pl-note" style="margin-top:8px">${c.name ? 'حسب: ' + escapeHtml(c.name) : c.live ? 'حسب موقعك الحالي' : 'حسب آخر موقع معروف'} · ${new Date(c.at).toLocaleTimeString('ar-SA-u-nu-latn', {hour:'numeric', minute:'2-digit'})}</div>`;
   }
   document.getElementById('springRefresh').addEventListener('click', ()=>showSpring(true));
-  document.getElementById('springCopernicus').addEventListener('click', e=>{
-    const q = springPos(); if(!q){ e.preventDefault(); toast('اختر مكانًا أو فعّل الموقع أولًا'); return; }
-    e.currentTarget.href = window.copernicusUrl(q.lat, q.lng, q.name && q.name.startsWith('منطقة') ? 9 : 12);
+  // 21 نوفمبر: «صورة القمر» صارت داخل دليل (طبقة الربيع → وضع صورة القمر بنفس ألوان Copernicus) بدل ما نطلّع المستخدم برا
+  document.getElementById('springCopernicus').addEventListener('click', ()=>{
+    try{ localStorage.setItem('dalil_spring_mode', 'sat'); }catch(e){}
+    document.getElementById('springMap').click();
   });
   document.getElementById('springLoc').addEventListener('change', ()=>{ document.getElementById('springHits').innerHTML = ''; showSpring(false); });
   document.getElementById('springSearch').addEventListener('submit', async e=>{
@@ -7479,7 +7480,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     const q = springPos();
     if(q && !q.live){ location.href = 'map.html?v=20261115-4&back=weather&view=spring&lat=' + q.lat.toFixed(5) + '&lng=' + q.lng.toFixed(5) + '&z=' + (q.name && q.name.startsWith('منطقة') ? 8 : 10) + '&label=' + encodeURIComponent(q.name || 'الربيع'); return; }
     document.querySelector('.tab[data-screen="track"]').click();
-    toast('طبقة الربيع مفعّلة — صغّر الخريطة لترى الأخضر حولك');
+    toast('طبقة الربيع مفعّلة — قرّب الخريطة تشوف بقع الربيع');
   });
   let wxPaneShown = 'wx';
   window.__dalilWxTab = id=>wxPaneShown === 'spring' ? spView : wxPaneShown === 'ev' ? 'events' : wxPaneShown === 'wind' ? 'wind' : String(id || '').startsWith('hl:') ? 'hail' : '';

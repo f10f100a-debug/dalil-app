@@ -1385,7 +1385,7 @@ function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)retur
     const r=D.row.get(hit);let t,c='';
     if(D.farm.has(hit)){t='🌾 فيها زراعة — خضرتها ما تنقاس ربيع';c='dry'}
     else if(r&&r[5]===10){t='🏜️ زيارة ميدانية: ما فيها ربيع حاليًا';c='dry'}
-    else if(r&&r[2]>0){t=(r[5]===12?'🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات، تحتاج تأكيد':r[5]===11?'🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر':r[5]===9?'🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر، تحتاج تأكيد':r[5]===5?'🌱 بداية ربيع — أكدها الميدان':r[5]===4?'🟡 بداية خضرة خفيفة — تحتاج تأكيد':r[5]===8?'🟡 حولها مزارع — تحتاج تأكيد من الميدان':r[5]===7?'🟡 ظهرت في صورة وحدة — ننتظر صورة ثانية تأكدها':r[5]===6?'🟡 خضرة مفاجئة بعد المطر — ننتظر صورة أحدث':r[5]?'🟡 خضرة تحتاج تأكيد من الميدان':(FYDENS?(r[1]<150?'🌱 خضرة خفيفة متفرقة':r[1]<300?'🌱 خضرة متوسطة':'🌿 خضرة كثيفة'):'🌱 خضراء — بدأ فيها الربيع'))+(r[3]?(FYDENS?' · '+r[3]+'% أخضر حول نقطة الفيضة':' · زادت الخضرة '+r[3]+'%'):'');c=r[5]&&r[5]!==5?'chk':''}
+    else if(r&&r[2]>0){t=(r[5]===13?(r[1]<150?'🌱 ربيع خفيف':r[1]<300?'🌿 ربيع متوسط':'🌿 ربيع كثيف')+' — من طبقة الربيع الدقيقة':r[5]===12?'🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات، تحتاج تأكيد':r[5]===11?'🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر':r[5]===9?'🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر، تحتاج تأكيد':r[5]===5?'🌱 بداية ربيع — أكدها الميدان':r[5]===4?'🟡 بداية خضرة خفيفة — تحتاج تأكيد':r[5]===8?'🟡 حولها مزارع — تحتاج تأكيد من الميدان':r[5]===7?'🟡 ظهرت في صورة وحدة — ننتظر صورة ثانية تأكدها':r[5]===6?'🟡 خضرة مفاجئة بعد المطر — ننتظر صورة أحدث':r[5]?'🟡 خضرة تحتاج تأكيد من الميدان':(FYDENS?(r[1]<150?'🌱 خضرة خفيفة متفرقة':r[1]<300?'🌱 خضرة متوسطة':'🌿 خضرة كثيفة'):'🌱 خضراء — بدأ فيها الربيع'))+(r[3]?(FYDENS?' · '+r[3]+'% أخضر حول نقطة الفيضة':' · زادت الخضرة '+r[3]+'%'):'');c=r[5]&&r[5]!==5?'chk':''}
     else if(r){t='🏜️ ما فيها خضرة جديدة حتى الآن';c='dry'}
     else{t='🏜️ ما عندنا قراءة حديثة لها';c='dry'}
     if(r&&r[6])t+=' · صورة '+fyDate(r[6]);
@@ -1942,7 +1942,11 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
         gl.addSource(id,{type:'image',url:u(c),coordinates:[[lo,la+d],[lo+d,la+d],[lo+d,la],[lo,la]]});
         gl.addLayer({id,type:'raster',source:id,layout:{visibility:'visible'},paint:{'raster-opacity':pre==='sps-'?.92:.95,'raster-fade-duration':0,'raster-resampling':'nearest'}},before)}
       else if(ADDED[id]&&gl.getLayer(id)){const v=vis?'visible':'none';if(gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)}}}
-  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
+  // 21 نوفمبر: لما تقرّب والطبقة تبان، هالات الفياض الكبيرة وحلقات «خضرة جديدة» (مسح 40 م القديم) تختفي — كانت تغطي بقع الربيع.
+  // من بعيد تبقى زي ما هي (الطبقة ما تبان من بعيد). نقطة الفيضة واسمها يبقون
+  const FADED={};function fade(){const Z=(a,b)=>['interpolate',['linear'],['zoom'],10,a,11.5,b];
+    [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id))return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
+  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
     const sat=mode==='sat'&&!!SX;layerSet(IX.chunks,'spr-',url,MINZ.cls,show&&!sat);if(SX)layerSet(SX.chunks,'sps-',surl,MINZ.sat,show&&sat);try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
@@ -1953,6 +1957,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     // ~400 م حول النقطة: ربيع لو مربعاته نص مربعات الشجيرات أو أكثر (أم دمام: ربيع بين شجيرات) — الهرارة والغرب الشجيرات أضعاف
     const best=sp&&sp>=sh*.5?[3,2,1].reduce((a,k)=>cnt[k]>cnt[a]?k:a,1):sh?4:0;
     return best?TXT[best]+(best<4&&sh>=sp*.5?' · وحولها شجيرات':'')+' · صورة '+fyDate(IX.asof):null};
+  addEventListener('storage',e=>{if(e.key==='dalil_spring_mode'){mode=e.newValue==='sat'?'sat':'cls';draw();sync()}});   // زر «صورة القمر» بصفحة الربيع
   const h=Math.floor(Date.now()/36e5);
   // 21 نوفمبر (التعميم): البيانات بفرع spring-data (يتبدل كل تحديث بدون تاريخ) — وإذا ما وصلنا له نرجع للنسخة اللي داخل الموقع
   const get=b=>Promise.all([fetch(b+'index.json?h='+h).then(r=>r.ok?r.json():null).catch(()=>null),fetch(b+'sat.json?h='+h).then(r=>r.ok?r.json():null).catch(()=>null)]);
