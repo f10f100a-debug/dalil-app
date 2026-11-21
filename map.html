@@ -1936,8 +1936,9 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     const cls=(R,G,B,A)=>{if(!A)return 0;for(const k in IX.pal){const q=IX.pal[k];if(Math.abs(q[0]-R)<6&&Math.abs(q[1]-G)<6&&Math.abs(q[2]-B)<6)return +k}return 0};
     for(let dr=-10;dr<=10;dr++)for(let dc=-10;dc<=10;dc++){const r=r0+dr,cc=c0+dc;if(r<0||cc<0||r>=P.w||cc>=P.w)continue;const i=(r*P.w+cc)*4;const k=cls(P.d[i],P.d[i+1],P.d[i+2],P.d[i+3]);if(k===4)sh++;else if(k){sp++;cnt[k]++}}
     // ~400 م حول النقطة: الأغلب ربيع ولا غطاء دائم، ودرجة الربيع = الأكثر بينها
-    const best=sp&&sp>=sh?[3,2,1].reduce((a,k)=>cnt[k]>cnt[a]?k:a,1):sh?4:0;
-    return best?TXT[best]+' · صورة '+fyDate(IX.asof):null};
+    // ربيع لو مربعاته نص مربعات الشجيرات أو أكثر (أم دمام: ربيع بين شجيرات) — الهرارة والغرب الشجيرات أضعاف
+    const best=sp&&sp>=sh*.5?[3,2,1].reduce((a,k)=>cnt[k]>cnt[a]?k:a,1):sh?4:0;
+    return best?TXT[best]+(best<4&&sh>=sp*.5?' · وحولها شجيرات':'')+' · صورة '+fyDate(IX.asof):null};
   fetch('data/spring/index.json?h='+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(j=>{if(!j||j.v!==2||!j.chunks||!j.chunks.length)return;IX=j;
     const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(sync,1500)},800)}).catch(()=>{});
 })();
