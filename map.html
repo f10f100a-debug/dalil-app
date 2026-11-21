@@ -1909,7 +1909,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 //  «التصنيف»: مربعات ~20 م اخضرّت عن الصيف (خفيف/متوسط/كثيف) والبنفسجي = غطاء دائم (شجيرات/عشب معمّر) اخضرّ بعد المطر
 //  «صورة القمر»: آخر صورة صافية ~10 م بألوان NDVI حق Copernicus — تقراها بعينك
 // القطع (ربع درجة) تنحمل حسب اللي على الشاشة
-(function(){let on=false;try{on=localStorage.getItem('dalil_lab_spring')==='1'}catch(e){}if(!on)return;
+(function(){let on=false;try{on=localStorage.getItem('dalil_lab_spring')!=='0'}catch(e){}if(!on)return;   // 21 نوفمبر: عامة للكل
   let IX=null,SX=null,lg=null,mode='cls',small=false;try{mode=localStorage.getItem('dalil_spring_mode')==='sat'?'sat':'cls';small=localStorage.getItem('dalil_spring_lg')==='1'}catch(e){}
   const C={},ADDED={};const MINZ={cls:9,sat:10};
   const TXT={1:'🌱 ربيع خفيف — عشب جديد بادي يطلع (القمر الصناعي)',2:'🌿 ربيع متوسط — عشب جديد واضح (القمر الصناعي)',3:'🌿 ربيع كثيف — عشب جديد كثيف (القمر الصناعي)',4:'🟣 شجيرات أو عشب معمّر اخضرّ بعد المطر — مو بالضرورة ربيع'};
@@ -1917,19 +1917,23 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   let BASE='data/spring/';const url=c=>BASE+nm(c)+'.png?v='+encodeURIComponent(IX.gen||IX.asof);
   const surl=c=>BASE+'sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.gen||SX.asof);
   const rgba=k=>{const q=IX.pal[k];return 'rgba('+q[0]+','+q[1]+','+q[2]+','+(Math.max(q[3],200)/255)+')'};
+  // 21 نوفمبر: المفتاح شريط رفيع تحت فوق مقياس المسافة (كان بطاقة بنص اليسار تغطي أسماء الفياض)
+  function place(){if(!lg)return;try{const r=badge.getBoundingClientRect();if(r.height){lg.style.bottom=(innerHeight-r.top+8)+'px'}}catch(e){}}
   function legend(){if(lg)return;lg=document.createElement('div');lg.id='sprLegend';
-    lg.style.cssText='position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 150px);z-index:30;background:rgba(255,253,247,.94);color:#2b2620;border-radius:12px;padding:6px 8px;font:600 11.5px/1.5 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);direction:rtl;max-width:142px;-webkit-user-select:none;user-select:none';
+    lg.style.cssText='position:fixed;right:10px;left:84px;bottom:120px;z-index:30;display:flex;justify-content:flex-end;pointer-events:none;direction:rtl';
     lg.addEventListener('click',e=>{const m=e.target.closest('[data-sm]');if(m){mode=m.dataset.sm;try{localStorage.setItem('dalil_spring_mode',mode)}catch(_){}draw();sync();return}
       if(e.target.closest('[data-lgt]')){small=!small;try{localStorage.setItem('dalil_spring_lg',small?'1':'0')}catch(_){}draw()}});
     document.body.appendChild(lg);draw()}
-  function draw(){if(!lg)return;const row=(k,t)=>'<div style="display:flex;align-items:center;gap:6px"><i style="width:13px;height:13px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</div>';
-    const seg=(k,t)=>'<b data-sm="'+k+'" style="flex:1;text-align:center;padding:3px 0;border-radius:8px;cursor:pointer;'+(mode===k?'background:#2E7D3E;color:#fff':'background:#EFE8DA')+'">'+t+'</b>';
-    let h='<div data-lgt style="font-weight:800;cursor:pointer;display:flex;justify-content:space-between;gap:6px"><span>🌱 الربيع من القمر</span><span style="opacity:.6">'+(small?'▾':'▴')+'</span></div>';
-    if(!small){h+='<div style="display:flex;gap:4px;margin:4px 0">'+seg('cls','التصنيف')+(SX?seg('sat','صورة القمر'):'')+'</div>';
-      if(mode==='sat'&&SX)h+='<div style="height:10px;border-radius:3px;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></div><div style="display:flex;justify-content:space-between;font-weight:500;font-size:10.5px"><span>جرداء</span><span>خضراء كثيفة</span></div><div style="font-weight:500;font-size:10.5px;opacity:.8">نفس ألوان Copernicus</div>';
-      else h+=row(1,'خفيف')+row(2,'متوسط')+row(3,'كثيف')+row(4,'شجيرات اخضرّت');
-      h+='<div id="sprHint" style="font-weight:500;font-size:10.5px;opacity:.75;margin-top:2px"></div>'}
-    lg.innerHTML=h;hint()}
+  function draw(){if(!lg)return;const chip=(k,t)=>'<span style="display:inline-flex;align-items:center;gap:3px;white-space:nowrap"><i style="width:11px;height:11px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</span>';
+    const seg=(k,t)=>'<b data-sm="'+k+'" style="padding:3px 8px;border-radius:999px;cursor:pointer;white-space:nowrap;'+(mode===k?'background:#2E7D3E;color:#fff':'color:#5a5246')+'">'+t+'</b>';
+    let h='<div style="pointer-events:auto;display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;background:rgba(255,253,247,.95);color:#2b2620;border-radius:16px;padding:5px 8px;font:700 11.5px/1.3 system-ui,-apple-system,\'Segoe UI\',Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-user-select:none;user-select:none;max-width:100%">';
+    h+='<span data-lgt style="cursor:pointer;font-size:14px">🌱</span>';
+    if(!small){h+=(SX?'<span style="display:inline-flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'');
+      if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap">جرداء<i style="width:56px;height:9px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
+      else h+=chip(1,'خفيف')+chip(2,'متوسط')+chip(3,'كثيف')+chip(4,'شجيرات');
+      h+='<span id="sprHint" style="font-weight:500;font-size:10.5px;opacity:.7;white-space:nowrap"></span>'}
+    else h+='<span data-lgt style="cursor:pointer;font-weight:600">'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
+    lg.innerHTML=h+'</div>';hint();place()}
   function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;h.textContent=gl.getZoom()<MINZ[mode==='sat'&&SX?'sat':'cls']?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
   function layerSet(list,pre,u,minz,want){const bb=gl.getBounds(),zz=gl.getZoom();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));let n=0;
     for(const c of list){const id=pre+nm(c);const vis=want&&zz>=minz&&c[0]<bb.getNorth()&&c[0]+.25>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+.25>bb.getWest();
@@ -1937,7 +1941,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
         gl.addSource(id,{type:'image',url:u(c),coordinates:[[lo,la+d],[lo+d,la+d],[lo+d,la],[lo,la]]});
         gl.addLayer({id,type:'raster',source:id,layout:{visibility:'visible'},paint:{'raster-opacity':pre==='sps-'?.92:.95,'raster-fade-duration':0,'raster-resampling':'nearest'}},before)}
       else if(ADDED[id]&&gl.getLayer(id)){const v=vis?'visible':'none';if(gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)}}}
-  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();const show=!!LP.ndvi;lg.style.display=show?'':'none';hint();
+  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
     const sat=mode==='sat'&&!!SX;layerSet(IX.chunks,'spr-',url,MINZ.cls,show&&!sat);if(SX)layerSet(SX.chunks,'sps-',surl,MINZ.sat,show&&sat);try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
