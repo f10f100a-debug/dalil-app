@@ -192,6 +192,11 @@ try: FIELD_NO = {int(r[0]): (r[3] if len(r) > 3 else 0) for r in json.load(open(
 except Exception: FIELD_NO = {}
 SKIP = {1703, 257} # 1703 «الروضة الشمالية» قرب مكة: معلم مو فيضة (الخضرة مزارع) · 257 نقطة مكررة للهرارة (21 نوفمبر، الاسم فاضي) — الصحيحة 178
 JUMP = 0.30        # قفزة خضرة فوق هذا في أسابيع = غالبًا محور زراعي جديد (موسم زراعة القمح) مو ربيع → «تحتاج تأكيد»
+# 21 نوفمبر (طراح): فيضة تأكد ربيعها من الميدان (نقطة ≤1.5 كم من مركزها) ما تنشال بسبب نسبة الزراعة بـ WorldCover —
+# المزارع حولها بس الربيع نفسه مؤكد (قاعدة الميدان تحت ترفعها)
+try: _FR = json.load(open("data/fayd-field.json"))["rows"]
+except Exception: _FR = []
+FIELD_AT = {i for i, s in enumerate(SITES) if s and any(abs(r[0] - s[1]) < .02 and abs(r[1] - s[2]) < .02 and math.hypot((r[0] - s[1]) * 111, (r[1] - s[2]) * 111 * math.cos(math.radians(s[1]))) <= 1.5 for r in _FR)}
 for i, s in enumerate(SITES):
     b = base[i]; v = [r[i] for r in res.values() if i in r]
     if not b or i in SKIP: continue
@@ -201,7 +206,7 @@ for i, s in enumerate(SITES):
     sb, c = s2base[i] if i < len(s2base) else None, cur.get(i)
     if sb and sb[0] >= 0.3:
         farm.append(i); continue                     # القمر الدقيق شافها خضراء قبل المطر = زراعة داخل الفيضة
-    if CROP.get(str(i), 0) >= 33:
+    if CROP.get(str(i), 0) >= 33 and i not in FIELD_AT:
         farm.append(i); continue                     # 13 نوفمبر (مريحات): ثلثها أو أكثر أراضي زراعية (WorldCover) — خضرة المحاور تخرب القياس
     if sb and c:
         # Sentinel-2: الفرق عن خضرة نفس الفيضة قبل الموسم (نفس القمر، 10 م) — الأدق
