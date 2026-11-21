@@ -171,7 +171,7 @@ def main():
     except Exception: pass
     keep = {(c[0], c[1]): c for c in old.get("chunks", []) if not (w <= c[1] + CH / 2 <= e and s_ <= c[0] + CH / 2 <= n)}
     for c in sat: keep[(c[0], c[1])] = c
-    json.dump({"v": 1, "asof": max(alld) if alld else today.isoformat(), "res": RS, "ch": CH, "chunks": sorted(keep.values())}, open(f"{OUT}/sat.json", "w"))
+    json.dump({"v": 1, "gen": int(time.time()), "asof": max(alld) if alld else today.isoformat(), "res": RS, "ch": CH, "chunks": sorted(keep.values())}, open(f"{OUT}/sat.json", "w"))
     print(f"::notice::sat chunks {len(sat)}", flush=True)
     del SAT
     classify("raw", BBOX)
@@ -204,7 +204,7 @@ def classify(raw, bb):
         for f_ in os.listdir(OUT):
             if f_.endswith(".png") and "." not in f_[:-4].split("_")[0]: os.remove(f"{OUT}/{f_}")
     for c in idx: keep[(c[0], c[1])] = c
-    json.dump({"v": 2, "asof": max(alld) if alld else today.isoformat(), "res": RES, "ch": CH, "pal": {str(k): list(v) for k, v in PAL.items()},
+    json.dump({"v": 2, "gen": int(time.time()), "asof": max(alld) if alld else today.isoformat(), "res": RES, "ch": CH, "pal": {str(k): list(v) for k, v in PAL.items()},
                "chunks": sorted(keep.values())}, open(f"{OUT}/index.json", "w"), ensure_ascii=False)
     print(f"::notice::spring chunks {len(idx)} asof {max(alld) if alld else '-'} t={round(time.time() - T0)}s", flush=True)
 

@@ -1914,8 +1914,8 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const C={},ADDED={};const MINZ={cls:9,sat:10};
   const TXT={1:'🌱 ربيع خفيف — عشب جديد بادي يطلع (القمر الصناعي)',2:'🌿 ربيع متوسط — عشب جديد واضح (القمر الصناعي)',3:'🌿 ربيع كثيف — عشب جديد كثيف (القمر الصناعي)',4:'🟣 شجيرات أو عشب معمّر اخضرّ بعد المطر — مو بالضرورة ربيع'};
   const nm=c=>c[0].toFixed(2)+'_'+c[1].toFixed(2);
-  const url=c=>'data/spring/'+nm(c)+'.png?v='+encodeURIComponent(IX.asof);
-  const surl=c=>'data/spring/sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.asof);
+  const url=c=>'data/spring/'+nm(c)+'.png?v='+encodeURIComponent(IX.gen||IX.asof);
+  const surl=c=>'data/spring/sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.gen||SX.asof);
   const rgba=k=>{const q=IX.pal[k];return 'rgba('+q[0]+','+q[1]+','+q[2]+','+(Math.max(q[3],200)/255)+')'};
   function legend(){if(lg)return;lg=document.createElement('div');lg.id='sprLegend';
     lg.style.cssText='position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 150px);z-index:30;background:rgba(255,253,247,.94);color:#2b2620;border-radius:12px;padding:6px 8px;font:600 11.5px/1.5 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);direction:rtl;max-width:142px;-webkit-user-select:none;user-select:none';
