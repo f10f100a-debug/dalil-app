@@ -1379,7 +1379,7 @@ function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)retur
   const ff=fieldNear(p);if(ff){el.textContent=(/بلاغات الناس/.test(ff.name||'')?'بلّغ عنه أكثر من جوال':(ff.name||'تأكد على الأرض'))+(ff.d?' · '+fyDate(ff.d):'')+(ff.src?' · '+ff.src:'');el.className='nav-fayd';el.hidden=false;satPoint={lat:ff.lat,lng:ff.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}return}
   faydData().then(D=>{if(fyKey!==key)return;let best=1.5,hit=-1;const k=Math.cos(p.lat*Math.PI/180);
     D.sites.forEach((s,i)=>{if(!s||!s[0]||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
-    if(hit<0){const nw=newNear(p);if(!nw){if(window.__springAt)window.__springAt(p).then(t=>{if(!t||fyKey!==key)return;el.textContent=t;el.className='nav-fayd'+(/غطاء دائم/.test(t)?' chk':'');el.hidden=false;satPoint={lat:p.lat,lng:p.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}}).catch(()=>{});return}
+    if(hit<0){const nw=newNear(p);if(!nw){if(window.__springAt)window.__springAt(p).then(t=>{if(!t||fyKey!==key)return;el.textContent=t;el.className='nav-fayd'+(/شجيرات/.test(t)?' chk':'');el.hidden=false;satPoint={lat:p.lat,lng:p.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}}).catch(()=>{});return}
       el.textContent='🛰️ اكتشفها القمر الصناعي — تحتاج تأكيد من الميدان · مساحتها '+nw.ha+' هكتار'+(FNasof?' · صورة '+fyDate(FNasof):'');el.className='nav-fayd chk';el.hidden=false;
       satPoint={lat:nw.lat,lng:nw.lng};namePoint=satPoint;b.hidden=false;$('#nameNav').hidden=false;try{syncNavCardSpace()}catch(e){}return}
     const r=D.row.get(hit);let t,c='';
@@ -1905,28 +1905,41 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     try{render()}catch(e){}}
   const iv=setInterval(()=>{add();if(done)clearInterval(iv)},1000);
 })();
-// 21 نوفمبر (تجربة dalil_lab_spring): طبقة الربيع الدقيقة — مربعات ~100 م اخضرّت عن الصيف بصورتين ورا بعض (فيضة أو مو فيضة)
-// الأصفر الفاتح = بداية خفيفة، الأخضر = ربيع، الغامق = قوي، البني = غطاء دائم (شجيرات/عشب معمّر) اخضرّ بعد المطر
+// 21 نوفمبر (تجربة dalil_lab_spring): طبقة الربيع الدقيقة — مربعات ~20 م اخضرّت عن الصيف بصورتين ورا بعض (فيضة أو مو فيضة)
+// خفيفة / متوسطة / كثيفة، والبنفسجي = غطاء دائم (شجيرات/عشب معمّر) اخضرّ بعد المطر. القطع (ربع درجة) تنحمل حسب اللي على الشاشة من تقريب 9
 (function(){let on=false;try{on=localStorage.getItem('dalil_lab_spring')==='1'}catch(e){}if(!on)return;
-  let IX=null,done=false;const C={};
-  const TXT={1:'🌱 بداية ربيع خفيفة — القمر شاف عشب جديد بعد المطر',2:'🌱 ربيع — عشب جديد واضح من القمر',3:'🌿 ربيع قوي — عشب جديد كثيف',4:'🌾 غطاء دائم (شجيرات أو عشب معمّر) اخضرّ بعد المطر — مو بالضرورة ربيع'};
-  const url=c=>'data/spring/'+c[0]+'_'+c[1]+'.png?v='+encodeURIComponent(IX.asof);
-  function add(){if(done||typeof gl==='undefined'||!glOk()||!IX)return;done=true;
-    const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
-    IX.chunks.forEach((c,k)=>{const la=c[0],lo=c[1];
-      gl.addSource('spr-'+k,{type:'image',url:url(c),coordinates:[[lo,la+1],[lo+1,la+1],[lo+1,la],[lo,la]]});
-      gl.addLayer({id:'spr-'+k,type:'raster',source:'spr-'+k,layout:{visibility:LP.ndvi?'visible':'none'},paint:{'raster-opacity':.9,'raster-fade-duration':0}},before)});
-    setInterval(()=>{try{const v=LP.ndvi?'visible':'none';IX.chunks.forEach((c,k)=>{if(gl.getLayoutProperty('spr-'+k,'visibility')!==v)gl.setLayoutProperty('spr-'+k,'visibility',v)})}catch(e){}},1000);
+  let IX=null,ready=false,lg=null;const C={},ADDED={};const MINZ=9;
+  const TXT={1:'🌱 ربيع خفيف — عشب جديد بادي يطلع (القمر الصناعي)',2:'🌿 ربيع متوسط — عشب جديد واضح (القمر الصناعي)',3:'🌿 ربيع كثيف — عشب جديد كثيف (القمر الصناعي)',4:'🟣 شجيرات أو عشب معمّر اخضرّ بعد المطر — مو بالضرورة ربيع'};
+  const nm=c=>c[0].toFixed(2)+'_'+c[1].toFixed(2);
+  const url=c=>'data/spring/'+nm(c)+'.png?v='+encodeURIComponent(IX.asof);
+  const rgba=k=>{const q=IX.pal[k];return 'rgba('+q[0]+','+q[1]+','+q[2]+','+(Math.max(q[3],200)/255)+')'};
+  function legend(){if(lg)return;lg=document.createElement('div');lg.id='sprLegend';
+    lg.style.cssText='position:fixed;left:8px;top:calc(env(safe-area-inset-top,0px) + 150px);z-index:30;background:rgba(255,253,247,.93);color:#2b2620;border-radius:12px;padding:7px 9px;font:600 12px/1.55 system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.18);direction:rtl;pointer-events:none;max-width:150px';
+    const row=(k,t)=>'<div style="display:flex;align-items:center;gap:6px"><i style="width:14px;height:14px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</div>';
+    lg.innerHTML='<div style="font-weight:800;margin-bottom:2px">🌱 الربيع من القمر</div>'+row(1,'خفيف')+row(2,'متوسط')+row(3,'كثيف')+row(4,'شجيرات اخضرّت')+'<div id="sprHint" style="font-weight:500;font-size:11px;opacity:.75;margin-top:2px"></div>';
+    document.body.appendChild(lg)}
+  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();
+    const show=!!LP.ndvi;lg.style.display=show?'':'none';
+    const zz=gl.getZoom();const h=document.getElementById('sprHint');if(h)h.textContent=zz<MINZ?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(IX.asof);
+    if(!show||zz<MINZ){for(const k in ADDED)if(gl.getLayer(k)&&gl.getLayoutProperty(k,'visibility')!=='none')gl.setLayoutProperty(k,'visibility','none');return}
+    const bb=gl.getBounds();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));let n=0;
+    for(const c of IX.chunks){const id='spr-'+nm(c);const vis=c[0]<bb.getNorth()&&c[0]+IX.ch>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+IX.ch>bb.getWest();
+      if(vis&&!ADDED[id]&&n<40){n++;ADDED[id]=1;const la=c[0],lo=c[1],d=IX.ch;
+        gl.addSource(id,{type:'image',url:url(c),coordinates:[[lo,la+d],[lo+d,la+d],[lo+d,la],[lo,la]]});
+        gl.addLayer({id,type:'raster',source:id,layout:{visibility:'visible'},paint:{'raster-opacity':.95,'raster-fade-duration':0,'raster-resampling':'nearest'}},before)}
+      else if(ADDED[id]&&gl.getLayer(id)){const v=vis?'visible':'none';if(gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)}}
     try{render()}catch(e){}}
-  function px(c){if(C[c[0]+'_'+c[1]])return C[c[0]+'_'+c[1]];
-    return C[c[0]+'_'+c[1]]=new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=no;im.src=url(c)})}
-  window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+1&&p.lng>=c[1]&&p.lng<c[1]+1);if(!c)return null;
-    const P=await px(c),r0=Math.floor((c[0]+1-p.lat)/IX.res),c0=Math.floor((p.lng-c[1])/IX.res);let sp=0,sh=0,top=0;
+  function px(c){const k=nm(c);if(C[k])return C[k];
+    return C[k]=new Promise((ok,no)=>{const im=new Image();im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
+  window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+IX.ch&&p.lng>=c[1]&&p.lng<c[1]+IX.ch);if(!c)return null;
+    const P=await px(c),r0=Math.floor((c[0]+IX.ch-p.lat)/IX.res),c0=Math.floor((p.lng-c[1])/IX.res);let sp=0,sh=0,cnt={1:0,2:0,3:0};
     const cls=(R,G,B,A)=>{if(!A)return 0;for(const k in IX.pal){const q=IX.pal[k];if(Math.abs(q[0]-R)<6&&Math.abs(q[1]-G)<6&&Math.abs(q[2]-B)<6)return +k}return 0};
-    for(let dr=-2;dr<=2;dr++)for(let dc=-2;dc<=2;dc++){const r=r0+dr,cc=c0+dc;if(r<0||cc<0||r>=P.w||cc>=P.w)continue;const i=(r*P.w+cc)*4;const k=cls(P.d[i],P.d[i+1],P.d[i+2],P.d[i+3]);if(k===4)sh++;else if(k){sp++;if(k>top)top=k}}
-    const best=sp&&sp>=sh?top:sh?4:0;   // الأغلب حول النقطة (~500 م): ربيع ولا غطاء دائم
+    for(let dr=-4;dr<=4;dr++)for(let dc=-4;dc<=4;dc++){const r=r0+dr,cc=c0+dc;if(r<0||cc<0||r>=P.w||cc>=P.w)continue;const i=(r*P.w+cc)*4;const k=cls(P.d[i],P.d[i+1],P.d[i+2],P.d[i+3]);if(k===4)sh++;else if(k){sp++;cnt[k]++}}
+    // ~180 م حول النقطة: الأغلب ربيع ولا غطاء دائم، ودرجة الربيع = الأكثر بينها
+    const best=sp&&sp>=sh?[3,2,1].reduce((a,k)=>cnt[k]>cnt[a]?k:a,1):sh?4:0;
     return best?TXT[best]+' · صورة '+fyDate(IX.asof):null};
-  fetch('data/spring/index.json?h='+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(j=>{if(j&&j.chunks&&j.chunks.length){IX=j;const iv=setInterval(()=>{add();if(done)clearInterval(iv)},1000)}}).catch(()=>{});
+  fetch('data/spring/index.json?h='+Math.floor(Date.now()/36e5)).then(r=>r.ok?r.json():null).then(j=>{if(!j||j.v!==2||!j.chunks||!j.chunks.length)return;IX=j;
+    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(sync,1500)},800)}).catch(()=>{});
 })();
 </script><script>
 // 19 نوفمبر (تجربة dalil_lab_shrfab): مسار مستلم (رابط أو ملف GPX) — زر «🧭 اتبع المسار» عائم فوق الخريطة (الشريط اللي تحتها يتغطى بالشاشة الكاملة)
