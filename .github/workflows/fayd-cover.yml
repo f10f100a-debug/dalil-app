@@ -1,0 +1,17 @@
+# غطاء الأرض داخل كل فيضة (شجر/شجيرات/عشب/جرداء/زراعة — ESA WorldCover) → data/fayd-cover.json — مرة وحدة
+name: Fayd cover
+on: { workflow_dispatch: {} }
+jobs:
+  cover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions: { contents: write }
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet rasterio numpy
+      - run: python3 tools/fayd/coverfrac.py
+      - name: Commit
+        run: |
+          git config user.email ci@dalil && git config user.name "dalil-bot"
+          git add data/fayd-cover.json && git commit -qm "الفياض: غطاء الأرض (WorldCover)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
