@@ -24,6 +24,16 @@ for b, d, ix, sx in done:
         if os.path.exists(f"{d}/{nm(c)}.png"): shutil.copy(f"{d}/{nm(c)}.png", f"{out}/{nm(c)}.png"); idx.append(c)
     for c in sx.get("chunks", []):
         if os.path.exists(f"{d}/sat/{nm(c)}.webp"): shutil.copy(f"{d}/sat/{nm(c)}.webp", f"{out}/sat/{nm(c)}.webp"); sat.append(c)
+# 22 نوفمبر: قطعة أكثر من ربعها «ربيع» = غالبًا خلل (جبال/حرّات) — ما تنعرض. وصورة القمر لأكثر 120 قطعة ربيع بس (الحجم)
+N2 = (CH / 0.0002) ** 2
+bad = {(c[0], c[1]) for c in idx if sum(c[2][:3]) / N2 > .25}
+idx = [c for c in idx if (c[0], c[1]) not in bad]
+spc = {(c[0], c[1]): sum(c[2][:3]) for c in idx}
+sat = sorted([c for c in sat if (c[0], c[1]) in spc], key=lambda c: -spc[(c[0], c[1])])[:120]
+keep = {f"{c[0]:.2f}_{c[1]:.2f}.webp" for c in sat}
+for f in os.listdir(f"{out}/sat"):
+    if f not in keep: os.remove(f"{out}/sat/{f}")
+print(f"::notice::hidden implausible chunks {len(bad)}")
 gen = int(time.time()); a = max(asof)
 json.dump({"v": 2, "gen": gen, "asof": a, "res": 0.0002, "ch": CH, "pal": pal, "chunks": sorted(idx)}, open(f"{out}/index.json", "w"), ensure_ascii=False)
 json.dump({"v": 1, "gen": gen, "asof": a, "res": 0.0001, "ch": CH, "chunks": sorted(sat)}, open(f"{out}/sat.json", "w"))

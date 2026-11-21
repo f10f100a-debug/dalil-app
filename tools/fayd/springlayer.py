@@ -25,7 +25,7 @@ NDVI_PAL = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.
 D_MIN = float(os.environ.get("SPRING_D") or 0.03)
 OUT = os.environ.get("SPRING_OUT") or "data/spring"; os.makedirs(OUT, exist_ok=True)
 # صورة القمر الخام (ثقيلة) بس للقطع اللي فيها ربيع (≥ SAT_MIN مربع) وحولها فيضة مسجلة — التعميم 21 نوفمبر
-SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 200)
+SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 20000)
 _FS = json.load(open("data/fayd-sites.json"))
 FAYD_CH = {(math.floor(x[1] / .25), math.floor(x[2] / .25)) for x in _FS if x and x[0]}
 env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3")
@@ -69,9 +69,13 @@ def quad_delta(now_items, dry_items, qr, qc):
     if len(drys) < 2: return None
     dry = np.nanmedian(np.stack(drys), 0); del drys
     ok = np.isfinite(now) & np.isfinite(dry) & (dry < 0.15)
-    g = np.where(ok, ((now - dry) >= D_MIN).astype("float32"), np.nan)
-    g2 = np.where(ok, ((now - dry) >= 0.02).astype("float32"), np.nan)
-    dl = np.where(ok, now - dry, np.nan).astype("float32")
+    # 22 نوفمبر (الحجاز وعسير طلعت قطع كاملة خضراء): إزاحة عامة بالمنطقة (إضاءة الموسم، رطوبة، غبار، حرّات بركانية) مو ربيع —
+    # نطرح وسيط الزيادة لربع البلاطة (~55 كم) إذا كان موجب. العشب يطلع بقع (شعبان وفياض) فما يتأثر
+    dd = now - dry; shift = float(np.nanmedian(dd[ok])) if ok.any() else 0.0
+    if shift > 0: dd = dd - shift
+    g = np.where(ok, (dd >= D_MIN).astype("float32"), np.nan)
+    g2 = np.where(ok, (dd >= 0.02).astype("float32"), np.nan)
+    dl = np.where(ok, dd, np.nan).astype("float32")
     return g, g2, dl, tr, crs, dates, now
 
 WC = {}
@@ -172,7 +176,7 @@ def main():
         img[:] = (234, 234, 234)
         for t, hx in NDVI_PAL: img[v >= t] = tuple(int(hx[i:i + 2], 16) for i in (0, 2, 4))
         img[v == -9] = (200, 200, 200)
-        Image.fromarray(img).save(f"{OUT}/sat/{la:.2f}_{lo:.2f}.webp", quality=72, method=4)
+        Image.fromarray(img).save(f"{OUT}/sat/{la:.2f}_{lo:.2f}.webp", quality=60, method=4)
         sat.append([la, lo])
     old = {}
     try: old = json.load(open(f"{OUT}/sat.json"))
