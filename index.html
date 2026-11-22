@@ -1605,7 +1605,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261122-5" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261122-7" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5962,6 +5962,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     }, location.origin);
   }
   document.getElementById('trackMapFrame').addEventListener('load', syncTrackMap);
+  // 22 نوفمبر: نقول للخريطة إذا هي قدامك (أي طريقة تفتح/تسكر صفحة الخريطة) — مخفية = توقف الرسم والتحديث
+  (()=>{ const sc = document.getElementById('screen-track'), mf = document.getElementById('trackMapFrame'); if(!sc || !mf) return;
+    const tell = ()=>{ try{ if(mf.contentWindow) mf.contentWindow.postMessage({type:'DALIL_MAP_VIS', on: sc.classList.contains('active')}, location.origin); }catch(e){} };
+    new MutationObserver(tell).observe(sc, {attributes:true, attributeFilter:['class']}); mf.addEventListener('load', tell); })();
   // خريطة المسار تُحمَّل بعد ظهور الواجهة حتى لا تؤخّر أول فتح للتطبيق
   const startTrackFrame = ()=>{ const f = document.getElementById('trackMapFrame'); if(f && !f.getAttribute('src') && f.dataset.src) f.setAttribute('src', f.dataset.src); };
   window.__dalilStartTrackFrame = startTrackFrame;

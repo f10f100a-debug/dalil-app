@@ -1355,7 +1355,9 @@ function faydData(){if(!FYD){const t=Math.floor(Date.now()/36e5);
 // بطاقة الوجهة: إذا الوجهة فيضة/روضة من القائمة (خلال 1.5 كم) نعرض حالتها + زر صورة القمر الصناعي اليوم
 let fyKey='',satPoint=null;
 function fyDate(d){if(!d)return d;const M=fyDate.m||(fyDate.m={});if(M[d])return M[d];try{fyDate.f=fyDate.f||new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'});return M[d]=fyDate.f.format(new Date(d+'T12:00:00'))}catch(e){return d}}   // 22 نوفمبر: كان يبني المنسّق كل مرة (ثقيل جدًا على الجوال)
-function mapHidden(){return innerWidth<2||innerHeight<2||document.hidden}   // الخريطة مخفية ورا صفحة ثانية
+var mapVis=true;function mapHidden(){return !mapVis||innerWidth<2||innerHeight<2||document.hidden}   // الخريطة مخفية ورا صفحة ثانية
+// 22 نوفمبر: داخل التطبيق، الصفحة الأم تقول للخريطة إذا هي قدامك (iframe المخفي يحتفظ بمقاسه القديم بعد أول زيارة، فالمقاس ما يكفي)
+addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_VIS')return;const was=mapVis;mapVis=!!e.data.on;if(mapVis&&!was)try{dispatchEvent(new Event('resize'))}catch(_){}});
 // فياض بدون اسم (مسح أسبوعي بالقمر الصناعي): حلقات خضراء فاتحة، بدون تنبيهات، وبطاقتها فيها «تعرف اسمها؟»
 let FN=[],FNasof='',namePoint=null,fnLoaded=false;
 async function loadNewFayd(){if(fnLoaded)return;fnLoaded=true;try{const t=Math.floor(Date.now()/36e5);const j=await fetch('data/fayd-new.json?h='+t).then(r=>r.ok?r.json():null);if(!j)return;FNasof=j.asof||'';
@@ -1937,10 +1939,10 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       h+='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px 2px">';
       if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">جرداء<i style="width:70px;height:10px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
       else h+=chip(1,'خفيف')+chip(2,'متوسط')+chip(3,'كثيف')+chip(4,'شجيرات');
-      h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
+      h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div><div id="sprOff" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px"></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;if(OFF)try{offStatus()}catch(e){}const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=(gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':(OFF&&navigator.onLine===false?'محفوظة · ':'')+'صورة '+fyDate(X.asof))+(OFF&&offTxt?' · '+offTxt:'');if(h.textContent!==t)h.textContent=t}
+  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;if(OFF)try{offStatus()}catch(e){}const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
@@ -1990,10 +1992,21 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const regOf=(lng,lat)=>{try{if(typeof REGIONS==='undefined'||!REGIONS.length)return null;const r=typeof regionAt==='function'?regionAt(lng,lat):null;
     return r&&r.bbox?r:REGIONS.find(q=>q.bbox&&lng>=q.bbox[0]&&lng<=q.bbox[2]&&lat>=q.bbox[1]&&lat<=q.bbox[3])||null}catch(e){return null}};
   const viewReg=()=>{try{if(typeof gl==='undefined'||!glOk())return null;const c=gl.getCenter();return regOf(c.lng,c.lat)}catch(e){return null}};
-  function offStatus(){if(!OFF||!IX)return;const v=viewReg(),gen=String(IX.gen||IX.asof),d=offDone();
-    if(busyReg)return;   // النسبة تنكتب وقت الحفظ
-    if(!v){offTxt='';return}
-    offTxt=d[v.id]===gen?'✓ ربيع '+v.name+' محفوظ للبر':d[v.id]&&navigator.onLine===false?'محفوظ (تحديث أقدم)':navigator.onLine===false?'ربيع '+v.name+' مو محفوظ':'';}
+  // 22 نوفمبر: حالة الحفظ بحبوب ملوّنة (أخضر = محفوظ، برتقالي = يحفظ الحين مع شريط، أحمر = بدون نت وما هو محفوظ)
+  let busyPct=0;
+  function offStatus(){}
+  function offRender(){const el=document.getElementById('sprOff');if(!el||!IX)return;
+    const gen=String(IX.gen||IX.asof),d=offDone(),net=navigator.onLine!==false,P=[],seen=new Set();
+    const pill=(bg,fg,bd,html)=>'<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:'+bg+';color:'+fg+';border:1px solid '+bd+'">'+html+'</span>';
+    const add=r=>{if(!r||seen.has(r.id))return;seen.add(r.id);
+      if(busyReg&&busyReg.id===r.id)return;
+      if(d[r.id]===gen)P.push(pill('#E3F1E4','#2F6B3A','#BFDCC3','✓ '+r.name+' محفوظ للبر'));
+      else if(d[r.id])P.push(pill(net?'#F3EEE4':'#E3F1E4',net?'#6B5B45':'#2F6B3A',net?'#E2D8C6':'#BFDCC3',r.name+(net?' — نسخة أقدم، يتحدث':' محفوظ (نسخة أقدم)')));
+      else if(!net)P.push(pill('#FBE4E1','#9A3324','#F0C2BB','✕ '+r.name+' مو محفوظ'));};
+    if(busyReg)P.push(pill('#FBF1DF','#7A4E12','#E6CFA6','📥 يحفظ '+busyReg.name+' '+busyPct+'٪<i style="display:inline-block;width:46px;height:5px;border-radius:3px;background:#EBDDC4;overflow:hidden"><b style="display:block;height:100%;width:'+busyPct+'%;background:#C9964F"></b></i>'));
+    try{if(typeof gps!=='undefined'&&gps)add(regOf(gps.lng,gps.lat))}catch(e){}
+    add(viewReg());
+    const html=P.join('');if(el.innerHTML!==html)el.innerHTML=html;el.style.display=P.length?'flex':'none';}
   function offTick(){try{
     if(!OFF||!IX||!IX.tiles||BASE!==RB||busyReg){offStatus();return}
     if(navigator.onLine===false){offStatus();try{hint()}catch(e){}return}
@@ -2009,18 +2022,18 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     IX.chunks.forEach(c=>{if(c[0]+IX.ch<so||c[0]>n||c[1]+IX.ch<w||c[1]>e)return;
       for(let z=z0;z<=z1;z++)for(let x=lx(c[1],z);x<=lx(c[1]+IX.ch,z);x++)for(let y=ly(c[0]+IX.ch,z);y<=ly(c[0],z);y++){const k=z+'/'+x+'/'+y;if(!seen.has(k)){seen.add(k);q.push(k)}}});
     const tot=q.length,V='?v='+encodeURIComponent(gen)+OQ;let ok=0,fail=0,i=0;
-    const show=()=>{offTxt='📥 حفظ ربيع '+r.name+' '+Math.round(100*ok/Math.max(tot,1))+'٪';try{hint()}catch(e){}};
+    const show=()=>{busyPct=Math.round(100*ok/Math.max(tot,1));try{offRender()}catch(e){}};
     const one=()=>{if(navigator.onLine===false||busyReg!==r)return Promise.resolve();const k=q[i++];if(!k)return Promise.resolve();
       return fetch(BASE+'t/c/'+k+'.png'+V).then(x=>{if(!x.ok&&x.status!==404)fail++}).catch(()=>{fail++}).then(()=>{ok++;if(ok%25===0)show();return one()})};
     show();
     Promise.all([one(),one(),one(),one()]).then(()=>{
       if(ok>=tot&&fail<=tot*.02){const dd=offDone();dd[r.id]=gen;try{localStorage.setItem('dalil_spring_off',JSON.stringify(dd))}catch(e){}}
-      busyReg=null;offStatus();try{hint()}catch(e){}});
+      busyReg=null;busyPct=0;try{offRender()}catch(e){}});
   }catch(e){busyReg=null}}
   const start=()=>get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
-    if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>setTimeout(offTick,3000));addEventListener('offline',()=>{busyReg=null;offStatus();try{hint()}catch(e){}})}
-    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
+    if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>setTimeout(offTick,3000));addEventListener('offline',()=>{busyReg=null;try{offRender()}catch(e){}})}
+    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',()=>sync(1));setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
   start();
 })();
 </script><script>
