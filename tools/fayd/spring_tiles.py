@@ -28,26 +28,32 @@ class Chunks:
         im = Image.open(s.path.format(k[0], k[1]))
         if s.kind == "c":
             A = np.array(im.convert("RGBA")); C = np.zeros(A.shape[:2], "uint8")
-            for c, col in PAL.items(): C[(A[..., 3] > 0) & (np.abs(A[..., :3].astype(int) - col[:3]).sum(-1) < 12)] = c
+            key = (A[..., 0].astype("int32") << 16) | (A[..., 1].astype("int32") << 8) | A[..., 2]
+            key[A[..., 3] == 0] = -1
+            for c, col in PAL.items(): C[key == ((col[0] << 16) | (col[1] << 8) | col[2])] = c   # ألوان القطع ثابتة (نفس اللوحة)
             v = C
         else: v = np.array(im.convert("RGB"))
         s.c[k] = v
-        if len(s.c) > 24: s.c.popitem(last=False)
+        if len(s.c) > 64: s.c.popitem(last=False)
         return v
 
 def render(ch, z, x, y):
-    """بلاطة بأعلى دقة: كل بكسل → أقرب مربع في القطع (EPSG:4326)"""
-    lons = np.array([x2lon(x + (i + .5) / T, z) for i in range(T)])
-    lats = np.array([y2lat(y + (j + .5) / T, z) for j in range(T)])
-    LA, LO = np.meshgrid(lats, lons, indexing="ij")
-    k0 = np.floor(LA / CH) * CH; k1 = np.floor(LO / CH) * CH
-    out = np.zeros((T, T) if ch.kind == "c" else (T, T, 3), "uint8"); hit = np.zeros((T, T), bool)
+    """بلاطة بأعلى دقة: كل بكسل → أقرب مربع في القطع (EPSG:4326) — بدون حلقات بايثون على البكسلات"""
+    i = np.arange(T) + .5
+    lons = (x + i / T) / 2 ** z * 360 - 180
+    lats = np.degrees(np.arctan(np.sinh(np.pi * (1 - 2 * (y + i / T) / 2 ** z))))
+    ka = np.floor(lats / CH + 1e-9).astype(int); kb = np.floor(lons / CH + 1e-9).astype(int)
     n = int(round(CH / ch.res))
-    for a, b in set(zip(np.round(k0.ravel(), 2), np.round(k1.ravel(), 2))):
-        if (a, b) not in ch.keys: continue
-        m = (np.round(k0, 2) == a) & (np.round(k1, 2) == b)
-        r = np.clip(((a + CH - LA[m]) / ch.res).astype(int), 0, n - 1); c = np.clip(((LO[m] - b) / ch.res).astype(int), 0, n - 1)
-        out[m] = ch.get((a, b))[r, c]; hit[m] = True
+    out = np.zeros((T, T) if ch.kind == "c" else (T, T, 3), "uint8"); hit = np.zeros((T, T), bool)
+    for a in np.unique(ka):
+        rs = ka == a; A0 = round(a * CH, 2)
+        r = np.clip(((A0 + CH - lats[rs]) / ch.res).astype(int), 0, n - 1)
+        for b in np.unique(kb):
+            k = (A0, round(b * CH, 2))
+            if k not in ch.keys: continue
+            cs = kb == b
+            c = np.clip(((lons[cs] - k[1]) / ch.res).astype(int), 0, n - 1)
+            out[np.ix_(rs, cs)] = ch.get(k)[np.ix_(r, c)]; hit[np.ix_(rs, cs)] = True
     return out, hit
 
 def save_c(A, p):
@@ -67,7 +73,7 @@ def pyramid(kind, zmax, zmin, chunks, ext):
         x0, x1 = int(lon2x(b, zmax)), int(lon2x(b + CH, zmax)); y0, y1 = int(lat2y(a + CH, zmax)), int(lat2y(a, zmax))
         tiles |= {(x, y) for x in range(x0, x1 + 1) for y in range(y0, y1 + 1)}
     made = {}; n = 0
-    for x, y in sorted(tiles):
+    for x, y in sorted(tiles, key=lambda t: (t[1] // 4, t[0], t[1])):   # شرائط بعرض قطعة تقريبًا → القطع تنقرا مرة وحدة تقريبًا
         A, hit = render(ch, zmax, x, y)
         if not hit.any(): continue
         p = f"{D}/t/{kind}/{zmax}/{x}/{y}.{ext}"

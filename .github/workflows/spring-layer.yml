@@ -7,9 +7,11 @@ on:
     inputs:
       bbox: { description: "جزء واحد للتجربة: غرب,جنوب,شرق,شمال (فاضي = كل المناطق)", type: string, default: "" }
       d: { description: "حد الزيادة عن الصيف (افتراضي 0.03)", type: string, default: "" }
-permissions: { contents: write }
+      from_run: { description: "دمج بس من أجزاء تشغيل سابق (رقمه) بدون مسح جديد", type: string, default: "" }
+permissions: { contents: write, actions: read }
 jobs:
   plan:
+    if: ${{ !inputs.from_run }}
     runs-on: ubuntu-latest
     outputs: { m: "${{ steps.p.outputs.m }}" }
     steps:
@@ -36,9 +38,9 @@ jobs:
         with: { name: "spring-${{ matrix.i }}", path: out/, retention-days: 3 }
   merge:
     needs: parts
-    if: always() && needs.parts.result != 'skipped'
+    if: always() && (needs.parts.result != 'skipped' || inputs.from_run)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - name: Previous data
@@ -46,7 +48,7 @@ jobs:
           mkdir prev
           if git fetch -q origin spring-data 2>/dev/null; then git archive FETCH_HEAD | tar -x -C prev; fi
       - uses: actions/download-artifact@v4
-        with: { path: parts, pattern: "spring-*" }
+        with: { path: parts, pattern: "spring-*", run-id: "${{ inputs.from_run || github.run_id }}", github-token: "${{ github.token }}" }
       - run: python3 tools/fayd/spring_merge.py prev parts outd
       - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd && python3 tools/fayd/spring_tiles.py outd   # درجة كل فيضة + بلاطات الخريطة
       - name: Push spring-data (single commit)
