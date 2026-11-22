@@ -34,6 +34,19 @@ keep = {f"{c[0]:.2f}_{c[1]:.2f}.webp" for c in sat}
 for f in os.listdir(f"{out}/sat"):
     if f not in keep: os.remove(f"{out}/sat/{f}")
 print(f"::notice::hidden implausible chunks {len(bad)}")
+# 22 نوفمبر: مقارنة قبل/بعد لكل جزء — تغيّر كبير مرة وحدة (×3 أو ÷3) أو قطع مخفية كثيرة = تنبيه للمطوّر يراجع (ما يوقف النشر)
+qa = []
+if len(bad) > 50: qa.append(f"قطع مخفية (أكثر من ربعها أخضر) كثيرة: {len(bad)}")
+old = {(c[0], c[1]): sum(c[2][:3]) for c in pi.get("chunks", [])}
+for bb, d, ix, sx in done:
+    inb = lambda c: bb[0] <= c[1] + CH / 2 <= bb[2] and bb[1] <= c[0] + CH / 2 <= bb[3]
+    o = sum(v for k, v in old.items() if inb(k)); n = sum(v for k, v in spc.items() if inb(k))
+    km = lambda x: round(x * 0.0004)   # مربع 20 م = 0.0004 كم²
+    if o > 0 and max(o, n) > 500000 and (n > 3 * o or n < o / 3):
+        qa.append(f"الجزء {bb}: الربيع {km(o)} كم² → {km(n)} كم²")
+if qa:
+    open("spring-qa.md", "w").write("طبقة الربيع " + time.strftime("%Y-%m-%d") + ": تغيّر كبير يحتاج مراجعة (انتشر عادي)\n\n" + "\n".join("- " + x for x in qa) + "\n")
+    print("::warning::spring layer QA: " + " · ".join(qa)[:1500])
 gen = int(time.time()); a = max(asof)
 json.dump({"v": 2, "gen": gen, "asof": a, "res": 0.0002, "ch": CH, "pal": pal, "chunks": sorted(idx)}, open(f"{out}/index.json", "w"), ensure_ascii=False)
 json.dump({"v": 1, "gen": gen, "asof": a, "res": 0.0001, "ch": CH, "chunks": sorted(sat)}, open(f"{out}/sat.json", "w"))

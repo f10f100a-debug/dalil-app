@@ -8,7 +8,7 @@ on:
       bbox: { description: "جزء واحد للتجربة: غرب,جنوب,شرق,شمال (فاضي = كل المناطق)", type: string, default: "" }
       d: { description: "حد الزيادة عن الصيف (افتراضي 0.03)", type: string, default: "" }
       from_run: { description: "دمج بس من أجزاء تشغيل سابق (رقمه) بدون مسح جديد", type: string, default: "" }
-permissions: { contents: write, actions: read }
+permissions: { contents: write, actions: write, issues: write }
 jobs:
   plan:
     if: ${{ !inputs.from_run }}
@@ -55,3 +55,13 @@ jobs:
         run: |
           cd outd && git init -q && git checkout -q -b spring-data && git add . && git -c user.name=dalil-bot -c user.email=ci@dalil commit -qm "طبقة الربيع $(date -u +%F)"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" spring-data
+      - name: Fayd update (uses the new layer levels)
+        if: ${{ !inputs.bbox }}
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh workflow run fayd.yml -R "${{ github.repository }}" -r main
+      - name: Alert developer (big change)
+        if: always()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          [ -f spring-qa.md ] || exit 0
+          gh issue create -R "${{ github.repository }}" --title "⚠️ طبقة الربيع $(date -u +%F)" --body-file spring-qa.md
