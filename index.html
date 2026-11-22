@@ -1605,7 +1605,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261122-7" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261122-8" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1849,6 +1849,14 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       <div class="section-title">خرائط البر</div>
       <!-- 18 نوفمبر (أبو مالك: «هذي آخذة مساحة»): سطر واحد + الأزرار المهمة، والتفاصيل التقنية داخل «تفاصيل» -->
       <div class="banner">مواقع البر ومحطات الوقود والإسعاف في 13 منطقة — تبحث عنها في «الأماكن» وتتوجّه لها، وتشتغل بدون نت.</div>
+      <button type="button" class="btn" id="sprRegsBtn" hidden style="width:100%;margin:6px 0;display:flex;align-items:center;gap:8px;justify-content:flex-start;text-align:right"><span>🌱</span><span style="flex:1"><b>الربيع للبر</b><small id="sprRegsTxt" style="display:block;font-weight:500;opacity:.75"></small></span><span>‹</span></button>
+      <script>// 22 نوفمبر (تجربة dalil_lab_sproff): اختصار «الربيع للبر» — يفتح قائمة المناطق في الخريطة
+      (()=>{ let on = false; try{ on = localStorage.getItem('dalil_lab_sproff') === '1'; }catch(e){} const b = document.getElementById('sprRegsBtn'); if(!on || !b) return; b.hidden = false; b.style.display = 'flex';
+        const N = {asir:'عسير',baha:'الباحة',eastern:'الشرقية',hail:'حائل',jazan:'جازان',jouf:'الجوف',madinah:'المدينة',makkah:'مكة',najran:'نجران',northern:'الحدود الشمالية',qassim:'القصيم',riyadh:'الرياض',tabuk:'تبوك'};
+        const txt = ()=>{ let d = {}; try{ d = JSON.parse(localStorage.getItem('dalil_spring_off') || '{}') || {}; }catch(e){} const k = Object.keys(d); document.getElementById('sprRegsTxt').textContent = k.length ? k.map(x=>N[x] || x).join('، ') + ' محفوظة' : 'ما فيه مناطق محفوظة — اضغط واختر'; };
+        txt(); setInterval(txt, 5000);
+        b.onclick = ()=>{ const t = document.querySelector('.tab[data-screen="track"]'); if(t) t.click(); const f = document.getElementById('trackMapFrame'); let n = 0; const go = setInterval(()=>{ if(++n > 30) return clearInterval(go); try{ if(f && f.contentWindow && f.contentWindow.document.readyState === 'complete'){ clearInterval(go); setTimeout(()=>f.contentWindow.postMessage({type:'DALIL_SPRING_SHEET'}, location.origin), 600); } }catch(e){} }, 300); };
+      })();</script>
       <div class="btn-row">
         <button class="btn btn-primary" id="newMapBtn" type="button">حفظ خرائط المناطق للاستخدام بدون إنترنت</button>
         <button class="btn btn-ghost" id="importCatalogBtn">استيراد ملف (خرائط، مواقع، مسارات)</button>

@@ -1241,7 +1241,8 @@ function showSaveCard(r,upd){
   $('#scText').textContent=upd?'فيها المحميات والطرق الترابية والعيون والكهوف. المحفوظة عندك تبقى شغالة بدون نت إلى أن تحدّثها ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت، ويُفضّل على واي فاي).':online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
   $('#scSave').hidden=!online;
   $('#saveCard').hidden=false;
-  $('#scSave').onclick=()=>{const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
+  try{if(localStorage.getItem('dalil_lab_sproff')==='1'){const t=$('#scText');if(!/الربيع/.test(t.textContent))t.textContent=t.textContent.replace(/^(بدونها|فيها)/,'الخريطة والربيع للبر — $1')}}catch(e){}   // 22 نوفمبر: الحفظ يشمل الربيع
+  $('#scSave').onclick=()=>{try{const v=JSON.parse(localStorage.getItem('dalil_spring_regs')||'null');if(Array.isArray(v)&&!v.includes(r.id)){v.push(r.id);localStorage.setItem('dalil_spring_regs',JSON.stringify(v))}}catch(e){}const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
   $('#scLater').onclick=()=>{const o=readSnooze();o[r.id]=Date.now()+86400000;try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(o))}catch(e){}$('#saveCard').hidden=true};
 }
 // محرك الرسم ما اشتغل (الآيفون رفض WebGL): لا نلمسه — الصفحة تعيد التحميل بنفسها (glFail)
@@ -1929,20 +1930,37 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   function legend(){if(lg)return;lg=document.createElement('div');lg.id='sprLegend';
     lg.style.cssText='position:fixed;right:10px;left:84px;bottom:120px;z-index:30;display:flex;justify-content:flex-end;pointer-events:none;direction:rtl';
     lg.addEventListener('click',e=>{const m=e.target.closest('[data-sm]');if(m){mode=m.dataset.sm;try{localStorage.setItem('dalil_spring_mode',mode)}catch(_){}draw();sync();return}
+      if(OFF){touch();
+        if(e.target.closest('[data-tipok]')){try{localStorage.setItem('dalil_spring_tip','1')}catch(_){}draw();return}
+        if(e.target.closest('[data-regs]')){sheet();return}
+        const ad=e.target.closest('[data-addreg]');if(ad){const sel=getSel()||wantList().map(r=>r.id);if(!sel.includes(ad.dataset.addreg))sel.push(ad.dataset.addreg);LS('dalil_spring_regs',sel);setTimeout(offTick,300);offRender();return}
+        const na=e.target.closest('[data-noask]');if(na){const a=LS('dalil_spring_ask')||{};a[na.dataset.noask]=Date.now()+864e5;LS('dalil_spring_ask',a);offRender();return}
+        if(e.target.closest('[data-lgt]')){exp=!exp;draw();return}return}
       if(e.target.closest('[data-lgt]')){small=!small;try{localStorage.setItem('dalil_spring_lg',small?'1':'0')}catch(_){}draw()}});
-    document.body.appendChild(lg);draw()}
+    document.body.appendChild(lg);draw();if(OFF)touch()}
   function draw(){if(!lg)return;const chip=(k,t)=>'<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><i style="width:12px;height:12px;border-radius:3px;display:inline-block;background:'+rgba(k)+'"></i>'+t+'</span>';
     // 21 نوفمبر: زر التبديل كبير (~38 نقطة) بسطر لحاله — يتضغط مريح بالبر والسيارة
     const seg=(k,t)=>'<b data-sm="'+k+'" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:34px;padding:0 12px;border-radius:999px;cursor:pointer;white-space:nowrap;font-size:14px;'+(mode===k?'background:#2E7D3E;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2)':'color:#4a4338')+'">'+t+'</b>';
     let h='<div style="pointer-events:auto;display:flex;flex-direction:column;gap:6px;background:rgba(255,253,247,.96);color:#2b2620;border-radius:18px;padding:6px 8px;font-weight:700;font-size:12px;line-height:1.3;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.18);-webkit-user-select:none;user-select:none;max-width:100%;'+(small?'':'width:100%;box-sizing:border-box')+'">';
-    if(!small){h+='<div style="display:flex;align-items:center;gap:6px"><span data-lgt style="cursor:pointer;font-size:18px;padding:0 4px;min-height:34px;display:flex;align-items:center">🌱</span>'+(SX?'<span style="flex:1;display:flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'<span style="font-weight:800">الربيع من القمر</span>')+'</div>';
+    if(OFF){   // تجربة الربيع للبر: سطر واحد (🌱 مع نقطة الحالة · التبديل · 📥) + التفاصيل لما تكبر
+      const ib='cursor:pointer;width:34px;height:34px;flex:none;border-radius:12px;background:#EFE8DA;display:flex;align-items:center;justify-content:center;font-size:18px;position:relative';
+      h+='<div style="display:flex;align-items:center;gap:6px"><span data-lgt style="'+ib+'">🌱<span id="sprDot" style="display:none;position:absolute;top:-3px;left:-3px;width:15px;height:15px;border-radius:50%;border:2px solid #fff;color:#fff;font-size:9px;align-items:center;justify-content:center"></span></span>'
+        +(SX?'<span style="flex:1;min-width:0;display:flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف').replace('padding:0 12px','padding:0 6px').replace('font-size:14px','font-size:13.5px')+seg('sat','صورة القمر').replace('padding:0 12px','padding:0 6px').replace('font-size:14px','font-size:13.5px')+'</span>':'<span style="flex:1;font-weight:800">الربيع من القمر</span>')+'<span data-regs style="'+ib+'">📥</span></div>';
+      if(exp){h+='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px 2px">';
+        if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">جرداء<i style="width:70px;height:10px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
+        else h+=chip(1,'خفيف')+chip(2,'متوسط')+chip(3,'كثيف')+chip(4,'شجيرات');
+        h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
+      h+='<div id="sprOff" style="display:none;flex-wrap:wrap;gap:5px"></div>';
+      let tip=false;try{tip=!localStorage.getItem('dalil_spring_tip')}catch(e){}
+      if(tip)h='<div data-tip style="pointer-events:auto;position:absolute;bottom:calc(100% + 10px);right:6px;left:6px;background:#2F6B3A;color:#fff;border-radius:16px;padding:11px 13px;font-size:13.5px;font-weight:700;line-height:1.6;box-shadow:0 8px 22px rgba(0,0,0,.25)">📥 ربيع منطقتك ينحفظ في جوالك تلقائيًا، ويشتغل في البر <u>بدون نت</u>. تختار المناطق من زر 📥<br><b data-tipok style="display:inline-block;margin-top:7px;background:#fff;color:#2F6B3A;border-radius:10px;padding:4px 16px;font-size:13px;cursor:pointer">فهمت</b></div>'+h}
+    else if(!small){h+='<div style="display:flex;align-items:center;gap:6px"><span data-lgt style="cursor:pointer;font-size:18px;padding:0 4px;min-height:34px;display:flex;align-items:center">🌱</span>'+(SX?'<span style="flex:1;display:flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'<span style="font-weight:800">الربيع من القمر</span>')+'</div>';
       h+='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px 2px">';
       if(mode==='sat'&&SX)h+='<span style="display:inline-flex;align-items:center;gap:5px;white-space:nowrap">جرداء<i style="width:70px;height:10px;border-radius:3px;display:inline-block;background:linear-gradient(to left,#ede8b5,#ccc682,#afc160,#91bf51,#70a33f,#4f892d,#216011)"></i>كثيفة</span>';
       else h+=chip(1,'خفيف')+chip(2,'متوسط')+chip(3,'كثيف')+chip(4,'شجيرات');
       h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div><div id="sprOff" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px"></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;if(OFF)try{offStatus()}catch(e){}const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
+  function hint(){const h=document.getElementById('sprHint');if(OFF)try{offRender()}catch(e){}if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
@@ -1987,49 +2005,83 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   //   مرة لكل تحديث للطبقة (gen)، على النت بس، 4 طلبات مع بعض، ويرجع يحاول كل 20 ث. البلاطات z7–z11 (~6–8 ميقا للمنطقة)
   addEventListener('resize',()=>{if(syncLater&&!mapHidden())try{sync()}catch(e){}});
   let offTxt='';const offNow=()=>OFF&&navigator.onLine===false;   // بدون نت: البلاطات تكبر لكل التقريب بدل القطع الكبيرة (غير محفوظة)
-  let busyReg=null;
-  const offDone=()=>{try{return JSON.parse(localStorage.getItem('dalil_spring_off')||'{}')||{}}catch(e){return{}}};
+  // ===== 22 نوفمبر (تجربة dalil_lab_sproff): الربيع للبر =====
+  //  تلقائي (ما اختار شي): المنطقة اللي أنت فيها + مناطق خرائطك المحفوظة. اختيار يدوي (📥): المناطق اللي تختارها بس.
+  //  البطاقة تصغر لسطر بعد 10 ث، ورسالة أول مرة، وسؤال صغير داخل البطاقة لو دخلت منطقة ما اخترتها — بدون بطاقات جديدة.
+  let busyReg=null,busyPct=0,exp=true,expT=0;
+  const LS=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
+  const offDone=()=>LS('dalil_spring_off')||{};
+  const getSel=()=>{const v=LS('dalil_spring_regs');return Array.isArray(v)?v:null};
   const regOf=(lng,lat)=>{try{if(typeof REGIONS==='undefined'||!REGIONS.length)return null;const r=typeof regionAt==='function'?regionAt(lng,lat):null;
     return r&&r.bbox?r:REGIONS.find(q=>q.bbox&&lng>=q.bbox[0]&&lng<=q.bbox[2]&&lat>=q.bbox[1]&&lat<=q.bbox[3])||null}catch(e){return null}};
-  const viewReg=()=>{try{if(typeof gl==='undefined'||!glOk())return null;const c=gl.getCenter();return regOf(c.lng,c.lat)}catch(e){return null}};
-  // 22 نوفمبر: حالة الحفظ بحبوب ملوّنة (أخضر = محفوظ، برتقالي = يحفظ الحين مع شريط، أحمر = بدون نت وما هو محفوظ)
-  let busyPct=0;
-  function offStatus(){}
-  function offRender(){const el=document.getElementById('sprOff');if(!el||!IX)return;
-    const gen=String(IX.gen||IX.asof),d=offDone(),net=navigator.onLine!==false,P=[],seen=new Set();
-    const pill=(bg,fg,bd,html)=>'<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:'+bg+';color:'+fg+';border:1px solid '+bd+'">'+html+'</span>';
-    const add=r=>{if(!r||seen.has(r.id))return;seen.add(r.id);
-      if(busyReg&&busyReg.id===r.id)return;
-      if(d[r.id]===gen)P.push(pill('#E3F1E4','#2F6B3A','#BFDCC3','✓ '+r.name+' محفوظ للبر'));
-      else if(d[r.id])P.push(pill(net?'#F3EEE4':'#E3F1E4',net?'#6B5B45':'#2F6B3A',net?'#E2D8C6':'#BFDCC3',r.name+(net?' — نسخة أقدم، يتحدث':' محفوظ (نسخة أقدم)')));
-      else if(!net)P.push(pill('#FBE4E1','#9A3324','#F0C2BB','✕ '+r.name+' مو محفوظ'));};
-    if(busyReg)P.push(pill('#FBF1DF','#7A4E12','#E6CFA6','📥 يحفظ '+busyReg.name+' '+busyPct+'٪<i style="display:inline-block;width:46px;height:5px;border-radius:3px;background:#EBDDC4;overflow:hidden"><b style="display:block;height:100%;width:'+busyPct+'%;background:#C9964F"></b></i>'));
-    try{if(typeof gps!=='undefined'&&gps)add(regOf(gps.lng,gps.lat))}catch(e){}
-    add(viewReg());
-    const html=P.join('');if(el.innerHTML!==html)el.innerHTML=html;el.style.display=P.length?'flex':'none';}
-  function offTick(){try{
-    if(!OFF||!IX||!IX.tiles||BASE!==RB||busyReg){offStatus();return}
-    if(navigator.onLine===false){offStatus();try{hint()}catch(e){}return}
-    const gen=String(IX.gen||IX.asof),d=offDone(),want=[];
-    if(typeof gps!=='undefined'&&gps){const r=regOf(gps.lng,gps.lat);if(r)want.push(r)}
-    const v=viewReg();if(v)want.push(v);
-    if(typeof savedRegions!=='undefined'&&typeof REGIONS!=='undefined')REGIONS.forEach(r=>{if(savedRegions.has(r.id))want.push(r)});
-    const r=want.find(q=>q&&q.bbox&&d[q.id]!==gen);
-    if(!r){offStatus();try{hint()}catch(e){}return}
-    busyReg=r;
-    const lx=(lo,z)=>Math.floor((lo+180)/360*2**z),ly=(la,z)=>{const t=la*Math.PI/180;return Math.floor((1-Math.log(Math.tan(t)+1/Math.cos(t))/Math.PI)/2*2**z)};
+  const hereReg=()=>{try{return typeof gps!=='undefined'&&gps?regOf(gps.lng,gps.lat):null}catch(e){return null}};
+  const lx=(lo,z)=>Math.floor((lo+180)/360*2**z),ly=(la,z)=>{const t=la*Math.PI/180;return Math.floor((1-Math.log(Math.tan(t)+1/Math.cos(t))/Math.PI)/2*2**z)};
+  const TL={};function tilesOf(r){if(!IX||!IX.tiles||!r||!r.bbox)return [];const g=String(IX.gen||IX.asof);if(TL[r.id]&&TL[r.id].g===g)return TL[r.id].q;
     const [w,so,e,n]=r.bbox,q=[],seen=new Set(),z0=IX.tiles.c[0],z1=Math.min(IX.tiles.c[1],11);
     IX.chunks.forEach(c=>{if(c[0]+IX.ch<so||c[0]>n||c[1]+IX.ch<w||c[1]>e)return;
       for(let z=z0;z<=z1;z++)for(let x=lx(c[1],z);x<=lx(c[1]+IX.ch,z);x++)for(let y=ly(c[0]+IX.ch,z);y<=ly(c[0],z);y++){const k=z+'/'+x+'/'+y;if(!seen.has(k)){seen.add(k);q.push(k)}}});
-    const tot=q.length,V='?v='+encodeURIComponent(gen)+OQ;let ok=0,fail=0,i=0;
+    TL[r.id]={g,q};return q}
+  const mb=r=>Math.max(1,Math.round(tilesOf(r).length*2.7/1000));   // ~2.7 ك.ب للبلاطة
+  function wantList(){const sel=getSel(),R=typeof REGIONS!=='undefined'?REGIONS:[];
+    if(sel)return R.filter(r=>sel.includes(r.id));
+    const w=[],h=hereReg();if(h)w.push(h);if(typeof savedRegions!=='undefined')R.forEach(r=>{if(savedRegions.has(r.id)&&!w.includes(r))w.push(r)});return w}
+  const pill=(bg,fg,bd,html,attr)=>'<span '+(attr||'')+' style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:'+bg+';color:'+fg+';border:1px solid '+bd+'">'+html+'</span>';
+  const G=h=>pill('#E3F1E4','#2F6B3A','#BFDCC3',h),O=(h,a)=>pill('#FBF1DF','#7A4E12','#E6CFA6',h,a),RD=h=>pill('#FBE4E1','#9A3324','#F0C2BB',h);
+  function offStatus(){}
+  function offRender(){if(!IX||!OFF)return;const el=document.getElementById('sprOff');
+    const gen=String(IX.gen||IX.asof),d=offDone(),net=navigator.onLine!==false,here=hereReg(),sel=getSel(),P=[];
+    const hereOk=here&&d[here.id],dot=document.getElementById('sprDot');
+    if(dot){const c=hereOk?'#3F9A55':!net&&here?'#C2412D':'';dot.style.display=c?'flex':'none';dot.style.background=c;dot.textContent=hereOk?'✓':'!'}
+    if(!net)P.push('<div style="width:100%;text-align:center;border-radius:12px;padding:7px 10px;font-size:12.5px;font-weight:800;'+(hereOk||!here?'background:#E3F1E4;color:#2F6B3A':'background:#FBE4E1;color:#9A3324')+'">'+(hereOk||!here?'✓ بدون نت — تشوف الربيع المحفوظ (صورة '+fyDate(IX.asof)+')':'✕ ربيع '+here.name+' مو محفوظ — احفظه لما يجيك نت')+'</div>');
+    if(busyReg)P.push(O('📥 يحفظ '+busyReg.name+' '+busyPct+'٪<i style="display:inline-block;width:46px;height:5px;border-radius:3px;background:#EBDDC4;overflow:hidden"><b style="display:block;height:100%;width:'+busyPct+'%;background:#C9964F"></b></i>'));
+    // سؤال داخل البطاقة: اخترت مناطق بنفسك ودخلت منطقة مو منها (مرة باليوم لكل منطقة)
+    const ask=LS('dalil_spring_ask')||{};
+    if(net&&sel&&here&&!sel.includes(here.id)&&!(ask[here.id]>Date.now()))P.push('<div style="width:100%;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#5b4a33">أنت في '+here.name+' —'+O('📥 احفظ ربيعها ('+mb(here)+' ميقا)','data-addreg="'+here.id+'" style="cursor:pointer"')+'<span data-noask="'+here.id+'" style="margin-inline-start:auto;font-size:18px;color:#a89679;cursor:pointer;padding:0 6px">×</span></div>');
+    if(exp)wantList().forEach(r=>{if(busyReg&&busyReg.id===r.id)return;if(d[r.id]===gen)P.push(G('✓ '+r.name+' محفوظ'));else if(d[r.id])P.push(G(r.name+' محفوظ (أقدم)'))});
+    if(!el)return;const html=P.join('');if(el.innerHTML!==html)el.innerHTML=html;el.style.display=P.length?'flex':'none';}
+  function offTick(){try{
+    if(!OFF||!IX||!IX.tiles||BASE!==RB||busyReg||navigator.onLine===false){try{offRender()}catch(e){}return}
+    const gen=String(IX.gen||IX.asof),d=offDone(),r=wantList().find(q=>q&&q.bbox&&d[q.id]!==gen);
+    if(!r){try{offRender()}catch(e){}return}
+    busyReg=r;const q=tilesOf(r).slice(),tot=q.length,V='?v='+encodeURIComponent(gen)+OQ;let ok=0,fail=0,i=0;
     const show=()=>{busyPct=Math.round(100*ok/Math.max(tot,1));try{offRender()}catch(e){}};
     const one=()=>{if(navigator.onLine===false||busyReg!==r)return Promise.resolve();const k=q[i++];if(!k)return Promise.resolve();
       return fetch(BASE+'t/c/'+k+'.png'+V).then(x=>{if(!x.ok&&x.status!==404)fail++}).catch(()=>{fail++}).then(()=>{ok++;if(ok%25===0)show();return one()})};
     show();
     Promise.all([one(),one(),one(),one()]).then(()=>{
-      if(ok>=tot&&fail<=tot*.02){const dd=offDone();dd[r.id]=gen;try{localStorage.setItem('dalil_spring_off',JSON.stringify(dd))}catch(e){}}
-      busyReg=null;busyPct=0;try{offRender()}catch(e){}});
+      if(busyReg===r&&ok>=tot&&fail<=tot*.02){const dd=offDone();dd[r.id]=gen;LS('dalil_spring_off',dd)}
+      if(busyReg===r){busyReg=null;busyPct=0}try{offRender()}catch(e){}setTimeout(offTick,1500)});
   }catch(e){busyReg=null}}
+  // مسح ربيع منطقة من الجوال (البلاطات اللي ما تشاركها منطقة ثانية مختارة)
+  async function dropReg(id){try{const r=REGIONS.find(q=>q.id===id);if(!r)return;if(busyReg&&busyReg.id===id){busyReg=null;busyPct=0}
+    const keep=wantList().filter(q=>q.id!==id),c=await caches.open('dalil-spring-v1'),ks=await c.keys();
+    const t2ll=(z,x,y)=>{const n=Math.PI-2*Math.PI*(y+.5)/2**z;return [(x+.5)/2**z*360-180,180/Math.PI*Math.atan(Math.sinh(n))]};
+    const inb=(b,lo,la)=>lo>=b[0]&&lo<=b[2]&&la>=b[1]&&la<=b[3];
+    for(const k of ks){const m=/\/t\/[cs]\/(\d+)\/(\d+)\/(\d+)\./.exec(k.url);if(!m)continue;const [lo,la]=t2ll(+m[1],+m[2],+m[3]);
+      if(inb(r.bbox,lo,la)&&!keep.some(q=>inb(q.bbox,lo,la)))await c.delete(k)}
+    const d=offDone();delete d[id];LS('dalil_spring_off',d)}catch(e){}}
+  // قائمة «مناطق البر» (تطلع من تحت)
+  function sheet(){if(!IX||typeof REGIONS==='undefined'||!REGIONS.length)return;let sh=document.getElementById('sprSheet');if(sh)sh.remove();
+    sh=document.createElement('div');sh.id='sprSheet';sh.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(30,24,15,.38);display:flex;align-items:flex-end;direction:rtl;font-family:inherit';
+    const render=()=>{const sel=getSel()||wantList().map(r=>r.id),d=offDone(),gen=String(IX.gen||IX.asof);
+      const tot=REGIONS.filter(r=>d[r.id]).reduce((a,r)=>a+mb(r),0);
+      const rows=REGIONS.slice().sort((a,b)=>(sel.includes(b.id)-sel.includes(a.id))||a.name.localeCompare(b.name,'ar')).map(r=>{const on=sel.includes(r.id);
+        const st=busyReg&&busyReg.id===r.id?O('📥 '+busyPct+'٪'):d[r.id]===gen?G('✓ محفوظة'):d[r.id]?G('محفوظة (أقدم)'):on?O('ينتظر النت'):'';
+        return '<label data-r="'+r.id+'" style="display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid #EFE6D6;font-size:15px;font-weight:700;color:#2b2218;cursor:pointer"><span style="width:24px;height:24px;border-radius:7px;flex:none;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:15px;'+(on?'background:#3F7A4A;border:2px solid #3F7A4A':'border:2px solid #CDBFA8')+'">'+(on?'✓':'')+'</span>'+r.name+' '+st+'<span style="margin-inline-start:auto;font-size:12px;color:#8a7a63;font-weight:500">'+mb(r)+' ميقا</span></label>'}).join('');
+      sh.innerHTML='<div style="width:100%;max-height:82vh;overflow:auto;background:#FFFDF8;border-radius:24px 24px 0 0;padding:10px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.15)"><div style="width:42px;height:5px;border-radius:3px;background:#D8CDBA;margin:0 auto 10px"></div>'
+        +'<div style="display:flex;align-items:center"><b style="font-size:19px;color:#2b2218">📥 الربيع للبر (بدون نت)</b><span data-x style="margin-inline-start:auto;font-size:24px;color:#a89679;cursor:pointer;padding:0 6px">×</span></div>'
+        +'<div style="font-size:12.5px;color:#7b6a55;margin:2px 0 10px">اختر المناطق اللي تبي ربيعها في جوالك'+(getSel()?'':' — الحين تلقائي: منطقتك ومناطق خرائطك المحفوظة')+'</div>'
+        +'<div style="display:flex;justify-content:space-between;background:#F3EEE4;border-radius:12px;padding:9px 12px;font-size:13px;font-weight:700;color:#5b4a33;margin-bottom:4px"><span>المحفوظ في جوالك</span><span>'+tot+' ميقا</span></div>'+rows
+        +'<div style="font-size:12px;color:#7b6a55;margin-top:10px;line-height:1.7">شيل الصح = ينمسح من جوالك على طول. يتحدث لحاله لما تنزل صور جديدة وأنت على النت.'+(getSel()?' <u data-auto style="cursor:pointer;color:#8a5a1c">رجّعه تلقائي</u>':'')+'</div></div>'};
+    sh.addEventListener('click',async e=>{if(e.target===sh||e.target.closest('[data-x]')){sh.remove();return}
+      if(e.target.closest('[data-auto]')){try{localStorage.removeItem('dalil_spring_regs')}catch(_){}render();setTimeout(offTick,500);return}
+      const l=e.target.closest('[data-r]');if(!l)return;e.preventDefault();const id=l.dataset.r;let sel=getSel()||wantList().map(r=>r.id);
+      if(sel.includes(id)){sel=sel.filter(x=>x!==id);LS('dalil_spring_regs',sel);await dropReg(id)}else{sel.push(id);LS('dalil_spring_regs',sel);setTimeout(offTick,300)}
+      render();try{offRender()}catch(_){}});
+    render();document.body.appendChild(sh);const iv=setInterval(()=>{if(!sh.isConnected)return clearInterval(iv);render()},2000)}
+  addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.type==='DALIL_SPRING_SHEET'&&OFF){let n=0;const t=setInterval(()=>{if(IX&&typeof REGIONS!=='undefined'&&REGIONS.length||++n>20){clearInterval(t);sheet()}},300)}});
+  // البطاقة تصغر بعد 10 ث بدون لمس (في وضع التجربة)
+  const touch=()=>{clearTimeout(expT);expT=setTimeout(()=>{if(exp&&!document.getElementById('sprSheet')){exp=false;try{draw()}catch(e){}}},10000)};
   const start=()=>get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
     if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>setTimeout(offTick,3000));addEventListener('offline',()=>{busyReg=null;try{offRender()}catch(e){}})}
