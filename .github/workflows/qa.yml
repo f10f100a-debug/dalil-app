@@ -11,7 +11,7 @@ concurrency: { group: qa, cancel-in-progress: true }
 jobs:
   qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +26,10 @@ jobs:
           OUT=qa-out node tools/qa/ui_check.js
           # محوّل صوت غرفة الرحلة للأندرويد (M4A/AAC مثل الآيفون)
           node tools/qa/aac_mux_check.js
+      - name: Speed + spring layer
+        id: perf
+        continue-on-error: true
+        run: OUT=qa-out TAB_LIM=2000 node tools/qa/perf_check.js
       - name: Screens (live data)
         id: live
         if: github.event_name != 'push'
@@ -43,9 +47,10 @@ jobs:
         run: |
           rm -f data/ui-qa.md
           if [ "${{ steps.ui.outcome }}" = failure ]; then cat qa-out/ui-qa.md >> data/ui-qa.md; fi
+          if [ "${{ steps.perf.outcome }}" = failure ]; then { echo; cat qa-out/perf-qa.md; } >> data/ui-qa.md; fi
           if [ "${{ steps.live.outcome }}" = failure ]; then { echo; echo "(بيانات حية)"; cat qa-live/ui-qa.md; } >> data/ui-qa.md; fi
           git config user.email ci@dalil && git config user.name "dalil-bot"
           git add -A data/ui-qa.md data/data-qa.md 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -qm "فحص آلي: نتيجة $(date -u +%F)"
-          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+          for i in 1 2 3; do git pull -q --rebase --autostash && git push -q && break; sleep 5; done
