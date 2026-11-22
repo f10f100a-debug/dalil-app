@@ -3,6 +3,9 @@
 // إذا طلع أكبر من 7.5 ميقا يعيد بدقة 720p. يرجّع {video, photo, thumb, w, h, dur}
 (function(){
   const VMAX = 15, LIMIT = 7.5 * 1024 * 1024;
+  // 22 نوفمبر: آيفون علّق على «100٪» (إنهاء الضغط ما رجع) — كل خطوة إنهاء لها مهلة، وإذا تعلّقت نعيد بدقة 720p
+  const tmo = (p, ms)=>Promise.race([p, new Promise((_, rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
+  let stage = ()=>{};
   const Q_HI = {px:1920, wc:3200000, mr:3200000}, Q_MID = {px:1280, wc:2000000, mr:2000000};
   function loadVideo(file){
     return new Promise((resolve, reject)=>{
@@ -45,13 +48,13 @@
   async function pickAudioCodec(sr, ch){
     if(!window.AudioEncoder) return null;
     for(const [codec, mux] of [['mp4a.40.2', 'aac'], ['opus', 'opus']]){
-      try{ const r = await AudioEncoder.isConfigSupported({codec, sampleRate:sr, numberOfChannels:ch, bitrate:96000}); if(r && r.supported) return {codec, mux}; }catch(e){}
+      try{ const r = await AudioEncoder.isConfigSupported({codec, sampleRate:sr, numberOfChannels:ch, bitrate:64000}); if(r && r.supported) return {codec, mux}; }catch(e){}
     }
     return null;
   }
   async function pickVideoCfg(W, H, bitrate){
     // 1080p يحتاج مستوى 4.0: High ثم Main ثم Baseline
-    for(const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.420028', 'avc1.42E01F']){
+    for(const codec of ['avc1.420028', 'avc1.4d0028', 'avc1.640028', 'avc1.42E01F']){
       const cfg = {codec, width:W, height:H, bitrate, framerate:30, avc:{format:'avc'}};
       try{ const r = await VideoEncoder.isConfigSupported(cfg); if(r && r.supported) return cfg; }catch(e){}
     }
@@ -104,12 +107,14 @@
       const p = v.play(); if(p && p.catch) p.catch(()=>finish());
     });
     v.pause();
-    await venc.flush(); venc.close();
+    stage('جارٍ إنهاء الفيديو…');
+    try{ await tmo(venc.flush(), 20000); }catch(e){ try{ venc.close(); }catch(x){} return null; }
+    try{ venc.close(); }catch(e){}
     if(err || frames < 3) return null;
     if(acodec){
       const sr = ab.sampleRate, n = Math.min(ab.length, Math.round((lastTs / 1e6 + 1 / 30) * sr));
       const aenc = new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ err = e; }});
-      aenc.configure({codec:acodec.codec, sampleRate:sr, numberOfChannels:ch, bitrate:96000});
+      aenc.configure({codec:acodec.codec, sampleRate:sr, numberOfChannels:ch, bitrate:64000});
       const chans = [...Array(ch)].map((_, k)=>ab.getChannelData(k));
       for(let i = 0; i < n && !err; i += 4800){
         const len = Math.min(4800, n - i), data = new Float32Array(len * ch);
@@ -117,7 +122,9 @@
         const ad = new AudioData({format:'f32-planar', sampleRate:sr, numberOfFrames:len, numberOfChannels:ch, timestamp:Math.round(i / sr * 1e6), data});
         aenc.encode(ad); ad.close();
       }
-      await aenc.flush(); aenc.close();
+      stage('جارٍ تجهيز الصوت…');
+      try{ await tmo(aenc.flush(), 20000); }catch(e){ try{ aenc.close(); }catch(x){} return null; }
+      try{ aenc.close(); }catch(e){}
       if(err) return null;
     }
     muxer.finalize();
@@ -154,13 +161,14 @@
       draw();
       const guard = setTimeout(finish, (end + 4) * 1000);
     });
-    v.pause(); rec.stop(); await stopped;
+    v.pause(); rec.stop(); try{ await tmo(stopped, 15000); }catch(e){ return null; }
     stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{});
     return new Blob(parts, {type:'video/mp4'});
   }
   window.AdminVideo = {
     VMAX, LIMIT,
-    async prepare(file, onProgress){
+    async prepare(file, onProgress, onStage){
+      stage = onStage || (()=>{});
       const {v, url} = await loadVideo(file);
       try{
         const dur = v.duration;
@@ -168,10 +176,13 @@
         await seek(v, Math.min(0.6, dur / 2));
         const photo = await frameJpeg(v, 2048, 0.84), thumb = await frameJpeg(v, 420, 0.7);
         let vid = null;
-        for(const q of [Q_HI, Q_MID]){
-          try{ vid = await encodeWC(file, v, dur, q, onProgress); }catch(e){ vid = null; }
-          if(!vid) vid = await encodeMR(v, dur, q, onProgress);
-          if(vid && vid.size <= LIMIT) break;
+        // 1080p بالضغط السريع ← 720p بالضغط السريع ← 720p بالتسجيل (الأجهزة القديمة)
+        for(const [q, how] of [[Q_HI, 'wc'], [Q_MID, 'wc'], [Q_MID, 'mr']]){
+          let out = null;
+          try{ out = how === 'wc' ? await encodeWC(file, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress); }catch(e){ out = null; }
+          if(out && out.size <= LIMIT){ vid = out; break; }
+          if(out && !vid) vid = out;
+          stage(q === Q_HI ? 'نعيد بدقة 720p…' : 'نجرب طريقة ثانية…');
         }
         if(!vid) throw new Error('nosupport');
         if(vid.size > LIMIT) throw new Error('big');

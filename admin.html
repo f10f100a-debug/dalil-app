@@ -272,7 +272,7 @@
 </main>
 <div class="big" id="big"><img alt=""></div>
 
-<script src="admin-video.js?v=1"></script>
+<script src="admin-video.js?v=2"></script>
 <script>
 (function(){
   'use strict';
@@ -483,7 +483,7 @@
     try{
       if(isVid){
         if(!window.AdminVideo) throw new Error('nosupport');
-        const d = await AdminVideo.prepare(f, p=>{ $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الصفحة مفتوحة'; });
+        const d = await AdminVideo.prepare(f, p=>{ $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الصفحة مفتوحة'; }, t=>{ $('pubMsg').textContent = t + ' خلّ الصفحة مفتوحة'; });
         pubDraft = {photo:d.photo, thumb:d.thumb, video:d.video, w:d.w, h:d.h, vdur:d.dur};
         const vu = URL.createObjectURL(d.video);
         $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline muted style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
