@@ -1,0 +1,30 @@
+# فحص ربط Cloudflare R2 (22 نوفمبر): يرفع ملف صغير، ويقرأه من spring.dalilbarr.com، ويتأكد من CORS — بدون طباعة أي مفتاح
+name: R2 check
+on: workflow_dispatch
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      EP: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+    steps:
+      - name: Secrets present
+        run: |
+          for v in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do [ -n "${!v}" ] || { echo "::error::$v فاضي"; exit 1; }; done
+          echo "key id length ${#AWS_ACCESS_KEY_ID} (expected 32) · secret length ${#AWS_SECRET_ACCESS_KEY} (expected 64)"
+      - name: Upload test file
+        run: |
+          echo "dalil r2 ok $(date -u +%FT%TZ)" > r2-check.txt
+          aws s3 cp r2-check.txt s3://dalil-spring/r2-check.txt --endpoint-url "$EP" --content-type text/plain --cache-control "no-cache"
+          aws s3 ls s3://dalil-spring/ --endpoint-url "$EP" | head
+      - name: Read via custom domain + CORS
+        run: |
+          sleep 5
+          curl -sS -D h.txt https://spring.dalilbarr.com/r2-check.txt -H "Origin: https://dalilbarr.com" -o body.txt
+          head -1 h.txt; grep -i "access-control-allow-origin\|cf-cache-status\|content-type" h.txt || true; cat body.txt
+          grep -q "dalil r2 ok" body.txt && grep -qi "access-control-allow-origin" h.txt && echo "::notice::R2 OK: upload + spring.dalilbarr.com + CORS"
