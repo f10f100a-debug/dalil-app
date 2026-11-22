@@ -275,7 +275,8 @@ except Exception as e:
 # + مطر الرادار (يلقط الزخات المحلية اللي النماذج تفوتها) — بعد شيل الصدى الكاذب، والمحطة خلال 50 كم تحكم يومها
 R = radar.load(since75)
 Q = rainqc.QC(R, SY)
-for i in green:
+def gauge_radar(ids):
+  for i in ids:
     la, lo = SITES[i][1], SITES[i][2]
     g = Q.gauge(la, lo, max_km=50)
     gd = g[1] if g else {}
@@ -286,6 +287,7 @@ for i in green:
         rr += rainqc.cap(v, gd.get(day)) if day in gd else v
     gt = sum(v for d, v in gd.items() if d >= since75)
     rain[i] = max(rain.get(i, 0), rr, gt)
+gauge_radar(green)
 dropped = []
 # 6 نوفمبر: 8 ملم شالت خضرة حقيقية في الشمال (الرادار ضعيف التغطية هناك) — الحين:
 #   أقل من 3 ملم: تنشال (غالبًا خضرة كاذبة أو زراعة) إلا الخضرة القوية تبقى «تحتاج تأكيد»
@@ -353,10 +355,17 @@ try:
     with urllib.request.urlopen(urllib.request.Request("https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/fayd-spr.json", headers={"User-Agent": "dalil"}), timeout=60) as rr:
         SPR = json.load(rr).get("s", {})
 except Exception as e: print("spring layer stats", e)
-sprn = []
+sprn = []; sprdry = []
+# 22 نوفمبر: الطبقة رفعت 269 فيضة — اللي كانت «ما بدأ» لازم يكون جاها مطر مثل باقي الفياض (فلتر 3 ملم)، وإلا ما ترتفع
+_need = [r[0] for r in rows if r[2] == 0 and str(r[0]) in SPR and r[0] not in rain]
+if _need:
+    try: rain.update({k: v for k, v in rain75(_need).items() if k not in rain}); gauge_radar(_need)
+    except Exception as e: print("spring rain", e)
 for r in rows:
     v = SPR.get(str(r[0]))
     if not v or r[5] == 10 or r[0] in farm: continue
+    if r[2] == 0 and rain.get(r[0], 0) < 3:
+        sprdry.append(SITES[r[0]][0]); continue
     n1, n2, n3, n4, tot = v; sp = n1 + n2 + n3; md = (n2 + n3) / tot
     if n4 > sp: continue
     lv = 3 if n3 / tot >= .05 else 2 if md >= .04 else 1 if md >= .015 else 0
@@ -366,6 +375,7 @@ for r in rows:
         r[2] = lv; r[1] = max(r[1], (0, 120, 220, 350)[lv]); r[3] = max(r[3] or 0, round(100 * sp / tot))
         if r[5] in (0, 4, 6): r[5] = 13               # 13 = من طبقة الربيع الدقيقة
         sprn.append(f"{SITES[r[0]][0]}→{lv}")
+print(f"::notice::spring layer skipped (no rain) {len(sprdry)}: " + " · ".join(sprdry[:30]), flush=True)
 print(f"::notice::spring layer raised {len(sprn)}: " + " · ".join(sprn[:30]), flush=True)
 fieldn = 0
 if FIELD:
