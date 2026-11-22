@@ -26,7 +26,10 @@ for b, d, ix, sx in done:
         if os.path.exists(f"{d}/sat/{nm(c)}.webp"): shutil.copy(f"{d}/sat/{nm(c)}.webp", f"{out}/sat/{nm(c)}.webp"); sat.append(c)
 # 22 نوفمبر: قطعة أكثر من ربعها «ربيع» = غالبًا خلل (جبال/حرّات) — ما تنعرض. وصورة القمر لأكثر 120 قطعة ربيع بس (الحجم)
 N2 = (CH / 0.0002) ** 2
-bad = {(c[0], c[1]) for c in idx if sum(c[2][:3]) / N2 > .25}
+# 23 نوفمبر (الفحص الشامل): بعد إرجاع ربيع الشمال، أكثف قطعه (أم قيصوم، الشويرعات، الشمشول…) عدّت الربع فانخفت —
+# الربع للغرب بس (الحجاز/عسير/المدينة/تبوك الجنوبية: نفس منطقة الإزاحة في springlayer.py)، وباقي المناطق 60٪
+west = lambda la, lo: (lo < 38 and la < 28) or (lo < 42 and la < 24.5)
+bad = {(c[0], c[1]) for c in idx if sum(c[2][:3]) / N2 > (.25 if west(c[0], c[1]) else .6)}
 idx = [c for c in idx if (c[0], c[1]) not in bad]
 spc = {(c[0], c[1]): sum(c[2][:3]) for c in idx}
 sat = [c for c in sat if (c[0], c[1]) in spc]   # الاختيار (أكثر 150) بعدين في spring_satpick.py حسب ربيع الفياض نفسها
