@@ -457,9 +457,21 @@ if held:
         if pp.get("asof") != asof and (ppn - pn) * (nn - pn) > 0:
             print(f"::notice::fayd gate: held twice in a row ({pn} → {ppn} → {nn}) → publish", flush=True); held = False
     except Exception: pass
+# 22 نوفمبر: حارس الفياض المؤكدة ميدانيًا — لو وحدة منها طاحت لـ«ما بدأ» أو نزلت درجتين مرة وحدة، ما ننشر (غالبًا خلل صور)
+# ويوصل تنبيه للمطوّر يراجع. إذا النزول حقيقي (آخر الموسم) ينشر يدويًا بـ force
+fdrop = []
+if prev and not force:
+    pr = {q[0]: q for q in prev["rows"]}
+    for r in rows:
+        q = pr.get(r[0])
+        if q and q[5] == 5 and q[2] > 0 and r[2] < q[2] and (r[2] == 0 or q[2] - r[2] >= 2):
+            fdrop.append(f"{SITES[r[0]][0]} {q[2]}→{r[2]}")
+    if fdrop:
+        held = True
+        print("::warning::field-confirmed fayd dropped (held): " + " · ".join(fdrop[:20]), flush=True)
 if held:
     json.dump(out, open("data/fayd-pending.json", "w"), separators=(",", ":"))
-    open("data/fayd-qa.md", "w").write(f"تحديث الفياض {asof}: الفياض الخضراء تغيّرت من {pn} إلى {nn} — انحفظ للمراجعة في data/fayd-pending.json وما انتشر.\n\nالمشالة بفلتر المطر ({len(dropped)}): " + " · ".join(dropped)[:3000] + f"\n\nمطر قليل — ظاهرة مع «تحتاج تأكيد» ({len(light)}): " + " · ".join(light)[:3000] + "\n")
+    open("data/fayd-qa.md", "w").write(f"تحديث الفياض {asof}: الفياض الخضراء تغيّرت من {pn} إلى {nn} — انحفظ للمراجعة في data/fayd-pending.json وما انتشر.\n\n" + (f"فياض مؤكدة ميدانيًا نزلت فجأة ({len(fdrop)}): " + " · ".join(fdrop) + "\n\n" if fdrop else "") + f"المشالة بفلتر المطر ({len(dropped)}): " + " · ".join(dropped)[:3000] + f"\n\nمطر قليل — ظاهرة مع «تحتاج تأكيد» ({len(light)}): " + " · ".join(light)[:3000] + "\n")
     print(f"::warning::fayd held: green {pn} → {nn}", flush=True)
 else:
     json.dump(out, open("data/fayd.json", "w"), separators=(",", ":"))
