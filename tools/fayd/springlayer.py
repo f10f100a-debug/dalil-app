@@ -19,6 +19,10 @@ from PIL import Image
 T0 = time.time()
 today = dtm.date.today(); y = today.year
 BBOX = [float(x) for x in (os.environ.get("SPRING_BBOX") or "43.5,28.0,45.5,29.5").split(",")]
+# 22 نوفمبر (أبو مالك: «نصها فيها ونصها لا» بالشمال): «طرح التغير العام» شال 50–80٪ من ربيع الشمال ونجد (المطر عام هناك
+# فالخضرة العامة كانت ربيع حقيقي). نخليه للحجاز وعسير والمدينة والساحل الغربي بس (الجبال اللي فيها المشكلة الأصلية)؛
+# والحرّات بالشمال يحميها إخفاء القطع اللي أكثر من ربعها أخضر (spring_merge)
+SHIFT = (os.environ.get("SPRING_SHIFT") or ("1" if ((BBOX[0] < 38 and BBOX[1] < 28) or (BBOX[0] < 42 and BBOX[1] < 24.5)) else "0")) == "1"
 RES = 0.0002; CH = 0.25; N = 1250          # مربعات ~20 م، قطع ربع درجة
 RS = 0.0001; NS = 2500                     # صورة القمر الخام ~10 م
 NDVI_PAL = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.025, "fff9cc"), (.05, "ede8b5"), (.075, "ddd89b"), (.1, "ccc682"), (.125, "bcb76b"), (.15, "afc160"), (.175, "a3cc59"), (.2, "91bf51"), (.25, "7fb247"), (.3, "70a33f"), (.35, "609635"), (.4, "4f892d"), (.45, "3f7c23"), (.5, "307016"), (.55, "216011"), (.6, "0f540a")]
@@ -72,7 +76,7 @@ def quad_delta(now_items, dry_items, qr, qc):
     # 22 نوفمبر (الحجاز وعسير طلعت قطع كاملة خضراء): إزاحة عامة بالمنطقة (إضاءة الموسم، رطوبة، غبار، حرّات بركانية) مو ربيع —
     # نطرح وسيط الزيادة لربع البلاطة (~55 كم) إذا كان موجب. العشب يطلع بقع (شعبان وفياض) فما يتأثر
     dd = now - dry; shift = float(np.nanmedian(dd[ok])) if ok.any() else 0.0
-    if shift > 0: dd = dd - shift
+    if SHIFT and shift > 0: dd = dd - shift
     g = np.where(ok, (dd >= D_MIN).astype("float32"), np.nan)
     g2 = np.where(ok, (dd >= 0.02).astype("float32"), np.nan)
     dl = np.where(ok, dd, np.nan).astype("float32")
