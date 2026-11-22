@@ -23,7 +23,8 @@ jobs:
           git add -A data/fayd*.json data/fayd-qa.md 2>/dev/null || git add -A data/fayd*.json
           git diff --cached --quiet && exit 0
           git commit -qm "حالة الفياض: تحديث تلقائي"
-          for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done
+          for i in 1 2 3; do git pull -q --rebase --autostash && git push -q && break; sleep 5; done
+          git status -sb | head -1 | grep -q ahead && { echo "::error::push failed"; git status --short | head; exit 1; } || true
           echo "::notice::$(head -c 200 data/fayd.json 2>/dev/null)"
       - name: Alert developer if held
         if: always()
