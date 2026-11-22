@@ -1,10 +1,10 @@
-"""صورة القمر لأكثر 150 قطعة فيها ربيع حول الفياض المسماة (22 نوفمبر).
+"""صورة القمر لأكثر 200 قطعة فيها ربيع حول الفياض المسماة (22 نوفمبر).
 قبل: الترتيب بكمية الخضرة في القطعة كلها → جبال الحجاز أخذت أغلب الأماكن وأم قليب بدون صورة.
 الحين: مجموع (متوسط + كثيف) في نافذة 600 م حول كل فيضة بالقطعة (من fayd-spr.json) — اللي الناس يدورونه.
 python3 tools/fayd/spring_satpick.py <مجلد الطبقة>"""
 import json, math, os, sys
 from collections import Counter
-D = sys.argv[1]; TOP = 150
+D = sys.argv[1]; TOP = 200
 S = json.load(open("data/fayd-sites.json")); F = json.load(open(f"{D}/fayd-spr.json"))["s"]
 SX = json.load(open(f"{D}/sat.json")); CH = SX["ch"]
 sc = Counter()

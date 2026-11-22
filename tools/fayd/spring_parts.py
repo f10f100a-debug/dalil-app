@@ -2,7 +2,7 @@
 import json, os
 S = json.load(open("data/fayd-sites.json")); P = [(s[1], s[2]) for s in S if s and s[0]]
 one = os.environ.get("BBOX", "").strip()
-if one: parts = [[float(x) for x in one.split(",")]]
+if one: parts = [[float(x) for x in b.split(",")] for b in one.split(";") if b.strip()]   # 22 نوفمبر: أكثر من جزء بـ ;
 else:
     parts = []
     for w, s, e, n in [(38, 24.5, 50, 32.5), (36, 24, 38, 32.5), (38, 19.5, 50.5, 24.5)]:
