@@ -1,0 +1,36 @@
+# تشخيص (22 نوفمبر): مقارنة طبقة الربيع قبل «طرح التغير العام» (تشغيل 44942891906) وبعده (44956668880) لكل جزء
+name: Spring compare
+on:
+  workflow_dispatch:
+    inputs:
+      old: { type: string, default: "44942891906" }
+      new: { type: string, default: "44956668880" }
+permissions: { contents: read, actions: read }
+jobs:
+  cmp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: old, pattern: "spring-*", run-id: "${{ inputs.old }}", github-token: "${{ github.token }}" }
+      - uses: actions/download-artifact@v4
+        with: { path: new, pattern: "spring-*", run-id: "${{ inputs.new }}", github-token: "${{ github.token }}" }
+      - run: |
+          python3 - <<'PY'
+          import json,glob,os
+          def load(d):
+              out={}
+              for f in glob.glob(d+'/*/index.json'):
+                  p=json.load(open(os.path.dirname(f)+'/part.json'))['bbox']; ix=json.load(open(f))
+                  out[tuple(p)]={(c[0],c[1]):c[2] for c in ix['chunks']}
+              return out
+          O,N=load('old'),load('new')
+          km=lambda x:round(x*0.0004)
+          rows=[]
+          for b in sorted(set(O)|set(N),key=lambda b:(-b[1],b[0])):
+              o=O.get(b,{});n=N.get(b,{})
+              so=[sum(v[:3]) for v in o.values()];sn=[sum(v[:3]) for v in n.values()]
+              d3o=sum(v[2] for v in o.values());d3n=sum(v[2] for v in n.values())
+              rows.append(f"{b}: spring {km(sum(so))}→{km(sum(sn))} km² · dense {km(d3o)}→{km(d3n)} km²")
+          print("\n".join(rows))
+          for r in rows: print("::notice::"+r)
+          PY
