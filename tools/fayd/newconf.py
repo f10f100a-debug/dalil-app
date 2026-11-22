@@ -7,7 +7,7 @@
 → يضيف لكل صف في data/fayd-new.json: [.., ثقة, السبب, الدرجة]
    ثقة 2 = ربيع واضح من القمر (بدون «تحتاج تأكيد») · 1 = تحتاج تأكيد (مع السبب) · 0 = شكلها مزرعة
 python3 tools/fayd/newconf.py   (SPRING_DIR=مجلد محلي للطبقة بدل النت · NORAIN=1 بدون فحص المطر)"""
-import io, json, math, os, urllib.request, urllib.parse
+import io, json, math, os, time, urllib.request, urllib.parse
 import numpy as np
 from PIL import Image
 
@@ -78,14 +78,25 @@ def rain(pts):
         part = pts[k:k + 80]
         q = urllib.parse.urlencode({"latitude": ",".join(str(p[0]) for p in part), "longitude": ",".join(str(p[1]) for p in part),
                                     "daily": "precipitation_sum", "past_days": 75, "forecast_days": 1, "timezone": "Asia/Riyadh"})
-        try:
-            with urllib.request.urlopen(urllib.request.Request("https://api.open-meteo.com/v1/forecast?" + q, headers=UA), timeout=120) as r: j = json.load(r)
-            for i, loc in enumerate(j if isinstance(j, list) else [j]): out[k + i] = sum(v or 0 for v in loc["daily"]["precipitation_sum"])
-        except Exception as e: print("rain", e)
+        for t in range(4):
+            try:
+                with urllib.request.urlopen(urllib.request.Request("https://api.open-meteo.com/v1/forecast?" + q, headers=UA), timeout=120) as r: j = json.load(r)
+                for i, loc in enumerate(j if isinstance(j, list) else [j]): out[k + i] = sum(v or 0 for v in loc["daily"]["precipitation_sum"])
+                break
+            except Exception as e: print("rain retry", e); time.sleep(25 * (t + 1))
     return out
 
 D = json.load(open("data/fayd-new.json")); rows = D["rows"]
 R = rain([(r[0], r[1]) for r in rows])
+# 22 نوفمبر: نموذج Open-Meteo يقصّر بالمطر المحلي (بقعة واضحة الخضرة طلعت «ما نزل مطر») — فيضة مسماة خضراء خلال 25 كم
+# (اللي عدّت فلتر المطر بالرادار والمحطات في update.py) = نزل مطر بالمنطقة
+try:
+    SITES = json.load(open("data/fayd-sites.json")); FY = json.load(open("data/fayd.json"))
+    GREEN = [(SITES[q[0]][1], SITES[q[0]][2]) for q in FY["rows"] if q[2] > 0 and SITES[q[0]]]
+except Exception as e: print("fayd", e); GREEN = []
+def wet_near(la, lo):
+    k = math.cos(math.radians(la))
+    return any(abs(a - la) < .25 and math.hypot((a - la) * 111, (b - lo) * 111 * k) <= 25 for a, b in GREEN)
 stat = {}
 for i, r in enumerate(rows):
     r[:] = r[:6]
@@ -99,7 +110,7 @@ for i, r in enumerate(rows):
     if farm: c, why = 0, "farm"
     elif sp < 5: c, why = 1, "nolayer" if n4 < 5 else "shrub"
     elif n4 > sp: c, why = 1, "shrub"
-    elif mm is not None and mm < 3: c, why = 1, "norain"
+    elif mm is not None and mm < 3 and not wet_near(r[0], r[1]): c, why = 1, "norain"
     elif lv >= 2: c, why = 2, ""
     else: c, why = 1, "light"
     r += [c, why, lv]; stat[(c, why)] = stat.get((c, why), 0) + 1
