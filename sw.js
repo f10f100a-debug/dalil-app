@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v451';
+const SHELL_CACHE='dalil-shell-v452';
 const LIVE_DATA='dalil-live-data-v1'; // 17 نوفمبر: آخر نسخة من الفياض والفقع ومطر الأسبوع (تشتغل بالبر بدون نت)
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/256-511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1536-1791.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1792-2047.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/8192-8447.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/9472-9727.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/64256-64511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=29','./assets/sounds/event.m4a','./assets/sounds/rain.m4a',
@@ -19,6 +19,12 @@ self.addEventListener('fetch',event=>{
   const request=event.request;
   if(request.method!=='GET') return;
   const url=new URL(request.url);
+  // 22 نوفمبر (تجربة dalil_lab_sproff): طبقة الربيع بدون نت — الطلبات اللي فيها o=1 بس (الجوالات اللي فاتحة التجربة)
+  //   index/sat.json: الشبكة أول (6 ث) وإلا آخر نسخة محفوظة · البلاطات والقطع: المحفوظ أول وإلا الشبكة ونحفظه
+  if(url.hostname==='raw.githubusercontent.com'&&url.pathname.startsWith('/f10f100a-debug/dalil-app/spring-data/')&&url.searchParams.get('o')==='1'){
+    event.respondWith(springOffline(request,url));
+    return;
+  }
   if(url.origin!==self.location.origin) return;
   // الفيديو يُطلب بأجزاء (Range)؛ نتركه للمتصفح مباشرة حتى يعمل على Safari.
   if(url.pathname.endsWith('.mp4')) return;
@@ -103,3 +109,20 @@ self.addEventListener('notificationclick',event=>{
     return self.clients.openWindow(target);
   }));
 });
+
+const SPRING_CACHE='dalil-spring-v1';let springPuts=0;
+async function springOffline(request,url){
+  const c=await caches.open(SPRING_CACHE);
+  if(/\/(index|sat)\.json$/.test(url.pathname)){
+    const key=url.origin+url.pathname;
+    try{const r=await Promise.race([fetch(request),new Promise((_,no)=>setTimeout(()=>no(0),6000))]);if(r&&r.ok){c.put(key,r.clone());return r}}catch(e){}
+    const old=await c.match(key);if(old)return old;
+    return fetch(request);
+  }
+  const hit=await c.match(request);if(hit)return hit;
+  const r=await fetch(request);
+  if(r&&r.ok){c.put(request,r.clone()).then(()=>{if(++springPuts%200===0)springTrim(c)}).catch(()=>{})}
+  return r;
+}
+// حد المساحة: ~9000 ملف (~100 ميقا تقريبًا) — الأقدم ينمسح أول
+async function springTrim(c){try{const ks=await c.keys();if(ks.length>9000)for(const k of ks.slice(0,ks.length-8000))await c.delete(k)}catch(e){}}

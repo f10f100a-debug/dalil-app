@@ -1917,8 +1917,10 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const C={},ADDED={};const MINZ={cls:9,sat:10};
   const TXT={1:'🌱 ربيع خفيف — عشب جديد بادي يطلع (القمر الصناعي)',2:'🌿 ربيع متوسط — عشب جديد واضح (القمر الصناعي)',3:'🌿 ربيع كثيف — عشب جديد كثيف (القمر الصناعي)',4:'🟣 شجيرات أو عشب معمّر اخضرّ بعد المطر — مو بالضرورة ربيع'};
   const nm=c=>c[0].toFixed(2)+'_'+c[1].toFixed(2);
-  let BASE='data/spring/';const url=c=>BASE+nm(c)+'.png?v='+encodeURIComponent(IX.gen||IX.asof);
-  const surl=c=>BASE+'sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.gen||SX.asof);
+  // 22 نوفمبر (تجربة dalil_lab_sproff): «o=1» يخلي الـ SW يحفظ الطبقة للبر (اللي شفته + تصنيف مناطقك المحفوظة)
+  let OFF=false;try{OFF=localStorage.getItem('dalil_lab_sproff')==='1'}catch(e){}const OQ=OFF?'&o=1':'';
+  let BASE='data/spring/';const url=c=>BASE+nm(c)+'.png?v='+encodeURIComponent(IX.gen||IX.asof)+OQ;
+  const surl=c=>BASE+'sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.gen||SX.asof)+OQ;
   const rgba=k=>{const q=IX.pal[k];return 'rgba('+q[0]+','+q[1]+','+q[2]+','+(Math.max(q[3],200)/255)+')'};
   // 21 نوفمبر: المفتاح شريط رفيع تحت فوق مقياس المسافة (كان بطاقة بنص اليسار تغطي أسماء الفياض)
   function place(){if(!lg)return;try{const r=badge.getBoundingClientRect();if(r.height){lg.style.bottom=(innerHeight-r.top+8)+'px'}}catch(e){}}
@@ -1938,7 +1940,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t}
+  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=(gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':(OFF&&navigator.onLine===false?'محفوظة · ':'')+'صورة '+fyDate(X.asof))+(OFF&&offTxt?' · '+offTxt:'');if(h.textContent!==t)h.textContent=t}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
@@ -1957,11 +1959,11 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   function tileSet(show,sat){if(!IX.tiles)return;const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
     let w=180,so=90,e=-180,n=-90;IX.chunks.forEach(c=>{w=Math.min(w,c[1]);so=Math.min(so,c[0]);e=Math.max(e,c[1]+.25);n=Math.max(n,c[0]+.25)});
     [['sprt-c','c','png',IX,!sat],['sprt-s','s','webp',SX,sat]].forEach(([id,k,ext,X,on])=>{if(!X||!IX.tiles[k])return;const zr=IX.tiles[k];
-      if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
-        gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
+      if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)+OQ],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
+        gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:offNow()?24:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
       const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
   function sync(quiet){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
-    const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?12.5:0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
+    const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?(offNow()?99:12.5):0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];{const ks=Object.keys(C);if(ks.length>=2)delete C[ks[0]]}
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
   window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+IX.ch&&p.lng>=c[1]&&p.lng<c[1]+IX.ch);if(!c)return null;
@@ -1976,10 +1978,27 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   // 21 نوفمبر (التعميم): البيانات بفرع spring-data (يتبدل كل تحديث بدون تاريخ) — وإذا ما وصلنا له نرجع للنسخة اللي داخل الموقع
   // 22 نوفمبر: مهلة 12 ثانية (على 4G الطلب ممكن يعلق للأبد فما تطلع الطبقة ولا مفتاحها) + إعادة محاولة كل دقيقة
   const tf=u=>Promise.race([fetch(u).then(r=>r.ok?r.json():null).catch(()=>null),new Promise(ok=>setTimeout(()=>ok(null),12000))]);
-  const get=b=>Promise.all([tf(b+'index.json?h='+h),tf(b+'sat.json?h='+h)]);
+  const get=b=>Promise.all([tf(b+'index.json?h='+h+OQ),tf(b+'sat.json?h='+h+OQ)]);
   const RB='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/';
+  // تصنيف الربيع لمناطقك المحفوظة (خريطة البر) — مرة لكل تحديث للطبقة، بهدوء (4 طلبات مع بعض)، على النت بس
+  let offTxt='';const offNow=()=>OFF&&navigator.onLine===false;   // بدون نت: البلاطات تكبر لكل التقريب بدل القطع الكبيرة (غير محفوظة)
+  function prefetch(){try{
+    if(navigator.onLine===false||typeof REGIONS==='undefined'||typeof savedRegions==='undefined')return;
+    let done={};try{done=JSON.parse(localStorage.getItem('dalil_spring_off')||'{}')||{}}catch(e){}
+    const gen=String(IX.gen||IX.asof),regs=REGIONS.filter(r=>savedRegions.has(r.id)&&r.bbox&&done[r.id]!==gen);if(!regs.length){if(Object.keys(done).length)offTxt='✓ محفوظة للبر';return}
+    const lx=(lo,z)=>Math.floor((lo+180)/360*2**z),ly=(la,z)=>{const r=la*Math.PI/180;return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**z)};
+    const q=[];const seen=new Set();const z0=IX.tiles.c[0],z1=Math.min(IX.tiles.c[1],11);   // لين z11 (~6–8 ميقا للمنطقة)؛ فوقها نكبّر نفس البلاطات
+    regs.forEach(r=>{const [w,so,e,n]=r.bbox;IX.chunks.forEach(c=>{if(c[0]+IX.ch<so||c[0]>n||c[1]+IX.ch<w||c[1]>e)return;
+      for(let z=z0;z<=z1;z++)for(let x=lx(c[1],z);x<=lx(c[1]+IX.ch,z);x++)for(let y=ly(c[0]+IX.ch,z);y<=ly(c[0],z);y++){const k=z+'/'+x+'/'+y;if(!seen.has(k)){seen.add(k);q.push(k)}}})});
+    const tot=q.length;let ok=0,i=0;const V='?v='+encodeURIComponent(gen)+OQ;
+    const one=()=>{if(navigator.onLine===false)return Promise.resolve();const k=q[i++];if(!k)return Promise.resolve();
+      return fetch(BASE+'t/c/'+k+'.png'+V).catch(()=>{}).then(()=>{ok++;if(ok%25===0||ok===tot){offTxt=ok<tot?'📥 حفظ للبر '+Math.round(100*ok/tot)+'٪':'✓ محفوظة للبر';try{hint()}catch(e){}}return one()})};
+    offTxt='📥 حفظ للبر 0٪';
+    Promise.all([one(),one(),one(),one()]).then(()=>{if(ok>=tot){regs.forEach(r=>done[r.id]=gen);try{localStorage.setItem('dalil_spring_off',JSON.stringify(done))}catch(e){}offTxt='✓ محفوظة للبر'}else offTxt='';try{hint()}catch(e){}});
+  }catch(e){}}
   const start=()=>get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
+    if(OFF&&BASE===RB&&IX.tiles)setTimeout(prefetch,15000);
     const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
   start();
 })();
