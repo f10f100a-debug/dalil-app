@@ -29,7 +29,7 @@ N2 = (CH / 0.0002) ** 2
 bad = {(c[0], c[1]) for c in idx if sum(c[2][:3]) / N2 > .25}
 idx = [c for c in idx if (c[0], c[1]) not in bad]
 spc = {(c[0], c[1]): sum(c[2][:3]) for c in idx}
-sat = sorted([c for c in sat if (c[0], c[1]) in spc], key=lambda c: -spc[(c[0], c[1])])[:120]
+sat = [c for c in sat if (c[0], c[1]) in spc]   # الاختيار (أكثر 150) بعدين في spring_satpick.py حسب ربيع الفياض نفسها
 keep = {f"{c[0]:.2f}_{c[1]:.2f}.webp" for c in sat}
 for f in os.listdir(f"{out}/sat"):
     if f not in keep: os.remove(f"{out}/sat/{f}")
