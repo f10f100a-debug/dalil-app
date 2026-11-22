@@ -379,7 +379,7 @@ northBtn.onclick=()=>{manualRot=false;setHeadingPref('north');setRot(0);if(view=
 function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}const srh=hit?null:reportAt(sx,sy);if(srh){targetPoint={lat:srh.lat,lng:srh.lng,sr:srh};navName.textContent='💬 بلاغ من الناس: '+(SR_LV[srh.level]||'');updateNavigation();render();status.textContent='💬 بلاغ من الناس · '+agoTxt(srh.at);probeRadar(targetPoint);return}const ffh=hit?null:fieldAt(sx,sy);if(ffh){targetPoint={lat:ffh.lat,lng:ffh.lng};navName.textContent='✓ ربيع مؤكد من الميدان';updateNavigation();render();status.textContent='🌱 '+ffh.name+(ffh.d?' · '+fyDate(ffh.d):'');probeRadar(targetPoint);return}const fn=hit?null:newAt(sx,sy),fy0=hit?null:faydAt(sx,sy);if(fn&&!fy0){targetPoint={lat:fn.lat,lng:fn.lng};navName.textContent=fn.name;updateNavigation();render();status.textContent='🛰️ '+fn.name+' — '+fn.ha+' هكتار · تحتاج تأكيد من الميدان';probeRadar(targetPoint);return}const fy=fy0;if(fy){targetPoint={lat:fy.lat,lng:fy.lng};navName.textContent='🛰️ '+fy.name;updateNavigation();render();status.textContent='🛰️ '+fy.name+(fy.region?' ('+fy.region+')':'')+' — خضرة '+fy.g+(fy.chk?' · تحتاج تأكيد من الميدان':' · مؤكدة')+(fy.d?' · صورة '+fy.d.slice(5).replace('-','/'):'');probeRadar(targetPoint);return}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
-let renderSkipped=false;
+var renderSkipped=false;   // var: render() ممكن ينادى قبل هالسطر وقت التشغيل
 function render(){
   if(mapHidden()){renderSkipped=true;return}renderSkipped=false;
   syncEngine();
@@ -1354,7 +1354,7 @@ function faydData(){if(!FYD){const t=Math.floor(Date.now()/36e5);
   return FYD}
 // بطاقة الوجهة: إذا الوجهة فيضة/روضة من القائمة (خلال 1.5 كم) نعرض حالتها + زر صورة القمر الصناعي اليوم
 let fyKey='',satPoint=null;
-let FYF=null;const FYM={};function fyDate(d){if(!d)return d;if(FYM[d])return FYM[d];try{FYF=FYF||new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'});return FYM[d]=FYF.format(new Date(d+'T12:00:00'))}catch(e){return d}}   // 22 نوفمبر: كان يبني المنسّق كل مرة (ثقيل جدًا على الجوال)
+function fyDate(d){if(!d)return d;const M=fyDate.m||(fyDate.m={});if(M[d])return M[d];try{fyDate.f=fyDate.f||new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'});return M[d]=fyDate.f.format(new Date(d+'T12:00:00'))}catch(e){return d}}   // 22 نوفمبر: كان يبني المنسّق كل مرة (ثقيل جدًا على الجوال)
 function mapHidden(){return innerWidth<2||innerHeight<2||document.hidden}   // الخريطة مخفية ورا صفحة ثانية
 // فياض بدون اسم (مسح أسبوعي بالقمر الصناعي): حلقات خضراء فاتحة، بدون تنبيهات، وبطاقتها فيها «تعرف اسمها؟»
 let FN=[],FNasof='',namePoint=null,fnLoaded=false;
@@ -1974,11 +1974,14 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   addEventListener('storage',e=>{if(e.key==='dalil_spring_mode'){mode=e.newValue==='sat'?'sat':'cls';draw();sync()}});   // زر «صورة القمر» بصفحة الربيع
   const h=Math.floor(Date.now()/36e5);
   // 21 نوفمبر (التعميم): البيانات بفرع spring-data (يتبدل كل تحديث بدون تاريخ) — وإذا ما وصلنا له نرجع للنسخة اللي داخل الموقع
-  const get=b=>Promise.all([fetch(b+'index.json?h='+h).then(r=>r.ok?r.json():null).catch(()=>null),fetch(b+'sat.json?h='+h).then(r=>r.ok?r.json():null).catch(()=>null)]);
+  // 22 نوفمبر: مهلة 12 ثانية (على 4G الطلب ممكن يعلق للأبد فما تطلع الطبقة ولا مفتاحها) + إعادة محاولة كل دقيقة
+  const tf=u=>Promise.race([fetch(u).then(r=>r.ok?r.json():null).catch(()=>null),new Promise(ok=>setTimeout(()=>ok(null),12000))]);
+  const get=b=>Promise.all([tf(b+'index.json?h='+h),tf(b+'sat.json?h='+h)]);
   const RB='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/';
-  get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
-    if(!j||j.v!==2||!j.chunks||!j.chunks.length)return;IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
+  const start=()=>get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
+    if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
     const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
+  start();
 })();
 </script><script>
 // 19 نوفمبر (تجربة dalil_lab_shrfab): مسار مستلم (رابط أو ملف GPX) — زر «🧭 اتبع المسار» عائم فوق الخريطة (الشريط اللي تحتها يتغطى بالشاشة الكاملة)
