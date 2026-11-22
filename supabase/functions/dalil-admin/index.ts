@@ -44,11 +44,11 @@ function validNewPassword(p: string, username: string): string | null {
 
 type Sub = { endpoint: string; p256dh: string; auth: string };
 
-function eventPayload(ev: { id: string; kind: string; region: string; caption: string }) {
+function eventPayload(ev: { id: string; kind: string; region: string; caption: string; video_path?: string | null }) {
   const where = ev.region ? " في " + ev.region : "";
   return {
     title: `${KIND_AR[ev.kind] || "حدث"} الآن${where}`,
-    body: ev.caption || "صورة جديدة في «الأحداث» — اضغط للمشاهدة",
+    body: ev.caption || (ev.video_path ? "فيديو جديد" : "صورة جديدة") + " في «الأحداث» — اضغط للمشاهدة",
     url: `./?screen=weather&tab=events&event=${ev.id}`,
     tag: "event-" + ev.id,
   };
@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     const log = (act: string, detail = "") => sb.from("admin_log").insert({ username: me.username, action: act, detail: detail.slice(0, 200) }).then(() => {}, () => {});
     const NEED: Record<string, string[]> = {
       list: ["moderate", "publish", "push"], approve: ["moderate"], reject: ["moderate"], restore: ["moderate"],
-      publish: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
+      publish: ["publish"], publish_url: ["publish"], push: ["push"], usage: ["usage"], ads_list: ["ads"], ad_save: ["ads"], ad_delete: ["ads"],
       room_reports: ["moderate"], room_report_close: ["moderate"], auto_alerts: ["push"],
       ask_list: ["moderate", "usage"], ask_answer: ["moderate"], ask_dismiss: ["moderate"], ask_kb_delete: ["moderate"],
       set_kind: ["moderate"],
@@ -304,39 +304,73 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 22 نوفمبر: نشر الإدارة بدقة أعلى + فيديو — روابط رفع مؤقتة (الملف يروح للتخزين مباشرة، ما يمر من هنا)
+    // الصورة حتى 2048 بكسل، والفيديو 1080p حتى 15 ثانية (حد سلة events صار 8 ميقا؛ المشتركين يبقون 3 ميقا من dalil-public)
+    if (action === "publish_url") {
+      const nid = crypto.randomUUID();
+      const files = [`${nid}.jpg`, `${nid}_t.jpg`, ...(body.video ? [`${nid}.mp4`] : [])];
+      const tokens: Record<string, string> = {};
+      for (const p of files) {
+        const r = await sb.storage.from("events").createSignedUploadUrl(p);
+        if (r.error) throw r.error;
+        tokens[p] = r.data.token;
+      }
+      return json(req, { ok: true, id: nid, tokens, apikey: Deno.env.get("SUPABASE_ANON_KEY") || "" });
+    }
+
     // نشر صورة مباشرة من الإدارة (بدون مراجعة) مع تنبيه اختياري.
     if (action === "publish") {
       const kind = String(body.kind || "");
       if (!KINDS.includes(kind)) return json(req, { error: "bad_kind" }, 400);
-      const dec = (v: unknown) => typeof v === "string" && v ? b64uDecode(v.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) : new Uint8Array();
-      const photo = dec(body.photo_b64), thumb = dec(body.thumb_b64);
-      const isJpeg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
-      if (!isJpeg(photo) || !isJpeg(thumb)) return json(req, { error: "bad_image" }, 415);
-      if (photo.length > 900 * 1024 || thumb.length > 120 * 1024) return json(req, { error: "too_large" }, 413);
+      const uploaded = body.uploaded === true && validId;
+      let evId = crypto.randomUUID(), videoPath: string | null = null, vdur: number | null = null;
+      let photo = new Uint8Array(), thumb = new Uint8Array();
+      if (uploaded) {
+        // الملفات انرفعت بروابط publish_url — نتأكد إنها موجودة وأحجامها معقولة وإنها JPEG/MP4 فعلًا
+        evId = id;
+        const want: Record<string, number> = { [`${id}.jpg`]: 2.5 * 1024 * 1024, [`${id}_t.jpg`]: 200 * 1024 };
+        if (body.video) { videoPath = `${id}.mp4`; want[videoPath] = 8 * 1024 * 1024; }
+        const { data: objs } = await sb.storage.from("events").list("", { search: id, limit: 10 });
+        const sizeOf = (p: string) => Number((objs || []).find((o) => o.name === p)?.metadata?.size ?? -1);
+        const head = async (p: string) => { const d = await sb.storage.from("events").download(p); return d.error ? new Uint8Array() : new Uint8Array(await d.data.slice(0, 12).arrayBuffer()); };
+        const jpg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+        let bad = Object.entries(want).some(([p, lim]) => { const z = sizeOf(p); return z <= 0 || z > lim; });
+        if (!bad) bad = !jpg(await head(`${id}_t.jpg`)) || !jpg(await head(`${id}.jpg`));
+        if (!bad && videoPath) { const h = await head(videoPath); bad = !(h.length >= 8 && String.fromCharCode(...h.slice(4, 8)) === "ftyp"); }
+        if (bad) { await sb.storage.from("events").remove(Object.keys(want)); return json(req, { error: "bad_upload" }, 415); }
+        if (videoPath) vdur = Math.min(16, Math.max(0, Number(body.vdur) || 0)) || null;
+      } else {
+        const dec = (v: unknown) => typeof v === "string" && v ? b64uDecode(v.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")) : new Uint8Array();
+        photo = dec(body.photo_b64); thumb = dec(body.thumb_b64);
+        const isJpeg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+        if (!isJpeg(photo) || !isJpeg(thumb)) return json(req, { error: "bad_image" }, 415);
+        if (photo.length > 900 * 1024 || thumb.length > 120 * 1024) return json(req, { error: "too_large" }, 413);
+      }
       const regionIn = cleanText(body.region, 40);
       const region = REGIONS.includes(regionIn) ? regionIn : "";
       let lat = Number(body.lat), lng = Number(body.lng);
       const hasLoc = body.lat !== null && body.lat !== undefined && body.lat !== "" && Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
       if (hasLoc) { lat = Math.round(lat * 1e5) / 1e5; lng = Math.round(lng * 1e5) / 1e5; }
       const days = Math.min(14, Math.max(1, Math.round(Number(body.days) || LIVE_DAYS)));
-      const id = crypto.randomUUID(), photoPath = `${id}.jpg`, thumbPath = `${id}_t.jpg`;
-      for (const [p, b] of [[photoPath, photo], [thumbPath, thumb]] as const) {
+      const photoPath = `${evId}.jpg`, thumbPath = `${evId}_t.jpg`;
+      if (!uploaded) for (const [p, b] of [[photoPath, photo], [thumbPath, thumb]] as const) {
         const up = await sb.storage.from("events").upload(p, b, { contentType: "image/jpeg", cacheControl: "3600" });
         if (up.error) throw up.error;
       }
       const now = new Date();
       const ev = {
-        id, kind, region, lat: hasLoc ? lat : null, lng: hasLoc ? lng : null,
+        id: evId, kind, region, lat: hasLoc ? lat : null, lng: hasLoc ? lng : null,
         caption: cleanText(body.caption, 140), nickname: cleanText(body.nickname, 24), device: "admin",
+        ...(videoPath ? { video_path: videoPath, video_dur: vdur } : {}),
         width: Math.round(Number(body.w)) || null, height: Math.round(Number(body.h)) || null,
         photo_path: photoPath, thumb_path: thumbPath, status: "approved",
         approved_at: now.toISOString(), expires_at: new Date(now.getTime() + days * 86400e3).toISOString(),
       };
       const { error } = await sb.from("events").insert(ev);
-      if (error) { await sb.storage.from("events").remove([photoPath, thumbPath]); throw error; }
+      if (error) { await sb.storage.from("events").remove([photoPath, thumbPath, ...(videoPath ? [videoPath] : [])]); throw error; }
       const push = body.notify ? await sendPush(sb, cfg, region, eventPayload(ev)) : null;
-      await log("publish", `${KIND_AR[kind]} ${region} ${ev.caption}`.trim());
-      return json(req, { ok: true, id, push });
+      await log("publish", `${videoPath ? "🎬 " : ""}${KIND_AR[kind]} ${region} ${ev.caption}`.trim());
+      return json(req, { ok: true, id: evId, push });
     }
 
     if (action === "approve" && validId) {

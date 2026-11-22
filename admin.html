@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; media-src https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://penhpgvjtxytgyrhmetg.supabase.co; connect-src https://penhpgvjtxytgyrhmetg.supabase.co; media-src blob: https://penhpgvjtxytgyrhmetg.supabase.co; base-uri 'none'; form-action 'none'">
 <title>دليل — لوحة الإدارة</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
@@ -129,10 +129,10 @@
 
     </div>
     <div data-perm="publish">
-    <h2>نشر صورة مباشرة <span class="muted" style="font-weight:400">· تظهر فورًا في «الأحداث» بدون مراجعة</span></h2>
+    <h2>نشر صورة أو فيديو مباشرة <span class="muted" style="font-weight:400">· تظهر فورًا في «الأحداث» بدون مراجعة · دقة عالية (صورة 2048 · فيديو 1080p حتى 15 ثانية)</span></h2>
     <div class="card">
-      <label for="pubFile">الصورة</label>
-      <input id="pubFile" type="file" accept="image/*">
+      <label for="pubFile">الصورة أو الفيديو</label>
+      <input id="pubFile" type="file" accept="image/*,video/*">
       <div id="pubPreview" class="muted"></div>
       <label for="pubKind">النوع</label>
       <select id="pubKind"><option value="flood">سيل</option><option value="rain">مطر</option><option value="spring">ربيع</option><option value="dust">غبار</option><option value="road">حالة طريق</option><option value="other">أخرى</option></select>
@@ -272,6 +272,7 @@
 </main>
 <div class="big" id="big"><img alt=""></div>
 
+<script src="admin-video.js?v=1"></script>
 <script>
 (function(){
   'use strict';
@@ -467,41 +468,82 @@
     return {data:c.toDataURL('image/jpeg', q), w:c.width, h:c.height};
   }
   $('pubLoc').addEventListener('input', locNote);
+  // 22 نوفمبر: صورة الإدارة بدقة 2048 (بدل 1280) + فيديو 1080p — الملفات ترتفع للتخزين مباشرة برابط مؤقت
+  const toBlob = (img, maxSide, q)=>{
+    const s = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.naturalWidth * s)); c.height = Math.max(1, Math.round(img.naturalHeight * s));
+    const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+    return new Promise(res=>c.toBlob(b=>res({blob:b, w:c.width, h:c.height}), 'image/jpeg', q));
+  };
+  const mb = b=>(b.size / 1048576).toFixed(1) + ' ميقا';
   $('pubFile').addEventListener('change', async e=>{
-    const f = e.target.files && e.target.files[0]; pubDraft = null; $('pubSend').disabled = true; if(!f) return;
-    $('pubMsg').textContent = 'جارٍ تجهيز الصورة…'; $('pubMsg').className = 'msg';
+    const f = e.target.files && e.target.files[0]; pubDraft = null; $('pubSend').disabled = true; $('pubPreview').innerHTML = ''; if(!f) return;
+    const isVid = /^video\//.test(f.type) || /\.(mov|mp4|m4v)$/i.test(f.name || '');
+    $('pubMsg').textContent = isVid ? 'جارٍ تجهيز الفيديو… خلّ الصفحة مفتوحة' : 'جارٍ تجهيز الصورة…'; $('pubMsg').className = 'msg';
     try{
+      if(isVid){
+        if(!window.AdminVideo) throw new Error('nosupport');
+        const d = await AdminVideo.prepare(f, p=>{ $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الصفحة مفتوحة'; });
+        pubDraft = {photo:d.photo, thumb:d.thumb, video:d.video, w:d.w, h:d.h, vdur:d.dur};
+        const vu = URL.createObjectURL(d.video);
+        $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline muted style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
+        $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '');
+        $('pubSend').disabled = false; return;
+      }
       const exif = await readExif(f);
       const url = URL.createObjectURL(f), img = new Image();
       await new Promise((ok, bad)=>{ img.onload = ok; img.onerror = bad; img.src = url; });
-      let full = toJpegData(img, 1280, .74);
-      if(full.data.length * .75 > 850 * 1024) full = toJpegData(img, 1080, .6);
-      const thumb = toJpegData(img, 420, .7);
+      let full = await toBlob(img, 2048, .84);
+      if(full.blob.size > 2.3 * 1048576) full = await toBlob(img, 1600, .78);
+      const thumb = await toBlob(img, 420, .7);
       URL.revokeObjectURL(url);
-      pubDraft = {photo:full.data.split(',')[1], thumb:thumb.data.split(',')[1], w:full.w, h:full.h};
-      $('pubPreview').innerHTML = `<img src="${full.data}" alt="" style="max-width:100%;max-height:220px;border-radius:12px;margin-top:8px">`;
+      pubDraft = {photo:full.blob, thumb:thumb.blob, w:full.w, h:full.h};
+      $('pubPreview').innerHTML = `<img src="${URL.createObjectURL(full.blob)}" alt="" style="max-width:100%;max-height:220px;border-radius:12px;margin-top:8px">`;
       if(exif.gps && !$('pubLoc').value.trim()){ $('pubLoc').value = exif.gps.lat.toFixed(5) + ', ' + exif.gps.lng.toFixed(5); }
       locNote();
-      $('pubMsg').textContent = exif.gps ? 'أُخذ الموقع من بيانات الصورة.' : ''; $('pubSend').disabled = false;
-    }catch(err){ $('pubMsg').textContent = 'تعذّر قراءة الصورة'; $('pubMsg').className = 'msg err'; }
+      $('pubMsg').textContent = `${full.w}×${full.h} · ${mb(full.blob)}` + (exif.gps ? ' · أُخذ الموقع من بيانات الصورة.' : ''); $('pubSend').disabled = false;
+    }catch(err){
+      $('pubMsg').textContent = isVid ? ({big:'الفيديو كبير حتى بعد الضغط. جرّب مقطع أقصر.', nosupport:'هالمتصفح ما يقدر يجهّز الفيديو. جرّب كروم أو سفاري محدّث.'}[err.message] || 'تعذّر قراءة الفيديو') : 'تعذّر قراءة الصورة';
+      $('pubMsg').className = 'msg err';
+    }
   });
+  const STO = 'https://penhpgvjtxytgyrhmetg.supabase.co/storage/v1/object/upload/sign/events/';
+  function putFile(path, token, key, blob, type, onProg){
+    return new Promise((res, rej)=>{
+      const x = new XMLHttpRequest(); x.open('PUT', STO + encodeURIComponent(path) + '?token=' + encodeURIComponent(token));
+      x.setRequestHeader('Content-Type', type); x.setRequestHeader('x-upsert', 'false'); if(key) x.setRequestHeader('apikey', key);
+      x.upload.onprogress = e=>{ if(e.lengthComputable && onProg) onProg(e.loaded / e.total); };
+      x.onload = ()=>x.status >= 200 && x.status < 300 ? res() : rej(new Error('رفع الملف فشل (' + x.status + ')'));
+      x.onerror = ()=>rej(new Error('انقطع الرفع — تأكد من النت وحاول مرة ثانية'));
+      x.send(blob);
+    });
+  }
   $('pubSend').addEventListener('click', async ()=>{
     if(!pubDraft) return;
     const loc = parseLoc($('pubLoc').value);
     if(loc === undefined){ $('pubMsg').textContent = 'صحّح الموقع أو امسحه'; $('pubMsg').className = 'msg err'; return; }
     const region = $('pubRegion').value, notify = $('pubNotify').checked;
-    if(notify && !confirm(`نشر الصورة وإرسال تنبيه إلى ${region || 'كل المشتركين'}؟`)) return;
+    const what = pubDraft.video ? 'الفيديو' : 'الصورة';
+    if(notify && !confirm(`نشر ${what} وإرسال تنبيه إلى ${region || 'كل المشتركين'}؟`)) return;
     $('pubSend').disabled = true; $('pubMsg').textContent = 'جارٍ النشر…'; $('pubMsg').className = 'msg';
     try{
-      const r = await api('publish', {photo_b64:pubDraft.photo, thumb_b64:pubDraft.thumb, w:pubDraft.w, h:pubDraft.h,
+      const u = await api('publish_url', {video:!!pubDraft.video});
+      const id = u.id, files = [[id + '.jpg', pubDraft.photo, 'image/jpeg'], [id + '_t.jpg', pubDraft.thumb, 'image/jpeg'], ...(pubDraft.video ? [[id + '.mp4', pubDraft.video, 'video/mp4']] : [])];
+      const total = files.reduce((a, f)=>a + f[1].size, 0); let doneB = 0;
+      for(const [path, blob, type] of files){
+        await putFile(path, u.tokens[path], u.apikey, blob, type, p=>{ $('pubMsg').textContent = 'جارٍ رفع ' + what + '… ' + Math.round((doneB + p * blob.size) / total * 100) + '٪'; });
+        doneB += blob.size;
+      }
+      $('pubMsg').textContent = 'جارٍ النشر…';
+      const r = await api('publish', {uploaded:true, id, video:!!pubDraft.video, vdur:pubDraft.vdur || 0, w:pubDraft.w, h:pubDraft.h,
         kind:$('pubKind').value, caption:$('pubCaption').value.trim(), nickname:$('pubNick').value.trim(), region,
         lat:loc ? loc.lat : null, lng:loc ? loc.lng : null, days:+$('pubDays').value, notify});
-      $('pubMsg').textContent = 'نُشرت الصورة ✓' + (r.push ? ` — وصل التنبيه إلى ${r.push.sent} من ${r.push.total}` : '');
+      $('pubMsg').textContent = 'نُشر ' + what + ' ✓' + (r.push ? ` — وصل التنبيه إلى ${r.push.sent} من ${r.push.total}` : '');
       $('pubMsg').className = 'msg ok';
       pubDraft = null; $('pubFile').value = ''; $('pubPreview').innerHTML = ''; $('pubCaption').value = ''; $('pubLoc').value = ''; $('pubLocNote').textContent = '';
       await load();
     }catch(e){
-      $('pubMsg').textContent = ({bad_image:'صيغة الصورة غير مدعومة', too_large:'الصورة كبيرة جدًا', bad_kind:'اختر النوع'})[e.message] || e.message || 'تعذّر النشر';
+      $('pubMsg').textContent = ({bad_image:'صيغة الصورة غير مدعومة', too_large:'الملف كبير جدًا', bad_upload:'الملف ما ارتفع كامل — حاول مرة ثانية', bad_kind:'اختر النوع'})[e.message] || e.message || 'تعذّر النشر';
       $('pubMsg').className = 'msg err'; if(e.auth) showErr(e); $('pubSend').disabled = false;
     }
   });
