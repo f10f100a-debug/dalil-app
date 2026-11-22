@@ -295,7 +295,7 @@ let labelFlip=false;
 // الدوران الحين من محرك الخريطة نفسه (bearing): طبقة الرسم تُعكس عن دوران المسرح، والمحرك يدير الخريطة —
 // فتبقى أسماء الأماكن معتدلة وأسماء الطرق ما تنقلب مهما كانت الزاوية (قبل كانت الصورة كلها تدور مع أسمائها).
 let engineFrame=0;
-function checkLabelFlip(){if(engineFrame)return;engineFrame=requestAnimationFrame(()=>{engineFrame=0;try{syncEngine()}catch(e){}})}
+function checkLabelFlip(){if(engineFrame||mapHidden())return;engineFrame=requestAnimationFrame(()=>{engineFrame=0;try{syncEngine()}catch(e){}})}
 function setRot(v){rot+=((v-rot)%360+540)%360-180;const r=rot.toFixed(2);stage.style.transform='rotate('+(-rot).toFixed(2)+'deg)';marksEl.style.setProperty('--rot',r);targetMarker.style.setProperty('--rot',r);northIcon.style.transform=`rotate(${(-rot).toFixed(1)}deg)`;const hide=!isRotated()&&view!=='heading';if(northBtn.hidden!==hide)northBtn.hidden=hide;try{if(glReady)checkLabelFlip()}catch(e){}}
 function onHeadingChanged(){
   if(headingFrame)return;
@@ -379,7 +379,9 @@ northBtn.onclick=()=>{manualRot=false;setHeadingPref('north');setRot(0);if(view=
 function selectMapPoint(sx,sy){let hit=null,best=26;for(const c of clusters){if(Math.hypot(c.sx-sx,c.sy-sy)<30){openCluster(c);return}}for(const m of savedMarks.concat(roomMarks)){if(m.sx==null)continue;let d=Math.hypot(m.sx-sx,m.sy-sy);if(d<best){best=d;hit=m}}const srh=hit?null:reportAt(sx,sy);if(srh){targetPoint={lat:srh.lat,lng:srh.lng,sr:srh};navName.textContent='💬 بلاغ من الناس: '+(SR_LV[srh.level]||'');updateNavigation();render();status.textContent='💬 بلاغ من الناس · '+agoTxt(srh.at);probeRadar(targetPoint);return}const ffh=hit?null:fieldAt(sx,sy);if(ffh){targetPoint={lat:ffh.lat,lng:ffh.lng};navName.textContent='✓ ربيع مؤكد من الميدان';updateNavigation();render();status.textContent='🌱 '+ffh.name+(ffh.d?' · '+fyDate(ffh.d):'');probeRadar(targetPoint);return}const fn=hit?null:newAt(sx,sy),fy0=hit?null:faydAt(sx,sy);if(fn&&!fy0){targetPoint={lat:fn.lat,lng:fn.lng};navName.textContent=fn.name;updateNavigation();render();status.textContent='🛰️ '+fn.name+' — '+fn.ha+' هكتار · تحتاج تأكيد من الميدان';probeRadar(targetPoint);return}const fy=fy0;if(fy){targetPoint={lat:fy.lat,lng:fy.lng};navName.textContent='🛰️ '+fy.name;updateNavigation();render();status.textContent='🛰️ '+fy.name+(fy.region?' ('+fy.region+')':'')+' — خضرة '+fy.g+(fy.chk?' · تحتاج تأكيد من الميدان':' · مؤكدة')+(fy.d?' · صورة '+fy.d.slice(5).replace('-','/'):'');probeRadar(targetPoint);return}targetPoint=hit?{lat:hit.lat,lng:hit.lng}:stageToLatLng(sx,sy);navName.textContent=hit?hit.name:'نقطة محددة على الخريطة';updateNavigation();render();status.textContent='تم تحديد النقطة — اختر «على الخريطة» أو «بالبوصلة»';probeRadar(targetPoint)}
 function scheduleRender(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;render()})}
 function viewHalfSize(){if(isRotated()||view==='heading'){const r=Math.hypot(innerWidth,innerHeight)/2+Math.hypot(originX-innerWidth/2,originY-innerHeight/2);return[r,r]}return[innerWidth/2,innerHeight/2]}
+let renderSkipped=false;
 function render(){
+  if(mapHidden()){renderSkipped=true;return}renderSkipped=false;
   syncEngine();
   drawScale();drawTrack();drawMarks();drawDot();drawTarget()}
 
@@ -1352,7 +1354,8 @@ function faydData(){if(!FYD){const t=Math.floor(Date.now()/36e5);
   return FYD}
 // بطاقة الوجهة: إذا الوجهة فيضة/روضة من القائمة (خلال 1.5 كم) نعرض حالتها + زر صورة القمر الصناعي اليوم
 let fyKey='',satPoint=null;
-function fyDate(d){try{return new Date(d+'T12:00:00').toLocaleDateString('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'})}catch(e){return d}}
+let FYF=null;const FYM={};function fyDate(d){if(!d)return d;if(FYM[d])return FYM[d];try{FYF=FYF||new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn',{day:'numeric',month:'long'});return FYM[d]=FYF.format(new Date(d+'T12:00:00'))}catch(e){return d}}   // 22 نوفمبر: كان يبني المنسّق كل مرة (ثقيل جدًا على الجوال)
+function mapHidden(){return innerWidth<2||innerHeight<2||document.hidden}   // الخريطة مخفية ورا صفحة ثانية
 // فياض بدون اسم (مسح أسبوعي بالقمر الصناعي): حلقات خضراء فاتحة، بدون تنبيهات، وبطاقتها فيها «تعرف اسمها؟»
 let FN=[],FNasof='',namePoint=null,fnLoaded=false;
 async function loadNewFayd(){if(fnLoaded)return;fnLoaded=true;try{const t=Math.floor(Date.now()/36e5);const j=await fetch('data/fayd-new.json?h='+t).then(r=>r.ok?r.json():null);if(!j)return;FNasof=j.asof||'';
@@ -1935,7 +1938,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];h.textContent=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof)}
+  function hint(){const h=document.getElementById('sprHint');if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
@@ -1957,8 +1960,8 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
         gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
       const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
-  function sync(){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
-    const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?12.5:0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);try{render()}catch(e){}}
+  function sync(quiet){if(typeof gl==='undefined'||!glOk()||!IX)return;legend();fade();const show=!!LP.ndvi;lg.style.display=show?'flex':'none';hint();place();
+    const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?12.5:0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];{const ks=Object.keys(C);if(ks.length>=2)delete C[ks[0]]}
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
   window.__springAt=async p=>{if(!IX||!LP.ndvi)return null;const c=IX.chunks.find(c=>p.lat>=c[0]&&p.lat<c[0]+IX.ch&&p.lng>=c[1]&&p.lng<c[1]+IX.ch);if(!c)return null;
@@ -1975,7 +1978,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const RB='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/';
   get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/')).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length)return;IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
-    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(sync,1500)},800)});
+    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',sync);setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
 })();
 </script><script>
 // 19 نوفمبر (تجربة dalil_lab_shrfab): مسار مستلم (رابط أو ملف GPX) — زر «🧭 اتبع المسار» عائم فوق الخريطة (الشريط اللي تحتها يتغطى بالشاشة الكاملة)
@@ -2005,4 +2008,5 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     b.querySelector('small').textContent=f.approach?'امشِ مع الخط المتقطع لين توصل الخط الأحمر':'امشِ على الخط الأحمر — اللي مشيته يصير رمادي';
     const sf=document.getElementById('shrFab');if(sf)sf.remove()};
 })();
-</script></body></html>
+</script><script>addEventListener('resize',()=>{if(renderSkipped&&!mapHidden())try{render()}catch(e){}});</script>
+</body></html>
