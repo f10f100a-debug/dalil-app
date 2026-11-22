@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v460';
+const SHELL_CACHE='dalil-shell-v461';
 const LIVE_DATA='dalil-live-data-v1'; // 17 نوفمبر: آخر نسخة من الفياض والفقع ومطر الأسبوع (تشتغل بالبر بدون نت)
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/256-511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1536-1791.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1792-2047.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/8192-8447.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/9472-9727.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/64256-64511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=29','./assets/sounds/event.m4a','./assets/sounds/rain.m4a',
@@ -120,9 +120,11 @@ async function springOffline(request,url){
     return fetch(request);
   }
   const hit=await c.match(request);if(hit)return hit;
-  const r=await fetch(request);
-  if(r&&r.ok){c.put(request,r.clone()).then(()=>{if(++springPuts%200===0)springTrim(c)}).catch(()=>{})}
-  return r;
+  let r=null;try{r=await fetch(request)}catch(e){r=null}
+  if(r&&r.ok){c.put(request,r.clone()).then(()=>{if(++springPuts%200===0)springTrim(c)}).catch(()=>{});return r}
+  // بدون نت (أو فشل): نسخة أقدم من نفس المربع — القطع اللي ما تغيّرت ما تنعاد تنحمل
+  const old=await c.match(request,{ignoreSearch:true});if(old)return old;
+  if(r)return r;throw new TypeError('offline');
 }
-// حد المساحة: ~9000 ملف (~100 ميقا تقريبًا) — الأقدم ينمسح أول
-async function springTrim(c){try{const ks=await c.keys();if(ks.length>9000)for(const k of ks.slice(0,ks.length-8000))await c.delete(k)}catch(e){}}
+// حد المساحة: ~32000 ملف (~90 ميقا تقريبًا، البلاطة ~2.7 ك.ب) — الأقدم ينمسح أول
+async function springTrim(c){try{const ks=await c.keys();if(ks.length>32000)for(const k of ks.slice(0,ks.length-30000))await c.delete(k)}catch(e){}}
