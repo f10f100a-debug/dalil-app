@@ -17,6 +17,9 @@ jobs:
         env:
           CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
           CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
+      - name: New-green confidence (layer + shape + rain)
+        continue-on-error: true
+        run: pip install --quiet numpy pillow && python3 tools/fayd/newconf.py
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"

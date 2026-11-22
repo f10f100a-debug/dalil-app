@@ -1362,8 +1362,8 @@ addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.ty
 // فياض بدون اسم (مسح أسبوعي بالقمر الصناعي): حلقات خضراء فاتحة، بدون تنبيهات، وبطاقتها فيها «تعرف اسمها؟»
 let FN=[],FNasof='',namePoint=null,fnLoaded=false;
 async function loadNewFayd(){if(fnLoaded)return;fnLoaded=true;try{const t=Math.floor(Date.now()/36e5);const j=await fetch('data/fayd-new.json?h='+t).then(r=>r.ok?r.json():null);if(!j)return;FNasof=j.asof||'';
-  FN=(j.rows||[]).map(r=>({lat:r[0],lng:r[1],ha:r[2],g:r[3],name:r[4]}));
-  if(glOk()&&FN.length&&!gl.getSource('fayd-new')){gl.addSource('fayd-new',{type:'geojson',data:{type:'FeatureCollection',features:FN.map(x=>({type:'Feature',properties:{ha:x.ha},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
+  FN=(j.rows||[]).map(r=>({lat:r[0],lng:r[1],ha:r[2],g:r[3],name:r[4],conf:r[6],why:r[7],lv:r[8]}));
+  if(glOk()&&FN.length&&!gl.getSource('fayd-new')){gl.addSource('fayd-new',{type:'geojson',data:{type:'FeatureCollection',features:FN.map(x=>({type:'Feature',properties:{ha:x.ha,conf:x.conf==null?1:x.conf},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))}});
     gl.addLayer({id:'fayd-new',type:'circle',source:'fayd-new',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':'#7BC67E','circle-opacity':.10,'circle-stroke-color':'#4FA35A','circle-stroke-width':2,'circle-stroke-opacity':.9,
       'circle-radius':['interpolate',['linear'],['zoom'],5,['interpolate',['linear'],['get','ha'],20,4,300,9],10,['interpolate',['linear'],['get','ha'],20,10,300,22],14,['interpolate',['linear'],['get','ha'],20,26,300,50]]}})}}catch(e){fnLoaded=false}}
 // «مؤكدة من الميدان»: نقاط تأكد فيها الربيع على الأرض (ملف مراجَع + بلاغات من جهازين فأكثر) — علامة خضراء بإطار ذهبي
@@ -1386,7 +1386,14 @@ function updateFaydCard(){const el=$('#navFayd'),b=$('#satNav');if(!el||!b)retur
   faydData().then(D=>{if(fyKey!==key)return;let best=1.5,hit=-1;const k=Math.cos(p.lat*Math.PI/180);
     D.sites.forEach((s,i)=>{if(!s||!s[0]||Math.abs(s[1]-p.lat)>.02)return;const d=Math.hypot((s[1]-p.lat)*111,(s[2]-p.lng)*111*k);if(d<best){best=d;hit=i}});
     if(hit<0){const nw=newNear(p);if(!nw){if(window.__springAt)window.__springAt(p).then(t=>{if(!t||fyKey!==key)return;el.textContent=t;el.className='nav-fayd'+(/شجيرات/.test(t)?' chk':'');el.hidden=false;satPoint={lat:p.lat,lng:p.lng};b.hidden=false;try{syncNavCardSpace()}catch(e){}}).catch(()=>{});return}
-      el.textContent='🛰️ اكتشفها القمر الصناعي — تحتاج تأكيد من الميدان · مساحتها '+nw.ha+' هكتار'+(FNasof?' · صورة '+fyDate(FNasof):'');el.className='nav-fayd chk';el.hidden=false;
+      // 22 نوفمبر (تجربة dalil_lab_fyconf): درجة ثقة بدل «تحتاج تأكيد» للكل — واضحة / تحتاج تأكيد مع السبب / شكلها مزرعة
+      let CF=false;try{CF=localStorage.getItem('dalil_lab_fyconf')==='1'}catch(_){}
+      const tail=' · مساحتها '+nw.ha+' هكتار'+(FNasof?' · صورة '+fyDate(FNasof):''),WHY={nolayer:'ما بانت بطبقة الربيع الدقيقة',shrub:'غالبًا شجيرات دائمة',norain:'ما سجّلنا مطر عليها',light:'الخضرة خفيفة'};
+      if(CF&&nw.conf===2){el.textContent=(nw.lv>=3?'🌿 ربيع كثيف':'🌿 ربيع متوسط')+' واضح من القمر الصناعي'+tail;el.className='nav-fayd'}
+      else if(CF&&nw.conf===0){el.textContent='🚜 شكلها مزرعة (دائري أو مستطيل) — تحتاج تأكيد'+tail;el.className='nav-fayd dry'}
+      else if(CF&&nw.conf===1&&WHY[nw.why]){el.textContent='🛰️ خضرة من القمر — تحتاج تأكيد من الميدان: '+WHY[nw.why]+tail;el.className='nav-fayd chk'}
+      else{el.textContent='🛰️ اكتشفها القمر الصناعي — تحتاج تأكيد من الميدان'+tail;el.className='nav-fayd chk'}
+      el.hidden=false;
       satPoint={lat:nw.lat,lng:nw.lng};namePoint=satPoint;b.hidden=false;$('#nameNav').hidden=false;try{syncNavCardSpace()}catch(e){}return}
     const r=D.row.get(hit);let t,c='';
     if(D.farm.has(hit)){t='🌾 فيها زراعة — خضرتها ما تنقاس ربيع';c='dry'}
@@ -1902,6 +1909,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   let done=false;
   function add(){if(done||typeof gl==='undefined'||!glOk()||!gl.getLayer('fayd-new'))return;done=true;
     gl.setPaintProperty('fayd-new','circle-opacity',.24);gl.setPaintProperty('fayd-new','circle-stroke-width',2.6);gl.setPaintProperty('fayd-new','circle-color','#5DBB63');
+    try{if(localStorage.getItem('dalil_lab_fyconf')==='1'){gl.setPaintProperty('fayd-new','circle-color',['match',['get','conf'],2,'#2E8B45',0,'#B08A5A','#7BC67E']);gl.setPaintProperty('fayd-new','circle-stroke-color',['match',['get','conf'],2,'#1F6B33',0,'#8A6A3F','#4FA35A'])}}catch(_){}
     const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
     let FONT=TF;try{if(localStorage.getItem('dalil_lab_style')!=='0'){const f=localStorage.getItem('dalil_map_font');FONT=[/^Dalil [A-Za-z ]+$/.test(f||'')?f:'Dalil Kufi Bold']}}catch(e){}
     gl.addLayer({id:'fayd-new-lbl',type:'symbol',source:'fayd-new',minzoom:8,filter:['>=',['get','ha'],40],
