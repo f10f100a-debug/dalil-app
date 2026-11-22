@@ -1,0 +1,49 @@
+# نسخ طبقة الربيع (فرع spring-data) إلى Cloudflare R2 → https://spring.dalilbarr.com (22 نوفمبر)
+# يشتغل بعد كل «Spring layer» ناجح، أو يدويًا. يرفع اللي تغيّر بس (مقارنة MD5) عشان نبقى بالحد المجاني.
+# الترتيب مهم: الصور والبلاطات أول، وبعدها index.json/sat.json (ما يشوف الجوال فهرس جديد قبل ما توصل صوره)، والحذف آخر شي.
+name: R2 sync
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Spring layer"]
+    types: [completed]
+permissions:
+  contents: read
+concurrency: { group: r2-sync, cancel-in-progress: false }
+jobs:
+  sync:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      RCLONE_CONFIG_R2_TYPE: s3
+      RCLONE_CONFIG_R2_PROVIDER: Cloudflare
+      RCLONE_CONFIG_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      RCLONE_CONFIG_R2_ENDPOINT: https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      RCLONE_CONFIG_R2_ACL: private
+      RCLONE_CONFIG_R2_NO_CHECK_BUCKET: "true"
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: spring-data, path: sd, fetch-depth: 1 }
+      - name: Install rclone
+        run: curl -fsSL https://rclone.org/install.sh | sudo bash >/dev/null && rclone version | head -1
+      - name: Images and tiles (changed only)
+        run: |
+          rm -rf sd/.git
+          rclone copy sd r2:dalil-spring --checksum --fast-list --transfers 32 --checkers 32 \
+            --exclude "/index.json" --exclude "/sat.json" \
+            --header-upload "Cache-Control: public, max-age=86400" --stats-one-line --stats 60s -v 2>&1 | grep -E "Transferred|ERROR|Errors" | tail -5
+      - name: Index files
+        run: |
+          rclone copy sd r2:dalil-spring --checksum --include "/index.json" --include "/sat.json" \
+            --header-upload "Cache-Control: public, max-age=120" -v 2>&1 | grep -E "Transferred|ERROR" | tail -3
+      - name: Remove old files
+        run: rclone sync sd r2:dalil-spring --checksum --fast-list --checkers 32 -v 2>&1 | grep -E "Deleted|ERROR|Transferred" | tail -3
+      - name: Check via spring.dalilbarr.com
+        run: |
+          sleep 3
+          a=$(jq -r '.gen // .asof' sd/index.json)
+          b=$(curl -fsS "https://spring.dalilbarr.com/index.json?h=$RANDOM" -H "Origin: https://dalilbarr.com" | jq -r '.gen // .asof')
+          n=$(find sd -type f | wc -l); s=$(du -sh sd | cut -f1)
+          [ "$a" = "$b" ] && echo "::notice::R2 synced: $n files · $s · gen $b" || { echo "::error::R2 index gen $b ≠ spring-data $a"; exit 1; }
