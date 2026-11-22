@@ -1952,6 +1952,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
         h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div>'}
       h+='<div id="sprOff" style="display:none;flex-wrap:wrap;gap:5px"></div>';
       let tip=false;try{tip=!localStorage.getItem('dalil_spring_tip')}catch(e){}
+      lg.style.zIndex=tip?'2147482000':'30';
       if(tip)h='<div data-tip style="pointer-events:auto;position:absolute;bottom:calc(100% + 10px);right:6px;left:6px;background:#2F6B3A;color:#fff;border-radius:16px;padding:11px 13px;font-size:13.5px;font-weight:700;line-height:1.6;box-shadow:0 8px 22px rgba(0,0,0,.25)">📥 ربيع منطقتك ينحفظ في جوالك تلقائيًا، ويشتغل في البر <u>بدون نت</u>. تختار المناطق من زر 📥<br><b data-tipok style="display:inline-block;margin-top:7px;background:#fff;color:#2F6B3A;border-radius:10px;padding:4px 16px;font-size:13px;cursor:pointer">فهمت</b></div>'+h}
     else if(!small){h+='<div style="display:flex;align-items:center;gap:6px"><span data-lgt style="cursor:pointer;font-size:18px;padding:0 4px;min-height:34px;display:flex;align-items:center">🌱</span>'+(SX?'<span style="flex:1;display:flex;background:#EFE8DA;border-radius:999px;padding:2px">'+seg('cls','التصنيف')+seg('sat','صورة القمر')+'</span>':'<span style="font-weight:800">الربيع من القمر</span>')+'</div>';
       h+='<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;padding:0 4px 2px">';
@@ -2037,7 +2038,9 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     // سؤال داخل البطاقة: اخترت مناطق بنفسك ودخلت منطقة مو منها (مرة باليوم لكل منطقة)
     const ask=LS('dalil_spring_ask')||{};
     if(net&&sel&&here&&!sel.includes(here.id)&&!(ask[here.id]>Date.now()))P.push('<div style="width:100%;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#5b4a33">أنت في '+here.name+' —'+O('📥 احفظ ربيعها ('+mb(here)+' ميقا)','data-addreg="'+here.id+'" style="cursor:pointer"')+'<span data-noask="'+here.id+'" style="margin-inline-start:auto;font-size:18px;color:#a89679;cursor:pointer;padding:0 6px">×</span></div>');
-    if(exp)wantList().forEach(r=>{if(busyReg&&busyReg.id===r.id)return;if(d[r.id]===gen)P.push(G('✓ '+r.name+' محفوظ'));else if(d[r.id])P.push(G(r.name+' محفوظ (أقدم)'))});
+    // 22 نوفمبر: بدل حبة لكل منطقة (زحمة لو عندك 7 مناطق) — حبة وحدة تلخّص، وتضغطها تفتح القائمة
+    if(exp){const W=wantList(),ok=W.filter(r=>d[r.id]===gen).length,old=W.filter(r=>d[r.id]&&d[r.id]!==gen).length;
+      if(ok||old)P.push(pill('#E3F1E4','#2F6B3A','#BFDCC3',(ok?'✓ '+(ok===1?'منطقة محفوظة':ok===2?'منطقتين محفوظة':ok+(ok<=10?' مناطق محفوظة':' منطقة محفوظة')):'')+(old?(ok?' · ':'')+(old===1?'وحدة':old)+' تنتظر التحديث':'')+' ‹','data-regs'))}
     if(!el)return;const html=P.join('');if(el.innerHTML!==html)el.innerHTML=html;el.style.display=P.length?'flex':'none';}
   function offTick(){try{
     if(!OFF||!IX||!IX.tiles||BASE!==RB||busyReg||navigator.onLine===false){try{offRender()}catch(e){}return}
