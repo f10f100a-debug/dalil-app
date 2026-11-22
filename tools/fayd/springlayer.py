@@ -25,7 +25,7 @@ NDVI_PAL = [(-.5, "0c0c0c"), (-.2, "bfbfbf"), (-.1, "dbdbdb"), (0, "eaeaea"), (.
 D_MIN = float(os.environ.get("SPRING_D") or 0.03)
 OUT = os.environ.get("SPRING_OUT") or "data/spring"; os.makedirs(OUT, exist_ok=True)
 # صورة القمر الخام (ثقيلة) بس للقطع اللي فيها ربيع (≥ SAT_MIN مربع) وحولها فيضة مسجلة — التعميم 21 نوفمبر
-SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 20000)
+SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 5000)   # 22 نوفمبر: كان 20000 فطاحت قطع فياض كثيفة صغيرة (أم قليب) — الاختيار النهائي في spring_satpick
 _FS = json.load(open("data/fayd-sites.json"))
 FAYD_CH = {(math.floor(x[1] / .25), math.floor(x[2] / .25)) for x in _FS if x and x[0]}
 env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3")
