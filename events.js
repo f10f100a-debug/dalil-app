@@ -321,7 +321,11 @@
     if(g) B.nearestRegion(g.lat, g.lng).then(r=>{ if(r) $('evRegion').value = r; });
   }
   // ---------- الفيديو: حتى 10 ثوانٍ، يُعاد ضغطه في الجوال (~640 بكسل، ~1 ميقابت/ث) قبل الرفع ----------
-  const VMAX = 10, VMAX_BYTES = 3 * 1024 * 1024, VKEEP_BYTES = 1.3 * 1024 * 1024;
+  const VMAX = 10, VMAX_BYTES = 3 * 1024 * 1024;
+  // 22 نوفمبر (أبو مالك: «صور الفيديو في الأحداث ضعيفة»): تجربة dalil_lab_vhq = 720p (1280×720) و1.7 ميقابت (~2.5 ميقا لعشر ثواني، تحت حد السيرفر 3)
+  // والعادي 480 بكسل و0.9 ميقابت. إذا طلع أكبر من الحد يرجع للعادي تلقائيًا.
+  const VQ_STD = {px:480, wc:900000, mr:650000, keep:1.3 * 1024 * 1024}, VQ_HQ = {px:1280, wc:1700000, mr:1800000, keep:2.4 * 1024 * 1024};
+  const VQ = lsGet('dalil_lab_vhq') === '1' ? VQ_HQ : VQ_STD, VKEEP_BYTES = VQ.keep;
   function recMime(){
     if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
     return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } }) || '';
@@ -346,9 +350,9 @@
     });
   }
   const seek = (v, t)=>new Promise(res=>{ const done = ()=>{ v.removeEventListener('seeked', done); res(); }; v.addEventListener('seeked', done); v.currentTime = t; setTimeout(done, 3000); });
-  async function recompress(v, dur, onProgress){
+  async function recompress(v, dur, onProgress, q = VQ){
     const mime = recMime(); if(!mime) return null;
-    const s = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
+    const s = Math.min(1, q.px / Math.max(v.videoWidth, v.videoHeight));
     const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * s / 2) * 2; c.height = Math.round(v.videoHeight * s / 2) * 2;
     const x = c.getContext('2d'), stream = c.captureStream(24);
     // الصوت (صوت السيل مهم) — إذا رفض المتصفح تشغيل الصوت نكمل بدونه
@@ -362,7 +366,7 @@
     await seek(v, 0);
     try{ if(ac) await ac.resume(); await v.play(); }
     catch(e){ v.muted = true; await v.play(); }
-    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:650000, audioBitsPerSecond:48000});
+    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:q.mr, audioBitsPerSecond:48000});
     const parts = [];
     rec.ondataavailable = e=>{ if(e.data && e.data.size) parts.push(e.data); };
     const stopped = new Promise(res=>rec.onstop = res);
@@ -413,13 +417,13 @@
     }
     return null;
   }
-  async function recompressWC(file, v, dur, onProgress){
+  async function recompressWC(file, v, dur, onProgress, q = VQ){
     if(!window.VideoEncoder || !window.VideoFrame || !v.requestVideoFrameCallback) return null;
     if(!(await loadMuxer())) return null;
     const end = Math.min(dur, VMAX);
-    const s = Math.min(1, 480 / Math.max(v.videoWidth, v.videoHeight));
+    const s = Math.min(1, q.px / Math.max(v.videoWidth, v.videoHeight));
     const W = Math.round(v.videoWidth * s / 2) * 2, H = Math.round(v.videoHeight * s / 2) * 2;
-    const vcfg = {codec:'avc1.42E01F', width:W, height:H, bitrate:900000, framerate:24, avc:{format:'avc'}};
+    const vcfg = {codec:'avc1.42E01F', width:W, height:H, bitrate:q.wc, framerate:24, avc:{format:'avc'}};
     try{ const r = await VideoEncoder.isConfigSupported(vcfg); if(!r || !r.supported) return null; }catch(e){ return null; }
     // الصوت: من الملف كامل (ما يعتمد على التشغيل)، ونقصّه على نفس طول الصورة
     const ab = await decodeAudio(file, end);
@@ -500,6 +504,12 @@
         const prog = p=>setStatus('جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الشاشة مفتوحة', false, p);
         try{ vid = await recompressWC(file, v, dur, prog); }catch(e){ vid = null; if(window.__dalilReport) window.__dalilReport('video wc: ' + (e && (e.message || e.name)), ''); }
         if(!vid) vid = await recompress(v, dur, prog);
+        if(vid && vid.size > VMAX_BYTES && VQ !== VQ_STD){   // الجودة العالية طلعت كبيرة: نعيد بالعادي
+          let v2 = null;
+          try{ v2 = await recompressWC(file, v, dur, prog, VQ_STD); }catch(e){ v2 = null; }
+          if(!v2) v2 = await recompress(v, dur, prog, VQ_STD);
+          if(v2) vid = v2;
+        }
       }
       if(!vid) throw Object.assign(new Error('nosupport'), {msg:'جهازك لا يدعم ضغط الفيديو. جرّب مقطعًا أقصر (أقل من 3 ميقا) أو أرسل صورة.'});
       if(vid.size > VMAX_BYTES) throw Object.assign(new Error('big'), {msg:'الفيديو كبير بعد الضغط. جرّب مقطعًا أقصر.'});
