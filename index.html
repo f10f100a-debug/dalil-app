@@ -67,6 +67,10 @@ html.car{--tabh:0px!important}
 html.car body.lab-mapfull.on-track #trackMapFrame{left:0!important;right:auto!important;top:0!important;bottom:0!important;width:calc(100vw - var(--rail))!important;height:100vh!important}
 html.car body.lab-mapfull.on-track #trackToolsPanel.open{left:0!important;right:var(--rail)!important;bottom:0!important}
 .fy-dup{font-weight:500;opacity:.72;font-size:.86em}
+.wk2-card{padding:14px 16px}.wk2-card h3{margin:0;font-size:16px;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:8px}.wk2-card h3 small{font-size:12px;font-weight:500;color:var(--muted,#8A7A65)}
+.wk2-card .wk2-me{margin:8px 0 4px;font-size:15px;font-weight:700}.wk2-card .wk2-p{font-size:12.5px;font-weight:800;border-radius:999px;padding:2px 10px;white-space:nowrap}.wk2-p.p3{background:#2457A6;color:#fff}.wk2-p.p2{background:#D6E4F7;color:#1F4F95}.wk2-p.p1{background:#EDF2F9;color:#5A79A8}
+.wk2-card .wk2-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--line,#EFE7DA);font-size:14px}.wk2-card .wk2-note{font-size:11.5px;color:var(--muted,#8A7A65);margin-top:6px;line-height:1.5}
+.wk2-card .wk2-go{display:block;width:100%;margin-top:10px;padding:10px;border-radius:12px;border:1px solid #CFDDF0;background:#E9F0FA;color:#2457A6;font:inherit;font-weight:800}
 </style><style>:is(html.lab-x .shr-x,html.lab-x .wxo-x,html.lab-x .ask-x,html.lab-x .rb-x,html.lab-x .al-x,html.lab-x .lab-tools-x){background:#1F1B16!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.35)!important;font-weight:900!important;opacity:1!important}:is(html[data-theme=dark],html[data-theme=red]).lab-x .shr-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .wxo-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .ask-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .rb-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .al-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .lab-tools-x{background:#F3EDE2!important;color:#1F1B16!important;border-color:#1F1B16!important}</style>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1606,7 +1610,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261123-9" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261123-10" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -1686,6 +1690,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       <div class="wx-warning" id="weatherHubWarning" role="alert"></div>
       <div class="storm-card" id="stormCard" hidden></div>
       <div class="cp-card rain-card" id="rainCard" hidden></div>
+      <div class="cp-card wk2-card" id="wk2Card" hidden></div>
       <div class="cp-card ra-card" id="rainAskCard" hidden></div>
       <div class="cp-card al-card" id="alertsCard" hidden></div>
       <div class="cp-card al-card hl-card" id="hailCard" hidden></div>
@@ -7198,6 +7203,28 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(sprNo || nearFarm) try{ renderFayd(); }catch(e){}
     });
   }
+  // 23 نوفمبر (تجربة dalil_lab_wk2): بطاقة «🔭 الأسبوع الجاي» في الأجواء — احتمال المطر عندك للأيام 8–14 + أعلى المملكة + زر الخريطة
+  (function(){
+    let on = false; try{ on = localStorage.getItem('dalil_lab_wk2') === '1'; }catch(e){} if(!on) return;
+    let W = null, last = '';
+    const el = ()=>document.getElementById('wk2Card');
+    const lv = p=>p >= 60 ? `<span class="wk2-p p3">احتمال عالي ${p}٪</span>` : p >= 35 ? `<span class="wk2-p p2">متوسط ${p}٪</span>` : `<span class="wk2-p p1">ضعيف ${p}٪</span>`;
+    const fd = d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory', {day:'numeric', month:'long', timeZone:'Asia/Riyadh'}).format(new Date(d + 'T12:00:00+03:00'));
+    function draw(){
+      const c = el(); if(!c || !W) return; const pos = state.pos, key = pos ? pos.lat.toFixed(2) + ',' + pos.lng.toFixed(2) : '-'; if(key === last && !c.hidden) return; last = key;
+      let me = null;
+      if(pos){ const i = Math.floor((pos.lat - W.lat0) / W.r), j = Math.floor((pos.lng - W.lng0) / W.r); const x = W.cells.find(k=>k[0] === i && k[1] === j); me = x ? x[2] : (i >= 0 && i < W.rows && j >= 0 && j < W.cols ? 0 : null); }
+      const all = []; for(const [r, l] of Object.entries(W.top || {})) for(const x of l) all.push({x, r}); all.sort((a, b)=>b.x[1] - a.x[1]);
+      c.innerHTML = `<h3><span>🔭 الأسبوع الجاي</span><small>${fd(W.from)} – ${fd(W.to)}</small></h3>`
+        + (me == null ? '' : `<div class="wk2-me">${me >= 15 ? 'عندك: ' + lv(me) : 'عندك: ما فيه إشارة مطر يُذكر حتى الآن'}</div>`)
+        + (all.length ? all.slice(0, 3).map(a=>`<div class="wk2-row"><span>${escapeHtml(a.x[0])} <small style="color:var(--muted,#8A7A65)">${escapeHtml(a.r)}</small></span>${lv(a.x[1])}</div>`).join('') : '<div class="wk2-note">ما فيه إشارة مطر يُذكر على المملكة في الأسبوع الثاني.</div>')
+        + `<div class="wk2-note">تقدير بعيد من ${W.members || 50} تشغيل للنموذج الأوروبي — يتغير مع الأيام. التفاصيل بالملم تطلع لما يدخل الأسبوع الأول.</div><button type="button" class="wk2-go" id="wk2Go">🗺️ شوف الأسبوع الجاي على الخريطة</button>`;
+      c.hidden = false;
+      document.getElementById('wk2Go').onclick = ()=>{ const p = state.pos || {lat:25.5, lng:44}; location.href = 'map.html?v=20261115-4&back=weather&view=spring&wk=2&lat=' + p.lat.toFixed(4) + '&lng=' + p.lng.toFixed(4) + '&z=6&label=' + encodeURIComponent('الأسبوع الجاي'); };
+    }
+    fetch('data/rain-wk2.json?t=' + Math.floor(Date.now() / 36e5)).then(r=>r.ok ? r.json() : null).then(j=>{ W = j; draw(); }).catch(()=>{});
+    setInterval(draw, 5000);
+  })();
   function renderFayd(){
     fyShelfLayout();
     const card = document.getElementById('faydCard');
