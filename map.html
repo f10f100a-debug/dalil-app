@@ -2053,7 +2053,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const get=b=>Promise.all([tf(b+'index.json?h='+h+OQ),tf(b+'sat.json?h='+h+OQ)]);
   const RB='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data/';
   // 22 نوفمبر (تجربة dalil_lab_r2): نفس الطبقة من Cloudflare R2 على دومينّا (أسرع، وبدون حدود GitHub) — وإذا ما ردّ نرجع لـ GitHub
-  const R2B='https://spring.dalilbarr.com/',R2ON=(()=>{try{return localStorage.getItem('dalil_lab_r2')==='1'}catch(e){return false}})();
+  const R2B='https://spring.dalilbarr.com/',R2ON=(()=>{try{return localStorage.getItem('dalil_lab_r2')!=='0'}catch(e){return true}})();   // 23 نوفمبر 4 ص (أبو مالك: «عمم»): للكل، ولو تعطل يرجع لـ GitHub
   // 22 نوفمبر (تجربة dalil_lab_sproff): حفظ تصنيف الربيع للبر — منطقة بعد منطقة، بالترتيب:
   //   1) المنطقة اللي أنت فيها (GPS)  2) المنطقة اللي تتصفحها على الخريطة  3) مناطق الخرائط المحفوظة
   //   مرة لكل تحديث للطبقة (gen)، على النت بس، 4 طلبات مع بعض، ويرجع يحاول كل 20 ث. البلاطات z7–z11 (~6–8 ميقا للمنطقة)
