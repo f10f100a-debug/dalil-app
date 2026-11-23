@@ -272,7 +272,7 @@
 </main>
 <div class="big" id="big"><img alt=""></div>
 
-<script src="admin-video.js?v=4"></script>
+<script src="admin-video.js?v=5"></script>
 <script>
 (function(){
   'use strict';
@@ -518,7 +518,7 @@
       pubDraft = {photo:d.photo, thumb:d.thumb, video:d.video, w:d.w, h:d.h, vdur:d.dur};
       const vu = URL.createObjectURL(d.video);
       $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
-      $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '') + (d.why === 'mr-nosound' ? ' · ⚠️ بدون صوت' : '');
+      $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '') + (d.why === 'mr-nosound' ? ' · ⚠️ بدون صوت' : /^nosound-/.test(d.why || '') ? ' · ⚠️ بدون صوت — صوت الفيديو «مكاني» (' + d.why.slice(8) + '). من إعدادات الكاميرا ← تسجيل الصوت اختر «استريو» للمقاطع الجاية' : '');
       $('pubSend').disabled = false;
     }catch(err){
       const m = String(err && err.message || ''), k = m.split(':')[0];
