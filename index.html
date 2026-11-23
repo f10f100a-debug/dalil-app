@@ -66,6 +66,7 @@ html.car body.map-fs .tabbar{visibility:visible!important;z-index:31}
 html.car{--tabh:0px!important}
 html.car body.lab-mapfull.on-track #trackMapFrame{left:0!important;right:auto!important;top:0!important;bottom:0!important;width:calc(100vw - var(--rail))!important;height:100vh!important}
 html.car body.lab-mapfull.on-track #trackToolsPanel.open{left:0!important;right:var(--rail)!important;bottom:0!important}
+.fy-dup{font-weight:500;opacity:.72;font-size:.86em}
 </style><style>:is(html.lab-x .shr-x,html.lab-x .wxo-x,html.lab-x .ask-x,html.lab-x .rb-x,html.lab-x .al-x,html.lab-x .lab-tools-x){background:#1F1B16!important;color:#fff!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.35)!important;font-weight:900!important;opacity:1!important}:is(html[data-theme=dark],html[data-theme=red]).lab-x .shr-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .wxo-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .ask-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .rb-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .al-x,:is(html[data-theme=dark],html[data-theme=red]).lab-x .lab-tools-x{background:#F3EDE2!important;color:#1F1B16!important;border-color:#1F1B16!important}</style>
 <meta charset="UTF-8">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1605,7 +1606,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261123-7" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261123-8" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -5298,6 +5299,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       sb.querySelector('small').textContent = on ? 'صورة القمر كما هي — الأخضر الغامق الدائري مزارع، مو ربيع' : 'خضرة المكان من Sentinel-2 (Copernicus) — آخر 10 أيام'; }
     document.getElementById('placeSheetDelete').hidden = isCatalog;
     if(isCatalog) document.getElementById('placeSheetCoords').textContent += '  ·  ' + place.kind + (place.region ? ' — ' + place.region : '');
+    if(String(id).startsWith('fy:') && fyDupT(Number(String(id).slice(3)))){ const t = document.getElementById('placeSheetTitle'); t.textContent = place.name; const sm = document.createElement('small'); sm.className = 'fy-dup'; sm.style.display = 'block'; sm.textContent = '📍 ' + fyDupT(Number(String(id).slice(3))); t.appendChild(sm); }
     updateWadiButton(place);
     const hazardEl = document.getElementById('placeSheetHazard');
     hazardEl.textContent = place.note || (isCatalog ? CATALOG_HAZARD[place.kind] || '' : '');
@@ -7088,10 +7090,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       return `<div class="fs-shelf ${cls}"><div class="fs-h"><h3>${title} <span class="fs-n">${items.length}</span></h3>${items.length > lim ? `<button type="button" class="fs-all" data-fs-more="${key}">${open ? 'أقل' : 'الكل (' + Math.min(cap, items.length) + ') ‹'}</button>` : ''}</div>${sub ? `<div class="fs-sub">${sub}</div>` : ''}${show.map(cardFn).join('')}</div>`;
     };
     const join = a=>a.filter(Boolean).join(' · ');
-    const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), dens(r), r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان</em>' : r.nearRep ? '<em>🌱 بلاغ قريب — القمر لسه ما أكده</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
-    const eCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r), img(r)])}</span></span><span class="fs-tag">${sprMapOn() && nearFarm && nearFarm.has(r.i) ? '🚜 بداية' : 'بداية'}</span></button>`;
+    const gCard = (r, k)=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-rk">${k + 1}</span><span class="fs-t"><b>${fyNm(r)}</b><span>${join([escapeHtml(r.region), kmT(r), dens(r), r.d ? fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''])}</span>${r.field ? '<em class="ok">✓ أكدها الميدان</em>' : r.nearRep ? '<em>🌱 بلاغ قريب — القمر لسه ما أكده</em>' : ''}<i class="fs-bar"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></i></span><span class="fs-tag${r.chk ? ' w' : ''}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`;
+    const eCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${fyNm(r)}</b><span>${join([escapeHtml(r.region), kmT(r), img(r)])}</span></span><span class="fs-tag">${sprMapOn() && nearFarm && nearFarm.has(r.i) ? '🚜 بداية' : 'بداية'}</span></button>`;
     const xCard = r=>`<button type="button" class="fs-card" data-fn-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(fnName(r).replace(/^خضرة جديدة · /, '').replace(/ (فيضة|روضة|فياض) /, ' '))}</b><span>${join([r.ha >= 100 ? (r.ha / 100).toFixed(1) + ' كم²' : Math.round(r.ha) + ' هكتار', r.pct < 35 ? 'بقع متفرقة' : 'تغطي أغلب المكان', kmT(r)])}</span></span>${r.nd != null ? `<span class="fs-tag">${r.nd < 22 ? 'خفيفة' : r.nd < 30 ? 'متوسطة' : 'كثيفة'}</span>` : ''}</button>`;
-    const pCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span><span class="fs-tag">${LV_AR[r.repLv || 1] || 'بداية'}</span></button>`;
+    const pCard = r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${fyNm(r)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span><span class="fs-tag">${LV_AR[r.repLv || 1] || 'بداية'}</span></button>`;
     const farmN = Array.isArray(faydData.farm) ? faydData.farm.length : 0;
     let h = `<div class="fs-src">🛰️ أحدث صورة ${faydData.asof ? fmt(faydData.asof) : ''}${farmN ? ' · ' + farmN + ' فيضة فيها زراعة ما تنقاس' : ''}</div>`;
     if(faydFilter === 'near' && !pos) h += '<div class="pl-note">فعّل الموقع عشان نرتب الفياض القريبة منك.</div>';
@@ -7102,7 +7104,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     else {
       const near = pos ? rows.filter(r=>r.km != null).sort((a, b)=>a.km - b.km).slice(0, 5) : [];
       h += `<div class="pl-note" style="margin:10px 0 4px"><b>الفياض ما اخضرّت للحين</b>${faydFilter === 'near' ? ' خلال 150 كم منك' : ''} — أول ما تبدأ تخضرّ تطلع هنا. تتحدث كل يوم.</div>`;
-      if(near.length) h += shelf('q', 'fs-p', '📍 أقرب الفياض لك', 'اضغط 🔔 وننبهك إذا اخضرّت', near, r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${escapeHtml(r.name)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span>${bell(r)}</button>`);
+      if(near.length) h += shelf('q', 'fs-p', '📍 أقرب الفياض لك', 'اضغط 🔔 وننبهك إذا اخضرّت', near, r=>`<button type="button" class="fs-card" data-fy-i="${r.i}"><span class="fs-dot"></span><span class="fs-t"><b>${fyNm(r)}</b><span>${join([escapeHtml(r.region), kmT(r)])}</span></span>${bell(r)}</button>`);
     }
     h += shelf('e', 'fs-e', '🌱 بدايات أولى', 'عشب صغير يبان بالميدان أكثر من القمر — ما نرسل عليها تنبيه', earlyAll, eCard);
     h += shelf('n', 'fs-x', '✨ خضرة جديدة', 'أماكن خضرت وما هي فيضة معروفة' + (faydNew && faydNew.asof ? ' (مسح ' + fmt(faydNew.asof) + ')' : ''), newAll, xCard);
@@ -7113,6 +7115,10 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   }
   const FY_ST = [['ما بدأ','fy-p0'],['بداية ربيع','fy-p1'],['ربيع متوسط','fy-p2'],['ربيع كثيف','fy-p3'],['ربيع كثيف جدًا','fy-p4']];   // 21 نوفمبر: كانت «مثل المعتاد/أخضر من المعتاد» — تلخبط على فيضة مؤكدة
   const FY_GROUPS = {riyadh:['الرياض'], east:['الشرقية'], north:['الحدود الشمالية','الجوف'], hail:['حائل','القصيم'], west:['تبوك','المدينة'], south:['مكة','عسير','الباحة','جازان','نجران']};
+  // 23 نوفمبر (أبو مالك: «اقرب بلدة سوه وعممه»): الأسماء المكررة (6 «فيضة أم قليب»…) تنكتب معها أقرب بلدة/قرية (OSM) — «13 كم شمال غرب أم رضمة»
+  var faydDup = {};
+  const fyDupT = i=>faydDup && faydDup[i] ? faydDup[i] : '';
+  const fyNm = r=>escapeHtml(r.name) + (fyDupT(r.i) ? `<small class="fy-dup"> · ${escapeHtml(fyDupT(r.i))}</small>` : '');
   let faydData = null, faydSites = null, faydLoading = null, faydFilter = '', faydMore = false;
   // 17 نوفمبر: نحفظ الفياض والفقع ومطر الأسبوع بالجوال أول ما يفتح التطبيق وعنده نت (بعد 10 ث) — عشان تشتغل بالبر بدون شبكة حتى لو ما فتح التبويب
   setTimeout(()=>{ if(navigator.onLine === false || !navigator.serviceWorker || !navigator.serviceWorker.controller) return;
@@ -7121,8 +7127,9 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
   function loadFayd(){
     if(!faydLoading) faydLoading = Promise.all([
       fetch('data/fayd.json?d=' + new Date().toISOString().slice(0, 10)).then(r=>r.ok ? r.json() : null),
-      fetch('data/fayd-sites.json?v=7').then(r=>r.ok ? r.json() : null)
-    ]).then(([a, b])=>{ faydData = a; faydSites = b; }).catch(()=>{ faydLoading = null; });
+      fetch('data/fayd-sites.json?v=7').then(r=>r.ok ? r.json() : null),
+      fetch('data/fayd-dup.json?v=1').then(r=>r.ok ? r.json() : null).catch(()=>null)
+    ]).then(([a, b, c])=>{ faydData = a; faydSites = b; faydDup = (c && c.s) || {}; }).catch(()=>{ faydLoading = null; });
     return faydLoading;
   }
   // 17 نوفمبر: «🌱 ربيع عندك؟» من شاشة الفياض — نفس بلاغ الخريطة (report_spring). بدون نت: ينحفظ وينرسل أول ما ترجع الشبكة
@@ -7230,7 +7237,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       if(fl){ fl.hidden = !FN[faydFilter]; if(FN[faydFilter]) fl.innerHTML = 'تعرض: <b>' + FN[faydFilter] + '</b> · ' + green.length + (green.length === 1 ? ' فيضة' : ' فيضة') + ' خضرا'; } }
     const peopleAll = rows.filter(r=>r.people).sort((a, b)=>(b.repLv || 0) - (a.repLv || 0) || (a.km ?? 1e9) - (b.km ?? 1e9)), people = peopleAll.slice(0, 5);
     const LV_AR = ['', 'بداية', 'متوسط', 'كثيف'];
-    const peopleHtml = people.length ? `<div class="fy-sub" style="margin:12px 0 4px">🌱 بلاغات الناس — ما أكدها القمر بعد</div>` + people.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''} · بلاغ «${LV_AR[r.repLv] || 'ربيع'}» خلال 1.5 كم</span></span></button>`).join('') : '';
+    const peopleHtml = people.length ? `<div class="fy-sub" style="margin:12px 0 4px">🌱 بلاغات الناس — ما أكدها القمر بعد</div>` + people.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${fyNm(r)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' : ''} · بلاغ «${LV_AR[r.repLv] || 'ربيع'}» خلال 1.5 كم</span></span></button>`).join('') : '';
     // 17 نوفمبر (رفحاء): «🌱 بدايات أولى» — القمر شاف زيادة خفيفة (تحت حد «بدأ الربيع») بصورة حديثة: عشب صغير يبان بالميدان أكثر من القمر.
     // قسم لحاله، بدون تنبيهات ولا «وين أطلع»
     // نفس الاسم موجود بالقائمة الأساسية وقريب (خلال 5 كم) → ما يتكرر بالبدايات (فياض مريحات: موقعين بنفس الاسم)
@@ -7241,7 +7248,7 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
       .sort((a, b)=>faydFilter === 'near' ? a.km - b.km : b.g - a.g);
     const earlyAll = early.slice(); early.splice(faydMore ? 20 : 6);
     const earlyHtml = early.length ? `<div class="fy-early"><div class="fy-early-h">🌱 بدايات أولى <span>(${early.length})</span></div><div class="fy-early-s">عشب صغير، يبان بالميدان أكثر من القمر. القمر شاف زيادة خفيفة عن قبل الموسم، وما نرسل عليها تنبيه — شفتها؟ بلّغ من فوق 🌱</div>`
-      + early.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}${r.repLv ? ' · بلاغ قريب' : ''}</span></span><span class="fy-pill" style="background:transparent;color:#8A6A3A;border:1px solid #E2CFA8">بدايات أولى</span></button>`).join('') + '</div>' : '';
+      + early.map(r=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">·</span><span><span class="fy-name">${fyNm(r)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) : ''}${r.repLv ? ' · بلاغ قريب' : ''}</span></span><span class="fy-pill" style="background:transparent;color:#8A6A3A;border:1px solid #E2CFA8">بدايات أولى</span></button>`).join('') + '</div>' : '';
     // 20 نوفمبر (تجربة dalil_lab_fynew): خضرة جديدة خارج الفياض — الأقرب لي (150 كم) أو الكل (الأكبر مساحة). فلاتر المناطق ما تعرضها
     let newHtml = '', newAll = [];
     if(fyNewOn() || fyShelfOn()){
@@ -7263,13 +7270,13 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
     renderFaydAlert();
     if(!green.length){
       const near = pos ? rows.filter(r=>r.km != null).sort((a, b)=>a.km - b.km).slice(0, 5) : [];
-      list.innerHTML = (near.length ? `<div class="fy-sub" style="margin:4px 0 6px">أقرب الفياض لك — اضغط 🔔 وننبهك إذا اخضرّت</div>` + near.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)} كم</span></span><span class="fy-pill fy-p0">ما بدأ</span>${bell(r)}</button>`).join('') : '')
+      list.innerHTML = (near.length ? `<div class="fy-sub" style="margin:4px 0 6px">أقرب الفياض لك — اضغط 🔔 وننبهك إذا اخضرّت</div>` + near.map((r, k)=>`<button type="button" class="fy-row" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${fyNm(r)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)} · ${r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)} كم</span></span><span class="fy-pill fy-p0">ما بدأ</span>${bell(r)}</button>`).join('') : '')
         + `<div class="pl-empty" style="margin-top:6px"><span class="cp-ic">${ico('leaf')}</span><b>الفياض ما اخضرّت للحين</b><span>${faydFilter === 'near' ? 'ما فيه فيضة مخضرّة خلال 150 كم منك. ' : ''}أول ما تبدأ تخضرّ تطلع هنا مرتبة. تتحدث كل يوم.</span></div>` + earlyHtml + newHtml + peopleHtml;
       return;
     }
     const shown = green.slice(0, faydMore ? 40 : 7), max = Math.max(...green.map(r=>r.g), 60);
     try{ window.__faydDbg.shown = green.slice(0, 10).map(r=>({i:r.i, st0:r.st0, stale:r.stale, chk:r.chk || 0, field:!!r.field})); }catch(e){}
-    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row fy-main" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${escapeHtml(r.name)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? (fyDens() ? ' · ' + (r.g < 150 ? 'خضرة خفيفة متفرقة' : r.g < 300 ? 'خضرة متوسطة' : 'خضرة كثيفة') : (r.chk === 13 ? '' : ' · +' + r.pct + '٪ مساحة خضراء')) : ''}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 12 ? '🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات (ورّقت بعد المطر) مو عشب، تحتاج تأكيد من الميدان' : r.chk === 11 ? '🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر، تحتاج تأكيد' : r.chk === 9 ? '🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر مو ربيع، تحتاج تأكيد من الميدان' : r.chk === 8 ? 'حولها مزارع — خضرة المحاور ممكن تلخبط القياس، تحتاج تأكيد من الميدان' : r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
+    list.innerHTML = shown.map((r, k)=>`<button type="button" class="fy-row fy-main" data-fy-i="${r.i}"><span class="fy-n">${k + 1}</span><span><span class="fy-name">${fyNm(r)}</span><span class="fy-meta" style="display:block">${escapeHtml(r.region)}${r.pct != null ? (fyDens() ? ' · ' + (r.g < 150 ? 'خضرة خفيفة متفرقة' : r.g < 300 ? 'خضرة متوسطة' : 'خضرة كثيفة') : (r.chk === 13 ? '' : ' · +' + r.pct + '٪ مساحة خضراء')) : ''}${r.km != null ? ' · ' + (r.dir ? r.dir.arr + ' ' : '') + (r.km < 10 ? r.km.toFixed(1) : Math.round(r.km)) + ' كم' + (r.dir ? ' ' + r.dir.word : '') : ''}${r.d ? ' · صورة ' + fmt(r.d) + (r.stale ? ' (قديمة)' : '') : ''}</span>${r.field ? '<span class="fy-meta" style="display:block;color:#2E7D46">🌱 بداية ربيع — أكدها الميدان (بلاغات وصور من المكان)</span>' : r.nearRep ? '<span class="fy-meta" style="display:block;color:#7A6A3A">🌱 بلاغ «بداية ربيع» قريب — القمر لسه ما أكده</span>' : ''}${r.chk ? '<span class="fy-meta" style="display:block;color:#8A6A3A">' + (r.chk === 12 ? '🌿 فيها شجيرات دائمة — الخضرة ممكن من الشجيرات (ورّقت بعد المطر) مو عشب، تحتاج تأكيد من الميدان' : r.chk === 11 ? '🌱 خضرة جديدة بعد الزيارة الميدانية — غالبًا عشب بين السدر، تحتاج تأكيد' : r.chk === 9 ? '🌳 فيها شجر (سدر/طلح) — الخضرة ممكن من الشجر مو ربيع، تحتاج تأكيد من الميدان' : r.chk === 8 ? 'حولها مزارع — خضرة المحاور ممكن تلخبط القياس، تحتاج تأكيد من الميدان' : r.chk === 7 ? 'خضرتها ظهرت في صورة وحدة بس — ننتظر صورة ثانية تأكدها' : r.chk === 6 ? 'خضرة مفاجئة خلال يومين بعد المطر — ننتظر صورة قمر أحدث تأكدها' : r.chk === 2 ? 'اخضرّت بس ما لقينا مطر يأكدها — تحتاج تأكيد من الميدان' : r.chk === 3 ? 'الخضرة واضحة والمطر المسجل قليل (الرادار ضعيف هنا) — تحتاج تأكيد من الميدان' : r.chk === 4 ? 'بداية خضرة خفيفة (أقل من 10٪ من مساحتها) — تحتاج تأكيد من الميدان' : 'قفزة خضرة كبيرة — غالبًا زراعة جديدة، تحتاج تأكيد من الميدان') + '</span>' : ''}<span class="fy-bar" style="display:block"><i style="width:${Math.max(6, Math.min(100, r.pct != null ? r.pct : r.g / max * 100))}%"></i></span></span><span class="fy-pill ${r.chk ? 'fy-p0' : FY_ST[r.st][1]}">${r.chk ? 'تحتاج تأكيد' : FY_ST[r.st][0]}</span>${bell(r)}</button>`).join('')
       + (green.length > 7 ? `<button type="button" class="fy-more" data-fy-more>${faydMore ? 'عرض أقل' : 'عرض المزيد (' + Math.min(40, green.length) + ')'}</button>` : '') + earlyHtml + newHtml + peopleHtml;
   }
   // ---------- مؤشر الفقع (مطر الموسم لمناطق الفقع + وقت الظهور المتوقع) — data/fq.json يتحدث يوميًا ----------
