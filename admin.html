@@ -272,7 +272,7 @@
 </main>
 <div class="big" id="big"><img alt=""></div>
 
-<script src="admin-video.js?v=5"></script>
+<script src="admin-video.js?v=6"></script>
 <script>
 (function(){
   'use strict';
@@ -520,6 +520,11 @@
       $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
       $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '') + (d.why === 'mr-nosound' ? ' · ⚠️ بدون صوت' : /^nosound-/.test(d.why || '') ? ' · ⚠️ بدون صوت — صوت الفيديو «مكاني» (' + d.why.slice(8) + '). من إعدادات الكاميرا ← تسجيل الصوت اختر «استريو» للمقاطع الجاية' : '');
       $('pubSend').disabled = false;
+      // 23 نوفمبر: سطر تشخيص الصوت (من وين جا + هل الناتج فيه صوت فعلًا)
+      const dg = document.createElement('div'); dg.className = 'muted'; dg.style.cssText = 'font-size:12px;direction:ltr;text-align:left;margin-top:4px'; dg.textContent = d.diag || ''; $('pubPreview').appendChild(dg);
+      try{ const C = window.AudioContext || window.webkitAudioContext, ac2 = new C(); const buf = await new Promise((ok, no)=>{ d.video.arrayBuffer().then(b=>{ const p = ac2.decodeAudioData(b, ok, no); if(p && p.then) p.then(ok, no); }, no); });
+        let m = 0; const c0 = buf.getChannelData(0); for(let i = 0; i < c0.length; i += 64){ const a = Math.abs(c0[i]); if(a > m) m = a; }
+        dg.textContent += ' · الناتج: ' + (m > 0 ? Math.round(20 * Math.log10(m)) + 'dB' : 'صامت'); ac2.close && ac2.close(); }catch(_){ dg.textContent += ' · الناتج: ما فيه صوت ينقرا'; }
     }catch(err){
       const m = String(err && err.message || ''), k = m.split(':')[0];
       $('pubMsg').textContent = ({big:'الفيديو كبير حتى بعد الضغط. جرّب مقطع أقصر.', nosupport:'هالمتصفح ما يقدر يجهّز الفيديو. جرّب كروم أو سفاري محدّث.'}[k] || 'تعذّر قراءة الفيديو') + (m.includes(':') ? ' [' + m.split(':')[1] + ']' : '');

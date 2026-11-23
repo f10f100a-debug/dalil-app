@@ -5,7 +5,8 @@
   const VMAX = 15, LIMIT = 7.5 * 1024 * 1024;
   // 22 نوفمبر: آيفون علّق على «100٪» (إنهاء الضغط ما رجع) — كل خطوة إنهاء لها مهلة، وإذا تعلّقت نعيد بدقة 720p
   const tmo = (p, ms)=>Promise.race([p, new Promise((_, rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
-  let stage = ()=>{}, why = '', sndNote = '';   // why: سبب فشل آخر طريقة (يطلع تحت الرسالة عشان نعرف وين علق)
+  let srcSnd = [];
+  let stage = ()=>{}, why = '', sndNote = '', apath = '';   // apath: من وين جا الصوت (للتشخيص)   // why: سبب فشل آخر طريقة (يطلع تحت الرسالة عشان نعرف وين علق)
   const Q_HI = {px:1920, wc:3200000, mr:3200000}, Q_MID = {px:1280, wc:2000000, mr:2000000};
   function loadVideo(file){
     return new Promise((resolve, reject)=>{
@@ -66,7 +67,7 @@
       off += sz;
     }
     if(!moov) return null;
-    let sounds = [];   // الآيفون مع «الصوت المكاني» يحط أكثر من مسار صوت (apac + aac) — ناخذ أول مسار AAC
+    let sounds = []; srcSnd = sounds;   // الآيفون مع «الصوت المكاني» يحط أكثر من مسار صوت (apac + aac) — ناخذ أول مسار AAC
     const kids = (s, e)=>{ const out = []; let o = s; while(o + 8 <= e){ let sz = moov.getUint32(o); let hs = 8; if(sz === 1){ sz = moov.getUint32(o + 8) * 4294967296 + moov.getUint32(o + 12); hs = 16; } else if(sz === 0) sz = e - o; if(sz < 8 || o + sz > e) break; out.push({t:typ(moov, o + 4), s:o + hs, e:o + sz}); o += sz; } return out; };
     const find = (b, t)=>kids(b.s, b.e).find(x=>x.t === t);
     for(const trak of kids(8, moov.byteLength).filter(x=>x.t === 'trak')){
@@ -114,7 +115,7 @@
         for(let k = 0; k < per && si < nS; k++, si++){ const d = deltas[si] || 1024; samples.push({o:p, n:sizes[si], t:t / ts * 1e6, d:d / ts * 1e6}); p += sizes[si]; t += d; }
       }
       if(!samples.length) continue;
-      return {asc, sr, ch, codec:'mp4a.40.' + aot, samples, read:async smp=>new Uint8Array(await file.slice(smp.o, smp.o + smp.n).arrayBuffer())};
+      sounds.push('ok'); return {asc, sr, ch, codec:'mp4a.40.' + aot, samples, read:async smp=>new Uint8Array(await file.slice(smp.o, smp.o + smp.n).arrayBuffer())};
     }
     return sounds.length ? {noAac:sounds.join('+')} : null;
   }
@@ -137,7 +138,9 @@
     const acodec = ab ? await pickAudioCodec(ab.sampleRate, ch) : null;
     let pt = null;   // صوت الملف كما هو (الآيفون)
     let noSnd = '';
-    if(!acodec){ try{ pt = await tmo(aacTrack(file), 15000); }catch(e){ pt = null; } if(pt && pt.noAac){ noSnd = pt.noAac; pt = null; } }
+    try{ pt = await tmo(aacTrack(file), 15000); }catch(e){ pt = null; }
+    if(pt && pt.noAac){ noSnd = pt.noAac; pt = null; }
+    if(acodec){ pt = null; noSnd = ''; }
     if(ab && !acodec && !pt && !noSnd){ why = 'wc-noaudio'; return null; }   // (التسجيل في الآيفون يطلع صامت أصلًا، فلو الصوت بصيغة غريبة نكمل بدون صوت مع تنبيه)
     if(noSnd && !acodec) why = 'nosound-' + noSnd;   // فيه صوت بصيغة ما نقدر عليها (مثل الصوت المكاني apac) → فيديو بدون صوت مع تنبيه   // فيه صوت وما قدرنا ناخذه → التسجيل (صوت السيل مهم)   // سفاري الآيفون: ما فيه ضغط صوت → التسجيل (صوت السيل مهم)
     const M = window.Mp4Muxer;
@@ -208,6 +211,7 @@
       if(err){ why = 'wc-aerr'; return null; }
     }
     muxer.finalize();
+    apath = acodec ? 'enc ' + acodec.codec : pt ? 'pt ' + pt.codec + ' ' + pt.sr + 'Hz ' + pt.ch + 'ch' : 'none';
     sndNote = /^nosound-/.test(why) ? why : '';
     return new Blob([muxer.target.buffer], {type:'video/mp4'});
   }
@@ -250,12 +254,13 @@
     stream.getTracks().forEach(t=>t.stop());
     if(!parts.length){ why = 'mr-empty'; return null; }
     if(ab && !dest) why = 'mr-nosound';
+    apath = dest ? 'mr' : 'mr-silent';
     return new Blob(parts, {type:'video/mp4'});
   }
   window.AdminVideo = {
     VMAX, LIMIT,
     async prepare(file, onProgress, onStage, ac){
-      stage = onStage || (()=>{}); why = ''; sndNote = '';
+      stage = onStage || (()=>{}); why = ''; sndNote = ''; apath = ''; srcSnd = [];
       const {v, url} = await loadVideo(file);
       try{
         const dur = v.duration;
@@ -279,7 +284,8 @@
         }
         if(!vid) throw new Error('nosupport:' + why);
         if(vid.size > LIMIT) throw new Error('big');
-        return {why, video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
+        let lv = null; if(ab){ let m = 0; const d0 = ab.getChannelData(0); for(let i = 0; i < d0.length; i += 64){ const a = Math.abs(d0[i]); if(a > m) m = a; } lv = m > 0 ? Math.round(20 * Math.log10(m)) : -99; }
+        return {diag:'🔊 ' + (apath || '?') + ' · المصدر: ' + (srcSnd.join('+') || 'بدون مسار صوت') + ' · قوة الأصل: ' + (lv == null ? 'ما انقرأ' : lv + 'dB'), why, video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
       } finally { v.pause(); v.remove(); URL.revokeObjectURL(url); }
     },
   };
