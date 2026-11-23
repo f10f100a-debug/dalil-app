@@ -52,6 +52,71 @@
     }
     return null;
   }
+  // 23 نوفمبر: سفاري الآيفون ما يقدر يضغط الصوت (ما فيه AudioEncoder) — ناخذ صوت AAC من ملف الفيديو نفسه كما هو (بدون إعادة ضغط)
+  // ونركّبه مع الفيديو. قارئ صغير لصناديق MP4/MOV: moov → trak (soun) → stsd/esds + جداول العينات
+  async function aacTrack(file){
+    const rd = async (o, n)=>new DataView(await file.slice(o, o + n).arrayBuffer());
+    const typ = (dv, o)=>String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
+    let off = 0, moov = null;
+    while(off + 8 <= file.size){
+      const h = await rd(off, 16); let sz = h.getUint32(0); const t = typ(h, 4);
+      if(sz === 1) sz = h.getUint32(8) * 4294967296 + h.getUint32(12); else if(sz === 0) sz = file.size - off;
+      if(sz < 8) return null;
+      if(t === 'moov'){ if(sz > 60e6) return null; moov = await rd(off, sz); break; }
+      off += sz;
+    }
+    if(!moov) return null;
+    const kids = (s, e)=>{ const out = []; let o = s; while(o + 8 <= e){ let sz = moov.getUint32(o); let hs = 8; if(sz === 1){ sz = moov.getUint32(o + 8) * 4294967296 + moov.getUint32(o + 12); hs = 16; } else if(sz === 0) sz = e - o; if(sz < 8 || o + sz > e) break; out.push({t:typ(moov, o + 4), s:o + hs, e:o + sz}); o += sz; } return out; };
+    const find = (b, t)=>kids(b.s, b.e).find(x=>x.t === t);
+    for(const trak of kids(8, moov.byteLength).filter(x=>x.t === 'trak')){
+      const mdia = find(trak, 'mdia'); if(!mdia) continue;
+      const hdlr = find(mdia, 'hdlr'); if(!hdlr || typ(moov, hdlr.s + 8) !== 'soun') continue;
+      const mdhd = find(mdia, 'mdhd'); const ts = moov.getUint8(mdhd.s) === 1 ? moov.getUint32(mdhd.s + 20) : moov.getUint32(mdhd.s + 12);
+      const minf = find(mdia, 'minf'); if(!minf) continue;
+      const stbl = find(minf, 'stbl'); if(!stbl) continue;
+      const stsd = find(stbl, 'stsd'); if(!stsd) continue;
+      const ent = {s:stsd.s + 8, e:stsd.e}, e0 = kids(ent.s, ent.e)[0]; if(!e0 || e0.t !== 'mp4a') return null;
+      const ver = moov.getUint16(e0.s + 8), extra = ver === 1 ? 16 : ver === 2 ? 36 : 0;
+      const sub = {s:e0.s + 28 + extra, e:e0.e};
+      let esds = find(sub, 'esds'); if(!esds){ const wave = find(sub, 'wave'); if(wave) esds = find(wave, 'esds'); }
+      if(!esds) return null;
+      // واصفات esds: 03 (ES) → 04 (DecoderConfig) → 05 (DecoderSpecificInfo = ASC)
+      let o = esds.s + 4, asc = null;
+      const len = ()=>{ let n = 0; for(let k = 0; k < 4; k++){ const b = moov.getUint8(o++); n = (n << 7) | (b & 127); if(!(b & 128)) break; } return n; };
+      while(o < esds.e && !asc){
+        const tag = moov.getUint8(o++), n = len();
+        if(tag === 3){ o += 2; const fl = moov.getUint8(o++); if(fl & 128) o += 2; if(fl & 64) o += 1 + moov.getUint8(o); if(fl & 32) o += 2; }
+        else if(tag === 4) o += 13;
+        else if(tag === 5){ asc = new Uint8Array(moov.buffer, moov.byteOffset + o, n).slice(); }
+        else o += n;
+      }
+      if(!asc || asc.length < 2) return null;
+      const aot = asc[0] >> 3, fi = ((asc[0] & 7) << 1) | (asc[1] >> 7), chc = (asc[1] >> 3) & 15;
+      const SR = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+      if(aot !== 2 && aot !== 5 && aot !== 29) return null;
+      const sr = SR[fi], ch = chc || 2; if(!sr) return null;
+      // جداول العينات
+      const stsz = find(stbl, 'stsz'), stsc = find(stbl, 'stsc'), stts = find(stbl, 'stts'), stco = find(stbl, 'stco') || find(stbl, 'co64');
+      if(!stsz || !stsc || !stts || !stco) return null;
+      const fixed = moov.getUint32(stsz.s + 4), nS = moov.getUint32(stsz.s + 8), sizes = [];
+      for(let i = 0; i < nS; i++) sizes.push(fixed || moov.getUint32(stsz.s + 12 + i * 4));
+      const nC = moov.getUint32(stco.s + 4), c64 = stco.t === 'co64', chunks = [];
+      for(let i = 0; i < nC; i++) chunks.push(c64 ? moov.getUint32(stco.s + 8 + i * 8) * 4294967296 + moov.getUint32(stco.s + 12 + i * 8) : moov.getUint32(stco.s + 8 + i * 4));
+      const nE = moov.getUint32(stsc.s + 4), sc = [];
+      for(let i = 0; i < nE; i++) sc.push([moov.getUint32(stsc.s + 8 + i * 12), moov.getUint32(stsc.s + 12 + i * 12)]);
+      const nT = moov.getUint32(stts.s + 4), deltas = [];
+      for(let i = 0; i < nT; i++){ const c = moov.getUint32(stts.s + 8 + i * 8), d = moov.getUint32(stts.s + 12 + i * 8); for(let k = 0; k < c && deltas.length < nS; k++) deltas.push(d); }
+      const samples = []; let si = 0, t = 0;
+      for(let ci = 0; ci < nC && si < nS; ci++){
+        let per = 0; for(const [fc, n] of sc){ if(fc <= ci + 1) per = n; else break; }
+        let p = chunks[ci];
+        for(let k = 0; k < per && si < nS; k++, si++){ const d = deltas[si] || 1024; samples.push({o:p, n:sizes[si], t:t / ts * 1e6, d:d / ts * 1e6}); p += sizes[si]; t += d; }
+      }
+      if(!samples.length) return null;
+      return {asc, sr, ch, codec:'mp4a.40.' + aot, samples, read:async smp=>new Uint8Array(await file.slice(smp.o, smp.o + smp.n).arrayBuffer())};
+    }
+    return null;
+  }
   async function pickVideoCfg(W, H, bitrate){
     // 1080p يحتاج مستوى 4.0: High ثم Main ثم Baseline
     for(const codec of ['avc1.420028', 'avc1.4d0028', 'avc1.640028', 'avc1.42E01F']){
@@ -60,7 +125,7 @@
     }
     return null;
   }
-  async function encodeWC(ab, v, dur, q, onProgress){
+  async function encodeWC(file, ab, v, dur, q, onProgress){
     if(!window.VideoEncoder || !window.VideoFrame || !v.requestVideoFrameCallback){ why = 'wc-none'; return null; }
     if(!(await loadMuxer())){ why = 'muxer'; return null; }
     const end = Math.min(dur, VMAX);
@@ -69,10 +134,12 @@
     const vcfg = await pickVideoCfg(W, H, q.wc); if(!vcfg){ why = 'wc-cfg'; return null; }
     const ch = ab ? Math.min(2, ab.numberOfChannels) : 0;
     const acodec = ab ? await pickAudioCodec(ab.sampleRate, ch) : null;
-    if(ab && !acodec){ why = 'wc-noaudio'; return null; }   // سفاري الآيفون: ما فيه ضغط صوت → التسجيل (صوت السيل مهم)
+    let pt = null;   // صوت الملف كما هو (الآيفون)
+    if(!acodec){ try{ pt = await tmo(aacTrack(file), 15000); }catch(e){ pt = null; } }
+    if(ab && !acodec && !pt){ why = 'wc-noaudio'; return null; }   // فيه صوت وما قدرنا ناخذه → التسجيل (صوت السيل مهم)   // سفاري الآيفون: ما فيه ضغط صوت → التسجيل (صوت السيل مهم)
     const M = window.Mp4Muxer;
     const muxer = new M.Muxer({target:new M.ArrayBufferTarget(), fastStart:'in-memory', firstTimestampBehavior:'offset',
-      video:{codec:'avc', width:W, height:H}, ...(acodec ? {audio:{codec:acodec.mux, sampleRate:ab.sampleRate, numberOfChannels:ch}} : {})});
+      video:{codec:'avc', width:W, height:H}, ...(acodec ? {audio:{codec:acodec.mux, sampleRate:ab.sampleRate, numberOfChannels:ch}} : pt ? {audio:{codec:'aac', sampleRate:pt.sr, numberOfChannels:pt.ch}} : {})});
     let err = null;
     const venc = new VideoEncoder({output:(c, m)=>muxer.addVideoChunk(c, m), error:e=>{ err = e; }});
     venc.configure(vcfg);
@@ -110,7 +177,18 @@
     try{ await tmo(venc.flush(), 20000); }catch(e){ try{ venc.close(); }catch(x){} why = 'wc-flush'; return null; }
     try{ venc.close(); }catch(e){}
     if(err || frames < 3){ why = 'wc-' + (err ? 'err' : 'frames' + frames); return null; }
-    if(acodec){
+    if(pt){
+      stage('جارٍ تجهيز الصوت…');
+      const lim = lastTs + 40000; let first = true;
+      try{
+        for(const smp of pt.samples){
+          if(smp.t > lim) break;
+          const data = await pt.read(smp);
+          muxer.addAudioChunkRaw(data, 'key', Math.round(smp.t), Math.round(smp.d), first ? {decoderConfig:{codec:pt.codec, sampleRate:pt.sr, numberOfChannels:pt.ch, description:pt.asc}} : undefined);
+          first = false;
+        }
+      }catch(e){ why = 'wc-pt'; return null; }
+    }else if(acodec){
       const sr = ab.sampleRate, n = Math.min(ab.length, Math.round((lastTs / 1e6 + 1 / 30) * sr));
       const aenc = new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ err = e; }});
       aenc.configure({codec:acodec.codec, sampleRate:sr, numberOfChannels:ch, bitrate:64000});
@@ -188,7 +266,7 @@
           const [q, how] = plan[k];
           if(how === 'wc' && k > 0 && /^wc-(none|cfg|noaudio)$|^muxer$/.test(why)) continue;   // نفس السبب بيتكرر — لا نضيّع وقت
           let out = null;
-          try{ out = how === 'wc' ? await encodeWC(ab, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress, ab, ac); }catch(e){ out = null; why = how + '-x'; }
+          try{ out = how === 'wc' ? await encodeWC(file, ab, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress, ab, ac); }catch(e){ out = null; why = how + '-x'; }
           if(out && out.size <= LIMIT){ vid = out; if(why !== 'mr-nosound') why = ''; break; }
           if(out){ if(!vid || out.size < vid.size) vid = out; why = how + '-big'; }
           const skip = /^wc-(none|cfg|noaudio)$|^muxer$/.test(why);
