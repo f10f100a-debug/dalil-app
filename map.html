@@ -2080,7 +2080,10 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   function hint(){const h=document.getElementById('sprHint');if(OFF)try{offRender()}catch(e){}if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
-  function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
+  // 23 نوفمبر (أبو مالك: «الأسماء تصير باهتة»): الطبقة — خصوصًا «صورة القمر» — كانت فوق الأسماء والطرق والأودية.
+  // الحين تحت الأودية والطرق والأسماء (فوق لون الأرض والتضاريس) — مثل خرائط القمر الصناعي المعروفة
+  function sprBefore(){const L=gl.getStyle().layers;const w=L.find(l=>/^waterway@/.test(l.id));return w?w.id:(gl.getLayer('slot:waterway')?'slot:waterway':null)}
+  function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=sprBefore()||['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
     const inV=c=>c[0]<bb.getNorth()&&c[0]+.25>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+.25>bb.getWest();
     const vis=want&&zz>=minz?list.filter(inV).sort((a,b)=>Math.hypot(a[0]+.125-ct.lat,a[1]+.125-ct.lng)-Math.hypot(b[0]+.125-ct.lat,b[1]+.125-ct.lng)).slice(0,cap):[];
     const keep=new Set(vis.map(c=>pre+nm(c)));
@@ -2093,7 +2096,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const FADED={};function fade(){const Z=(a,b)=>['interpolate',['linear'],['zoom'],10,a,11.5,b];
     [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id)||window.FYDOT)return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
   // 22 نوفمبر: بلاطات 256 (z7–z12) زي الخريطة الأساسية — ناعمة وتبان من بعيد. فوق z12.5 القطع الأصلية (1–4 حولك) للتفاصيل
-  function tileSet(show,sat){if(!IX.tiles)return;const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
+  function tileSet(show,sat){if(!IX.tiles)return;const before=sprBefore()||['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
     let w=180,so=90,e=-180,n=-90;IX.chunks.forEach(c=>{w=Math.min(w,c[1]);so=Math.min(so,c[0]);e=Math.max(e,c[1]+.25);n=Math.max(n,c[0]+.25)});
     [['sprt-c','c','png',IX,!sat],['sprt-s','s','webp',SX,sat]].forEach(([id,k,ext,X,on])=>{if(!X||!IX.tiles[k])return;const zr=IX.tiles[k];
       if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)+OQ],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
