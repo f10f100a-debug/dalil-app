@@ -1241,7 +1241,7 @@ function showSaveCard(r,upd){
   $('#scText').textContent=upd?'فيها المحميات والطرق الترابية والعيون والكهوف. المحفوظة عندك تبقى شغالة بدون نت إلى أن تحدّثها ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت، ويُفضّل على واي فاي).':online?'بدونها لن تظهر الخريطة في البر إذا انقطعت الشبكة. احفظها الآن ('+Math.max(1,Math.round(((r.vt||0)+(r.hs||0))/1048576))+' ميغابايت'+')، ويُفضّل على واي فاي.':'لا توجد شبكة الآن. احفظها عند توفر الإنترنت قبل رحلتك القادمة.';
   $('#scSave').hidden=!online;
   $('#saveCard').hidden=false;
-  try{if(localStorage.getItem('dalil_lab_sproff')==='1'){const t=$('#scText');if(!/الربيع/.test(t.textContent))t.textContent=t.textContent.replace(/^(بدونها|فيها)/,'الخريطة والربيع للبر — $1')}}catch(e){}   // 22 نوفمبر: الحفظ يشمل الربيع
+  try{if(localStorage.getItem('dalil_lab_sproff')!=='0'){const t=$('#scText');if(!/الربيع/.test(t.textContent))t.textContent=t.textContent.replace(/^(بدونها|فيها)/,'الخريطة والربيع للبر — $1')}}catch(e){}   // 22 نوفمبر: الحفظ يشمل الربيع
   $('#scSave').onclick=()=>{try{const v=JSON.parse(localStorage.getItem('dalil_spring_regs')||'null');if(Array.isArray(v)&&!v.includes(r.id)){v.push(r.id);localStorage.setItem('dalil_spring_regs',JSON.stringify(v))}}catch(e){}const url='map2.html?back='+encodeURIComponent(isEmbedded?'index.html?screen=track':'map.html'+location.search);if(isEmbedded)window.parent.location.href=url;else location.href=url};
   $('#scLater').onclick=()=>{const o=readSnooze();o[r.id]=Date.now()+86400000;try{localStorage.setItem(SNOOZE_KEY,JSON.stringify(o))}catch(e){}$('#saveCard').hidden=true};
 }
@@ -1970,7 +1970,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const TXT={1:'🌱 ربيع خفيف — عشب جديد بادي يطلع (القمر الصناعي)',2:'🌿 ربيع متوسط — عشب جديد واضح (القمر الصناعي)',3:'🌿 ربيع كثيف — عشب جديد كثيف (القمر الصناعي)',4:'🟣 شجيرات أو عشب معمّر اخضرّ بعد المطر — مو بالضرورة ربيع'};
   const nm=c=>c[0].toFixed(2)+'_'+c[1].toFixed(2);
   // 22 نوفمبر (تجربة dalil_lab_sproff): «o=1» يخلي الـ SW يحفظ الطبقة للبر (اللي شفته + تصنيف مناطقك المحفوظة)
-  let OFF=false;try{OFF=localStorage.getItem('dalil_lab_sproff')==='1'}catch(e){}const OQ=OFF?'&o=1':'';
+  let OFF=true;try{OFF=localStorage.getItem('dalil_lab_sproff')!=='0'}catch(e){}const OQ=OFF?'&o=1':'';
   let BASE='data/spring/';const url=c=>BASE+nm(c)+'.png?v='+encodeURIComponent(IX.gen||IX.asof)+OQ;
   const surl=c=>BASE+'sat/'+nm(c)+'.webp?v='+encodeURIComponent(SX.gen||SX.asof)+OQ;
   const rgba=k=>{const q=IX.pal[k];return 'rgba('+q[0]+','+q[1]+','+q[2]+','+(Math.max(q[3],200)/255)+')'};
