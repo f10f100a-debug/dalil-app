@@ -55,29 +55,90 @@
   }
   // 23 نوفمبر: سفاري الآيفون ما يقدر يضغط الصوت (ما فيه AudioEncoder) — ناخذ صوت AAC من ملف الفيديو نفسه كما هو (بدون إعادة ضغط)
   // ونركّبه مع الفيديو. قارئ صغير لصناديق MP4/MOV: moov → trak (soun) → stsd/esds + جداول العينات
-  async function aacTrack(file){
+  // kind='soun': أول مسار AAC (أو {noAac}) · kind='vide': مسار H.264 (avc1/avc3) مع avcC — نستخدمه نعيد تركيب فيديو التسجيل مع صوت الملف
+  async function mp4Track(file, kind){
     const rd = async (o, n)=>new DataView(await file.slice(o, o + n).arrayBuffer());
     const typ = (dv, o)=>String.fromCharCode(dv.getUint8(o), dv.getUint8(o + 1), dv.getUint8(o + 2), dv.getUint8(o + 3));
-    let off = 0, moov = null;
+    let off = 0, moov = null; const moofs = [];
     while(off + 8 <= file.size){
       const h = await rd(off, 16); let sz = h.getUint32(0); const t = typ(h, 4);
       if(sz === 1) sz = h.getUint32(8) * 4294967296 + h.getUint32(12); else if(sz === 0) sz = file.size - off;
       if(sz < 8) return null;
-      if(t === 'moov'){ if(sz > 60e6) return null; moov = await rd(off, sz); break; }
+      if(t === 'moov'){ if(sz > 60e6) return null; moov = await rd(off, sz); if(kind !== 'vide') break; }
+      if(t === 'moof') moofs.push([off, sz]);   // MP4 مقطّع (تسجيل المتصفح)
       off += sz;
     }
     if(!moov) return null;
-    let sounds = []; srcSnd = sounds;   // الآيفون مع «الصوت المكاني» يحط أكثر من مسار صوت (apac + aac) — ناخذ أول مسار AAC
+    const sounds = []; if(kind === 'soun') srcSnd = sounds;
     const kids = (s, e)=>{ const out = []; let o = s; while(o + 8 <= e){ let sz = moov.getUint32(o); let hs = 8; if(sz === 1){ sz = moov.getUint32(o + 8) * 4294967296 + moov.getUint32(o + 12); hs = 16; } else if(sz === 0) sz = e - o; if(sz < 8 || o + sz > e) break; out.push({t:typ(moov, o + 4), s:o + hs, e:o + sz}); o += sz; } return out; };
-    const find = (b, t)=>kids(b.s, b.e).find(x=>x.t === t);
+    const find = (b, t)=>b && kids(b.s, b.e).find(x=>x.t === t);
+    const table = (stbl, ts)=>{
+      const stsz = find(stbl, 'stsz'), stsc = find(stbl, 'stsc'), stts = find(stbl, 'stts'), stco = find(stbl, 'stco') || find(stbl, 'co64'), stss = find(stbl, 'stss'), ctts = find(stbl, 'ctts');
+      if(!stsz || !stsc || !stts || !stco) return null;
+      const fixed = moov.getUint32(stsz.s + 4), nS = moov.getUint32(stsz.s + 8), sizes = [];
+      for(let i = 0; i < nS; i++) sizes.push(fixed || moov.getUint32(stsz.s + 12 + i * 4));
+      const nC = moov.getUint32(stco.s + 4), c64 = stco.t === 'co64', chunks = [];
+      for(let i = 0; i < nC; i++) chunks.push(c64 ? moov.getUint32(stco.s + 8 + i * 8) * 4294967296 + moov.getUint32(stco.s + 12 + i * 8) : moov.getUint32(stco.s + 8 + i * 4));
+      const nE = moov.getUint32(stsc.s + 4), sc = [];
+      for(let i = 0; i < nE; i++) sc.push([moov.getUint32(stsc.s + 8 + i * 12), moov.getUint32(stsc.s + 12 + i * 12)]);
+      const nT = moov.getUint32(stts.s + 4), deltas = [];
+      for(let i = 0; i < nT; i++){ const c = moov.getUint32(stts.s + 8 + i * 8), d = moov.getUint32(stts.s + 12 + i * 8); for(let k = 0; k < c && deltas.length < nS; k++) deltas.push(d); }
+      let sync = null; if(stss){ sync = new Set(); const n = moov.getUint32(stss.s + 4); for(let i = 0; i < n; i++) sync.add(moov.getUint32(stss.s + 8 + i * 4) - 1); }
+      const cto = []; if(ctts){ const n = moov.getUint32(ctts.s + 4); for(let i = 0; i < n; i++){ const c = moov.getUint32(ctts.s + 8 + i * 8), d = moov.getInt32(ctts.s + 12 + i * 8); for(let k = 0; k < c && cto.length < nS; k++) cto.push(d); } }
+      const samples = []; let si = 0, t = 0;
+      for(let ci = 0; ci < nC && si < nS; ci++){
+        let per = 0; for(const [fc, n] of sc){ if(fc <= ci + 1) per = n; else break; }
+        let p = chunks[ci];
+        for(let k = 0; k < per && si < nS; k++, si++){ const d = deltas[si] || 1; samples.push({o:p, n:sizes[si], t:t / ts * 1e6, d:d / ts * 1e6, key:!sync || sync.has(si), c:(cto[si] || 0) / ts * 1e6}); p += sizes[si]; t += d; }
+      }
+      return samples.length ? samples : null;
+    };
+    // عينات MP4 المقطّع: moof → traf (tfhd/tfdt/trun)
+    const fragTable = async (tid, ts)=>{
+      let dd = 0, ds = 0, df = 0; const mvex = find({s:8, e:moov.byteLength}, 'mvex');
+      if(mvex) for(const x of kids(mvex.s, mvex.e)) if(x.t === 'trex' && moov.getUint32(x.s + 4) === tid){ dd = moov.getUint32(x.s + 12); ds = moov.getUint32(x.s + 16); df = moov.getUint32(x.s + 20); }
+      const out = [];
+      for(const [mo, msz] of moofs){
+        const m = await rd(mo, msz);
+        const k2 = (dv, s0, e0)=>{ const r = []; let o = s0; while(o + 8 <= e0){ const sz = dv.getUint32(o); if(sz < 8 || o + sz > e0) break; r.push({t:typ(dv, o + 4), s:o + 8, e:o + sz}); o += sz; } return r; };
+        for(const traf of k2(m, 8, msz).filter(x=>x.t === 'traf')){
+          const tb = k2(m, traf.s, traf.e), tf = tb.find(x=>x.t === 'tfhd'); if(!tf || m.getUint32(tf.s + 4) !== tid) continue;
+          const ff = m.getUint32(tf.s) & 0xffffff; let o = tf.s + 8, base = mo, d0 = dd, s0 = ds, f0 = df;
+          if(ff & 1){ base = m.getUint32(o) * 4294967296 + m.getUint32(o + 4); o += 8; } if(ff & 2) o += 4; if(ff & 8){ d0 = m.getUint32(o); o += 4; } if(ff & 16){ s0 = m.getUint32(o); o += 4; } if(ff & 32){ f0 = m.getUint32(o); o += 4; }
+          const td = tb.find(x=>x.t === 'tfdt'); let t = td ? (m.getUint8(td.s) === 1 ? m.getUint32(td.s + 4) * 4294967296 + m.getUint32(td.s + 8) : m.getUint32(td.s + 4)) : (out.length ? out[out.length - 1].tt : 0);
+          for(const tr of tb.filter(x=>x.t === 'trun')){
+            const fl = m.getUint32(tr.s) & 0xffffff, n = m.getUint32(tr.s + 4); let q = tr.s + 8, p = base, ffl = null;
+            if(fl & 1){ p = base + m.getInt32(q); q += 4; } if(fl & 4){ ffl = m.getUint32(q); q += 4; }
+            for(let i = 0; i < n; i++){
+              let d = d0, z = s0, f = (i === 0 && ffl != null) ? ffl : f0, c = 0;
+              if(fl & 0x100){ d = m.getUint32(q); q += 4; } if(fl & 0x200){ z = m.getUint32(q); q += 4; } if(fl & 0x400){ f = m.getUint32(q); q += 4; } if(fl & 0x800){ c = m.getInt32(q); q += 4; }
+              out.push({o:p, n:z, t:t / ts * 1e6, d:d / ts * 1e6, key:!(f & 0x10000), c:c / ts * 1e6, tt:t + d}); p += z; t += d;
+            }
+          }
+        }
+      }
+      if(out.length){ const t0 = out[0].t; out.forEach(x=>{ x.t -= t0; }); }
+      return out.length ? out : null;
+    };
+    const read = async smp=>new Uint8Array(await file.slice(smp.o, smp.o + smp.n).arrayBuffer());
     for(const trak of kids(8, moov.byteLength).filter(x=>x.t === 'trak')){
       const mdia = find(trak, 'mdia'); if(!mdia) continue;
-      const hdlr = find(mdia, 'hdlr'); if(!hdlr || typ(moov, hdlr.s + 8) !== 'soun') continue;
+      const hdlr = find(mdia, 'hdlr'); if(!hdlr || typ(moov, hdlr.s + 8) !== kind) continue;
       const mdhd = find(mdia, 'mdhd'); const ts = moov.getUint8(mdhd.s) === 1 ? moov.getUint32(mdhd.s + 20) : moov.getUint32(mdhd.s + 12);
-      const minf = find(mdia, 'minf'); if(!minf) continue;
-      const stbl = find(minf, 'stbl'); if(!stbl) continue;
+      const stbl = find(find(mdia, 'minf'), 'stbl'); if(!stbl) continue;
       const stsd = find(stbl, 'stsd'); if(!stsd) continue;
-      const ent = {s:stsd.s + 8, e:stsd.e}, e0 = kids(ent.s, ent.e)[0]; if(e0) sounds.push(e0.t); if(!e0 || e0.t !== 'mp4a') continue;
+      const e0 = kids(stsd.s + 8, stsd.e)[0]; if(!e0) continue;
+      if(kind === 'vide'){
+        if(e0.t !== 'avc1' && e0.t !== 'avc3') continue;
+        const w = moov.getUint16(e0.s + 24), h = moov.getUint16(e0.s + 26);
+        const avcC = find({s:e0.s + 78, e:e0.e}, 'avcC'); if(!avcC) continue;
+        const desc = new Uint8Array(moov.buffer, moov.byteOffset + avcC.s, avcC.e - avcC.s).slice();
+        const hx = x=>x.toString(16).padStart(2, '0');
+        const tkhd = find(trak, 'tkhd'), tid = tkhd ? moov.getUint32(tkhd.s + (moov.getUint8(tkhd.s) === 1 ? 20 : 12)) : 1;
+        const samples = table(stbl, ts) || (moofs.length ? await fragTable(tid, ts) : null); if(!samples) continue;
+        return {w, h, desc, codec:'avc1.' + hx(desc[1]) + hx(desc[2]) + hx(desc[3]), samples, read};
+      }
+      sounds.push(e0.t); if(e0.t !== 'mp4a') continue;
       const ver = moov.getUint16(e0.s + 8), extra = ver === 1 ? 16 : ver === 2 ? 36 : 0;
       const sub = {s:e0.s + 28 + extra, e:e0.e};
       let esds = find(sub, 'esds'); if(!esds){ const wave = find(sub, 'wave'); if(wave) esds = find(wave, 'esds'); }
@@ -97,27 +158,32 @@
       const SR = [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
       if(aot !== 2 && aot !== 5 && aot !== 29) continue;
       const sr = SR[fi], ch = chc || 2; if(!sr) continue;
-      // جداول العينات
-      const stsz = find(stbl, 'stsz'), stsc = find(stbl, 'stsc'), stts = find(stbl, 'stts'), stco = find(stbl, 'stco') || find(stbl, 'co64');
-      if(!stsz || !stsc || !stts || !stco) continue;
-      const fixed = moov.getUint32(stsz.s + 4), nS = moov.getUint32(stsz.s + 8), sizes = [];
-      for(let i = 0; i < nS; i++) sizes.push(fixed || moov.getUint32(stsz.s + 12 + i * 4));
-      const nC = moov.getUint32(stco.s + 4), c64 = stco.t === 'co64', chunks = [];
-      for(let i = 0; i < nC; i++) chunks.push(c64 ? moov.getUint32(stco.s + 8 + i * 8) * 4294967296 + moov.getUint32(stco.s + 12 + i * 8) : moov.getUint32(stco.s + 8 + i * 4));
-      const nE = moov.getUint32(stsc.s + 4), sc = [];
-      for(let i = 0; i < nE; i++) sc.push([moov.getUint32(stsc.s + 8 + i * 12), moov.getUint32(stsc.s + 12 + i * 12)]);
-      const nT = moov.getUint32(stts.s + 4), deltas = [];
-      for(let i = 0; i < nT; i++){ const c = moov.getUint32(stts.s + 8 + i * 8), d = moov.getUint32(stts.s + 12 + i * 8); for(let k = 0; k < c && deltas.length < nS; k++) deltas.push(d); }
-      const samples = []; let si = 0, t = 0;
-      for(let ci = 0; ci < nC && si < nS; ci++){
-        let per = 0; for(const [fc, n] of sc){ if(fc <= ci + 1) per = n; else break; }
-        let p = chunks[ci];
-        for(let k = 0; k < per && si < nS; k++, si++){ const d = deltas[si] || 1024; samples.push({o:p, n:sizes[si], t:t / ts * 1e6, d:d / ts * 1e6}); p += sizes[si]; t += d; }
-      }
-      if(!samples.length) continue;
-      sounds.push('ok'); return {asc, sr, ch, codec:'mp4a.40.' + aot, samples, read:async smp=>new Uint8Array(await file.slice(smp.o, smp.o + smp.n).arrayBuffer())};
+      const samples = table(stbl, ts); if(!samples) continue;
+      sounds.push('ok'); return {asc, sr, ch, codec:'mp4a.40.' + aot, samples, read};
     }
-    return sounds.length ? {noAac:sounds.join('+')} : null;
+    return kind === 'soun' && sounds.length ? {noAac:sounds.join('+')} : null;
+  }
+  const aacTrack = f=>mp4Track(f, 'soun');
+  // فيديو التسجيل (صامت في الآيفون) + صوت الملف الأصلي → MP4 واحد
+  async function remux(vblob, pt){
+    const vt = await mp4Track(vblob, 'vide'); if(!vt) return null;
+    if(!(await loadMuxer())) return null;
+    const M = window.Mp4Muxer;
+    const muxer = new M.Muxer({target:new M.ArrayBufferTarget(), fastStart:'in-memory', firstTimestampBehavior:'offset',
+      video:{codec:'avc', width:vt.w, height:vt.h}, audio:{codec:'aac', sampleRate:pt.sr, numberOfChannels:pt.ch}});
+    let first = true, lastV = 0;
+    for(const smp of vt.samples){
+      muxer.addVideoChunkRaw(await vt.read(smp), smp.key ? 'key' : 'delta', Math.round(smp.t), Math.round(smp.d), first ? {decoderConfig:{codec:vt.codec, codedWidth:vt.w, codedHeight:vt.h, description:vt.desc}} : undefined, Math.round(smp.c));
+      first = false; lastV = smp.t + smp.d;
+    }
+    first = true;
+    for(const smp of pt.samples){
+      if(smp.t > lastV + 40000) break;
+      muxer.addAudioChunkRaw(await pt.read(smp), 'key', Math.round(smp.t), Math.round(smp.d), first ? {decoderConfig:{codec:pt.codec, sampleRate:pt.sr, numberOfChannels:pt.ch, description:pt.asc}} : undefined);
+      first = false;
+    }
+    muxer.finalize();
+    return new Blob([muxer.target.buffer], {type:'video/mp4'});
   }
   async function pickVideoCfg(W, H, bitrate){
     // 1080p يحتاج مستوى 4.0: High ثم Main ثم Baseline
@@ -270,12 +336,17 @@
         let vid = null;
         const ab = await tmo(decodeAudio(file), 20000).catch(()=>null);
         // ضغط سريع 1080p ← 720p، وإذا الجهاز ما يقدر (آيفون: ما فيه ضغط صوت) تسجيل 1080p ← 720p
-        const plan = [[Q_HI, 'wc'], [Q_MID, 'wc'], [Q_HI, 'mr'], [Q_MID, 'mr']];
+        const plan = [[Q_HI, 'wc'], [Q_MID, 'wc'], [Q_HI, 'mr'], [Q_MID, 'mr']], trail = [];
         for(let k = 0; k < plan.length; k++){
           const [q, how] = plan[k];
           if(how === 'wc' && k > 0 && /^wc-(none|cfg|noaudio)$|^muxer$/.test(why)) continue;   // نفس السبب بيتكرر — لا نضيّع وقت
           let out = null;
           try{ out = how === 'wc' ? await encodeWC(file, ab, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress, ab, ac); }catch(e){ out = null; why = how + '-x'; }
+          if(!out) trail.push(why || how + '?');
+          // التسجيل في الآيفون يطلع صامت: نركّب صوت الملف الأصلي (AAC) على فيديو التسجيل
+          if(out && how === 'mr' && apath === 'mr-silent'){
+            try{ const pt0 = await tmo(aacTrack(file), 15000); if(pt0 && !pt0.noAac){ stage('جارٍ تركيب الصوت…'); const r = await tmo(remux(out, pt0), 30000); if(r){ out = r; apath = 'mr+pt ' + pt0.codec; if(why === 'mr-nosound') why = ''; } else trail.push('remux-null'); } }catch(e){ trail.push('remux-x'); }
+          }
           if(out && out.size <= LIMIT){ vid = out; if(why !== 'mr-nosound') why = sndNote || ''; break; }
           if(out){ if(!vid || out.size < vid.size) vid = out; why = how + '-big'; }
           const skip = /^wc-(none|cfg|noaudio)$|^muxer$/.test(why);
@@ -285,7 +356,7 @@
         if(!vid) throw new Error('nosupport:' + why);
         if(vid.size > LIMIT) throw new Error('big');
         let lv = null; if(ab){ let m = 0; const d0 = ab.getChannelData(0); for(let i = 0; i < d0.length; i += 64){ const a = Math.abs(d0[i]); if(a > m) m = a; } lv = m > 0 ? Math.round(20 * Math.log10(m)) : -99; }
-        return {diag:'🔊 ' + (apath || '?') + ' · المصدر: ' + (srcSnd.join('+') || 'بدون مسار صوت') + ' · قوة الأصل: ' + (lv == null ? 'ما انقرأ' : lv + 'dB'), why, video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
+        return {diag:'🔊 ' + (apath || '?') + ' · المصدر: ' + (srcSnd.join('+') || 'بدون مسار صوت') + ' · قوة الأصل: ' + (lv == null ? 'ما انقرأ' : lv + 'dB') + (trail.length ? ' · [' + trail.join(',') + ']' : ''), why, video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
       } finally { v.pause(); v.remove(); URL.revokeObjectURL(url); }
     },
   };
