@@ -1426,7 +1426,7 @@ async function loadFaydLayer(){
   if(fyLoaded||!glOk())return;fyLoaded=true;
   try{const {f,sites}=await faydData();
     FY=(f.rows||[]).filter(r=>r[2]>0&&sites[r[0]]).map(r=>({name:sites[r[0]][0],lat:sites[r[0]][1],lng:sites[r[0]][2],region:sites[r[0]][3]||'',g:r[1],chk:r[5]===5?0:(r[5]||0),d:r[6]||''}));
-    const fc={type:'FeatureCollection',features:FY.map(x=>({type:'Feature',properties:{g:x.g,chk:x.chk?1:0},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))};
+    const fc={type:'FeatureCollection',features:FY.map(x=>({type:'Feature',properties:{g:x.g,chk:x.chk?1:0,name:x.name},geometry:{type:'Point',coordinates:[x.lng,x.lat]}}))};
     gl.addSource('fayd-pts',{type:'geojson',data:fc});
     const col=['case',['==',['get','chk'],1],'#E0A526','#2E9E4F'];
     gl.addLayer({id:'fayd-halo',type:'circle',source:'fayd-pts',layout:{visibility:LP.ndvi?'visible':'none'},paint:{'circle-color':col,'circle-opacity':.22,
@@ -1919,6 +1919,32 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const iv=setInterval(()=>{add();if(done)clearInterval(iv)},800);
 })();
 </script><script>
+// 23 نوفمبر (تجربة dalil_lab_fydot): بعد ما صارت طبقة الربيع تبان، الهالات وحلقات «خضرة جديدة» (مسح 40 م القديم) تكرر نفس المعلومة وتغطيها.
+// نقطة صغيرة لكل فيضة لونها حسب كثافة الخضرة (ألوان البطاقة)، الصفراء (تحتاج تأكيد) ما تبان إلا لما تقرّب، وأكثف الفياض اسمها مكتوب. الضغط والبطاقة زي ما هي
+(function(){let on=false;try{on=localStorage.getItem('dalil_lab_fydot')==='1'}catch(e){}if(!on)return;window.FYDOT=true;
+  let done=false;
+  function add(){if(done||typeof gl==='undefined'||!glOk()||!gl.getLayer('fayd-pts'))return;
+    let fynew=true;try{fynew=localStorage.getItem('dalil_lab_fynew')!=='0'}catch(e){}
+    done=true;
+    const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
+    const lvc=['step',['get','g'],'#9CCB4E',150,'#4FA83A',300,'#16702C'],chk=['==',['get','chk'],1];
+    gl.setPaintProperty('fayd-halo','circle-radius',0);gl.setPaintProperty('fayd-halo','circle-opacity',0);
+    gl.setPaintProperty('fayd-pts','circle-color',['case',chk,'#E0A526',lvc]);
+    gl.setPaintProperty('fayd-pts','circle-radius',['interpolate',['linear'],['zoom'],5,['case',chk,2.5,3.5],10,['case',chk,5,6.5],14,['case',chk,6.5,8]]);
+    gl.setPaintProperty('fayd-pts','circle-stroke-width',1.5);
+    const zop=['interpolate',['linear'],['zoom'],9,['case',chk,0,1],10.5,1];
+    gl.setPaintProperty('fayd-pts','circle-opacity',zop);gl.setPaintProperty('fayd-pts','circle-stroke-opacity',zop);
+    // حلقات «خضرة جديدة» ممكن توصل بعدين: نخفيها أول ما تنضاف (وبعد ما تجربة fynew تلوّنها)
+    let tries=0;const hideNew=()=>{const fn=gl.getLayer('fayd-new');if(fn&&(!fynew||gl.getLayer('fayd-new-lbl'))){gl.setPaintProperty('fayd-new','circle-opacity',0);gl.setPaintProperty('fayd-new','circle-stroke-opacity',0);if(gl.getLayer('fayd-new-lbl'))gl.setPaintProperty('fayd-new-lbl','text-opacity',0);return true}return ++tries>120};
+    if(!hideNew()){const iv2=setInterval(()=>{try{if(hideNew())clearInterval(iv2)}catch(e){clearInterval(iv2)}},1000)}
+    let FONT=TF;try{if(localStorage.getItem('dalil_lab_style')!=='0'){const f=localStorage.getItem('dalil_map_font');FONT=[/^Dalil [A-Za-z ]+$/.test(f||'')?f:'Dalil Kufi Bold']}}catch(e){}
+    try{gl.addLayer({id:'fayd-lbl',type:'symbol',source:'fayd-pts',minzoom:7,filter:['all',['==',['get','chk'],0],['>=',['get','g'],300]],
+      layout:{visibility:gl.getLayoutProperty('fayd-pts','visibility')||'none','text-field':['get','name'],'text-font':FONT,'text-size':TS(11),'text-offset':[0,1.1],'text-anchor':'top','text-optional':true,'text-padding':4,'symbol-sort-key':['-',0,['get','g']]},
+      paint:{'text-color':dark?'#8FD9A2':'#16602A','text-halo-color':dark?'#1F1B16':'#FBF6EA','text-halo-width':2}});
+      setInterval(()=>{try{const v=gl.getLayoutProperty('fayd-pts','visibility')||'none';if(gl.getLayoutProperty('fayd-lbl','visibility')!==v)gl.setLayoutProperty('fayd-lbl','visibility',v)}catch(e){}},1000)}catch(e){}
+    try{render()}catch(e){}}
+  const iv=setInterval(()=>{try{add()}catch(e){done=true}if(done)clearInterval(iv)},1000);
+})();
 // 20 نوفمبر (تجربة dalil_lab_fynew): «خضرة جديدة» خارج الفياض أوضح — حلقة أعرض وتعبئة أغمق، وكلمة «خضرة جديدة» على البقع الكبيرة (40 هكتار+)
 (function(){let on=false;try{on=localStorage.getItem('dalil_lab_fynew')!=='0'}catch(e){}if(!on)return;
   let done=false;
@@ -2000,7 +2026,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   // 21 نوفمبر: لما تقرّب والطبقة تبان، هالات الفياض الكبيرة وحلقات «خضرة جديدة» (مسح 40 م القديم) تختفي — كانت تغطي بقع الربيع.
   // من بعيد تبقى زي ما هي (الطبقة ما تبان من بعيد). نقطة الفيضة واسمها يبقون
   const FADED={};function fade(){const Z=(a,b)=>['interpolate',['linear'],['zoom'],10,a,11.5,b];
-    [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id))return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
+    [['fayd-halo','circle-opacity',.22],['fayd-new','circle-opacity',.24],['fayd-new','circle-stroke-opacity',.9],['fayd-new-lbl','text-opacity',1]].forEach(([id,pr,v])=>{const k=id+pr;if(FADED[k]||!gl.getLayer(id)||window.FYDOT)return;FADED[k]=1;try{gl.setPaintProperty(id,pr,Z(v,0))}catch(e){}})}
   // 22 نوفمبر: بلاطات 256 (z7–z12) زي الخريطة الأساسية — ناعمة وتبان من بعيد. فوق z12.5 القطع الأصلية (1–4 حولك) للتفاصيل
   function tileSet(show,sat){if(!IX.tiles)return;const before=['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
     let w=180,so=90,e=-180,n=-90;IX.chunks.forEach(c=>{w=Math.min(w,c[1]);so=Math.min(so,c[0]);e=Math.max(e,c[1]+.25);n=Math.max(n,c[0]+.25)});
