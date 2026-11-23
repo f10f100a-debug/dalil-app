@@ -1567,10 +1567,18 @@ body.wkc .wk-panel:not(.open) .wk-leg{display:none}body.wkc .wk-panel{padding:6p
   const fmtD=d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{day:'numeric',month:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   // day: 7 = الأسبوع كامل، 8–14 = يوم بيوم (احتمال ذاك اليوم)
   const w2k=()=>day===7?2:5+(day-8),W2C={};
-  function w2Img(){const K0=w2k();if(W2C[K0])return W2C[K0];const c=document.createElement('canvas');c.width=W2.cols;c.height=W2.rows;const x=c.getContext('2d'),im=x.createImageData(W2.cols,W2.rows);
-    for(const k of W2.cells){const i=k[0],j=k[1],p2=k[K0]||0;if(p2<15)continue;const o=((W2.rows-1-i)*W2.cols+j)*4,col=p2>=60?[36,87,166]:p2>=35?[79,134,214]:[143,182,234];
-      im.data[o]=col[0];im.data[o+1]=col[1];im.data[o+2]=col[2];im.data[o+3]=Math.round(Math.min(1,.5+p2/100*.6)*255)}
-    x.putImageData(im,0,0);const K=8,c2=document.createElement('canvas');c2.width=W2.cols*K;c2.height=W2.rows*K;const x2=c2.getContext('2d');x2.imageSmoothingEnabled=true;x2.imageSmoothingQuality='high';x2.filter='blur('+(K*.6)+'px)';x2.drawImage(c,0,0,c2.width,c2.height);return W2C[K0]=c2.toDataURL()}   // مكبّرة ومنعّمة: سحابة احتمال مو مربعات
+  // 23 نوفمبر: سفاري الآيفون ما يدعم blur في canvas — الصورة طلعت مربعات. الحين نحسب الاحتمال بتنعيم ثنائي الخطي ×5 ونلوّنه بتدرج
+  function w2Img(){const K0=w2k();if(W2C[K0])return W2C[K0];const R=W2.rows,C=W2.cols,P=new Float32Array(R*C);
+    for(const k of W2.cells)P[k[0]*C+k[1]]=k[K0]||0;
+    const K=5,w=C*K,h=R*K,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d'),im=x.createImageData(w,h),d=im.data;
+    const at=(i,j)=>i<0||j<0||i>=R||j>=C?0:P[i*C+j];
+    const L=[143,182,234],M=[79,134,214],H=[36,87,166],mix=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+    for(let py=0;py<h;py++){const gi=(h-1-py+.5)/K-.5,i0=Math.floor(gi),fy=gi-i0;
+      for(let px=0;px<w;px++){const gj=(px+.5)/K-.5,j0=Math.floor(gj),fx=gj-j0;
+        const p=at(i0,j0)*(1-fy)*(1-fx)+at(i0+1,j0)*fy*(1-fx)+at(i0,j0+1)*(1-fy)*fx+at(i0+1,j0+1)*fy*fx;if(p<12)continue;
+        const col=p<35?mix(L,M,(p-12)/23):p<60?mix(M,H,(p-35)/25):H,o=(py*w+px)*4;
+        d[o]=col[0];d[o+1]=col[1];d[o+2]=col[2];d[o+3]=Math.round(Math.min(1,(p-12)/10)*Math.min(1,.5+p/100*.6)*255)}}
+    x.putImageData(im,0,0);return W2C[K0]=c.toDataURL()}
   function drawW2(){if(!W2)return;const L0=W2.lng0,B0=W2.lat0,L1=L0+W2.cols*W2.r,B1=B0+W2.rows*W2.r,co=[[L0,B1],[L1,B1],[L1,B0],[L0,B0]];
     if(gl.getSource('wk2'))gl.getSource('wk2').updateImage({url:w2Img(),coordinates:co});
     else{gl.addSource('wk2',{type:'image',url:w2Img(),coordinates:co});gl.addLayer({id:'wk2',type:'raster',source:'wk2',paint:{'raster-opacity':.8,'raster-resampling':'linear','raster-fade-duration':0}},'slot:dalil')}
