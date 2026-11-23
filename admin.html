@@ -272,7 +272,7 @@
 </main>
 <div class="big" id="big"><img alt=""></div>
 
-<script src="admin-video.js?v=2"></script>
+<script src="admin-video.js?v=3"></script>
 <script>
 (function(){
   'use strict';
@@ -482,13 +482,16 @@
     $('pubMsg').textContent = isVid ? 'جارٍ تجهيز الفيديو… خلّ الصفحة مفتوحة' : 'جارٍ تجهيز الصورة…'; $('pubMsg').className = 'msg';
     try{
       if(isVid){
-        if(!window.AdminVideo) throw new Error('nosupport');
-        const d = await AdminVideo.prepare(f, p=>{ $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الصفحة مفتوحة'; }, t=>{ $('pubMsg').textContent = t + ' خلّ الصفحة مفتوحة'; });
-        pubDraft = {photo:d.photo, thumb:d.thumb, video:d.video, w:d.w, h:d.h, vdur:d.dur};
-        const vu = URL.createObjectURL(d.video);
-        $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline muted style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
-        $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '');
-        $('pubSend').disabled = false; return;
+        // 23 نوفمبر: التجهيز يبدأ بضغطة (الآيفون ما يشغّل الصوت إلا بضغطة من المستخدم — كان يعلق على «نجرب طريقة ثانية»)
+        $('pubMsg').textContent = 'اضغط «🎬 جهّز الفيديو» وخلّ الصفحة مفتوحة (حوالي دقيقة)';
+        $('pubPreview').innerHTML = '<button type="button" id="pubPrep" style="margin-top:8px;padding:10px 16px;border-radius:12px;border:0;background:#2E7D46;color:#fff;font:inherit;font-weight:700">🎬 جهّز الفيديو</button>';
+        $('pubPrep').onclick = ()=>{
+          let ac = null;
+          try{ const C = window.AudioContext || window.webkitAudioContext; if(C){ ac = new C(); const r = ac.resume(); if(r && r.catch) r.catch(()=>{}); } }catch(_){ ac = null; }
+          $('pubPreview').innerHTML = '';
+          prepVid(f, ac).finally(()=>{ try{ if(ac) ac.close(); }catch(_){} });
+        };
+        return;
       }
       const exif = await readExif(f);
       const url = URL.createObjectURL(f), img = new Image();
@@ -507,6 +510,22 @@
       $('pubMsg').className = 'msg err';
     }
   });
+  async function prepVid(f, ac){
+    $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… خلّ الصفحة مفتوحة'; $('pubMsg').className = 'msg';
+    try{
+      if(!window.AdminVideo) throw new Error('nosupport');
+      const d = await AdminVideo.prepare(f, p=>{ $('pubMsg').textContent = 'جارٍ تجهيز الفيديو… ' + Math.round(p * 100) + '٪ — خلّ الصفحة مفتوحة'; }, t=>{ $('pubMsg').textContent = t + ' خلّ الصفحة مفتوحة'; }, ac);
+      pubDraft = {photo:d.photo, thumb:d.thumb, video:d.video, w:d.w, h:d.h, vdur:d.dur};
+      const vu = URL.createObjectURL(d.video);
+      $('pubPreview').innerHTML = `<video src="${vu}" controls playsinline style="max-width:100%;max-height:260px;border-radius:12px;margin-top:8px;background:#000"></video>`;
+      $('pubMsg').textContent = `🎬 ${Math.round(d.dur)} ث · ${mb(d.video)}` + (d.full ? ` · نأخذ أول ${AdminVideo.VMAX} ثانية من ${Math.round(d.full)}` : '') + (d.why === 'mr-nosound' ? ' · ⚠️ بدون صوت' : '');
+      $('pubSend').disabled = false;
+    }catch(err){
+      const m = String(err && err.message || ''), k = m.split(':')[0];
+      $('pubMsg').textContent = ({big:'الفيديو كبير حتى بعد الضغط. جرّب مقطع أقصر.', nosupport:'هالمتصفح ما يقدر يجهّز الفيديو. جرّب كروم أو سفاري محدّث.'}[k] || 'تعذّر قراءة الفيديو') + (m.includes(':') ? ' [' + m.split(':')[1] + ']' : '');
+      $('pubMsg').className = 'msg err';
+    }
+  }
   const STO = 'https://penhpgvjtxytgyrhmetg.supabase.co/storage/v1/object/upload/sign/events/';
   function putFile(path, token, key, blob, type, onProg){
     return new Promise((res, rej)=>{

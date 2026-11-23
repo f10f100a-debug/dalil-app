@@ -5,13 +5,13 @@
   const VMAX = 15, LIMIT = 7.5 * 1024 * 1024;
   // 22 نوفمبر: آيفون علّق على «100٪» (إنهاء الضغط ما رجع) — كل خطوة إنهاء لها مهلة، وإذا تعلّقت نعيد بدقة 720p
   const tmo = (p, ms)=>Promise.race([p, new Promise((_, rej)=>setTimeout(()=>rej(new Error('timeout')), ms))]);
-  let stage = ()=>{};
+  let stage = ()=>{}, why = '';   // why: سبب فشل آخر طريقة (يطلع تحت الرسالة عشان نعرف وين علق)
   const Q_HI = {px:1920, wc:3200000, mr:3200000}, Q_MID = {px:1280, wc:2000000, mr:2000000};
   function loadVideo(file){
     return new Promise((resolve, reject)=>{
       const url = URL.createObjectURL(file), v = document.createElement('video');
       v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto';
-      v.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none';
+      v.style.cssText = 'position:fixed;left:10px;bottom:10px;width:110px;max-height:110px;border-radius:10px;background:#000;z-index:50;pointer-events:none;box-shadow:0 2px 8px rgba(0,0,0,.3)';   // 23 نوفمبر: كان مخفي (2px شفاف) — الآيفون يوقف إطارات الفيديو المخفي
       document.body.appendChild(v);
       let done = false;
       const fail = why=>{ if(done) return; done = true; clearTimeout(to); v.remove(); URL.revokeObjectURL(url); reject(new Error(why)); };
@@ -60,17 +60,16 @@
     }
     return null;
   }
-  async function encodeWC(file, v, dur, q, onProgress){
-    if(!window.VideoEncoder || !window.VideoFrame || !v.requestVideoFrameCallback) return null;
-    if(!(await loadMuxer())) return null;
+  async function encodeWC(ab, v, dur, q, onProgress){
+    if(!window.VideoEncoder || !window.VideoFrame || !v.requestVideoFrameCallback){ why = 'wc-none'; return null; }
+    if(!(await loadMuxer())){ why = 'muxer'; return null; }
     const end = Math.min(dur, VMAX);
     const s = Math.min(1, q.px / Math.max(v.videoWidth, v.videoHeight));
     const W = Math.round(v.videoWidth * s / 2) * 2, H = Math.round(v.videoHeight * s / 2) * 2;
-    const vcfg = await pickVideoCfg(W, H, q.wc); if(!vcfg) return null;
-    const ab = await decodeAudio(file);
+    const vcfg = await pickVideoCfg(W, H, q.wc); if(!vcfg){ why = 'wc-cfg'; return null; }
     const ch = ab ? Math.min(2, ab.numberOfChannels) : 0;
     const acodec = ab ? await pickAudioCodec(ab.sampleRate, ch) : null;
-    if(ab && !acodec) return null;
+    if(ab && !acodec){ why = 'wc-noaudio'; return null; }   // سفاري الآيفون: ما فيه ضغط صوت → التسجيل (صوت السيل مهم)
     const M = window.Mp4Muxer;
     const muxer = new M.Muxer({target:new M.ArrayBufferTarget(), fastStart:'in-memory', firstTimestampBehavior:'offset',
       video:{codec:'avc', width:W, height:H}, ...(acodec ? {audio:{codec:acodec.mux, sampleRate:ab.sampleRate, numberOfChannels:ch}} : {})});
@@ -108,9 +107,9 @@
     });
     v.pause();
     stage('جارٍ إنهاء الفيديو…');
-    try{ await tmo(venc.flush(), 20000); }catch(e){ try{ venc.close(); }catch(x){} return null; }
+    try{ await tmo(venc.flush(), 20000); }catch(e){ try{ venc.close(); }catch(x){} why = 'wc-flush'; return null; }
     try{ venc.close(); }catch(e){}
-    if(err || frames < 3) return null;
+    if(err || frames < 3){ why = 'wc-' + (err ? 'err' : 'frames' + frames); return null; }
     if(acodec){
       const sr = ab.sampleRate, n = Math.min(ab.length, Math.round((lastTs / 1e6 + 1 / 30) * sr));
       const aenc = new AudioEncoder({output:(c, m)=>muxer.addAudioChunk(c, m), error:e=>{ err = e; }});
@@ -123,52 +122,58 @@
         aenc.encode(ad); ad.close();
       }
       stage('جارٍ تجهيز الصوت…');
-      try{ await tmo(aenc.flush(), 20000); }catch(e){ try{ aenc.close(); }catch(x){} return null; }
+      try{ await tmo(aenc.flush(), 20000); }catch(e){ try{ aenc.close(); }catch(x){} why = 'wc-aflush'; return null; }
       try{ aenc.close(); }catch(e){}
-      if(err) return null;
+      if(err){ why = 'wc-aerr'; return null; }
     }
     muxer.finalize();
     return new Blob([muxer.target.buffer], {type:'video/mp4'});
   }
   // أجهزة بدون WebCodecs (سفاري قديم): تسجيل اللوحة بـ MediaRecorder
-  async function encodeMR(v, dur, q, onProgress){
-    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported) return null;
+  // 23 نوفمبر: كانت تعلق في الآيفون — تشغيل الصوت (AudioContext) يحتاج ضغطة من المستخدم وإلا ينتظر للأبد.
+  // الحين: الفيديو صامت دائمًا، والصوت من الملف نفسه (decodeAudio) عبر AudioContext انفتح وقت الضغط على «جهّز الفيديو»، وكل انتظار له مهلة
+  async function encodeMR(v, dur, q, onProgress, ab, ac){
+    if(!window.MediaRecorder || !MediaRecorder.isTypeSupported){ why = 'mr-none'; return null; }
     const mime = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4'].find(t=>{ try{ return MediaRecorder.isTypeSupported(t); }catch(e){ return false; } });
-    if(!mime) return null;
+    if(!mime){ why = 'mr-mime'; return null; }
     const s = Math.min(1, q.px / Math.max(v.videoWidth, v.videoHeight));
     const c = document.createElement('canvas'); c.width = Math.round(v.videoWidth * s / 2) * 2; c.height = Math.round(v.videoHeight * s / 2) * 2;
     const x = c.getContext('2d'), stream = c.captureStream(30);
-    let ac = null;
-    try{
-      ac = new (window.AudioContext || window.webkitAudioContext)();
-      const src = ac.createMediaElementSource(v), dest = ac.createMediaStreamDestination();
-      src.connect(dest); dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); v.muted = false;
-    }catch(e){ ac = null; v.muted = true; }
+    let dest = null, bsrc = null;
+    if(ab && ac){
+      try{ if(ac.state !== 'running') await tmo(ac.resume(), 2500); }catch(e){}
+      if(ac.state === 'running'){ try{ dest = ac.createMediaStreamDestination(); dest.stream.getAudioTracks().forEach(t=>stream.addTrack(t)); }catch(e){ dest = null; } }
+    }
+    v.muted = true;
     await seek(v, 0);
-    try{ if(ac) await ac.resume(); await v.play(); }catch(e){ v.muted = true; await v.play(); }
-    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:q.mr, audioBitsPerSecond:96000});
+    x.drawImage(v, 0, 0, c.width, c.height);
+    const rec = new MediaRecorder(stream, {mimeType:mime, videoBitsPerSecond:q.mr, ...(dest ? {audioBitsPerSecond:96000} : {})});
     const parts = []; rec.ondataavailable = e=>{ if(e.data && e.data.size) parts.push(e.data); };
     const stopped = new Promise(res=>rec.onstop = res);
     rec.start(500);
     const end = Math.min(dur, VMAX);
+    try{ await tmo(v.play(), 6000); }catch(e){ try{ rec.stop(); }catch(_){} why = 'mr-play'; return null; }
+    if(dest){ try{ bsrc = ac.createBufferSource(); bsrc.buffer = ab; bsrc.connect(dest); bsrc.start(0, Math.max(0, v.currentTime), end); }catch(e){} }
     await new Promise(res=>{
       let fin = false;
       const finish = ()=>{ if(fin) return; fin = true; clearTimeout(guard); res(); };
       v.addEventListener('ended', finish, {once:true});
       const draw = ()=>{ if(fin) return; x.drawImage(v, 0, 0, c.width, c.height); onProgress(Math.min(1, v.currentTime / end));
         if(v.currentTime >= end - 0.03 || v.ended || v.paused){ finish(); return; }
-        v.requestVideoFrameCallback ? v.requestVideoFrameCallback(draw) : requestAnimationFrame(draw); };
+        requestAnimationFrame(draw); };   // rAF: يمشي حتى لو الجهاز ما يرسل إطارات الفيديو
       draw();
       const guard = setTimeout(finish, (end + 4) * 1000);
     });
-    v.pause(); rec.stop(); try{ await tmo(stopped, 15000); }catch(e){ return null; }
-    stream.getTracks().forEach(t=>t.stop()); if(ac) ac.close().catch(()=>{});
+    v.pause(); try{ if(bsrc) bsrc.stop(); }catch(e){} rec.stop(); try{ await tmo(stopped, 15000); }catch(e){ why = 'mr-stop'; return null; }
+    stream.getTracks().forEach(t=>t.stop());
+    if(!parts.length){ why = 'mr-empty'; return null; }
+    if(ab && !dest) why = 'mr-nosound';
     return new Blob(parts, {type:'video/mp4'});
   }
   window.AdminVideo = {
     VMAX, LIMIT,
-    async prepare(file, onProgress, onStage){
-      stage = onStage || (()=>{});
+    async prepare(file, onProgress, onStage, ac){
+      stage = onStage || (()=>{}); why = '';
       const {v, url} = await loadVideo(file);
       try{
         const dur = v.duration;
@@ -176,17 +181,23 @@
         await seek(v, Math.min(0.6, dur / 2));
         const photo = await frameJpeg(v, 2048, 0.84), thumb = await frameJpeg(v, 420, 0.7);
         let vid = null;
-        // 1080p بالضغط السريع ← 720p بالضغط السريع ← 720p بالتسجيل (الأجهزة القديمة)
-        for(const [q, how] of [[Q_HI, 'wc'], [Q_MID, 'wc'], [Q_MID, 'mr']]){
+        const ab = await tmo(decodeAudio(file), 20000).catch(()=>null);
+        // ضغط سريع 1080p ← 720p، وإذا الجهاز ما يقدر (آيفون: ما فيه ضغط صوت) تسجيل 1080p ← 720p
+        const plan = [[Q_HI, 'wc'], [Q_MID, 'wc'], [Q_HI, 'mr'], [Q_MID, 'mr']];
+        for(let k = 0; k < plan.length; k++){
+          const [q, how] = plan[k];
+          if(how === 'wc' && k > 0 && /^wc-(none|cfg|noaudio)$|^muxer$/.test(why)) continue;   // نفس السبب بيتكرر — لا نضيّع وقت
           let out = null;
-          try{ out = how === 'wc' ? await encodeWC(file, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress); }catch(e){ out = null; }
-          if(out && out.size <= LIMIT){ vid = out; break; }
-          if(out && !vid) vid = out;
-          stage(q === Q_HI ? 'نعيد بدقة 720p…' : 'نجرب طريقة ثانية…');
+          try{ out = how === 'wc' ? await encodeWC(ab, v, dur, q, onProgress) : await encodeMR(v, dur, q, onProgress, ab, ac); }catch(e){ out = null; why = how + '-x'; }
+          if(out && out.size <= LIMIT){ vid = out; if(why !== 'mr-nosound') why = ''; break; }
+          if(out){ if(!vid || out.size < vid.size) vid = out; why = how + '-big'; }
+          const skip = /^wc-(none|cfg|noaudio)$|^muxer$/.test(why);
+          let n = k + 1; while(n < plan.length && plan[n][1] === 'wc' && skip) n++;
+          if(n < plan.length) stage((plan[n][1] === 'mr' ? 'نسجّل الفيديو' : 'نعيد') + (plan[n][0] === Q_MID ? ' بدقة 720p' : ' بدقة 1080p') + '… [' + why + ']');
         }
-        if(!vid) throw new Error('nosupport');
+        if(!vid) throw new Error('nosupport:' + why);
         if(vid.size > LIMIT) throw new Error('big');
-        return {video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
+        return {why, video:vid, photo:photo.blob, thumb:thumb.blob, w:photo.w, h:photo.h, dur:Math.min(dur, VMAX), full:dur > VMAX + 0.5 ? dur : 0};
       } finally { v.pause(); v.remove(); URL.revokeObjectURL(url); }
     },
   };
