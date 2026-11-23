@@ -1567,7 +1567,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   const w2k=()=>day===7?2:5+(day-8),W2C={};
   function w2Img(){const K0=w2k();if(W2C[K0])return W2C[K0];const c=document.createElement('canvas');c.width=W2.cols;c.height=W2.rows;const x=c.getContext('2d'),im=x.createImageData(W2.cols,W2.rows);
     for(const k of W2.cells){const i=k[0],j=k[1],p2=k[K0]||0;if(p2<15)continue;const o=((W2.rows-1-i)*W2.cols+j)*4,col=p2>=60?[36,87,166]:p2>=35?[79,134,214]:[143,182,234];
-      im.data[o]=col[0];im.data[o+1]=col[1];im.data[o+2]=col[2];im.data[o+3]=Math.round(Math.min(1,.35+p2/100*.75)*255)}
+      im.data[o]=col[0];im.data[o+1]=col[1];im.data[o+2]=col[2];im.data[o+3]=Math.round(Math.min(1,.5+p2/100*.6)*255)}
     x.putImageData(im,0,0);const K=8,c2=document.createElement('canvas');c2.width=W2.cols*K;c2.height=W2.rows*K;const x2=c2.getContext('2d');x2.imageSmoothingEnabled=true;x2.imageSmoothingQuality='high';x2.filter='blur('+(K*.6)+'px)';x2.drawImage(c,0,0,c2.width,c2.height);return W2C[K0]=c2.toDataURL()}   // مكبّرة ومنعّمة: سحابة احتمال مو مربعات
   function drawW2(){if(!W2)return;const L0=W2.lng0,B0=W2.lat0,L1=L0+W2.cols*W2.r,B1=B0+W2.rows*W2.r,co=[[L0,B1],[L1,B1],[L1,B0],[L0,B0]];
     if(gl.getSource('wk2'))gl.getSource('wk2').updateImage({url:w2Img(),coordinates:co});
@@ -1577,8 +1577,9 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   function drawW2Card(xs,bindX){const rn=regName(),rng=W2?fmtD(W2.from)+' – '+fmtD(W2.to):'';
     if(!W2){card.innerHTML='<div class="hd">'+xs+'<span>🔭 توقعات الأسبوع الجاي ما وصلت بعد — جرّب بعد شوي</span></div>';bindX();return}
     const dk=day-8,T=day===7?(W2.top||{}):Object.fromEntries(Object.entries(W2.topd||{}).map(([r,l])=>[r,l[dk]||[]])),dl=day===7?rng:(W2.days?fmtW(W2.days[dk]):'');
-    const all=[];for(const [r,l] of Object.entries(T))for(const x of l)all.push({x,r});all.sort((a,b)=>b.x[1]-a.x[1]);
-    const L=open?all.slice(0,8):(rn&&T[rn]&&T[rn].length?T[rn].map(x=>({x,r:rn})):all.slice(0,3));
+    const all=[],seen=new Set();for(const [r,l] of Object.entries(T))for(const x of l)all.push({x,r});all.sort((a,b)=>b.x[1]-a.x[1]);
+    const allU=all.filter(a=>!seen.has(a.x[0])&&seen.add(a.x[0]));all.length=0;all.push(...allU);
+    const sn=new Set(),L=(open?all.slice(0,8):(rn&&T[rn]&&T[rn].length?T[rn].map(x=>({x,r:rn})):all.slice(0,3))).filter(a=>!sn.has(a.x[0])&&sn.add(a.x[0]));   // بدون تكرار الاسم
     const tg='<button type="button" class="wk-tog">'+(open?'إخفاء ⌄':'المملكة ⌃')+'</button>';
     card.innerHTML='<div class="hd">'+xs+'<span>🔭 '+(day===7?'الأسبوع الجاي · ':'')+esc(dl)+(open?' · أعلى احتمال بالمملكة':rn&&T[rn]&&T[rn].length?' · '+esc(rn):'')+'</span>'+tg+'</div>'+
       (!L.length?'<div class="wk-note">ما فيه إشارة مطر يُذكر على المملكة '+(day===7?'في الأسبوع الثاني':'هذا اليوم')+' — حتى الآن.</div>':
@@ -1603,7 +1604,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       f.push({type:'Feature',properties:{m,a},geometry:{type:'Polygon',coordinates:[[[ln-h,la-h],[ln+h,la-h],[ln+h,la+h],[ln-h,la+h],[ln-h,la-h]]]}});
       if(th>=2&&m>=1&&c[0]%2===0&&c[1]%2===0)t.push({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[ln,la]}})}
     return[{type:'FeatureCollection',features:f},{type:'FeatureCollection',features:t}]}
-  function draw(){if(!glReady||!D)return;if(day>=7){drawW2();for(const id of['wk','wkt'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility','none');render();return}hideW2();const[f,t]=fc();
+  function draw(){if(!glReady||!D)return;if(day>=7){if(z>6.2){z=5.3;const[wx,wy]=world(24.6,44.6);cx=wx;cy=wy}drawW2();for(const id of['wk','wkt'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility','none');render();return}hideW2();const[f,t]=fc();
     if(gl.getSource('wk')){gl.getSource('wk').setData(f);gl.getSource('wkt').setData(t)}
     else{gl.addSource('wk',{type:'geojson',data:f});gl.addSource('wkt',{type:'geojson',data:t});
       gl.addLayer({id:'wk',type:'fill',source:'wk',paint:{'fill-color':COL,'fill-opacity':['*',['match',['get','a'],3,.45,2,.34,.13],['case',['>=',['get','m'],25],1.5,1]],'fill-antialias':false}},'slot:dalil');
