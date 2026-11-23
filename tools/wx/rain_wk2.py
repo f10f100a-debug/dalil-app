@@ -65,7 +65,7 @@ for i in range(NR):
         if p2 >= 10: cells.append([i, j, p2, p10, round(md * 10)])
         if p2 >= 20: best.setdefault(rg, []).append((p2, p10, la, lo))
 
-O = json.load(open(A + 'open-places.json')); towns = [x for x in O['p'] if O['cats'][x[4]] == 'معلم رئيسي']
+O = json.load(open(A + 'open-places.json')); towns = [x for x in O['p'] if O['cats'][x[4]] == 'معلم رئيسي' and not x[0].startswith(('جزيرة', 'جزر', 'طبق', 'شعب'))]   # أسماء برية مو جزر وشعاب بحرية
 def near(la, ln): return min(towns, key=lambda x: (x[1] - la) ** 2 + ((x[2] - ln) * math.cos(math.radians(la))) ** 2)[0]
 top = {}
 for rg, lst in best.items():
