@@ -1550,6 +1550,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
 :is(html[data-theme=dark],html[data-theme=red]) .wk-panel{background:#1F1B16f4;border-color:#353027;color:#EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) .wk-card{border-color:#353027;color:#EFE8DC}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-bar h3{color:#EFE8DC}:is(html[data-theme=dark],html[data-theme=red]) .wk-days button:not(.on){background:#2C261E;color:#EFE8DC}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-row{border-color:#353027}
+.wk-days button.wk2d{background:#EEF3FB;color:#1F4F95;box-shadow:inset 0 0 0 1px #9DB7DD;font-size:10px}.wk-days button.wk2d.on{background:#2457A6;color:#fff}.wk-d2 button.wk2b{flex:1.5;font-size:10.5px}
 .wk-days button.wk2b{flex:1.7;background:#EEF3FB;color:#1F4F95;box-shadow:inset 0 0 0 1px #9DB7DD;font-weight:700}.wk-days button.wk2b.on{background:#2457A6;color:#fff}
 .wk-p{font-size:11.5px;font-weight:800;border-radius:999px;padding:2px 9px;white-space:nowrap}.wk-p.p3{background:#2457A6;color:#fff}.wk-p.p2{background:#D6E4F7;color:#1F4F95}.wk-p.p1{background:#EDF2F9;color:#5A79A8}
 :is(html[data-theme=dark],html[data-theme=red]) .wk-days button.wk2b:not(.on){background:#1E2A3A;color:#9DB6D3}`;document.head.appendChild(st);
@@ -1560,24 +1561,29 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
   // احتمال للأسبوع كامل مو كمية يوم بيوم (بعد أسبوع الدقة ضعيفة) — سحابة متدرجة بدون مربعات
   let W2=null;const W2ON=(()=>{try{return localStorage.getItem('dalil_lab_wk2')==='1'}catch(e){return false}})();
   const pLv=p=>p>=60?'<span class="wk-p p3">احتمال عالي '+p+'٪</span>':p>=35?'<span class="wk-p p2">متوسط '+p+'٪</span>':'<span class="wk-p p1">ضعيف '+p+'٪</span>';
+  const fmtW=d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   const fmtD=d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{day:'numeric',month:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
-  function w2Img(){const c=document.createElement('canvas');c.width=W2.cols;c.height=W2.rows;const x=c.getContext('2d'),im=x.createImageData(W2.cols,W2.rows);
-    for(const k of W2.cells){const [i,j,p2]=k;if(p2<15)continue;const o=((W2.rows-1-i)*W2.cols+j)*4,col=p2>=60?[36,87,166]:p2>=35?[79,134,214]:[143,182,234];
+  // day: 7 = الأسبوع كامل، 8–14 = يوم بيوم (احتمال ذاك اليوم)
+  const w2k=()=>day===7?2:5+(day-8),W2C={};
+  function w2Img(){const K0=w2k();if(W2C[K0])return W2C[K0];const c=document.createElement('canvas');c.width=W2.cols;c.height=W2.rows;const x=c.getContext('2d'),im=x.createImageData(W2.cols,W2.rows);
+    for(const k of W2.cells){const i=k[0],j=k[1],p2=k[K0]||0;if(p2<15)continue;const o=((W2.rows-1-i)*W2.cols+j)*4,col=p2>=60?[36,87,166]:p2>=35?[79,134,214]:[143,182,234];
       im.data[o]=col[0];im.data[o+1]=col[1];im.data[o+2]=col[2];im.data[o+3]=Math.round(Math.min(1,.35+p2/100*.75)*255)}
-    x.putImageData(im,0,0);const K=8,c2=document.createElement('canvas');c2.width=W2.cols*K;c2.height=W2.rows*K;const x2=c2.getContext('2d');x2.imageSmoothingEnabled=true;x2.imageSmoothingQuality='high';x2.filter='blur('+(K*.6)+'px)';x2.drawImage(c,0,0,c2.width,c2.height);return c2.toDataURL()}   // مكبّرة ومنعّمة: سحابة احتمال مو مربعات
+    x.putImageData(im,0,0);const K=8,c2=document.createElement('canvas');c2.width=W2.cols*K;c2.height=W2.rows*K;const x2=c2.getContext('2d');x2.imageSmoothingEnabled=true;x2.imageSmoothingQuality='high';x2.filter='blur('+(K*.6)+'px)';x2.drawImage(c,0,0,c2.width,c2.height);return W2C[K0]=c2.toDataURL()}   // مكبّرة ومنعّمة: سحابة احتمال مو مربعات
   function drawW2(){if(!W2)return;const L0=W2.lng0,B0=W2.lat0,L1=L0+W2.cols*W2.r,B1=B0+W2.rows*W2.r,co=[[L0,B1],[L1,B1],[L1,B0],[L0,B0]];
-    if(!gl.getSource('wk2')){gl.addSource('wk2',{type:'image',url:w2Img(),coordinates:co});gl.addLayer({id:'wk2',type:'raster',source:'wk2',paint:{'raster-opacity':.8,'raster-resampling':'linear','raster-fade-duration':0}},'slot:dalil')}
+    if(gl.getSource('wk2'))gl.getSource('wk2').updateImage({url:w2Img(),coordinates:co});
+    else{gl.addSource('wk2',{type:'image',url:w2Img(),coordinates:co});gl.addLayer({id:'wk2',type:'raster',source:'wk2',paint:{'raster-opacity':.8,'raster-resampling':'linear','raster-fade-duration':0}},'slot:dalil')}
     gl.setLayoutProperty('wk2','visibility','visible')}
   function hideW2(){if(gl.getLayer&&gl.getLayer('wk2'))gl.setLayoutProperty('wk2','visibility','none')}
   function drawW2Card(xs,bindX){const rn=regName(),rng=W2?fmtD(W2.from)+' – '+fmtD(W2.to):'';
     if(!W2){card.innerHTML='<div class="hd">'+xs+'<span>🔭 توقعات الأسبوع الجاي ما وصلت بعد — جرّب بعد شوي</span></div>';bindX();return}
-    const all=[];for(const [r,l] of Object.entries(W2.top||{}))for(const x of l)all.push({x,r});all.sort((a,b)=>b.x[1]-a.x[1]);
-    const L=open?all.slice(0,8):(rn&&W2.top[rn]&&W2.top[rn].length?W2.top[rn].map(x=>({x,r:rn})):all.slice(0,3));
+    const dk=day-8,T=day===7?(W2.top||{}):Object.fromEntries(Object.entries(W2.topd||{}).map(([r,l])=>[r,l[dk]||[]])),dl=day===7?rng:(W2.days?fmtW(W2.days[dk]):'');
+    const all=[];for(const [r,l] of Object.entries(T))for(const x of l)all.push({x,r});all.sort((a,b)=>b.x[1]-a.x[1]);
+    const L=open?all.slice(0,8):(rn&&T[rn]&&T[rn].length?T[rn].map(x=>({x,r:rn})):all.slice(0,3));
     const tg='<button type="button" class="wk-tog">'+(open?'إخفاء ⌄':'المملكة ⌃')+'</button>';
-    card.innerHTML='<div class="hd">'+xs+'<span>🔭 الأسبوع الجاي · '+esc(rng)+(open?' · أعلى احتمال بالمملكة':rn&&W2.top[rn]&&W2.top[rn].length?' · '+esc(rn):'')+'</span>'+tg+'</div>'+
-      (!L.length?'<div class="wk-note">ما فيه إشارة مطر يُذكر على المملكة في الأسبوع الثاني — حتى الآن.</div>':
+    card.innerHTML='<div class="hd">'+xs+'<span>🔭 '+(day===7?'الأسبوع الجاي · ':'')+esc(dl)+(open?' · أعلى احتمال بالمملكة':rn&&T[rn]&&T[rn].length?' · '+esc(rn):'')+'</span>'+tg+'</div>'+
+      (!L.length?'<div class="wk-note">ما فيه إشارة مطر يُذكر على المملكة '+(day===7?'في الأسبوع الثاني':'هذا اليوم')+' — حتى الآن.</div>':
        L.map((a,i)=>'<div class="wk-row" data-i="'+i+'"><span>'+esc(a.x[0])+' <small class="wk-t">'+esc(a.r)+(a.x[2]>=20?' · مطر جيد '+a.x[2]+'٪':'')+'</small></span>'+pLv(a.x[1])+'</div>').join(''))+
-      '<div class="wk-note">تقدير بعيد من '+(W2.members||51)+' تشغيل للنموذج الأوروبي — يتغير مع الأيام. «احتمال» = كم تشغيل من '+(W2.members||51)+' فيه مطر يُذكر (2 ملم+) على الأسبوع كامل. التفاصيل بالملم تطلع لما يدخل الأسبوع الأول.</div>';
+      '<div class="wk-note">تقدير بعيد من '+(W2.members||51)+' تشغيل للنموذج الأوروبي — يتغير مع الأيام. «احتمال» = كم تشغيل من '+(W2.members||51)+' فيه مطر '+(day===7?'يُذكر (2 ملم+) على الأسبوع كامل':'(1 ملم+) هذا اليوم — احتمال اليوم الواحد أقل ويتذبذب أكثر من الأسبوع كامل')+'. التفاصيل بالملم تطلع لما يدخل الأسبوع الأول.</div>';
     bindX();card.querySelector('.wk-tog').onclick=e=>{e.stopPropagation();setSize(open?1:2)};
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i].x;z=Math.max(z,8);const[wx,wy]=world(x[3],x[4]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': احتمال مطر '+x[1]+'٪ الأسبوع الجاي';setSize(1)})}
   const COL=['step',['get','m'],'rgba(0,0,0,0)',1,'#CFE8FB',3,'#8CC4F2',7,'#4A90D9',15,'#2457A6',25,'#5B1F86'];
@@ -1597,7 +1603,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       f.push({type:'Feature',properties:{m,a},geometry:{type:'Polygon',coordinates:[[[ln-h,la-h],[ln+h,la-h],[ln+h,la+h],[ln-h,la+h],[ln-h,la-h]]]}});
       if(th>=2&&m>=1&&c[0]%2===0&&c[1]%2===0)t.push({type:'Feature',properties:{},geometry:{type:'Point',coordinates:[ln,la]}})}
     return[{type:'FeatureCollection',features:f},{type:'FeatureCollection',features:t}]}
-  function draw(){if(!glReady||!D)return;if(day===7){drawW2();for(const id of['wk','wkt'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility','none');render();return}hideW2();const[f,t]=fc();
+  function draw(){if(!glReady||!D)return;if(day>=7){drawW2();for(const id of['wk','wkt'])if(gl.getLayer(id))gl.setLayoutProperty(id,'visibility','none');render();return}hideW2();const[f,t]=fc();
     if(gl.getSource('wk')){gl.getSource('wk').setData(f);gl.getSource('wkt').setData(t)}
     else{gl.addSource('wk',{type:'geojson',data:f});gl.addSource('wkt',{type:'geojson',data:t});
       gl.addLayer({id:'wk',type:'fill',source:'wk',paint:{'fill-color':COL,'fill-opacity':['*',['match',['get','a'],3,.45,2,.34,.13],['case',['>=',['get','m'],25],1.5,1]],'fill-antialias':false}},'slot:dalil');
@@ -1627,7 +1633,7 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
       '<div class="wk-note">مرتبة من الأقوى · <i class="wk-dot a3"></i>الثلاثة متفقة · <i class="wk-dot a2"></i>نموذجين من 3'+(day>=3?' · بعد 3 أيام دقتها أقل':'')+'</div>';
     card.querySelector('.wk-allb').onclick=e=>{e.stopPropagation();allK=false;setSize(1)};bindX();
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=A[+r.dataset.i].x;z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;allK=false;setSize(1)})}
-  function drawCard(){if(!card||!D)return;if(panel){panel.classList.toggle('open',open);panel.classList.toggle('s0',size===0)}if(day===7){lastReg=regName();const xs=size===0?'<button type="button" class="wk-x wk-x0" aria-label="إغلاق مطر الأسبوع">✕</button>':'';drawW2Card(xs,()=>{const x0=card.querySelector('.wk-x0');if(x0)x0.onclick=e=>{e.stopPropagation();btn.click()}});return}const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
+  function drawCard(){if(!card||!D)return;if(panel){panel.classList.toggle('open',open);panel.classList.toggle('s0',size===0)}if(day>=7){lastReg=regName();const xs=size===0?'<button type="button" class="wk-x wk-x0" aria-label="إغلاق مطر الأسبوع">✕</button>':'';drawW2Card(xs,()=>{const x0=card.querySelector('.wk-x0');if(x0)x0.onclick=e=>{e.stopPropagation();btn.click()}});return}const rn=regName();lastReg=rn;const L=((D.top||{})[rn]||[])[day]||[],dn=dayName(D.days[day],day);
     const xs=size===0?'<button type="button" class="wk-x wk-x0" aria-label="إغلاق مطر الأسبوع">✕</button>':'';
     const bindX=()=>{const x0=card.querySelector('.wk-x0');if(x0)x0.onclick=e=>{e.stopPropagation();btn.click()}};
     const agree=a=>a===3?'<span class="wk-ok">الثلاثة متفقة</span>':a===2?'<span class="wk-mx">نموذجين من 3</span>':'';
@@ -1648,11 +1654,19 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     bindX();
     card.querySelectorAll('.wk-row').forEach(r=>r.onclick=()=>{const x=L[+r.dataset.i];z=Math.max(z,10);const[wx,wy]=world(x[4],x[5]);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;view='free';render();status.textContent=x[0]+': '+mmr(x[1])+' متوقع '+dn;setSize(1)});}
   function drawBar(){if(!bar||!D)return;const at=new Date(D.at),old=Date.now()-at>18*3600e3;
-    bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small class="wk-beta">تجريبي</small> <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></h3>'+
-      '<div class="wk-days">'+D.days.map((d,i)=>wkHidden(i)?'':'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+(W2ON?'<div class="wk-days" style="margin-top:4px"><button type="button" data-d="7" class="wk2b'+(day===7?' on':'')+'">🔭 الأسبوع الجاي'+(W2?' · '+esc(fmtD(W2.from))+' – '+esc(fmtD(W2.to)):'')+' · احتمال المطر</button></div>':'')+(day===7?'<div class="wk-leg">احتمال المطر <i style="background:#8FB6EA"></i>ضعيف <i style="background:#4F86D6"></i>متوسط <i style="background:#2457A6"></i>عالي · للأيام 8–14 كاملة</div>':
+    bar.innerHTML='<h3><span>🗓️ مطر الأسبوع <small class="wk-beta">تجريبي</small> <small>'+(old?'⚠️ بيانات قديمة · ':'تحديث ')+at.toLocaleString('ar-SA-u-nu-latn',{weekday:'short',hour:'numeric',minute:'2-digit',timeZone:'Asia/Riyadh'})+'</small></span><span style="display:flex;gap:6px"><button type="button" class="wk-x wk-play" aria-label="تشغيل الأيام">'+(playT?'⏸':'▶')+'</button><button type="button" class="wk-x" aria-label="إغلاق مطر الأسبوع">✕</button></span></h3>'+
+      '<div class="wk-days">'+D.days.map((d,i)=>wkHidden(i)?'':'<button type="button" data-d="'+i+'" class="'+(i===day?'on':'')+(i>=3?' far':'')+'">'+esc(dayName(d,i))+'</button>').join('')+'</div>'+(W2ON?'<div class="wk-days wk-d2" style="margin-top:4px">'+(W2&&W2.days?W2.days.map((d,k)=>'<button type="button" data-d="'+(8+k)+'" class="wk2d'+(day===8+k?' on':'')+'">'+esc(new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{weekday:'narrow',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00')))+' '+(+d.slice(8))+'</button>').join(''):'')+'<button type="button" data-d="7" class="wk2b'+(day===7?' on':'')+'">🔭 '+(W2&&W2.days?'الأسبوع كامل':'الأسبوع الجاي'+(W2?' · '+esc(fmtD(W2.from))+' – '+esc(fmtD(W2.to)):'')+' · احتمال المطر')+'</button></div>':'')+(day>=7?'<div class="wk-leg">احتمال المطر <i style="background:#8FB6EA"></i>ضعيف <i style="background:#4F86D6"></i>متوسط <i style="background:#2457A6"></i>عالي · '+(day===7?'للأيام 8–14 كاملة':'لهذا اليوم')+'</div>':
       '<div class="wk-leg">ملم <i style="background:#CFE8FB"></i>1 <i style="background:#8CC4F2"></i>3 <i style="background:#4A90D9"></i>7 <i style="background:#2457A6"></i>15 <i style="background:#5B1F86;box-shadow:inset 0 0 0 20px rgba(239,228,207,.25)"></i>25+ · الباهت: النماذج مختلفة · 🟡 رعد</div>');
-    bar.querySelector('.wk-x').onclick=e=>{e.stopPropagation();btn.click()};
-    bar.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{day=+b.dataset.d;drawBar();draw();drawCard()})}
+    bar.querySelector('.wk-x:not(.wk-play)').onclick=e=>{e.stopPropagation();btn.click()};
+    bar.querySelector('.wk-play').onclick=e=>{e.stopPropagation();playT?stopPlay():startPlay()};
+    bar.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{stopPlay(true);day=+b.dataset.d;drawBar();draw();drawCard()})}
+  // ▶ تشغيل الأيام: الأسبوع الأول (كمية) ثم الأسبوع الجاي يوم بيوم (احتمال) — وقفة قصيرة بينهم
+  let playT=null;
+  function seqDays(){const a=D.days.map((d,i)=>i).filter(i=>!wkHidden(i));if(W2ON&&W2&&W2.days)for(let k=0;k<7;k++)a.push(8+k);return a}
+  function startPlay(){const q=seqDays();if(!q.length)return;let n=-1;
+    const step=()=>{n++;if(n>=q.length){stopPlay();return}const prev=day;day=q[n];if(day>=8&&prev<7)status.textContent='🔭 الأسبوع الجاي — احتمال المطر، مو كمية';drawBar();draw();drawCard();playT=setTimeout(step,day===8&&prev<7?2200:1300)};
+    playT=setTimeout(step,10);drawBar()}
+  function stopPlay(quiet){if(playT){clearTimeout(playT);playT=null;if(!quiet&&bar)drawBar()}}
   async function start(){
     if(!D){status.textContent='⏳ نجيب توقعات الأسبوع…';
       try{const r=await fetch('data/rain-week.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)throw 0;D=await r.json()}
@@ -1667,9 +1681,9 @@ body.wk-on #rainBar,body.wk-on #springBar,body.wk-on #radarLegend,body.wk-on #ba
     card=document.createElement('div');card.className='wk-card';panel.appendChild(card);
     if(z>8){const c=stageToLatLng(innerWidth/2,innerHeight/2);z=7;const[wx,wy]=world(c.lat,c.lng);cx=wx;cy=wy;render()}
     document.body.classList.add('wk-on');wkLive(false);
-    if(day!==7&&wkHidden(day)){const k=D.days.findIndex((d,i)=>!wkHidden(i));day=k<0?0:k}
+    if(day<7&&wkHidden(day)){const k=D.days.findIndex((d,i)=>!wkHidden(i));day=k<0?0:k}
     drawBar();draw();drawCard()}
-  function stop(){document.body.classList.remove('wk-on','wk-full');wkLive(true);size=1;open=false;panel&&panel.remove();panel=bar=card=null;hideW2();if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
+  function stop(){stopPlay(true);document.body.classList.remove('wk-on','wk-full');wkLive(true);size=1;open=false;panel&&panel.remove();panel=bar=card=null;hideW2();if(gl.getLayer('wk'))for(const id of['wk','wkt'])gl.setLayoutProperty(id,'visibility','none')}
   btn.onclick=()=>{on=!on;btn.classList.toggle('on',on);on?start():stop()};
   // من «الأجواء» ← «🔭 الأسبوع الجاي»: يفتح لوحة الأسبوع على الأسبوع الثاني مباشرة
   let pendW2=W2ON&&query.get('wk')==='2';if(pendW2)setTimeout(()=>{if(!on)btn.click()},900);
