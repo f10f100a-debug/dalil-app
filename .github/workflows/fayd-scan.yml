@@ -27,7 +27,7 @@ jobs:
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add -A data/fayd-new*.json data/fayd-new-qa.md 2>/dev/null || git add -A data/fayd-new*.json
+          git add -A -- 'data/fayd-new*.json' 'data/fayd-new-qa.md' 2>/dev/null || git add -A -- 'data/fayd-new*.json'
           git diff --cached --quiet && exit 0
           git commit -qm "فياض بدون اسم: مسح أسبوعي"
           for i in 1 2 3; do git pull -q --rebase && git push -q && break; sleep 5; done

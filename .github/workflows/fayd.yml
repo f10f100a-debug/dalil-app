@@ -23,7 +23,7 @@ jobs:
       - name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
-          git add -A data/fayd*.json data/fayd-qa.md 2>/dev/null || git add -A data/fayd*.json
+          git add -A -- 'data/fayd*.json' 'data/fayd-qa.md' 2>/dev/null || git add -A -- 'data/fayd*.json'
           git diff --cached --quiet && exit 0
           git commit -qm "حالة الفياض: تحديث تلقائي"
           for i in 1 2 3; do git pull -q --rebase --autostash && git push -q && break; sleep 5; done

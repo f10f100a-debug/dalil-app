@@ -12,7 +12,7 @@ def load(f):
 F = load("data/fayd.json")
 if F:
     if age(F.get("asof")) > 6: probs.append(f"الفياض: أحدث صورة {F.get('asof')} (عمرها {age(F.get('asof'))} يوم) — التحديث اليومي ما اشتغل؟")
-    bad = [r for r in F["rows"] if r[2] >= 2 and r[5] != 5 and (r[3] or 0) < 20 and r[4] == 1]
+    bad = [r for r in F["rows"] if r[2] >= 2 and not r[5] and (r[3] or 0) < 20 and r[4] == 1]
     if bad: probs.append(f"الفياض: {len(bad)} فيضة درجتها «مثل المعتاد» أو أعلى ونسبتها تحت 20٪ (رقم الموقع: {', '.join(str(r[0]) for r in bad[:8])})")
     old = [r for r in F["rows"] if r[2] > 0 and age(r[6]) > 10]
     if len(old) >= 5: probs.append(f"الفياض: {len(old)} فيضة خضراء صورتها أقدم من 10 أيام")
