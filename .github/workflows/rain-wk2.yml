@@ -1,0 +1,20 @@
+# مطر الأسبوع الثاني (تجربة dalil_lab_wk2): احتمال المطر للأيام 8–14 من ECMWF ENS المفتوح — مرة يوميًا (تشغيل 00 UTC ينزل ~8 UTC)
+name: Rain week 2
+on:
+  schedule: [{ cron: "23 9 * * *" }]
+  workflow_dispatch:
+permissions: { contents: write }
+concurrency: { group: rain-wk2, cancel-in-progress: false }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --quiet ecmwf-opendata eccodes numpy && python3 -c "import eccodes; print(eccodes.__version__)"
+      - run: python3 tools/wx/rain_wk2.py
+      - name: Commit
+        run: |
+          git config user.name dalil-bot && git config user.email bot@users.noreply.github.com
+          git add data/rain-wk2.json && git commit -qm "rain-wk2 $(date -u +%FT%H:%MZ)" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin main && break; sleep 5; done
