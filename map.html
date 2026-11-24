@@ -2117,8 +2117,8 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     let w=180,so=90,e=-180,n=-90;IX.chunks.forEach(c=>{w=Math.min(w,c[1]);so=Math.min(so,c[0]);e=Math.max(e,c[1]+.25);n=Math.max(n,c[0]+.25)});
     [['sprt-c','c','png',IX,!sat],['sprt-s','s','webp',SX,sat]].forEach(([id,k,ext,X,on])=>{if(!X||!IX.tiles[k])return;const zr=IX.tiles[k];
       if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)+OQ],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
-        gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:offNow()?24:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
-      try{const mx=offNow()?24:12.5;if(gl.getLayer(id)&&gl.getLayer(id).maxzoom!==mx)gl.setLayerZoomRange(id,zr[0],mx)}catch(err){}   // 24 نوفمبر (أبو مالك: «تختفي عند 500 م» بوضع الطيران): الحد كان ينحسب مرة وحدة وقت فتح الخريطة
+        gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:offNow()||UNDER?24:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
+      try{const mx=offNow()||UNDER?24:12.5;if(gl.getLayer(id)&&gl.getLayer(id).maxzoom!==mx)gl.setLayerZoomRange(id,zr[0],mx)}catch(err){}   // 24 نوفمبر (أبو مالك: «تختفي عند 500 م» بوضع الطيران): الحد كان ينحسب مرة وحدة وقت فتح الخريطة
       const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
   function sync(quiet){if(!hasGL()||!glOk()||!IX)return;if(mapHidden()){syncLater=true;return}syncLater=false;legend();fade();const show=!!LP.ndvi;lg.style.display=show&&(!OFF||cardOn)?'flex':'none';hint();place();
     const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?(offNow()?99:12.5):0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
@@ -2144,7 +2144,10 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   //   1) المنطقة اللي أنت فيها (GPS)  2) المنطقة اللي تتصفحها على الخريطة  3) مناطق الخرائط المحفوظة
   //   مرة لكل تحديث للطبقة (gen)، على النت بس، 4 طلبات مع بعض، ويرجع يحاول كل 20 ث. البلاطات z7–z11 (~6–8 ميقا للمنطقة)
   addEventListener('resize',()=>{if(syncLater&&!mapHidden())try{sync()}catch(e){}});
-  let offTxt='';const offNow=()=>OFF&&navigator.onLine===false;   // بدون نت: البلاطات تكبر لكل التقريب بدل القطع الكبيرة (غير محفوظة)
+  let offTxt='';const offNow=()=>OFF&&navigator.onLine===false;
+  // 25 نوفمبر (تجربة dalil_lab_sprunder، أبو مالك: «ماسبب التأخر» لما قرّب على أم قليب): البلاطات المحفوظة تبقى تحت حتى فوق 500 م —
+  // القطعة الدقيقة (صورة كبيرة من النت) تنرسم فوقها لما توصل، بدل فراغ ثواني يفهم منه الناس «ما فيه ربيع»
+  const UNDER=(()=>{try{return localStorage.getItem('dalil_lab_sprunder')==='1'}catch(e){return false}})();   // بدون نت: البلاطات تكبر لكل التقريب بدل القطع الكبيرة (غير محفوظة)
   // ===== 22 نوفمبر (تجربة dalil_lab_sproff): الربيع للبر =====
   //  تلقائي (ما اختار شي): المنطقة اللي أنت فيها + مناطق خرائطك المحفوظة. اختيار يدوي (📥): المناطق اللي تختارها بس.
   //  البطاقة تصغر لسطر بعد 10 ث، ورسالة أول مرة، وسؤال صغير داخل البطاقة لو دخلت منطقة ما اخترتها — بدون بطاقات جديدة.
