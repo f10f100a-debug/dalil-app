@@ -52,7 +52,7 @@ jobs:
     needs: parts
     if: always() && (needs.parts.result != 'skipped' || inputs.from_run)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - name: Previous data
@@ -62,7 +62,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with: { path: parts, pattern: "spring-*", run-id: "${{ inputs.from_run || github.run_id }}", github-token: "${{ github.token }}" }
       - run: python3 tools/fayd/spring_merge.py prev parts outd
-      - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd && python3 tools/fayd/spring_satpick.py outd && python3 tools/fayd/spring_tiles.py outd   # درجة كل فيضة + بلاطات الخريطة
+      - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd && python3 tools/fayd/spring_satpick.py outd && python3 tools/fayd/spring_satfade.py outd && python3 tools/fayd/spring_tiles.py outd   # درجة كل فيضة + بلاطات الخريطة
       - name: Push spring-data (single commit)
         run: |
           cd outd && git init -q && git checkout -q -b spring-data && git add . && git -c user.name=dalil-bot -c user.email=ci@dalil commit -qm "طبقة الربيع $(date -u +%F)"

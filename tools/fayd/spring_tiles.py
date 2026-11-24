@@ -32,7 +32,7 @@ class Chunks:
             key[A[..., 3] == 0] = -1
             for c, col in PAL.items(): C[key == ((col[0] << 16) | (col[1] << 8) | col[2])] = c   # ألوان القطع ثابتة (نفس اللوحة)
             v = C
-        else: v = np.array(im.convert("RGB"))
+        else: v = np.array(im.convert("RGBA"))   # 24 نوفمبر: صورة القمر فيها شفافية (أطراف تتلاشى — spring_satfade.py)
         s.c[k] = v
         if len(s.c) > 64: s.c.popitem(last=False)
         return v
@@ -44,7 +44,7 @@ def render(ch, z, x, y):
     lats = np.degrees(np.arctan(np.sinh(np.pi * (1 - 2 * (y + i / T) / 2 ** z))))
     ka = np.floor(lats / CH + 1e-9).astype(int); kb = np.floor(lons / CH + 1e-9).astype(int)
     n = int(round(CH / ch.res))
-    out = np.zeros((T, T) if ch.kind == "c" else (T, T, 3), "uint8"); hit = np.zeros((T, T), bool)
+    out = np.zeros((T, T) if ch.kind == "c" else (T, T, 4), "uint8"); hit = np.zeros((T, T), bool)
     for a in np.unique(ka):
         rs = ka == a; A0 = round(a * CH, 2)
         r = np.clip(((A0 + CH - lats[rs]) / ch.res).astype(int), 0, n - 1)
@@ -81,8 +81,10 @@ def pyramid(kind, zmax, zmin, chunks, ext):
             if save_c(A, p): made[(x, y)] = A; n += 1
         else:
             os.makedirs(os.path.dirname(p), exist_ok=True)
-            rgba = np.dstack([A, np.where(hit, 235, 0).astype("uint8")])
-            Image.fromarray(rgba, "RGBA").save(p, quality=68, method=4); made[(x, y)] = (A, hit); n += 1
+            a = np.where(hit, A[..., 3] / 255.0, 0).astype("float32")   # شفافية = الأطراف المتلاشية
+            if not (a > 0).any(): continue
+            rgba = np.dstack([A[..., :3], (a * 235).round().astype("uint8")])
+            Image.fromarray(rgba, "RGBA").save(p, quality=68, method=4); made[(x, y)] = (A[..., :3], a); n += 1
     for z in range(zmax - 1, zmin - 1, -1):
         par = {}
         for (x, y), v in made.items(): par.setdefault((x // 2, y // 2), []).append(((x % 2, y % 2), v))
@@ -96,12 +98,12 @@ def pyramid(kind, zmax, zmin, chunks, ext):
                 A = np.take(np.array([INV.get(i, 0) for i in range(256)], "uint8"), Q)
                 if save_c(A, p): made[(x, y)] = A; n += 1
             else:
-                M = np.zeros((2 * T, 2 * T, 3), "float32"); H = np.zeros((2 * T, 2 * T), bool)
-                for (dx, dy), (A, hit) in kids: M[dy * T:(dy + 1) * T, dx * T:(dx + 1) * T] = A; H[dy * T:(dy + 1) * T, dx * T:(dx + 1) * T] = hit
+                M = np.zeros((2 * T, 2 * T, 3), "float32"); H = np.zeros((2 * T, 2 * T), "float32")
+                for (dx, dy), (A, a) in kids: M[dy * T:(dy + 1) * T, dx * T:(dx + 1) * T] = A; H[dy * T:(dy + 1) * T, dx * T:(dx + 1) * T] = a
                 w = H.reshape(T, 2, T, 2).sum((1, 3)); S = (M * H[..., None]).reshape(T, 2, T, 2, 3).sum((1, 3))
-                A = (S / np.maximum(w, 1)[..., None]).astype("uint8"); hit = w > 0
+                A = (S / np.maximum(w, 1e-6)[..., None]).clip(0, 255).astype("uint8"); a = (w / 4).astype("float32")
                 os.makedirs(os.path.dirname(p), exist_ok=True)
-                Image.fromarray(np.dstack([A, np.where(hit, 235, 0).astype("uint8")]), "RGBA").save(p, quality=68, method=4); made[(x, y)] = (A, hit); n += 1
+                Image.fromarray(np.dstack([A, (a * 235).round().astype("uint8")]), "RGBA").save(p, quality=68, method=4); made[(x, y)] = (A, a); n += 1
     return n
 
 # z12 وأقل بلاطات (ناعمة ومن بعيد)، وفوقها القطع الأصلية (1–4 قطع حولك) — عشان حجم البيانات يبقى معقول على مستوى المملكة
