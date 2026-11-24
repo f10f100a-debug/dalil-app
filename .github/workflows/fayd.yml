@@ -1,7 +1,7 @@
 # حالة الفياض: تحديث يومي (من 6 نوفمبر؛ قبل مرتين بالأسبوع) من Sentinel-2 (10 م) وMODIS (Planetary Computer) → data/fayd.json
 name: Fayd
 on:
-  schedule: [{ cron: "17 3 * * *" }]
+  schedule: [{ cron: "17 21 * * *" }]   # 24 نوفمبر: 12:17 بالليل بتوقيت الرياض (كان 6:17 الصبح)
   workflow_dispatch:
     inputs:
       mode: { description: "baseline أو s2base أو force (ينشر حتى لو تغيّر كثير) أو فاضي للتحديث", type: string, default: "" }
@@ -9,18 +9,32 @@ jobs:
   fayd:
     runs-on: ubuntu-latest
     timeout-minutes: 150
-    permissions: { contents: write, issues: write }
+    permissions: { contents: write, issues: write, actions: read }
     steps:
-      - uses: actions/checkout@v4
-      - run: pip install --quiet rasterio numpy
-      - run: python3 tools/fayd/update.py ${{ inputs.mode }}
+      - id: g
+        if: github.event_name == 'schedule'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          # 24 نوفمبر (أبو مالك: «سوه»): GitHub يأخر المواعيد ساعات — لو فيه تشغيل ناجح أو شغال خلال آخر 12 ساعة، المتأخر يوقف بدل ما يكرر نفس الشغل
+          since=$(date -u -d "-12 hours" +%FT%TZ)
+          n=$(gh run list -R "$GITHUB_REPOSITORY" --workflow fayd.yml -L 10 --json databaseId,createdAt,status,conclusion \
+            --jq "[.[] | select(.databaseId != ${{ github.run_id }} and .createdAt > \"$since\" and (.status != \"completed\" or .conclusion == \"success\"))] | length")
+          echo "recent runs: $n"; if [ "$n" -gt 0 ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice::تشغيل قريب موجود — هذا المتأخر وقف"; fi
+      - if: steps.g.outputs.skip != '1'
+        uses: actions/checkout@v4
+      - if: steps.g.outputs.skip != '1'
+        run: pip install --quiet rasterio numpy
+      - if: steps.g.outputs.skip != '1'
+        run: python3 tools/fayd/update.py ${{ inputs.mode }}
         env:
           CDSE_CLIENT_ID: ${{ secrets.CDSE_CLIENT_ID }}
           CDSE_CLIENT_SECRET: ${{ secrets.CDSE_CLIENT_SECRET }}
-      - name: New-green confidence (layer + shape + rain)
+      - if: steps.g.outputs.skip != '1'
+        name: New-green confidence (layer + shape + rain)
         continue-on-error: true
         run: pip install --quiet numpy pillow && python3 tools/fayd/newconf.py
-      - name: Commit
+      - if: steps.g.outputs.skip != '1'
+        name: Commit
         run: |
           git config user.email ci@dalil && git config user.name "dalil-bot"
           git add -A -- 'data/fayd*.json' 'data/fayd-qa.md' 2>/dev/null || git add -A -- 'data/fayd*.json'
@@ -29,7 +43,8 @@ jobs:
           for i in 1 2 3; do git pull -q --rebase --autostash && git push -q && break; sleep 5; done
           git status -sb | head -1 | grep -q ahead && { echo "::error::push failed"; git status --short | head; exit 1; } || true
           echo "::notice::$(head -c 200 data/fayd.json 2>/dev/null)"
-      - name: Alert developer if held
+      - if: steps.g.outputs.skip != '1'
+        name: Alert developer if held
         if: always()
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |

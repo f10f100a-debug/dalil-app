@@ -2,7 +2,7 @@
 # مرتين بالأسبوع (الثلاثاء والسبت) — أجزاء 2°×2° مع بعض، وبعدها دمج ورفع لفرع spring-data (بدون تاريخ عشان المستودع ما يكبر)
 name: Spring layer
 on:
-  schedule: [{ cron: "23 1 * * 2,6" }]
+  schedule: [{ cron: "23 19 * * 1,5" }]   # 24 نوفمبر: 10:23 مساء الاثنين والجمعة بتوقيت الرياض (كان 4 الفجر — GitHub يتأخر لين 10 ساعات)
   workflow_dispatch:
     inputs:
       bbox: { description: "جزء واحد للتجربة: غرب,جنوب,شرق,شمال (فاضي = كل المناطق)", type: string, default: "" }
@@ -13,14 +13,26 @@ jobs:
   plan:
     if: ${{ !inputs.from_run }}
     runs-on: ubuntu-latest
-    outputs: { m: "${{ steps.p.outputs.m }}" }
+    outputs: { m: "${{ steps.p.outputs.m }}", skip: "${{ steps.g.outputs.skip }}" }
     steps:
+      - id: g
+        if: github.event_name == 'schedule'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          # 24 نوفمبر (أبو مالك: «سوه»): GitHub يأخر المواعيد ساعات — لو فيه تشغيل ناجح أو شغال خلال آخر 20 ساعة، المتأخر يوقف بدل ما يكرر نفس الشغل
+          since=$(date -u -d "-20 hours" +%FT%TZ)
+          n=$(gh run list -R "$GITHUB_REPOSITORY" --workflow spring-layer.yml -L 10 --json databaseId,createdAt,status,conclusion \
+            --jq "[.[] | select(.databaseId != ${{ github.run_id }} and .createdAt > \"$since\" and (.status != \"completed\" or .conclusion == \"success\"))] | length")
+          echo "recent runs: $n"; if [ "$n" -gt 0 ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; echo "::notice::تشغيل قريب موجود — هذا المتأخر وقف"; fi
       - uses: actions/checkout@v4
+        if: steps.g.outputs.skip != '1'
       - id: p
+        if: steps.g.outputs.skip != '1'
         env: { BBOX: "${{ inputs.bbox }}" }
         run: echo "m=$(python3 tools/fayd/spring_parts.py)" >> "$GITHUB_OUTPUT"
   parts:
     needs: plan
+    if: needs.plan.outputs.skip != '1'
     runs-on: ubuntu-latest
     timeout-minutes: 240
     strategy:
