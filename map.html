@@ -1199,7 +1199,7 @@ function glFail(stage,detail){
 }
 // 24 نوفمبر (تجربة dalil_lab_nogl، أبو مالك: «سوه على جوالي»): بدل سطر طويل فوق خريطة فاضية — بطاقة بخطوات مرقمة + «جرّب مرة ثانية»
 // (أغلب أسبابها «نمط المنع» Lockdown بالآيفون — اسمه بالعربي من جوال أبو مالك: يقفل WebGL، والحل استثناء دليل منه بدل ما يطفيه كله). للتجربة: map.html?nogltest=1
-function noglLab(){try{return localStorage.getItem('dalil_lab_nogl')==='1'}catch(e){return false}}
+function noglLab(){try{return localStorage.getItem('dalil_lab_nogl')!=='0'}catch(e){return true}}   // 25 نوفمبر (أبو مالك: «عمم»): للكل
 function noglCard(){if(!noglLab()||document.getElementById('noglCard'))return;
   const d=document.createElement('div');d.id='noglCard';d.dir='rtl';
   d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(243,234,218,.96);font-family:inherit';
