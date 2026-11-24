@@ -2082,7 +2082,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   // والتحميل بعد ما توقف الحركة
   // 23 نوفمبر (أبو مالك: «الأسماء تصير باهتة»): الطبقة — خصوصًا «صورة القمر» — كانت فوق الأسماء والطرق والأودية.
   // الحين تحت الأودية والطرق والأسماء (فوق لون الأرض والتضاريس) — مثل خرائط القمر الصناعي المعروفة
-  function sprBefore(){const L=gl.getStyle().layers;const w=L.find(l=>/^waterway@/.test(l.id));return w?w.id:(gl.getLayer('slot:waterway')?'slot:waterway':null)}
+  function sprBefore(){try{const st=gl.getStyle(),L=(st&&st.layers)||[];const w=L.find(l=>/^waterway@/.test(l.id));return w?w.id:(gl.getLayer('slot:waterway')?'slot:waterway':null)}catch(e){return null}}   // 24 نوفمبر: getStyle() يرجع فاضي قبل ما يجهز النمط (خطأ عند جهاز)
   function layerSet(list,pre,u,minz,want,cap){const bb=gl.getBounds(),zz=gl.getZoom(),ct=gl.getCenter();const before=sprBefore()||['fayd-halo','fayd-new','fayd-field','spring-reports'].find(id=>gl.getLayer(id));
     const inV=c=>c[0]<bb.getNorth()&&c[0]+.25>bb.getSouth()&&c[1]<bb.getEast()&&c[1]+.25>bb.getWest();
     const vis=want&&zz>=minz?list.filter(inV).sort((a,b)=>Math.hypot(a[0]+.125-ct.lat,a[1]+.125-ct.lng)-Math.hypot(b[0]+.125-ct.lat,b[1]+.125-ct.lng)).slice(0,cap):[];
