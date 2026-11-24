@@ -1190,7 +1190,7 @@ function glFail(stage,detail){
   let n=0;try{n=+(sessionStorage.getItem(GL_RETRY)||0)}catch(e){}
   const pr=glProbe(),blocked=!pr.api&&!document.hidden;   // بالخلفية ممكن يكون منع مؤقت — نعيد المحاولة أول ما يرجع، ونحكم والتطبيق قدامه
   const again=()=>{if(document.hidden)return;try{sessionStorage.setItem(GL_RETRY,n+1)}catch(e){}location.reload()};
-  if(blocked)status.textContent='الخريطة تحتاج «WebGL» وهو مقفل في جوالك — إذا مفعّل «وضع القفل»: الإعدادات ← الخصوصية والأمن ← وضع القفل ← استثنِ دليل';
+  if(blocked)status.textContent='الخريطة تحتاج «WebGL» وهو مقفل في جوالك — إذا مفعّل «نمط المنع»: الإعدادات ← الخصوصية والأمن ← نمط المنع ← تكوين تصفح الويب ← طفّ دليل';
   if(blocked)try{noglCard()}catch(e){}
   else if(n<3){status.textContent='يجهّز الخريطة…';if(document.hidden)document.addEventListener('visibilitychange',again);else setTimeout(again,1500)}
   else{status.textContent='تعذّر تشغيل الخريطة — اقفل التطبيق وافتحه من جديد';try{noglCard()}catch(e){}document.addEventListener('visibilitychange',()=>{if(!document.hidden){try{sessionStorage.setItem(GL_RETRY,0)}catch(e){}location.reload()}})}
@@ -1198,16 +1198,16 @@ function glFail(stage,detail){
   return 'dalil:nogl '+(document.hidden?'hidden':'visible')+' try'+n+glWhy;
 }
 // 24 نوفمبر (تجربة dalil_lab_nogl، أبو مالك: «سوه على جوالي»): بدل سطر طويل فوق خريطة فاضية — بطاقة بخطوات مرقمة + «جرّب مرة ثانية»
-// (أغلب أسبابها «وضع القفل» بالآيفون: يقفل WebGL، والحل استثناء دليل منه بدل ما يطفيه كله). للتجربة: map.html?nogltest=1
+// (أغلب أسبابها «نمط المنع» Lockdown بالآيفون — اسمه بالعربي من جوال أبو مالك: يقفل WebGL، والحل استثناء دليل منه بدل ما يطفيه كله). للتجربة: map.html?nogltest=1
 function noglLab(){try{return localStorage.getItem('dalil_lab_nogl')==='1'}catch(e){return false}}
 function noglCard(){if(!noglLab()||document.getElementById('noglCard'))return;
   const d=document.createElement('div');d.id='noglCard';d.dir='rtl';
   d.style.cssText='position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(243,234,218,.96);font-family:inherit';
   d.innerHTML='<div style="max-width:360px;width:100%;background:#fff;border-radius:22px;padding:20px 18px;box-shadow:0 10px 30px rgba(0,0,0,.15);color:#2B231A;line-height:1.6">'+
     '<div style="font-size:20px;font-weight:800;margin-bottom:6px">🗺️ الخريطة ما اشتغلت في جوالك</div>'+
-    '<div style="font-size:15px;color:#5A4A35;margin-bottom:10px">غالبًا «وضع القفل» مفعّل في الآيفون، وهو يقفل رسم الخرائط. تقدر تستثني دليل منه بدون ما تطفيه:</div>'+
+    '<div style="font-size:15px;color:#5A4A35;margin-bottom:10px">غالبًا «نمط المنع» مشغّل في الآيفون، وهو يقفل رسم الخرائط. تقدر تستثني دليل منه بدون ما تطفيه:</div>'+
     '<ol style="margin:0 0 12px;padding-inline-start:22px;font-size:15.5px;font-weight:600">'+
-    '<li>افتح <b>الإعدادات</b></li><li><b>الخصوصية والأمن</b></li><li>انزل تحت: <b>وضع القفل</b></li><li>اضغط <b>تكوين تصفح الويب</b></li><li>طفّ <b>دليل</b> من القائمة</li></ol>'+
+    '<li>افتح <b>الإعدادات</b></li><li><b>الخصوصية والأمن</b></li><li>انزل لآخر الصفحة (قسم الأمن): <b>نمط المنع</b></li><li>اضغط <b>تكوين تصفح الويب</b></li><li>طفّ <b>دليل</b> من القائمة</li></ol>'+
     '<button id="noglRetry" type="button" style="width:100%;border:0;border-radius:14px;padding:12px;font:inherit;font-size:16px;font-weight:800;background:#C9964F;color:#1C1408;margin-bottom:8px">🔄 جرّب مرة ثانية</button>'+
     '<a href="index.html?screen=compass" target="_top" style="display:block;text-align:center;font-size:15px;font-weight:700;color:#2E7D4F;text-decoration:none;padding:6px">البوصلة والأماكن والأجواء تشتغل عادي ←</a></div>';
   document.body.appendChild(d);
