@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v480';
+const SHELL_CACHE='dalil-shell-v481';
 const LIVE_DATA='dalil-live-data-v1'; // 17 نوفمبر: آخر نسخة من الفياض والفقع ومطر الأسبوع (تشتغل بالبر بدون نت)
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/256-511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1536-1791.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1792-2047.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/8192-8447.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/9472-9727.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/64256-64511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=30','./assets/sounds/event.m4a','./assets/sounds/rain.m4a',
@@ -11,7 +11,7 @@ self.addEventListener('install',event=>{
 
 self.addEventListener('activate',event=>{
   // ذاكرة صور الخريطة القديمة (dalil-map-tiles-v1) لم تعد في القائمة فتُحذف من الأجهزة.
-  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1',LIVE_DATA]);  // خرائط المستخدم المستوردة
+  const keep=new Set([SHELL_CACHE,OFFLINE_MAPS,'dalil-user-maps-v1',LIVE_DATA,'dalil-spring-v1']);   // 24 نوفمبر: «الربيع بدون نت» كان ينمسح مع كل تحديث للتطبيق  // خرائط المستخدم المستوردة
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>!keep.has(key)&&!/^dalil-v63-bundle-[a-z0-9-]+$/.test(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
 });
 
@@ -117,14 +117,19 @@ async function springOffline(request,url){
     const key=url.origin+url.pathname;
     try{const r=await Promise.race([fetch(request),new Promise((_,no)=>setTimeout(()=>no(0),6000))]);if(r&&r.ok){c.put(key,r.clone());return r}}catch(e){}
     const old=await c.match(key);if(old)return old;
+    const ak=altSpring(url);const old2=await c.match(ak.split('?')[0]);if(old2)return old2;
     return fetch(request);
   }
-  const hit=await c.match(request);if(hit)return hit;
+  const hit=await c.match(request)||await c.match(altSpring(url));if(hit)return hit;
   let r=null;try{r=await fetch(request)}catch(e){r=null}
   if(r&&r.ok){c.put(request,r.clone()).then(()=>{if(++springPuts%200===0)springTrim(c)}).catch(()=>{});return r}
   // بدون نت (أو فشل): نسخة أقدم من نفس المربع — القطع اللي ما تغيّرت ما تنعاد تنحمل
-  const old=await c.match(request,{ignoreSearch:true});if(old)return old;
+  const old=await c.match(request,{ignoreSearch:true})||await c.match(altSpring(url),{ignoreSearch:true});if(old)return old;
   if(r)return r;throw new TypeError('offline');
 }
+// 24 نوفمبر (أبو مالك: «طفيت النت وما اشتغلت»): الطبقة صارت تنزل من Cloudflare، والمحفوظ من قبل محفوظ بعنوان GitHub —
+// بدون نت كان يدور بعنوان Cloudflare بس فما يلقاه. الحين يدور بالعنوانين (نفس الملف بالضبط)
+function altSpring(url){const GH='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/spring-data';
+  return url.hostname==='spring.dalilbarr.com'?GH+url.pathname+url.search:'https://spring.dalilbarr.com'+url.pathname.replace('/f10f100a-debug/dalil-app/spring-data','')+url.search}
 // حد المساحة: ~32000 ملف (~90 ميقا تقريبًا، البلاطة ~2.7 ك.ب) — الأقدم ينمسح أول
 async function springTrim(c){try{const ks=await c.keys();if(ks.length>32000)for(const k of ks.slice(0,ks.length-30000))await c.delete(k)}catch(e){}}

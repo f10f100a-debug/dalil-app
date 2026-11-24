@@ -2133,6 +2133,9 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   let busyReg=null,busyPct=0,exp=true,expT=0,cardOn=false,lblUntil=0;
   const LS=(k,v)=>{try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}};
   const offDone=()=>LS('dalil_spring_off')||{};
+  // 24 نوفمبر (أبو مالك: «طفيت النت وما اشتغلت»): تحديث التطبيق كان يمسح ذاكرة الربيع والجوال يحسب المناطق «محفوظة».
+  // إذا الذاكرة فاضية والمناطق مسجلة محفوظة → نصفّر التسجيل عشان تنحفظ من جديد أول ما يكون فيه نت
+  try{if(OFF&&window.caches&&Object.keys(offDone()).length)caches.has('dalil-spring-v1').then(h=>h?caches.open('dalil-spring-v1').then(c=>c.keys()).then(k=>k.length):0).then(n=>{if(n<20){LS('dalil_spring_off',{});LS('dalil_spring_fp',{});LS('dalil_spring_prog',{})}}).catch(()=>{})}catch(e){}
   const getSel=()=>{const v=LS('dalil_spring_regs');return Array.isArray(v)?v:null};
   const regOf=(lng,lat)=>{try{if(typeof REGIONS==='undefined'||!REGIONS.length)return null;const r=typeof regionAt==='function'?regionAt(lng,lat):null;
     return r&&r.bbox?r:REGIONS.find(q=>q.bbox&&lng>=q.bbox[0]&&lng<=q.bbox[2]&&lat>=q.bbox[1]&&lat<=q.bbox[3])||null}catch(e){return null}};
