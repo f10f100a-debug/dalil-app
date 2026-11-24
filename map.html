@@ -2101,6 +2101,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     [['sprt-c','c','png',IX,!sat],['sprt-s','s','webp',SX,sat]].forEach(([id,k,ext,X,on])=>{if(!X||!IX.tiles[k])return;const zr=IX.tiles[k];
       if(!gl.getSource(id)){try{gl.addSource(id,{type:'raster',tiles:[BASE+'t/'+k+'/{z}/{x}/{y}.'+ext+'?v='+encodeURIComponent(IX.gen||IX.asof)+OQ],tileSize:256,minzoom:zr[0],maxzoom:zr[1],bounds:[w,so,e,n]});
         gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:offNow()?24:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
+      try{const mx=offNow()?24:12.5;if(gl.getLayer(id)&&gl.getLayer(id).maxzoom!==mx)gl.setLayerZoomRange(id,zr[0],mx)}catch(err){}   // 24 نوفمبر (أبو مالك: «تختفي عند 500 م» بوضع الطيران): الحد كان ينحسب مرة وحدة وقت فتح الخريطة
       const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
   function sync(quiet){if(typeof gl==='undefined'||!glOk()||!IX)return;if(mapHidden()){syncLater=true;return}syncLater=false;legend();fade();const show=!!LP.ndvi;lg.style.display=show&&(!OFF||cardOn)?'flex':'none';hint();place();
     const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?(offNow()?99:12.5):0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
@@ -2259,7 +2260,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     setInterval(()=>{try{badge()}catch(e){}},1000)}
   const start=()=>(R2ON?get(R2B).then(x=>x[0]&&x[0].chunks?(BASE=R2B,x):null):Promise.resolve(null)).then(x=>x||get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/'))).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
-    if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>setTimeout(offTick,3000));addEventListener('offline',()=>{busyReg=null;try{offRender()}catch(e){}})}
+    if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>{setTimeout(offTick,3000);try{sync(1)}catch(e){}});addEventListener('offline',()=>{busyReg=null;try{sync(1)}catch(e){}try{offRender()}catch(e){}})}
     const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',()=>sync(1));setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
   start();
 })();
