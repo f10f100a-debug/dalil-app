@@ -1181,7 +1181,7 @@ const TPL=[
 const GL_RETRY='dalil_gl_retry';
 // 14 نوفمبر (أخطاء المستخدمين: 12 آيفون الخريطة ما اشتغلت حتى بعد 3 محاولات): نسجل السبب بالتفصيل،
 // ونفك سياق الفحص (كان يبقى ماسك سياق رسم زيادة)، وإذا الجوال مقفل عنده الرسم كليًا (وضع القفل Lockdown) ما نعيد المحاولة بلا فايدة
-let glWhy='';
+let glWhy='';function hasGL(){try{return typeof gl!=='undefined'}catch(e){return false}}   // 24 نوفمبر: لو الجوال بدون WebGL الخريطة توقف قبل «const gl» — typeof gl لحاله يرمي خطأ (ReferenceError) كل 800 م.ث
 function glProbe(){const r={w2:0,w1:0,api:typeof WebGLRenderingContext!=='undefined'?1:0,msg:''};
   for(const k of['webgl2','webgl']){try{const c=document.createElement('canvas');c.addEventListener('webglcontextcreationerror',e=>{r.msg=String(e.statusMessage||'').slice(0,60)},{once:true});
     const x=c.getContext(k,{failIfMajorPerformanceCaveat:false});if(x){r[k==='webgl2'?'w2':'w1']=1;try{const l=x.getExtension('WEBGL_lose_context');l&&l.loseContext()}catch(e){}break}}catch(e){r.msg=String(e.message||e).slice(0,60)}}
@@ -1819,7 +1819,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   function font(rid){for(const id of SYM){const lid=id+'@'+rid;if(!gl.getLayer(lid))continue;try{gl.setLayoutProperty(lid,'text-font',[MF]);
     // الكوفي أعرض: نصغّره 8٪ عشان ما تختفي أسماء من الزحمة، وأسماء الخطوط ما تنكسر على المنعطفات الحادة
     const sz=gl.getLayoutProperty(lid,'text-size');if(sz!=null&&!(window.__kfz||(window.__kfz=new Set())).has(lid)){window.__kfz.add(lid);gl.setLayoutProperty(lid,'text-size',typeof sz==='number'?+(sz*KF).toFixed(2):['*',KF,sz])}}catch(e){}}}
-  function apply(rid){if(typeof gl==='undefined'||!glReady&&!rid)return;const P=dark()?D:L;if(rid)font(rid);
+  function apply(rid){if(!hasGL()||!glReady&&!rid)return;const P=dark()?D:L;if(rid)font(rid);
     for(const[id,props]of Object.entries(P)){const lid=id==='bg'?'bg':id+'@'+rid;if(id==='bg'&&rid)continue;if(!gl.getLayer(lid))continue;
       for(const[k,v]of Object.entries(props)){try{gl.setPaintProperty(lid,k,v)}catch(e){}}}}
   window.__styleLab=rid=>{apply(rid)};
@@ -1872,7 +1872,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     for(const[t,d,w,c]of ops){const p=new Path2D(d);if(t==='s'){x.lineWidth=w;x.lineCap='round';x.lineJoin='round';x.strokeStyle=c||'#fff';x.stroke(p)}else{x.fillStyle=c||'#fff';x.fill(p,t==='e'?'evenodd':'nonzero')}}
     x.restore();return{width:W,height:W,data:new Uint8Array(x.getImageData(0,0,W,W).data.buffer)}};
   function icons(){for(const g of Object.keys(G)){const id='poi-'+g;if(!gl.hasImage(id))try{gl.addImage(id,img(g),{pixelRatio:2})}catch(e){}}}
-  function poi(rid){if(typeof gl==='undefined')return;icons();
+  function poi(rid){if(!hasGL())return;icons();
     const d='dalil@'+rid,l='dalil-label@'+rid;if(!gl.getLayer(d)||!gl.getLayer(l))return;
     gl.setFilter(d,['all',SVCF,['!',has],['!',['in',K,['literal',NOMARK]]]]);if(!gl.getLayer(l))return;
     gl.setLayerZoomRange(l,10,24);
@@ -1960,7 +1960,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 // 19 نوفمبر (تجربة dalil_lab_fylbl): أسماء الفياض والرياض على الخريطة — اللي فيها خضرة الحين من بعيد بالأخضر، والباقي لما تقرّب
 (function(){let on=true;try{on=localStorage.getItem('dalil_lab_fylbl')!=='0'}catch(e){}if(!on)return;
   let done=false;
-  async function add(){if(done)return;if(typeof gl==='undefined'||!glOk()||!gl.isStyleLoaded())return;done=true;
+  async function add(){if(done)return;if(!hasGL()||!glOk()||!gl.isStyleLoaded())return;done=true;
     let D;try{D=await faydData()}catch(e){done=false;return}
     const feats=[];D.sites.forEach((s,i)=>{if(!s||!s[0])return;const r=D.row.get(i),st=r?r[2]:0,g=r?r[1]:0,farm=D.farm.has(i)||(r&&r[5]===8);
       feats.push({type:'Feature',properties:{n:s[0],gr:(st>=1&&!farm)?1:0,k:-(g||0)},geometry:{type:'Point',coordinates:[s[2],s[1]]}})});
@@ -1988,7 +1988,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 // نقطة صغيرة لكل فيضة لونها حسب كثافة الخضرة (ألوان البطاقة)، الصفراء (تحتاج تأكيد) ما تبان إلا لما تقرّب، وأكثف الفياض اسمها مكتوب. الضغط والبطاقة زي ما هي
 (function(){let on=false;try{on=localStorage.getItem('dalil_lab_fydot')!=='0'}catch(e){on=true}if(!on)return;window.FYDOT=true;   // 23 نوفمبر 4 ص (أبو مالك: «عمم»): للكل
   let done=false;
-  function add(){if(done||typeof gl==='undefined'||!glOk()||!gl.getLayer('fayd-pts'))return;
+  function add(){if(done||!hasGL()||!glOk()||!gl.getLayer('fayd-pts'))return;
     let fynew=true;try{fynew=localStorage.getItem('dalil_lab_fynew')!=='0'}catch(e){}
     done=true;
     const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
@@ -2013,7 +2013,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
 // 20 نوفمبر (تجربة dalil_lab_fynew): «خضرة جديدة» خارج الفياض أوضح — حلقة أعرض وتعبئة أغمق، وكلمة «خضرة جديدة» على البقع الكبيرة (40 هكتار+)
 (function(){let on=false;try{on=localStorage.getItem('dalil_lab_fynew')!=='0'}catch(e){}if(!on)return;
   let done=false;
-  function add(){if(done||typeof gl==='undefined'||!glOk()||!gl.getLayer('fayd-new'))return;done=true;
+  function add(){if(done||!hasGL()||!glOk()||!gl.getLayer('fayd-new'))return;done=true;
     gl.setPaintProperty('fayd-new','circle-opacity',.24);gl.setPaintProperty('fayd-new','circle-stroke-width',2.6);gl.setPaintProperty('fayd-new','circle-color','#5DBB63');
     try{if(localStorage.getItem('dalil_lab_fyconf')==='1'){gl.setPaintProperty('fayd-new','circle-color',['match',['get','conf'],2,'#2E8B45',0,'#B08A5A','#7BC67E']);gl.setPaintProperty('fayd-new','circle-stroke-color',['match',['get','conf'],2,'#1F6B33',0,'#8A6A3F','#4FA35A'])}}catch(_){}
     const dark=/dark|red/.test(document.documentElement.getAttribute('data-theme')||'');
@@ -2077,7 +2077,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
       h+='<span id="sprHint" style="font-weight:500;font-size:11px;opacity:.7;white-space:nowrap;margin-inline-start:auto"></span></div><div id="sprOff" style="display:none;flex-wrap:wrap;gap:5px;margin-top:6px"></div>'}
     else h+='<span data-lgt style="cursor:pointer;font-weight:700;display:flex;align-items:center;gap:6px;min-height:30px;padding:0 4px"><span style="font-size:16px">🌱</span>'+(mode==='sat'&&SX?'صورة القمر':'الربيع من القمر')+' ‹</span>';
     lg.innerHTML=h+'</div>';hint();place()}
-  function hint(){const h=document.getElementById('sprHint');if(OFF)try{offRender()}catch(e){}if(!h||typeof gl==='undefined')return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
+  function hint(){const h=document.getElementById('sprHint');if(OFF)try{offRender()}catch(e){}if(!h||!hasGL())return;const X=mode==='sat'&&SX?SX:IX;const mz=IX&&IX.tiles?(mode==='sat'&&SX?IX.tiles.s[0]:IX.tiles.c[0]):MINZ[mode==='sat'&&SX?'sat':'cls'];const t=gl.getZoom()<mz?'قرّب الخريطة تشوف الربيع':'صورة '+fyDate(X.asof);if(h.textContent!==t)h.textContent=t;if(OFF)try{offRender()}catch(e){}}
   // 21 نوفمبر (البطء): القطع صور كبيرة (1250² و2500²) — اللي برا الشاشة تنشال من الذاكرة، وحد أقصى للمحمّل (الأقرب للوسط)،
   // والتحميل بعد ما توقف الحركة
   // 23 نوفمبر (أبو مالك: «الأسماء تصير باهتة»): الطبقة — خصوصًا «صورة القمر» — كانت فوق الأسماء والطرق والأودية.
@@ -2103,7 +2103,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
         gl.addLayer({id,type:'raster',source:id,minzoom:zr[0],maxzoom:offNow()?24:12.5,layout:{visibility:'none'},paint:{'raster-opacity':k==='s'?.92:.95,'raster-fade-duration':0,'raster-resampling':k==='c'?'nearest':'linear'}},before)}catch(err){return}}
       try{const mx=offNow()?24:12.5;if(gl.getLayer(id)&&gl.getLayer(id).maxzoom!==mx)gl.setLayerZoomRange(id,zr[0],mx)}catch(err){}   // 24 نوفمبر (أبو مالك: «تختفي عند 500 م» بوضع الطيران): الحد كان ينحسب مرة وحدة وقت فتح الخريطة
       const v=show&&on?'visible':'none';if(gl.getLayer(id)&&gl.getLayoutProperty(id,'visibility')!==v)gl.setLayoutProperty(id,'visibility',v)})}
-  function sync(quiet){if(typeof gl==='undefined'||!glOk()||!IX)return;if(mapHidden()){syncLater=true;return}syncLater=false;legend();fade();const show=!!LP.ndvi;lg.style.display=show&&(!OFF||cardOn)?'flex':'none';hint();place();
+  function sync(quiet){if(!hasGL()||!glOk()||!IX)return;if(mapHidden()){syncLater=true;return}syncLater=false;legend();fade();const show=!!LP.ndvi;lg.style.display=show&&(!OFF||cardOn)?'flex':'none';hint();place();
     const sat=mode==='sat'&&!!SX;tileSet(show,sat);if(gl.isMoving&&gl.isMoving())return;const TZ=IX.tiles?(offNow()?99:12.5):0;layerSet(IX.chunks,'spr-',url,Math.max(MINZ.cls,TZ),show&&!sat,6);if(SX)layerSet(SX.chunks,'sps-',surl,Math.max(MINZ.sat,TZ),show&&sat,4);if(quiet!==1)try{render()}catch(e){}}
   function px(c){const k=nm(c);if(C[k])return C[k];{const ks=Object.keys(C);if(ks.length>=2)delete C[ks[0]]}
     return C[k]=new Promise((ok,no)=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const x=cv.getContext('2d',{willReadFrequently:true});x.drawImage(im,0,0);ok({d:x.getImageData(0,0,im.width,im.height).data,w:im.width})};im.onerror=()=>{delete C[k];no()};im.src=url(c)})}
@@ -2261,7 +2261,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
   const start=()=>(R2ON?get(R2B).then(x=>x[0]&&x[0].chunks?(BASE=R2B,x):null):Promise.resolve(null)).then(x=>x||get(RB).then(x=>x[0]&&x[0].chunks?(BASE=RB,x):get('data/spring/'))).then(([j,s])=>{
     if(!j||j.v!==2||!j.chunks||!j.chunks.length){setTimeout(start,60000);return}IX=j;if(s&&s.chunks&&s.chunks.length)SX=s;
     if(OFF){setTimeout(offTick,8000);setInterval(offTick,20000);addEventListener('online',()=>{setTimeout(offTick,3000);try{sync(1)}catch(e){}});addEventListener('offline',()=>{busyReg=null;try{sync(1)}catch(e){}try{offRender()}catch(e){}})}
-    const iv=setInterval(()=>{if(typeof gl==='undefined'||!glOk())return;clearInterval(iv);sync();gl.on('moveend',()=>sync(1));setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
+    const iv=setInterval(()=>{if(!hasGL()||!glOk())return;clearInterval(iv);sync();gl.on('moveend',()=>sync(1));setInterval(()=>{if(!mapHidden())sync(1)},1500)},800)});
   start();
 })();
 </script><script>
