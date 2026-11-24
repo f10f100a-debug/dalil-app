@@ -25,6 +25,7 @@ jobs:
           (python3 -m http.server 8804 >/dev/null 2>&1 &) ; sleep 2
           OUT=qa-out node tools/qa/ui_check.js
           # محوّل صوت غرفة الرحلة للأندرويد (M4A/AAC مثل الآيفون)
+          command -v ffmpeg >/dev/null || sudo apt-get install -y -qq ffmpeg >/dev/null
           node tools/qa/aac_mux_check.js
       - name: Speed + spring layer
         id: perf
