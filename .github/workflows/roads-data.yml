@@ -1,0 +1,26 @@
+# «مسار البر»: شبكة الطرق والدروب من OpenStreetMap (ODbL) → ملفات 0.5° في فرع roads-data (تشغيل يدوي، وتحديث شهري)
+name: Roads data
+on:
+  workflow_dispatch:
+  schedule: [{ cron: "41 2 3 * *" }]
+permissions: { contents: write }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/roads }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool >/dev/null && pip install -q osmium numpy
+      - name: Download GCC extract (Geofabrik)
+        run: curl -sfL --retry 3 -o gcc.osm.pbf https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf
+      - name: Roads only, Saudi bbox
+        run: |
+          osmium extract -b 34.4,16.3,55.7,32.2 gcc.osm.pbf -o ksa.osm.pbf --overwrite
+          osmium tags-filter ksa.osm.pbf w/highway -o roads.osm.pbf --overwrite
+          echo "ASOF=$(osmium fileinfo -g header.option.osmosis_replication_timestamp gcc.osm.pbf | cut -c1-10)" >> $GITHUB_ENV
+      - run: python3 tools/roads/build.py roads.osm.pbf out
+      - run: |
+          du -sh out; ls out/r | wc -l
+          cd out && git init -q && git checkout -q -b roads-data && git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "roads $ASOF" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" roads-data
