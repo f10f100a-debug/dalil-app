@@ -20,6 +20,16 @@
         "sound",
         "alert"
       ]
+    },
+    "SplashScreen": {
+      "launchShowDuration": 6000,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 250,
+      "backgroundColor": "#F2EFE9",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP",
+      "splashFullScreen": false,
+      "splashImmersive": false
     }
   }
 }

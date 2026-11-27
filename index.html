@@ -1484,6 +1484,8 @@ html.home2 .cp-compass-card{padding:4px 12px 0}
 </style>
 </head>
 <body class="on-compass">
+<script>/* 27 نوفمبر: شعار البداية حق التطبيق (النسخة الجاية من المتجر، @capacitor/splash-screen) يبقى لين توصل الصفحة هنا — نخفيه أول ما يبدأ جسم الصفحة (شعارنا يكمل بعده). النسخ القديمة: ما يسوي شي */
+try{var SS=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SplashScreen;if(SS)requestAnimationFrame(function(){SS.hide({fadeOutDuration:200})})}catch(e){}</script>
 <script>/* 27 نوفمبر (تجربة dalil_lab_fastboot، أبو مالك: «ماسبب التأخر عند الدخول»): شعار دليل من أول جزء من الثانية بدل شاشة فاضية لين يجهز التطبيق */
 try{if(localStorage.getItem('dalil_lab_fastboot')!=='0'){document.write('<div id="bootSplash" style="position:fixed;inset:0;z-index:99999;background:var(--bg,#F2EFE9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .25s"><img src="assets/icon-192.png" width="92" height="92" alt="" style="border-radius:22px;box-shadow:0 4px 18px rgba(0,0,0,.12)"><div style="font:800 20px system-ui,sans-serif;color:#8A7E6E">دليل</div></div>');
 var bsGo=function(){var x=document.getElementById('bootSplash');if(!x)return;x.style.opacity='0';setTimeout(function(){x.remove()},300)};addEventListener('DOMContentLoaded',function(){requestAnimationFrame(function(){setTimeout(bsGo,60)})});setTimeout(bsGo,8000)}}catch(e){}</script>
@@ -1613,7 +1615,7 @@ var bsGo=function(){var x=document.getElementById('bootSplash');if(!x)return;x.s
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261127-13" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261127-14" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>

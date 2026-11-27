@@ -24,6 +24,7 @@
   <p id="st" style="font-size:13px;margin-top:14px;opacity:.6"></p>
 </div>
 <script>
+try{window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.SplashScreen&&Capacitor.Plugins.SplashScreen.hide()}catch(e){}
 var U='https://f10f100a-debug.github.io/dalil-app/',n=0;
 function go(){location.replace(U)}
 function tick(){n++;document.getElementById('st').textContent='محاولة '+n+'…';fetch(U,{cache:'no-store',mode:'no-cors'}).then(go).catch(function(){})}
