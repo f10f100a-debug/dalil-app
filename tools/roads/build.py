@@ -6,7 +6,7 @@ import sys, os, json, math, array
 import numpy as np, osmium
 
 SRC, OUT = sys.argv[1], sys.argv[2]; os.makedirs(f"{OUT}/r", exist_ok=True)
-PAVED = {"motorway", "trunk", "primary", "secondary", "tertiary", "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link", "residential", "service", "living_street"}
+PAVED = {"motorway", "trunk", "primary", "secondary", "tertiary", "motorway_link", "trunk_link", "primary_link", "secondary_link", "tertiary_link"}   # بدون residential/service: حواري المدن تكبّر الملفات 10 أضعاف وما تفيد بالبر (أقرب طريق خلال 5 كم يكفي)
 DIRT = {"track", "path", "bridleway"}
 UNP = {"unpaved", "dirt", "sand", "gravel", "ground", "earth", "compacted", "fine_gravel", "grass", "mud", "rock", "pebblestone"}
 def kind(t):
@@ -66,8 +66,19 @@ class Edges(osmium.SimpleHandler):
             tiles.setdefault(key, []).append([int(pos[i0]), int(pos[i1]), round(L), k] + flat); s.n += 1
 e = Edges(); e.apply_file(SRC, locations=True, idx="flex_mem")
 print("edges", e.n, "tiles", len(tiles), flush=True)
+# داخل المملكة بس (حدود Natural Earth): مربع فيه أي زاوية أو وسطه داخل الحدود
+SAU = json.load(open("data/sau-boundary.json"))["coordinates"]
+def inside(la, lo):
+    hit = False
+    for poly in SAU:
+        ring = poly[0]
+        for k in range(len(ring) - 1):
+            (x1, y1), (x2, y2) = ring[k], ring[k + 1]
+            if (y1 > la) != (y2 > la) and lo < x1 + (la - y1) * (x2 - x1) / (y2 - y1): hit = not hit
+    return hit
 idx = {}
 for (la, lo), L in tiles.items():
+    if not any(inside(la + a, lo + b) for a in (0, .25, .5) for b in (0, .25, .5)): continue
     name = f"{la:.1f}_{lo:.1f}"
     s = json.dumps({"v": 1, "e": L}, separators=(",", ":"))
     open(f"{OUT}/r/{name}.json", "w").write(s); idx[name] = [len(L), len(s)]
