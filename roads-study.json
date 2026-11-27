@@ -1,0 +1,92 @@
+{
+ "all_ksa_bbox": {
+  "paved_km": 464466,
+  "dirt_km": 288995
+ },
+ "areas": {
+  "النفود حول حائل": {
+   "area_km2": 26211,
+   "paved_km": 3646,
+   "dirt_km": 8151,
+   "dirt_km_per_100km2": 31.1,
+   "within_1km_pct": 55,
+   "within_3km_pct": 86,
+   "pairs": 300,
+   "routable_pct": 77,
+   "median_detour": 1.45,
+   "median_snap_km": 1.04,
+   "largest_component_pct": 100,
+   "components": 16
+  },
+  "الدهناء": {
+   "area_km2": 31292,
+   "paved_km": 27936,
+   "dirt_km": 5887,
+   "dirt_km_per_100km2": 18.8,
+   "within_1km_pct": 41,
+   "within_3km_pct": 70,
+   "pairs": 300,
+   "routable_pct": 48,
+   "median_detour": 1.48,
+   "median_snap_km": 1.81,
+   "largest_component_pct": 99,
+   "components": 116
+  },
+  "الصمان": {
+   "area_km2": 45129,
+   "paved_km": 3711,
+   "dirt_km": 3835,
+   "dirt_km_per_100km2": 8.5,
+   "within_1km_pct": 24,
+   "within_3km_pct": 51,
+   "pairs": 300,
+   "routable_pct": 25,
+   "median_detour": 1.4,
+   "median_snap_km": 3.19,
+   "largest_component_pct": 98,
+   "components": 11
+  },
+  "روضات شمال الرياض (خريم والتنهات)": {
+   "area_km2": 7146,
+   "paved_km": 694,
+   "dirt_km": 1082,
+   "dirt_km_per_100km2": 15.1,
+   "within_1km_pct": 33,
+   "within_3km_pct": 69,
+   "pairs": 300,
+   "routable_pct": 50,
+   "median_detour": 1.47,
+   "median_snap_km": 1.91,
+   "largest_component_pct": 99,
+   "components": 9
+  },
+  "الأسياح وروضات القصيم": {
+   "area_km2": 15485,
+   "paved_km": 9431,
+   "dirt_km": 7405,
+   "dirt_km_per_100km2": 47.8,
+   "within_1km_pct": 74,
+   "within_3km_pct": 96,
+   "pairs": 300,
+   "routable_pct": 92,
+   "median_detour": 1.39,
+   "median_snap_km": 0.62,
+   "largest_component_pct": 99,
+   "components": 22
+  },
+  "الحماد والحدود الشمالية": {
+   "area_km2": 44281,
+   "paved_km": 3913,
+   "dirt_km": 8996,
+   "dirt_km_per_100km2": 20.3,
+   "within_1km_pct": 36,
+   "within_3km_pct": 64,
+   "pairs": 300,
+   "routable_pct": 49,
+   "median_detour": 1.4,
+   "median_snap_km": 1.71,
+   "largest_component_pct": 99,
+   "components": 13
+  }
+ }
+}
