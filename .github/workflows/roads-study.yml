@@ -1,0 +1,24 @@
+# دراسة: دروب البر في OpenStreetMap (تشغيل يدوي) — النتيجة في فرع roads-study
+name: Roads study
+on: workflow_dispatch
+permissions: { contents: write }
+jobs:
+  study:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { sparse-checkout: tools/roads }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool >/dev/null && pip install -q osmium scipy numpy matplotlib
+      - name: Download GCC extract (Geofabrik, ODbL)
+        run: curl -sfL --retry 3 -o gcc.osm.pbf https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf && ls -la gcc.osm.pbf
+      - name: Roads only, Saudi bbox
+        run: |
+          osmium extract -b 34.4,16.3,55.7,32.2 gcc.osm.pbf -o ksa.osm.pbf --overwrite
+          osmium tags-filter ksa.osm.pbf w/highway -o roads.osm.pbf --overwrite
+          ls -la roads.osm.pbf
+      - run: python3 tools/roads/study.py roads.osm.pbf out
+      - if: always()
+        run: |
+          cd out && git init -q && git checkout -q -b roads-study && git config user.email ci@dalil && git config user.name ci
+          git add . && git commit -qm "roads study" && git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" roads-study
