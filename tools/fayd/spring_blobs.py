@@ -111,8 +111,8 @@ try:
                 except Exception: pass
 except Exception as e:
     print("::warning::worldcover check skipped:", str(e)[:120], flush=True)
-farms = [o for o in out if o.get("crop", 0) >= 25]
-out = [o for o in out if o.get("crop", 0) < 25]
+farms = [o for o in out if o.get("crop", 0) >= 15]
+out = [o for o in out if o.get("crop", 0) < 15]
 
 # الاسم: أقرب بلدة/قرية (OSM)
 P = json.load(open(os.path.join(os.path.dirname(__file__), "osm-places.json")))["p"]

@@ -1,0 +1,24 @@
+# «بقع ربيع كبيرة» لحالها (بدون مسح جديد): من آخر طبقة في spring-data + فحص المزارع (WorldCover) → blobs.json في spring-data → R2
+# 27 نوفمبر (أبو مالك: صور محاور مزارع طلعت «بقعة ربيع») — مسح الربيع العادي يحسبها بعد كل مسح (spring-layer.yml)
+name: Spring blobs
+on: { workflow_dispatch: }
+permissions: { contents: write, actions: write }
+concurrency: { group: spring-data-write, cancel-in-progress: false }
+jobs:
+  blobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Layer chunks
+        run: |
+          git fetch -q --depth 1 origin spring-data
+          mkdir sd && git archive FETCH_HEAD index.json $(git ls-tree --name-only FETCH_HEAD | grep -E '^[0-9.]+_[0-9.]+\.png$') | tar -x -C sd
+          ls sd | wc -l
+      - run: pip install --quiet numpy pillow scipy rasterio && python3 tools/fayd/spring_blobs.py sd
+      - name: Add blobs.json to spring-data
+        run: |
+          git config user.name dalil-bot && git config user.email ci@dalil
+          git worktree add -q --detach wt FETCH_HEAD && cp sd/blobs.json wt/ && cd wt && git add blobs.json && git commit -qm "بقع ربيع كبيرة (مع فحص المزارع)" && git push -q origin HEAD:spring-data
+      - env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh workflow run r2-sync.yml -R "${{ github.repository }}" -r main
