@@ -22,8 +22,8 @@ async function open(c, o = {}) {
       let d = 0; for (let i = 1; i < pts.length; i++) { const dy = (pts[i].lat - pts[i - 1].lat) * 111320, dx = (pts[i].lng - pts[i - 1].lng) * 111320 * Math.cos(0.48); d += Math.hypot(dx, dy); }
       localStorage.setItem('dalil_tracks', JSON.stringify([{ id: 'g-trk', name: 'طلعة النفود', points: pts, dist: d, duration: 59 * 240e3, createdAt: t0 }])); }
     localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_theme', theme); localStorage.setItem('dalil_room_terms_v1', '1');
-    if (car) localStorage.setItem('dalil_car', JSON.stringify({ lat: 27.5232, lng: 41.7001, time: Date.now() - 3600e3 }));
-  }, [o.dark ? 'dark' : 'light', !!o.car, !!o.places]);
+    if (car) localStorage.setItem('dalil_car', JSON.stringify(car === true ? { lat: 27.5232, lng: 41.7001, time: Date.now() - 3600e3 } : { lat: car[0], lng: car[1], time: Date.now() }));
+  }, [o.dark ? 'dark' : 'light', o.carAt || !!o.car, !!o.places]);
   await p.route('**/data/fayd.json*', r => r.fulfill({ path: 'tools/promo/sample-fayd.json', contentType: 'application/json' }));
   await p.route('**/data/fq.json*', r => r.fulfill({ path: 'tools/promo/sample-fq.json', contentType: 'application/json' }));
   // بطاقات «نزل عندك مطر؟» و«وين نزل البرد اليوم؟» تظهر بس إذا فيه مطر/برد — بيانات مثال ثابتة للقطة
@@ -218,9 +218,8 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 8) غرفة الرحلة: فهد وسالم وسعود
   const people = [{ n: 'فهد', la: 27.86, ln: 42.05, car: true }, { n: 'سالم', la: 27.8675, ln: 42.056, car: true }, { n: 'سعود', la: 27.891, ln: 42.032 }];
   const R = [];
-  for (const u of people) { const cc = await ctxFor(browser, { lat: u.la, lng: u.ln }); const pp = await open(cc, { car: false });
-    if (u.car) await pp.evaluate(([la, ln]) => { localStorage.setItem('dalil_car', JSON.stringify({ lat: la - 0.002, lng: ln + 0.002, time: Date.now() })); }, [u.la, u.ln]);
-    await pp.reload({ waitUntil: 'domcontentloaded' }); await pp.waitForTimeout(1500); if (await pp.isVisible('#skipPermissionsBtn').catch(() => false)) await pp.click('#skipPermissionsBtn');
+  for (const u of people) { const cc = await ctxFor(browser, { lat: u.la, lng: u.ln }); const pp = await open(cc, { car: false, carAt: u.car ? [u.la - 0.002, u.ln + 0.002] : null });
+    await pp.waitForTimeout(1500); if (await pp.isVisible('#skipPermissionsBtn').catch(() => false)) await pp.click('#skipPermissionsBtn');
     await pp.evaluate(() => { const f = () => window.__dalilNativeHeading && window.__dalilNativeHeading(38, 8); f(); setInterval(f, 700); const a = document.getElementById('navActivation'); if (a) a.style.display = 'none'; });
     R.push(pp); }
   const [fahd, salem, saud] = R;
@@ -264,7 +263,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 9) ترحيب المستخدم الجديد + سؤال التنبيهات وقت المطر + رسالة الخريطة المقفلة (27 نوفمبر)
   { const cn = await ctxFor(browser); const pn = await open(cn, { car: true });
     await shot(pn, '45-welcome-tour', async () => { await pn.evaluate(() => window.__dalilTour && window.__dalilTour()); await pn.waitForTimeout(900); });
-    await pn.reload({ waitUntil: 'domcontentloaded' }); await pn.waitForTimeout(2500);
+    await pn.evaluate(() => { const o = document.getElementById('tourOv'); if (o) o.remove(); }); await pn.waitForTimeout(800);
     await shot(pn, '46-push-rain', async () => { await pn.evaluate(() => window.__dalilPushCtx && window.__dalilPushCtx()); await pn.waitForTimeout(600); });
     await cn.close(); }
   { const cg = await ctxFor(browser); const pg = await cg.newPage(); await pg.addInitScript(() => localStorage.setItem('dalil_theme', 'light'));
