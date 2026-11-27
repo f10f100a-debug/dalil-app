@@ -245,7 +245,7 @@
     location.href = 'https://wa.me/?text=' + encodeURIComponent(shareText + '\n' + shareUrl);
   });
 
-  if('serviceWorker' in navigator) window.addEventListener('load', ()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  if('serviceWorker' in navigator) window.addEventListener('load', ()=>navigator.serviceWorker.register((()=>{try{return localStorage.getItem('dalil_lab_fastboot')==='1'}catch(e){return false}})()?'./sw.js?nc=1':'./sw.js').catch(()=>{}));
 })();
 </script>
 </body>

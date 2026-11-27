@@ -1484,7 +1484,7 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
 function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();z=Math.max(z,detailZ());enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register((()=>{try{return localStorage.getItem('dalil_lab_fastboot')==='1'}catch(e){return false}})()?'./sw.js?nc=1':'./sw.js').catch(()=>{}));
 // مقبض سحب للبطاقات: اسحب لتحت = أصغر، لفوق = أكبر، ضغطة = تبديل. pos='top' (البطاقات تحت) أو 'bottom' (البطاقات فوق)
 function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':scope>.grip'))return;const g=document.createElement('div');g.className='grip grip-'+pos;g.setAttribute('aria-hidden','true');
   pos==='top'?el.insertBefore(g,el.firstChild):el.appendChild(g);

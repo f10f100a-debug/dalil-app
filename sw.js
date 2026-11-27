@@ -1,4 +1,4 @@
-const SHELL_CACHE='dalil-shell-v488';
+const SHELL_CACHE='dalil-shell-v489';
 const LIVE_DATA='dalil-live-data-v1'; // 17 نوفمبر: آخر نسخة من الفياض والفقع ومطر الأسبوع (تشتغل بالبر بدون نت)
 const OFFLINE_MAPS='dalil-offline-maps-v1'; // خرائط PMTiles المحفوظة من map2.html (تُدار من الصفحة نفسها)
 const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-gl-csp.js','./vendor/maplibre-gl-csp-worker.js','./vendor/maplibre-gl.css','./vendor/pmtiles.js','./vendor/mapbox-gl-rtl-text.js','./data/maps.json','./vendor/glyphs/Noto%20Sans%20Regular/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/0-255.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/256-511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1536-1791.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/1792-2047.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/8192-8447.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/9472-9727.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/64256-64511.pbf','./vendor/glyphs/Dalil%20Kufi%20Bold/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1536-1791.pbf','./vendor/glyphs/Noto%20Sans%20Regular/1792-2047.pbf','./vendor/glyphs/Noto%20Sans%20Regular/256-511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/64256-64511.pbf','./vendor/glyphs/Noto%20Sans%20Regular/65024-65279.pbf','./vendor/glyphs/Noto%20Sans%20Regular/8192-8447.pbf','./vendor/glyphs/Noto%20Sans%20Regular/9472-9727.pbf','./manifest.webmanifest','./assets/icon-192.png','./data/open-places.json','./data/wadis.json','./events.js?v=30','./assets/sounds/event.m4a','./assets/sounds/rain.m4a',
@@ -6,7 +6,9 @@ const SHELL=['./','./index.html','./map.html','./map2.html','./vendor/maplibre-g
 SHELL.push(...["./v63/data/maps-v63.json", "./v63/fonts/Tajawal-Bold.ttf", "./v63/icons/man_made_water_well.png", "./v63/icons/natural_cave_entrance.png", "./v63/icons/natural_spring.png", "./v63/icons/natural_volcano_map.png", "./v63/import-bundle.js", "./v63/map-v63.html", "./v63/profiles-v63.json", "./v63/v63-layers.js", "./v63/v63-layers.json", "./v63/vendor/maplibre-gl-shared.mjs", "./v63/vendor/maplibre-gl-worker.mjs", "./v63/vendor/maplibre-gl.css", "./v63/vendor/maplibre-gl.mjs", "./v63/vendor/pmtiles.js"]);
 
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()));
+  // 27 نوفمبر (تجربة dalil_lab_fastboot = sw.js?nc=1): «no-cache» يسأل الخادم «تغيّر؟» (ETag) — اللي ما تغيّر يجي من ذاكرة الجوال (304) بدل تنزيل 13 ميقا كل تحديث
+  const NC=new URL(self.location.href).searchParams.get('nc')==='1';
+  event.waitUntil(caches.open(SHELL_CACHE).then(cache=>cache.addAll(SHELL.map(u=>new Request(u,{cache:NC?'no-cache':'reload'})))).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener('activate',event=>{
