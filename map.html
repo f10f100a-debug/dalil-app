@@ -338,7 +338,7 @@ function updateNavigation(){
   setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
   const relative=h!==null?b-h:b-rot;
   navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
-  try{if(barRoute&&barRoute.tgt&&distanceMeters(barRoute.tgt,targetPoint)>20)barRoute=null;barRouteShow();brMiniSet();const lf=brLeft();if(lf){setText(navInfo,'باقي '+fmtDistance(lf.left)+' على مسار البر'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''));if(Number.isFinite(speed)&&speed>1.5)setText(navEta,'الوصول ≈ '+fmtDuration(lf.left/speed)+' بسرعتك الحالية')}}catch(e){}
+  try{if(barRoute&&barRoute.tgt&&distanceMeters(barRoute.tgt,targetPoint)>20){barRoute=null;brShort=false}barRouteShow();brMiniSet();const lf=brLeft();if(lf){setText(navInfo,'باقي '+fmtDistance(lf.left)+' على مسار البر'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''));if(Number.isFinite(speed)&&speed>1.5)setText(navEta,'الوصول ≈ '+fmtDuration(lf.left/speed)+' بسرعتك الحالية')}}catch(e){}
 }
 navCoords.onclick=async()=>{if(!targetPoint)return;const text=fmtCoords(targetPoint.lat,targetPoint.lng);try{await navigator.clipboard.writeText(text);status.textContent='تم نسخ الإحداثيات'}catch(e){status.textContent=text}};
 
@@ -757,7 +757,7 @@ let brLeftC=null;function brLeft(){const r=barRoute;if(!r||!r.cum||!gps)return n
 function brLeft0(r){let bi=0,bd=Infinity;const st=Math.max(1,Math.floor(r.path.length/3000));for(let i=0;i<r.path.length;i+=st){const d=distanceMeters(gps,{lat:r.path[i][0],lng:r.path[i][1]});if(d<bd){bd=d;bi=i}}
   return{left:r.cum[r.cum.length-1]-r.cum[bi]+r.tail,off:bd}}
 function brMiniSet(){const m=$('#brMini');if(!m)return;m.classList.toggle('on',!!barRoute&&!navigationActive);navCard.classList.toggle('has-br',!!barRoute&&!navigationActive);if(!barRoute)return;const r=barRoute,lf=brLeft();
-  const mt=$('#brMiniT'),tx='🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec)+'<small>على الطرق والدروب'+(r.dirt>500?' (ترابي '+(r.dirt/1000).toFixed(0)+' كم)':'')+'</small>';if(mt.innerHTML!==tx)mt.innerHTML=tx;
+  const mt=$('#brMiniT'),tx='🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec)+'<small>'+(brShort?'الأقصر':'الأسرع')+' على الطرق والدروب'+(r.dirt>500?' (ترابي '+(r.dirt/1000).toFixed(0)+' كم)':'')+'</small>';if(mt.innerHTML!==tx)mt.innerHTML=tx;
   const bg=$('#brGo');if(bg.hidden!==navigationActive)bg.hidden=navigationActive}
 function brFmtTime(s){const m=Math.round(s/60),h=Math.floor(m/60);return h?h+' س '+(m%60)+' د':m+' د'}
 function barRouteShow(){const b=$('#brNav'),el=$('#brInfo');if(!b||!el)return;try{brMiniSet()}catch(e){}b.hidden=!BR_ON||!targetPoint;if(!targetPoint)barRoute=null;

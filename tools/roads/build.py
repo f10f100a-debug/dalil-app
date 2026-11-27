@@ -13,7 +13,8 @@ def kind(t):
     h = t.get("highway"); s = t.get("surface", "")
     if t.get("access") in ("private", "no") and h not in DIRT: return None
     if h in DIRT: return 1
-    if h in ("unclassified", "road"): return 1 if (s in UNP or not s) else 0
+    # 28 نوفمبر (أبو مالك: «ليش ما طلّعني من الإسفلت»): «unclassified» بدون surface = مسفلت (عرف OSM) — كانت تنحسب ترابي فيترك الإسفلت
+    if h in ("unclassified", "road"): return 1 if s in UNP else 0
     if h in PAVED: return 1 if s in UNP else 0
     return None
 
