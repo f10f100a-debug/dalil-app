@@ -17,7 +17,7 @@ jobs:
           sparse-checkout-cone-mode: false
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq osmium-tool >/dev/null && pip install -q osmium numpy
       - name: Download GCC extract (Geofabrik)
-        run: curl -sfL --retry 3 -o gcc.osm.pbf https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf
+        run: curl -sfL --retry 6 --retry-delay 30 --retry-all-errors -o gcc.osm.pbf https://download.geofabrik.de/asia/gcc-states-latest.osm.pbf
       - name: Roads only, Saudi bbox
         run: |
           osmium extract -b 34.4,16.3,55.7,32.2 gcc.osm.pbf -o ksa.osm.pbf --overwrite
