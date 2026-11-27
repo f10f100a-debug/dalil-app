@@ -1484,7 +1484,7 @@ window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.
 function applyAutoFollow(){if(view!=='free'||navigationActive||!gps)return;startWatch();if(orientMode==='course'||orientMode==='compass'){if(orientMode==='compass')ensureOrientation();z=Math.max(z,detailZ());enterHeading()}else{setRot(0);setView('follow');z=Math.max(z,detailZ());centerOnGps();render()}}
 window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='DALIL_MAP_PREFS')return;readMapPrefs();if(orientMode==='north'&&view==='heading'){setRot(0);setView('follow');render()}updateGpsBtn()});
 locateUser(false,!targetPoint&&query.get('view')!=='spring');
-if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register((()=>{try{return localStorage.getItem('dalil_lab_fastboot')==='1'}catch(e){return false}})()?'./sw.js?nc=1':'./sw.js').catch(()=>{}));
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register((()=>{try{return localStorage.getItem('dalil_lab_fastboot')!=='0'}catch(e){return true}})()?'./sw.js?nc=1':'./sw.js').catch(()=>{}));
 // مقبض سحب للبطاقات: اسحب لتحت = أصغر، لفوق = أكبر، ضغطة = تبديل. pos='top' (البطاقات تحت) أو 'bottom' (البطاقات فوق)
 function addGrip(el,{down,up,tap,pos='top',zone=''}){if(!el||el.querySelector(':scope>.grip'))return;const g=document.createElement('div');g.className='grip grip-'+pos;g.setAttribute('aria-hidden','true');
   pos==='top'?el.insertBefore(g,el.firstChild):el.appendChild(g);
@@ -1578,7 +1578,7 @@ body.wkc .wk-panel:not(.open) .wk-leg{display:none}body.wkc .wk-panel{padding:6p
   let D=null,day=1,on=false,open=false,size=1,bar=null,card=null,panel=null,lastReg='';
   // 23 نوفمبر (تجربة dalil_lab_wk2): «🔭 الأسبوع الجاي» — احتمال المطر للأيام 8–14 من 51 تشغيل للنموذج الأوروبي (ECMWF ENS)
   // احتمال للأسبوع كامل مو كمية يوم بيوم (بعد أسبوع الدقة ضعيفة) — سحابة متدرجة بدون مربعات
-  let W2=null;const W2ON=(()=>{try{return localStorage.getItem('dalil_lab_wk2')==='1'}catch(e){return false}})();
+  let W2=null;const W2ON=(()=>{try{return localStorage.getItem('dalil_lab_wk2')!=='0'}catch(e){return true}})();   // 27 نوفمبر (أبو مالك: «عمم»): للكل
   const pLv=p=>p>=60?'<span class="wk-p p3">احتمال عالي '+p+'٪</span>':p>=35?'<span class="wk-p p2">متوسط '+p+'٪</span>':'<span class="wk-p p1">ضعيف '+p+'٪</span>';
   const fmtW=d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{weekday:'long',day:'numeric',month:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
   const fmtD=d=>new Intl.DateTimeFormat('ar-SA-u-nu-latn-ca-gregory',{day:'numeric',month:'long',timeZone:'Asia/Riyadh'}).format(new Date(d+'T12:00:00+03:00'));
