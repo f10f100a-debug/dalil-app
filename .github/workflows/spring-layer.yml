@@ -63,6 +63,10 @@ jobs:
         with: { path: parts, pattern: "spring-*", run-id: "${{ inputs.from_run || github.run_id }}", github-token: "${{ github.token }}" }
       - run: python3 tools/fayd/spring_merge.py prev parts outd
       - run: pip install --quiet numpy pillow && python3 tools/fayd/spring_fayd.py outd && python3 tools/fayd/spring_satpick.py outd && python3 tools/fayd/spring_satfade.py outd && python3 tools/fayd/spring_tiles.py outd   # درجة كل فيضة + بلاطات الخريطة
+      - name: Big spring patches outside fayd (blobs.json)
+        continue-on-error: true
+        timeout-minutes: 25
+        run: pip install --quiet scipy rasterio && python3 tools/fayd/spring_blobs.py outd   # 27 نوفمبر: «بقع ربيع كبيرة» — لو فشل ما يوقف الطبقة
       - name: Push spring-data (single commit)
         run: |
           cd outd && git init -q && git checkout -q -b spring-data && git add . && git -c user.name=dalil-bot -c user.email=ci@dalil commit -qm "طبقة الربيع $(date -u +%F)"
