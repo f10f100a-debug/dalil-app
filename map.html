@@ -233,7 +233,7 @@ body.embed.fs.has-target .ctrl,body.embed.fs.has-target .badge{bottom:calc(var(-
   <div id="lpUser"></div>
   <div class="lp-note">زر 3D للعرض الثلاثي الأبعاد. العرض الثلاثي والصور الفضائية يحتاجان اتصالًا بالإنترنت.</div>
 </div>
-<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div><div id="navRain" class="nav-rain" hidden></div><div id="navFayd" class="nav-fayd" hidden></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button><button id="saveNav" type="button" class="save-nav" hidden>📌 حفظ في أماكني</button></div><button id="satNav" type="button" class="sat-nav" hidden>🛰️ صورة القمر الصناعي اليوم</button><button id="nameNav" type="button" class="sat-nav name-nav" hidden>✍️ تعرف اسمها؟</button><div id="nameRow" class="name-row" hidden><input id="nameIn" type="text" maxlength="40" placeholder="اسم الفيضة أو الروضة" autocomplete="off"><button id="nameSend" type="button">إرسال</button></div></div>
+<div id="navCard" class="nav-card"><button id="navClose" type="button" class="nav-close" aria-label="إغلاق">✕</button><div class="nav-head"><div id="navArrow" class="nav-arrow" aria-hidden="true"><svg viewBox="-12 -12 24 24" width="30" height="30"><path d="M0 -10 L7.5 8.5 L0 4.5 L-7.5 8.5 Z" fill="#C9964F" stroke="#5C3A0E" stroke-width="1.3" stroke-linejoin="round"/></svg></div><div class="nav-copy"><div id="navName" class="nav-name">الموقع المحفوظ</div><button id="navCoords" type="button" class="nav-coords" title="اضغط لنسخ الإحداثيات">—</button><div id="navInfo" class="nav-info">جارٍ حساب المسافة…</div><div id="navEta" class="nav-eta"></div><div id="navRain" class="nav-rain" hidden></div><div id="navFayd" class="nav-fayd" hidden></div></div></div><div class="nav-actions"><button id="startNav" type="button" class="start-nav">على الخريطة</button><button id="compassNav" type="button" class="compass-nav">بالبوصلة</button><button id="stopNav" type="button" class="stop-nav">إلغاء التوجيه</button><button id="googleNav" type="button" class="google-nav">خرائط Google</button><button id="saveNav" type="button" class="save-nav" hidden>📌 حفظ في أماكني</button></div><button id="satNav" type="button" class="sat-nav" hidden>🛰️ صورة القمر الصناعي اليوم</button><button id="brNav" type="button" class="sat-nav" hidden>🛣️ مسار البر (الطرق والدروب)</button><div id="brInfo" hidden style="margin-top:8px;font-size:13.5px;line-height:1.7;background:rgba(30,111,217,.08);border-radius:12px;padding:8px 10px"></div><button id="nameNav" type="button" class="sat-nav name-nav" hidden>✍️ تعرف اسمها؟</button><div id="nameRow" class="name-row" hidden><input id="nameIn" type="text" maxlength="40" placeholder="اسم الفيضة أو الروضة" autocomplete="off"><button id="nameSend" type="button">إرسال</button></div></div>
 <script>
 const query=new URLSearchParams(location.search);
 // زر الرجوع يعيدك للشاشة اللي فتحت منها الخريطة (الأماكن/الأجواء…) بدل البوصلة دائمًا
@@ -330,6 +330,7 @@ function updateNavigation(){
   setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
   const relative=h!==null?b-h:b-rot;
   navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
+  try{if(barRoute&&barRoute.tgt&&distanceMeters(barRoute.tgt,targetPoint)>20)barRoute=null;barRouteShow()}catch(e){}
 }
 navCoords.onclick=async()=>{if(!targetPoint)return;const text=fmtCoords(targetPoint.lat,targetPoint.lng);try{await navigator.clipboard.writeText(text);status.textContent='تم نسخ الإحداثيات'}catch(e){status.textContent=text}};
 
@@ -689,13 +690,82 @@ function drawMarks(){const[hw,hh]=viewHalfSize();let html='',showNames=z>=12,cel
 function openCluster(c){let limit=mapMode==='online'?maxZ:maxLocalZ,n=Math.min(limit,Math.floor(z)+2);if(n<=z)n=limit;z=n;if(view!=='free')setView('free');const[wx,wy]=world(c.lat,c.lng);cx=wx+innerWidth/2-originX;cy=wy+innerHeight/2-originY;render()}
 function drawScale(){let c=stageToLatLng(innerWidth/2,innerHeight/2),mpp=metersPerPixel(c.lat),steps=[5,10,20,50,100,200,500,1000,2000,5000,10000,20000,50000,100000,200000],nice=steps.find(v=>v/mpp>=70)||steps[steps.length-1],w=Math.round(nice/mpp);badge.innerHTML=`<span class="scale-bar" style="width:${w}px"></span><span>${nice>=1000?nice/1000+' كم':nice+' م'}</span>`}
 function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}let p=world(targetPoint.lat,targetPoint.lng);targetMarker.style.display='block';targetMarker.style.left=(p[0]+innerWidth/2-cx)+'px';targetMarker.style.top=(p[1]+innerHeight/2-cy)+'px'}
+// ---------- 28 نوفمبر (تجربة dalil_lab_barroute، أبو مالك: «مسار على الطرق المعبدة وغير المعبدة في الصحراء»): «مسار البر» ----------
+// الطرق والدروب من OpenStreetMap (ODbL) بملفات 0.5° (فرع roads-data) — تنحفظ بالجوال وتشتغل بدون نت. التوجيه بالجوال نفسه (Dijkstra)
+// الأسرع بالوقت: معبد ~70 كم/س، ترابي ~35. إذا ما فيه درب يوصل: نوصلك لأقرب نقطة على الدروب للهدف وبعدها خط مستقيم
+const BR_ON=(()=>{try{return localStorage.getItem('dalil_lab_barroute')==='1'}catch(e){return false}})();
+const BR_URL='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/roads-data/',BR_CACHE='dalil-roads-v1';
+let barRoute=null,brBusy=false,brIndex=null;
+async function brGet(path){const url=BR_URL+path;let c=null;try{c=await caches.open(BR_CACHE);const hit=await c.match(url);if(hit){if(navigator.onLine&&path==='index.json'&&Date.now()-(+hit.headers.get('x-at')||0)>7*864e5)brFetch(url,c).catch(()=>{});return hit.json()}}catch(e){}
+  if(!navigator.onLine)return null;return brFetch(url,c)}
+async function brFetch(url,c){const r=await fetch(url);if(!r.ok)return null;const t=await r.text();try{c&&await c.put(url,new Response(t,{headers:{'content-type':'application/json','x-at':String(Date.now())}}))}catch(e){}return JSON.parse(t)}
+const brName=(la,lo)=>(Math.floor(la*2)/2).toFixed(1)+'_'+(Math.floor(lo*2)/2).toFixed(1);
+function brTiles(a,b,m){const s=Math.min(a.lat,b.lat)-m,n=Math.max(a.lat,b.lat)+m,w=Math.min(a.lng,b.lng)-m,e=Math.max(a.lng,b.lng)+m,o=[];for(let la=Math.floor(s*2)/2;la<n;la+=.5)for(let lo=Math.floor(w*2)/2;lo<e;lo+=.5)o.push(brName(la+.01,lo+.01));return o}
+// يحفظ دروب منطقتك (حوالي 75 كم حولك) وأنت عندك نت — عشان تشتغل بالبر بدون شبكة
+async function brPrefetch(){if(!BR_ON||!gps||!navigator.onLine)return;try{brIndex=brIndex||await brGet('index.json');if(!brIndex)return;for(const t of brTiles(gps,gps,.7))if(brIndex.tiles[t])await brGet('r/'+t+'.json')}catch(e){}}
+function brHeap(){const k=[],v=[];return{push(key,val){k.push(key);v.push(val);let i=k.length-1;while(i>0){const p=(i-1)>>1;if(k[p]<=k[i])break;[k[p],k[i]]=[k[i],k[p]];[v[p],v[i]]=[v[i],v[p]];i=p}},
+  pop(){const top=v[0],tk=k[0],lk=k.pop(),lv=v.pop();if(k.length){k[0]=lk;v[0]=lv;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<k.length&&k[l]<k[m])m=l;if(r<k.length&&k[r]<k[m])m=r;if(m===i)break;[k[m],k[i]]=[k[i],k[m]];[v[m],v[i]]=[v[i],v[m]];i=m}}return[tk,top]},get size(){return k.length}}}
+function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
+  for(let ei=0;ei<E.length;ei++){const g=E[ei].g;for(let i=0;i+3<g.length;i+=2){const ax=(g[i+1]-p.lng)*cl,ay=g[i]-p.lat,bx=(g[i+3]-p.lng)*cl,by=g[i+2]-p.lat,dx=bx-ax,dy=by-ay,L=dx*dx+dy*dy;let t=L?-(ax*dx+ay*dy)/L:0;t=Math.max(0,Math.min(1,t));const x=ax+dx*t,y=ay+dy*t,d=x*x+y*y;if(d<best.d)best={d,ei,i,t}}}
+  if(best.ei==null)return null;const e=E[best.ei],g=e.g,la=g[best.i]+(g[best.i+2]-g[best.i])*best.t,lo=g[best.i+1]+(g[best.i+3]-g[best.i+1])*best.t;
+  // المسافة على الوصلة من بدايتها لنقطة الالتقاء (نسبة من الطول الكامل)
+  let acc=0,tot=0;for(let i=0;i+3<g.length;i+=2){const s=distanceMeters({lat:g[i],lng:g[i+1]},{lat:g[i+2],lng:g[i+3]});if(i<best.i)acc+=s;else if(i===best.i)acc+=s*best.t;tot+=s}
+  const f=tot?acc/tot:0;return{ei:best.ei,i:best.i,lat:la,lng:lo,off:distanceMeters(p,{lat:la,lng:lo}),fa:f*e.len,fb:(1-f)*e.len}}
+const brSpeed=k=>k?35/3.6:70/3.6;
+async function barRouteCompute(){
+  if(!gps||!targetPoint)return{err:'ننتظر موقعك…'};
+  const straight=distanceMeters(gps,targetPoint);if(straight>300e3)return{err:'مسار البر للرحلات لين 300 كم — المكان يبعد '+fmtDistance(straight)};
+  brIndex=brIndex||await brGet('index.json');if(!brIndex)return{err:navigator.onLine?'تعذّر تحميل الدروب — حاول بعد شوي':'الدروب ما انحفظت بجوالك لهذي المنطقة — افتحها مرة وعندك نت'};
+  const names=brTiles(gps,targetPoint,Math.max(.25,Math.min(.6,straight/111e3*.3))).filter(t=>brIndex.tiles[t]);
+  const E=[],miss=[];for(const t of names){const j=await brGet('r/'+t+'.json');if(!j){miss.push(t);continue}for(const r of j.e){const g=new Float64Array(r.length-4);let la=r[4],lo=r[5];g[0]=la/1e5;g[1]=lo/1e5;for(let i=6;i<r.length;i+=2){la+=r[i];lo+=r[i+1];g[i-4]=la/1e5;g[i-3]=lo/1e5}E.push({a:r[0],b:r[1],len:r[2],k:r[3],g})}}
+  if(!E.length)return{err:miss.length?'الدروب ما انحفظت بجوالك لهذي المنطقة — افتحها مرة وعندك نت':'ما فيه دروب مرسومة بهذي المنطقة'};
+  const S=brSnap(E,gps),T=brSnap(E,targetPoint);if(!S||S.off>5000)return{err:'أقرب درب لك يبعد '+(S?fmtDistance(S.off):'أكثر من 5 كم')+' — امشِ بالبوصلة'};
+  const adj=new Map(),add=(n,ei)=>{let l=adj.get(n);if(!l)adj.set(n,l=[]);l.push(ei)};E.forEach((e,i)=>{add(e.a,i);add(e.b,i)});
+  const dist=new Map(),prev=new Map(),H=brHeap(),se=E[S.ei];
+  const seed=(n,c,via)=>{if(!(dist.get(n)<=c)){dist.set(n,c);prev.set(n,via);H.push(c,n)}};
+  seed(se.a,S.fa/brSpeed(se.k),{start:'a'});seed(se.b,S.fb/brSpeed(se.k),{start:'b'});
+  const te=E[T.ei],goal=new Set(T.off<=15000?[te.a,te.b]:[]);let found=null;const done=new Set();
+  while(H.size){const[c,n]=H.pop();if(found&&c>found.c)break;if(done.has(n))continue;done.add(n);if(goal.has(n)){const other=n===te.a?T.fa:T.fb;const tot=c+other/brSpeed(te.k);if(!found||tot<found.c)found={n,c:tot}}
+    for(const ei of adj.get(n)||[]){const e=E[ei],m=e.a===n?e.b:e.a;seed(m,c+e.len/brSpeed(e.k),{ei,from:n})}}
+  // ما فيه درب يوصل الهدف: أقرب نقطة وصلنا لها على الدروب
+  let endNode=found&&found.n,tailFrom=null;
+  if(!found){let bd=Infinity;for(const n of done){const p=brNode(E,adj,n);if(!p)continue;const d=distanceMeters(p,targetPoint);if(d<bd){bd=d;endNode=n}}
+    if(endNode==null||bd>straight-500)return{err:'ما فيه درب مرسوم يقرّبك من المكان — امشِ بالبوصلة'};tailFrom=brNode(E,adj,endNode)}
+  // نرسم المسار: من نقطة الالتقاء → الوصلات → نقطة الهدف
+  const segs=[];let n=endNode,paved=0,dirt=0;
+  while(true){const v=prev.get(n);if(!v||v.start)break;const e=E[v.ei];const pts=brPts(e.g);segs.push(e.a===v.from?pts:pts.reverse());(e.k?(dirt+=e.len):(paved+=e.len));n=v.from}
+  segs.reverse();const v0=prev.get(n),first=brPart(se,S,v0&&v0.start);(se.k?(dirt+=v0.start==='a'?S.fa:S.fb):(paved+=v0.start==='a'?S.fa:S.fb));
+  let path=first.concat(...segs);
+  if(found){const last=brPart(te,T,endNode===te.a?'a':'b').reverse();path=path.concat(last);(te.k?(dirt+=endNode===te.a?T.fa:T.fb):(paved+=endNode===te.a?T.fa:T.fb))}
+  const head=S.off,tail=found?T.off:distanceMeters(tailFrom,targetPoint),sec=paved/brSpeed(0)+dirt/brSpeed(1)+(head+tail)/(15/3.6);
+  return{path,head,tail,paved,dirt,sec,from:{lat:gps.lat,lng:gps.lng},partial:!found,tgt:{lat:targetPoint.lat,lng:targetPoint.lng}}}
+function brPts(g){const o=[];for(let i=0;i<g.length;i+=2)o.push([g[i],g[i+1]]);return o}
+// من نقطة الالتقاء لطرف الوصلة (a أو b)
+function brPart(e,s,end){const g=brPts(e.g),p=[s.lat,s.lng],vi=s.i/2;return end==='a'?[p,...g.slice(0,vi+1).reverse()]:[p,...g.slice(vi+1)]}
+function brNode(E,adj,n){const l=adj.get(n);if(!l||!l.length)return null;const e=E[l[0]],g=e.g;return e.a===n?{lat:g[0],lng:g[1]}:{lat:g[g.length-2],lng:g[g.length-1]}}
+function brFmtTime(s){const m=Math.round(s/60),h=Math.floor(m/60);return h?h+' س '+(m%60)+' د':m+' د'}
+function barRouteShow(){const b=$('#brNav'),el=$('#brInfo');if(!b||!el)return;b.hidden=!BR_ON||!targetPoint;if(!targetPoint)barRoute=null;
+  if(!barRoute){el.hidden=true;b.textContent='🛣️ مسار البر (الطرق والدروب)';return}
+  b.textContent='✕ إخفاء مسار البر';const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
+  const tot=r.paved+r.dirt+r.head+r.tail,parts=[];if(r.paved>200)parts.push('معبد '+km(r.paved)+' كم');if(r.dirt>200)parts.push('ترابي '+km(r.dirt)+' كم');
+  const off=[];if(r.head>300)off.push('أول '+km(r.head)+' كم');if(r.tail>300)off.push('آخر '+km(r.tail)+' كم');
+  el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<br><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false}
+async function barRouteToggle(){if(barRoute){barRoute=null;barRouteShow();render();return}if(brBusy)return;brBusy=true;const b=$('#brNav');b.textContent='جارٍ حساب المسار…';
+  try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;barRouteShow();status.textContent='مسار البر جاهز';render()}}
+  catch(e){console.log('barroute',e);status.textContent='تعذّر حساب المسار'}brBusy=false}
+function barRouteSvg(){if(!barRoute||!targetPoint)return'';const S=p=>{const w=world(p.lat,p.lng);return(w[0]+innerWidth/2-cx).toFixed(1)+','+(w[1]+innerHeight/2-cy).toFixed(1)};const r=barRoute,st=Math.max(1,Math.ceil(r.path.length/1500)),pts=r.path.filter((p,i)=>i%st===0||i===r.path.length-1).map(p=>S({lat:p[0],lng:p[1]})).join(' ');
+  let o=`<polyline points="${pts}" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts}" fill="none" stroke="#1E6FD9" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const p0=r.path[0],pn=r.path[r.path.length-1],dash=(a,b)=>`<polyline points="${S(a)} ${S(b)}" fill="none" stroke="#1E6FD9" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="8 8"/>`;
+  if(r.head>30)o+=dash(gps||r.from,{lat:p0[0],lng:p0[1]});if(targetPoint&&r.tail>30)o+=dash({lat:pn[0],lng:pn[1]},targetPoint);return o}
+if(BR_ON){$('#brNav').onclick=e=>{e.stopPropagation();barRouteToggle()};setTimeout(brPrefetch,8000);addEventListener('online',()=>setTimeout(brPrefetch,3000))}
 function drawTrack(){trackOverlay.setAttribute('viewBox',`0 0 ${innerWidth} ${innerHeight}`);let shapes='';
   if(trackPoints.length){const st=Math.ceil(trackPoints.length/700),src=st>1?trackPoints.filter((p,i)=>i%st===0||i===trackPoints.length-1):trackPoints;let pts=src.map(p=>{let w=world(p.lat,p.lng);return[w[0]+innerWidth/2-cx,w[1]+innerHeight/2-cy]});let line=pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' '),first=pts[0],lastPoint=pts[pts.length-1];if(folInfo)[first,lastPoint]=[lastPoint,first];shapes+=`<polyline points="${line}" fill="none" stroke="#fff" stroke-opacity=".9" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${line}" fill="none" stroke="#E0231B" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${first[0]}" cy="${first[1]}" r="7" fill="#54a66f" stroke="#fff" stroke-width="2"/><circle cx="${lastPoint[0]}" cy="${lastPoint[1]}" r="6.5" fill="#1C1A17" stroke="#fff" stroke-width="2.2"/>`}
   // 19 نوفمبر: اتباع المسار على الخريطة — اللي مشيته رمادي، وخط متقطع أزرق من موقعك لأول نقطة لين توصل المسار
   if(folInfo&&trackPoints.length>1){const i=Math.max(0,Math.min(trackPoints.length-1,folInfo.idx|0)),S=p=>{const w=world(p.lat,p.lng);return(w[0]+innerWidth/2-cx).toFixed(1)+','+(w[1]+innerHeight/2-cy).toFixed(1)};
     const done=trackPoints.slice(i);if(done.length>1)shapes+=`<polyline points="${done.map(S).join(' ')}" fill="none" stroke="#9A948B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`;
     if(folInfo.approach&&gps)shapes+=`<polyline points="${S(gps)} ${S(trackPoints[i])}" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 13" opacity=".95"/><polyline points="${S(gps)} ${S(trackPoints[i])}" fill="none" stroke="#1E6FD9" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="10 9"/>`}
-  if(navigationActive&&gps&&targetPoint){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
+  shapes+=barRouteSvg();
+  if(navigationActive&&gps&&targetPoint&&!barRoute){let a=world(gps.lat,gps.lng),b=world(targetPoint.lat,targetPoint.lng),ax=a[0]+innerWidth/2-cx,ay=a[1]+innerHeight/2-cy,bx=b[0]+innerWidth/2-cx,by=b[1]+innerHeight/2-cy;shapes+=`<line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#176b55" stroke-width="6" stroke-dasharray="12 9" stroke-linecap="round"/><line x1="${ax}" y1="${ay}" x2="${bx}" y2="${by}" stroke="#fff" stroke-opacity=".75" stroke-width="2" stroke-dasharray="12 9"/>`}
   trackOverlay.innerHTML=shapes}
 function detailZ(){return mapMode==='online'?16:14}
 function zoomTo(n){
