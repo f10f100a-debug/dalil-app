@@ -16,7 +16,11 @@ async function open(c, o = {}) {
   await p.addInitScript(([theme, car, places]) => {
     if (places) { const a = [], icons = ['⛺','💧','⭐','🌄','📍','⚠️'], cats = ['camp','water','fav','view','other','danger'], names = ['مخيم الربع','بئر الردة','روضة الخضاب','مطل الغروب','نفود الجبة','شعيب خطر'];
       for (let i = 0; i < 60; i++) { const k = i % 6; a.push({ id: 'g' + i, name: names[k] + (i >= 6 ? ' ' + Math.ceil(i / 6) : ''), icon: icons[k], cat: cats[k], lat: 27.52 + Math.sin(i * 1.7) * 0.5 * (i % 7 + 1) / 7, lng: 41.69 + Math.cos(i * 1.3) * 0.6 * (i % 5 + 1) / 5, createdAt: Date.now() - i * 86400e3 }); }
-      localStorage.setItem('dalil_places', JSON.stringify(a)); }
+      localStorage.setItem('dalil_places', JSON.stringify(a));
+      // مسار محفوظ للقطة القص (27 نوفمبر): من البيت للبر ورجوع
+      const pts = [], t0 = Date.now() - 5 * 3600e3; for (let i = 0; i < 60; i++) pts.push({ lat: 27.52 + i * 0.004 + Math.sin(i / 4) * 0.002, lng: 41.69 + i * 0.006, t: t0 + i * 240e3 });
+      let d = 0; for (let i = 1; i < pts.length; i++) { const dy = (pts[i].lat - pts[i - 1].lat) * 111320, dx = (pts[i].lng - pts[i - 1].lng) * 111320 * Math.cos(0.48); d += Math.hypot(dx, dy); }
+      localStorage.setItem('dalil_tracks', JSON.stringify([{ id: 'g-trk', name: 'طلعة النفود', points: pts, dist: d, duration: 59 * 240e3, createdAt: t0 }])); }
     localStorage.setItem('dalil_permissions_ready', '1'); localStorage.setItem('dalil_theme', theme); localStorage.setItem('dalil_room_terms_v1', '1');
     if (car) localStorage.setItem('dalil_car', JSON.stringify({ lat: 27.5232, lng: 41.7001, time: Date.now() - 3600e3 }));
   }, [o.dark ? 'dark' : 'light', !!o.car, !!o.places]);
@@ -126,6 +130,10 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await frame(p).locator('#fsBtn').click().catch(() => {}); await p.waitForTimeout(1200);
   await frame(p).locator('[data-q="rain"]').click().catch(() => {});
   await shot(p, '14-track-tools', async () => { await p.evaluate(() => document.getElementById('trackToolsToggle').click()); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
+  await shot(p, '14b-track-trim', async () => { await p.evaluate(() => { const b = document.querySelector('[data-track-trim]'); if (b) { b.scrollIntoView({ block: 'center' }); b.click(); } }); await p.waitForTimeout(900);
+    await p.evaluate(() => { const a = document.getElementById('trimA'), b = document.getElementById('trimB'); if (a) { a.value = 6; a.dispatchEvent(new Event('input', { bubbles: true })); } if (b) { b.value = 4; b.dispatchEvent(new Event('input', { bubbles: true })); } }); });
+  await p.keyboard.press('Escape').catch(() => {});
+  await p.evaluate(() => { document.querySelectorAll('.overlay.show, .sheet-overlay.show').forEach(o => o.classList.remove('show')); }).catch(() => {});
   await toTop(p);
 
   // 5) الأجواء
@@ -156,6 +164,10 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
       await shot(p, '18-spring', async () => { await p.click('#faydChips [data-fy="all"]').catch(() => {}); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('faydCard').scrollIntoView({ block: 'start' })); });
       await shot(p, '41-fayd-report', async () => { await p.click('[data-fyr="open"]'); await p.waitForTimeout(500); await p.evaluate(() => document.getElementById('fyReport').scrollIntoView({ block: 'center' })); });
       await p.click('[data-fyr="open"]').catch(() => {});
+      // بقع ربيع كبيرة (27 نوفمبر) — من blobs.json
+      await p.click('#faydChips [data-fy="all"]').catch(() => {});
+      for (let i = 0; i < 15; i++) { if (await p.evaluate(() => !!document.querySelector('[data-blob-i]'))) break; await p.waitForTimeout(1000); }
+      await shot(p, '18d-spring-blobs', () => p.evaluate(() => { const b = document.querySelector('[data-blob-i]'); if (b) { const s = b.parentElement.parentElement; (s.previousElementSibling || s).scrollIntoView({ block: 'start' }); } }));
       await shot(p, '18b-spring-fq', async () => { await barr(p, 'fq'); await p.waitForTimeout(2500); await toTop(p); });
       await shot(p, '18c-spring-around', async () => { await barr(p, 'fayd'); await p.waitForTimeout(1500); await p.evaluate(() => document.querySelector('#springPane .sp-card').scrollIntoView({ block: 'start' })); await p.waitForTimeout(6000); });
       await toTop(p);
@@ -250,7 +262,16 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await fahd.click('#rmSosAlert [data-sos="x"]').catch(() => {});
 
 
-  // 9) الوضع الليلي
+  // 9) ترحيب المستخدم الجديد + سؤال التنبيهات وقت المطر + رسالة الخريطة المقفلة (27 نوفمبر)
+  { const cn = await ctxFor(browser); const pn = await open(cn, { car: true });
+    await shot(pn, '45-welcome-tour', async () => { await pn.evaluate(() => window.__dalilTour && window.__dalilTour()); await pn.waitForTimeout(900); });
+    await pn.reload(); await pn.waitForTimeout(2500);
+    await shot(pn, '46-push-rain', async () => { await pn.evaluate(() => window.__dalilPushCtx && window.__dalilPushCtx()); await pn.waitForTimeout(600); });
+    await cn.close(); }
+  { const cg = await ctxFor(browser); const pg = await cg.newPage(); await pg.addInitScript(() => localStorage.setItem('dalil_theme', 'light'));
+    await pg.goto('http://localhost:8765/map.html?nogltest=1'); await pg.waitForTimeout(2500); await shot(pg, '47-map-nogl'); await cg.close(); }
+
+  // 10) الوضع الليلي
   { const cd = await ctxFor(browser, { dark: true }); const pd = await open(cd, { dark: true, car: true }); await shot(pd, '35-dark'); await cd.close(); }
   await browser.close();
 })().catch(e => { console.log('FATAL', e.message); process.exit(1); });
