@@ -111,8 +111,11 @@ try:
                 except Exception: pass
 except Exception as e:
     print("::warning::worldcover check skipped:", str(e)[:120], flush=True)
-farms = [o for o in out if o.get("crop", 0) >= 15]
-out = [o for o in out if o.get("crop", 0) < 15]
+# 27 نوفمبر (أبو مالك: محاور الخطة الشرقية ما كانت بخريطة 2021): المحاور الجديدة «كثيف» كلها تقريبًا (d ≥ 80٪) ومليانة —
+# الربيع الطبيعي خليط خفيف/متوسط/كثيف. فإذا البقعة كثيفة بالكامل نعتبرها مزرعة حتى لو ما هي بخريطة المزارع
+farmish = lambda o: o.get("crop", 0) >= 15 or o["d"] >= 80 or (o["d"] >= 60 and o["f"] >= 70)
+farms = [o for o in out if farmish(o)]
+out = [o for o in out if not farmish(o)]
 
 # الاسم: أقرب بلدة/قرية (OSM)
 P = json.load(open(os.path.join(os.path.dirname(__file__), "osm-places.json")))["p"]
