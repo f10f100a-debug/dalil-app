@@ -711,7 +711,7 @@ function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
   // المسافة على الوصلة من بدايتها لنقطة الالتقاء (نسبة من الطول الكامل)
   let acc=0,tot=0;for(let i=0;i+3<g.length;i+=2){const s=distanceMeters({lat:g[i],lng:g[i+1]},{lat:g[i+2],lng:g[i+3]});if(i<best.i)acc+=s;else if(i===best.i)acc+=s*best.t;tot+=s}
   const f=tot?acc/tot:0;return{ei:best.ei,i:best.i,lat:la,lng:lo,off:distanceMeters(p,{lat:la,lng:lo}),fa:f*e.len,fb:(1-f)*e.len}}
-const brSpeed=k=>k?35/3.6:70/3.6;
+const brSpeed=k=>k?35/3.6:70/3.6;let brShort=false;const brCost=k=>brShort?1:brSpeed(k);   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
 async function barRouteCompute(){
   if(!gps||!targetPoint)return{err:'ننتظر موقعك…'};
   const straight=distanceMeters(gps,targetPoint);if(straight>300e3)return{err:'مسار البر للرحلات لين 300 كم — المكان يبعد '+fmtDistance(straight)};
@@ -723,10 +723,10 @@ async function barRouteCompute(){
   const adj=new Map(),add=(n,ei)=>{let l=adj.get(n);if(!l)adj.set(n,l=[]);l.push(ei)};E.forEach((e,i)=>{add(e.a,i);add(e.b,i)});
   const dist=new Map(),prev=new Map(),H=brHeap(),se=E[S.ei];
   const seed=(n,c,via)=>{if(!(dist.get(n)<=c)){dist.set(n,c);prev.set(n,via);H.push(c,n)}};
-  seed(se.a,S.fa/brSpeed(se.k),{start:'a'});seed(se.b,S.fb/brSpeed(se.k),{start:'b'});
+  seed(se.a,S.fa/brCost(se.k),{start:'a'});seed(se.b,S.fb/brCost(se.k),{start:'b'});
   const te=E[T.ei],goal=new Set(T.off<=15000?[te.a,te.b]:[]);let found=null;const done=new Set();
-  while(H.size){const[c,n]=H.pop();if(found&&c>found.c)break;if(done.has(n))continue;done.add(n);if(goal.has(n)){const other=n===te.a?T.fa:T.fb;const tot=c+other/brSpeed(te.k);if(!found||tot<found.c)found={n,c:tot}}
-    for(const ei of adj.get(n)||[]){const e=E[ei],m=e.a===n?e.b:e.a;seed(m,c+e.len/brSpeed(e.k),{ei,from:n})}}
+  while(H.size){const[c,n]=H.pop();if(found&&c>found.c)break;if(done.has(n))continue;done.add(n);if(goal.has(n)){const other=n===te.a?T.fa:T.fb;const tot=c+other/brCost(te.k);if(!found||tot<found.c)found={n,c:tot}}
+    for(const ei of adj.get(n)||[]){const e=E[ei],m=e.a===n?e.b:e.a;seed(m,c+e.len/brCost(e.k),{ei,from:n})}}
   // ما فيه درب يوصل الهدف: أقرب نقطة وصلنا لها على الدروب
   let endNode=found&&found.n,tailFrom=null;
   if(!found){let bd=Infinity;for(const n of done){const p=brNode(E,adj,n);if(!p)continue;const d=distanceMeters(p,targetPoint);if(d<bd){bd=d;endNode=n}}
@@ -749,7 +749,7 @@ function barRouteShow(){const b=$('#brNav'),el=$('#brInfo');if(!b||!el)return;b.
   b.textContent='✕ إخفاء مسار البر';const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
   const tot=r.paved+r.dirt+r.head+r.tail,parts=[];if(r.paved>200)parts.push('معبد '+km(r.paved)+' كم');if(r.dirt>200)parts.push('ترابي '+km(r.dirt)+' كم');
   const off=[];if(r.head>300)off.push('أول '+km(r.head)+' كم');if(r.tail>300)off.push('آخر '+km(r.tail)+' كم');
-  el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<br><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false}
+  el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<br><button type="button" id="brAlt" style="margin-top:6px;border:1px solid rgba(30,111,217,.35);background:#fff;border-radius:10px;padding:6px 10px;font:inherit;font-size:13px;font-weight:700;color:#1E5BB0">'+(brShort?'🚗 الأسرع (يفضّل المعبد)':'↔️ أقصر طريق (دروب أكثر)')+'</button><br><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false;const alt=$('#brAlt');if(alt)alt.onclick=e=>{e.stopPropagation();brShort=!brShort;barRoute=null;barRouteToggle()}}
 async function barRouteToggle(){if(barRoute){barRoute=null;barRouteShow();render();return}if(brBusy)return;brBusy=true;const b=$('#brNav');b.textContent='جارٍ حساب المسار…';
   try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;barRouteShow();status.textContent='مسار البر جاهز';if(view!=='follow'&&view!=='heading')try{fitNavigation()}catch(e){}render()}}
   catch(e){console.log('barroute',e);status.textContent='تعذّر حساب المسار'}brBusy=false}
