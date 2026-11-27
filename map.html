@@ -644,7 +644,7 @@ $('#lp3d').onclick=()=>{
   if(isEmbedded)window.parent.location.href=url;else location.href=url};googleMode.onclick=openGoogleMap;
 function metersPerPixel(lat){return 40075016.686*Math.cos(lat*Math.PI/180)/(2**z*S)}
 // 27 نوفمبر (تجربة dalil_lab_bigarrow، أبو مالك: «السهم أثناء القيادة صغير»): وقت السواقة السهم يكبر 1.6 ضعف بحدود أعرض، ويرجع لما توقف
-const BIGARROW=(()=>{try{return localStorage.getItem('dalil_lab_bigarrow')==='1'}catch(e){return false}})();
+const BIGARROW=(()=>{try{return localStorage.getItem('dalil_lab_bigarrow')!=='0'}catch(e){return true}})();
 function drawDot(){
   if(!gps){dot.style.display='none';accCircle.style.display='none';return}
   let p=world(gps.lat,gps.lng),x=(p[0]+innerWidth/2-cx)+'px',y=(p[1]+innerHeight/2-cy)+'px';dot.style.display='block';if(BIGARROW)dot.classList.toggle('drive',isDriving());dot.style.left=x;dot.style.top=y;
@@ -1901,7 +1901,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     gl.setLayoutProperty(l,'icon-padding',1);
     // 27 نوفمبر (تجربة dalil_lab_names5، أبو مالك: «نخلي ظهر المواقع على 5 كيلو»): أسماء المهم للبر من ~5 كم (z10.5):
     // الفياض والروضات، الآبار وموارد الماء، الجبال والنفود — والباقي (محطات، ورش…) يبقى من 12. الأولوية: فيضة ← ماء ← جبل/نفود
-    const N5=(()=>{try{return localStorage.getItem('dalil_lab_names5')==='1'}catch(e){return false}})();
+    const N5=(()=>{try{return localStorage.getItem('dalil_lab_names5')!=='0'}catch(e){return true}})();
     const WATER=['in',K,['literal',['مورد ماء','ماء شرب']]],LAND=['in',K,['literal',['جبل','نفود']]],MARK=['==',K,'معلم رئيسي'],IMP=['any',MEAD,WATER,LAND,MARK];
     // ونفس التجربة: النقاط الرمادية (معالم بدون أيقونة) كانت تطلع من بعيد بدون أسماء — الحين ما تطلع النقطة إلا مع اسمها (z12)، و«المعالم الرئيسية» اسمها من 10.5
     if(N5)try{gl.setLayerZoomRange(d,12,24)}catch(e){}
@@ -1913,7 +1913,7 @@ function toMGRS(lat,lng){const u=toUTM(lat,lng),set=(u.zone-1)%3,cols=['ABCDEFGH
     gl.setFilter(l,['all',SVCF,['!',CH],N5?['any',has,['>=',['zoom'],12],['all',['any',LAND,MARK],['>=',['zoom'],10.5]]]:['any',has,['>=',['zoom'],12]]]);}
   const prev=window.__styleLab;window.__styleLab=rid=>{try{prev&&prev(rid)}catch(e){}try{poi(rid)}catch(e){}};
   // تجربة dalil_lab_names5: ملفات الخرائط فيها مواقع «دليل» من z11 بس — فمن ~5 كم (z10) إلى z11 نرسم أسماء المهم من قائمة الأماكن المفتوحة نفسها
-  (function(){let on=false;try{on=localStorage.getItem('dalil_lab_names5')==='1'}catch(e){}if(!on)return;
+  (function(){let on=true;try{on=localStorage.getItem('dalil_lab_names5')!=='0'}catch(e){}if(!on)return;
     const go=()=>{if(!hasGL()||!glReady){setTimeout(go,600);return}
       fetch('data/open-places.json').then(r=>r.ok?r.json():null).then(O=>{if(!O||!O.p||gl.getSource('imp-names'))return;
         const C=O.cats,F=[];for(const x of O.p){const k=C[x[4]]??C[x[3]];const nm=x[0];if(!nm)continue;
