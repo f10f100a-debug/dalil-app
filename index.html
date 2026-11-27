@@ -1615,7 +1615,7 @@ var bsGo=function(){var x=document.getElementById('bootSplash');if(!x)return;x.s
     <section class="screen" id="screen-track">
       <div class="al-banner" id="alertBanner" hidden></div>
       <div class="track-svg-wrap">
-        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261127-18" title="خريطة المسار"></iframe>
+        <iframe class="track-map-frame" id="trackMapFrame" data-src="map.html?embed=1&amp;v=20261127-19" title="خريطة المسار"></iframe>
         <svg viewBox="0 0 300 230" id="trackSvg"></svg>
       </div>
       <div class="rec-pill" id="recPill" style="display:none;"><span class="rdot"></span> جارٍ تسجيل المسار</div>
@@ -2622,8 +2622,10 @@ var bsGo=function(){var x=document.getElementById('bootSplash');if(!x)return;x.s
   function showPushCtx(when){
     const pa = document.getElementById('pushAsk'); if(!pa || !pa.hidden) return;
     const h = pa.querySelector('h2'), t = document.getElementById('pushAskText'), st = pa.querySelector('.step');
-    if(!pa.dataset.orig) pa.dataset.orig = JSON.stringify([h.textContent, t.innerHTML, st ? st.textContent : '']);
-    h.textContent = '🌧️ المطر جاي منطقتك ' + when;
+    const mk = pa.querySelector('.mark');
+    if(!pa.dataset.orig) pa.dataset.orig = JSON.stringify([h.textContent, t.innerHTML, st ? st.textContent : '', mk ? mk.textContent : '']);
+    if(mk) mk.textContent = '🌧️';   // أبو مالك: المطر بالمربع بدل الجرس — يعرف إنها عن مطر جاي، مو نفس سؤال البداية
+    h.textContent = 'المطر جاي منطقتك ' + when;
     t.innerHTML = 'تبي ننبهك قبل ما يوصل؟ نرسل لك تنبيه وقت ما يقرب المطر منك، وصور السيول في منطقتك. ما نحفظ اسمك ولا رقمك، وتوقفها متى ما تبي.';
     if(st) st.textContent = 'تنبيه المطر';
     try{ localStorage.setItem('dalil_pushctx_at', String(Date.now())); }catch(e){}
@@ -2649,7 +2651,7 @@ var bsGo=function(){var x=document.getElementById('bootSplash');if(!x)return;x.s
   setTimeout(()=>pushCtxCheck(), 9000);
   function closePushAsk(snoozeDays){
     document.getElementById('pushAsk').hidden = true;
-    try{ const pa = document.getElementById('pushAsk'); if(pa.dataset.orig){ const [a, b, c] = JSON.parse(pa.dataset.orig); pa.querySelector('h2').textContent = a; document.getElementById('pushAskText').innerHTML = b; const st = pa.querySelector('.step'); if(st) st.textContent = c; delete pa.dataset.orig; } }catch(e){}
+    try{ const pa = document.getElementById('pushAsk'); if(pa.dataset.orig){ const [a, b, c, m] = JSON.parse(pa.dataset.orig); const mk = pa.querySelector('.mark'); if(mk && m) mk.textContent = m; pa.querySelector('h2').textContent = a; document.getElementById('pushAskText').innerHTML = b; const st = pa.querySelector('.step'); if(st) st.textContent = c; delete pa.dataset.orig; } }catch(e){}
     try{ localStorage.setItem(pushAskKey, String(Date.now() + snoozeDays*86400000)); }catch(e){}
   }
   document.getElementById('pushAskLater').addEventListener('click', ()=>{
