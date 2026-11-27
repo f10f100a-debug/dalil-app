@@ -132,8 +132,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   await shot(p, '14-track-tools', async () => { await p.evaluate(() => document.getElementById('trackToolsToggle').click()); await p.waitForTimeout(800); await p.evaluate(() => document.getElementById('trackToolsPanel').scrollIntoView({ block: 'center' })); });
   await shot(p, '14b-track-trim', async () => { await p.evaluate(() => { const b = document.querySelector('[data-track-trim]'); if (b) { b.scrollIntoView({ block: 'center' }); b.click(); } }); await p.waitForTimeout(900);
     await p.evaluate(() => { const a = document.getElementById('trimA'), b = document.getElementById('trimB'); if (a) { a.value = 6; a.dispatchEvent(new Event('input', { bubbles: true })); } if (b) { b.value = 4; b.dispatchEvent(new Event('input', { bubbles: true })); } }); });
-  await p.keyboard.press('Escape').catch(() => {});
-  await p.evaluate(() => { document.querySelectorAll('.overlay.show, .sheet-overlay.show').forEach(o => o.classList.remove('show')); }).catch(() => {});
+  await p.evaluate(() => { const x = document.getElementById('trimX'); if (x) x.click(); const o = document.getElementById('trimOv'); if (o) o.remove(); }).catch(() => {});
   await toTop(p);
 
   // 5) الأجواء
@@ -221,7 +220,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   const R = [];
   for (const u of people) { const cc = await ctxFor(browser, { lat: u.la, lng: u.ln }); const pp = await open(cc, { car: false });
     if (u.car) await pp.evaluate(([la, ln]) => { localStorage.setItem('dalil_car', JSON.stringify({ lat: la - 0.002, lng: ln + 0.002, time: Date.now() })); }, [u.la, u.ln]);
-    await pp.reload(); await pp.waitForTimeout(1500); if (await pp.isVisible('#skipPermissionsBtn').catch(() => false)) await pp.click('#skipPermissionsBtn');
+    await pp.reload({ waitUntil: 'domcontentloaded' }); await pp.waitForTimeout(1500); if (await pp.isVisible('#skipPermissionsBtn').catch(() => false)) await pp.click('#skipPermissionsBtn');
     await pp.evaluate(() => { const f = () => window.__dalilNativeHeading && window.__dalilNativeHeading(38, 8); f(); setInterval(f, 700); const a = document.getElementById('navActivation'); if (a) a.style.display = 'none'; });
     R.push(pp); }
   const [fahd, salem, saud] = R;
@@ -265,7 +264,7 @@ const mapGo = (p, lat, lng, zz) => p.frames().find(f => f.url().includes('map.ht
   // 9) ترحيب المستخدم الجديد + سؤال التنبيهات وقت المطر + رسالة الخريطة المقفلة (27 نوفمبر)
   { const cn = await ctxFor(browser); const pn = await open(cn, { car: true });
     await shot(pn, '45-welcome-tour', async () => { await pn.evaluate(() => window.__dalilTour && window.__dalilTour()); await pn.waitForTimeout(900); });
-    await pn.reload(); await pn.waitForTimeout(2500);
+    await pn.reload({ waitUntil: 'domcontentloaded' }); await pn.waitForTimeout(2500);
     await shot(pn, '46-push-rain', async () => { await pn.evaluate(() => window.__dalilPushCtx && window.__dalilPushCtx()); await pn.waitForTimeout(600); });
     await cn.close(); }
   { const cg = await ctxFor(browser); const pg = await cg.newPage(); await pg.addInitScript(() => localStorage.setItem('dalil_theme', 'light'));
