@@ -329,7 +329,7 @@ function updateNavigation(){
   updateFaydCard();
   if(!gps){setText(navInfo,'جارٍ تحديد موقعك وحساب المسافة…');setText(navEta,'');return}
   const d=distanceMeters(gps,targetPoint),b=targetBearing(gps,targetPoint),h=currentHeading();
-  setText(navInfo,'يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b));
+  let brOn=false;try{brOn=!!(barRoute&&brLeft())}catch(e){}if(!brOn)setText(navInfo,'يبعد '+fmtDistance(d)+' خط مستقيم · '+directionName(b));
   const speed=Number(gps.speed);
   setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
   const relative=h!==null?b-h:b-rot;
@@ -749,20 +749,21 @@ function brPart(e,s,end){const g=brPts(e.g),p=[s.lat,s.lng],vi=s.i/2;return end=
 function brNode(E,adj,n){const l=adj.get(n);if(!l||!l.length)return null;const e=E[l[0]],g=e.g;return e.a===n?{lat:g[0],lng:g[1]}:{lat:g[g.length-2],lng:g[g.length-1]}}
 function brCum(r){const c=[0];for(let i=1;i<r.path.length;i++)c.push(c[i-1]+distanceMeters({lat:r.path[i-1][0],lng:r.path[i-1][1]},{lat:r.path[i][0],lng:r.path[i][1]}));r.cum=c}
 // الباقي على المسار من أقرب نقطة لك (وإذا بعدت عنه أكثر من 300 م نقول لك)
-function brLeft(){const r=barRoute;if(!r||!r.cum||!gps)return null;let bi=0,bd=Infinity;const st=Math.max(1,Math.floor(r.path.length/3000));for(let i=0;i<r.path.length;i+=st){const d=distanceMeters(gps,{lat:r.path[i][0],lng:r.path[i][1]});if(d<bd){bd=d;bi=i}}
+let brLeftC=null;function brLeft(){const r=barRoute;if(!r||!r.cum||!gps)return null;if(brLeftC&&brLeftC.g===gps&&brLeftC.r===r)return brLeftC.v;const v=brLeft0(r);brLeftC={g:gps,r,v};return v}
+function brLeft0(r){let bi=0,bd=Infinity;const st=Math.max(1,Math.floor(r.path.length/3000));for(let i=0;i<r.path.length;i+=st){const d=distanceMeters(gps,{lat:r.path[i][0],lng:r.path[i][1]});if(d<bd){bd=d;bi=i}}
   return{left:r.cum[r.cum.length-1]-r.cum[bi]+r.tail,off:bd}}
 function brMiniSet(){const m=$('#brMini');if(!m)return;m.classList.toggle('on',!!barRoute&&!navigationActive);if(!barRoute)return;const r=barRoute,lf=brLeft();
-  $('#brMiniT').textContent=lf&&navigationActive?'🛣️ باقي '+fmtDistance(lf.left)+' على المسار'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''):'🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec);
-  $('#brGo').hidden=navigationActive}
+  const mt=$('#brMiniT'),tx=lf&&navigationActive?'🛣️ باقي '+fmtDistance(lf.left)+' على المسار'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''):'🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec);if(mt.textContent!==tx)mt.textContent=tx;
+  const bg=$('#brGo');if(bg.hidden!==navigationActive)bg.hidden=navigationActive}
 function brFmtTime(s){const m=Math.round(s/60),h=Math.floor(m/60);return h?h+' س '+(m%60)+' د':m+' د'}
 function barRouteShow(){const b=$('#brNav'),el=$('#brInfo');if(!b||!el)return;try{brMiniSet()}catch(e){}b.hidden=!BR_ON||!targetPoint;if(!targetPoint)barRoute=null;
-  if(!barRoute){el.hidden=true;b.textContent='🛣️ مسار البر (الطرق والدروب)';return}
-  b.textContent='✕ إخفاء مسار البر';const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
+  if(!barRoute){if(!el.dataset.err)el.hidden=true;el.dataset.k='';if(b.textContent!=='🛣️ مسار البر (الطرق والدروب)'&&!brBusy)b.textContent='🛣️ مسار البر (الطرق والدروب)';return}
+  if(b.textContent!=='✕ إخفاء مسار البر')b.textContent='✕ إخفاء مسار البر';if(el.dataset.k===String(barRoute.sec)+brShort&&!el.hidden)return;el.dataset.k=String(barRoute.sec)+brShort;const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
   const tot=r.paved+r.dirt+r.head+r.tail,parts=[];if(r.paved>200)parts.push('معبد '+km(r.paved)+' كم');if(r.dirt>200)parts.push('ترابي '+km(r.dirt)+' كم');
   const off=[];if(r.head>300)off.push('أول '+km(r.head)+' كم');if(r.tail>300)off.push('آخر '+km(r.tail)+' كم');
   el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<br><button type="button" id="brAlt" style="display:block;width:100%;margin-top:8px;border:1px solid rgba(30,111,217,.35);background:#fff;border-radius:10px;padding:6px 10px;font:inherit;font-size:13px;font-weight:700;color:#1E5BB0">'+(brShort?'🚗 الأسرع (يفضّل المعبد)':'↔️ أقصر طريق (دروب أكثر)')+'</button><br><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false;const alt=$('#brAlt');if(alt)alt.onclick=e=>{e.stopPropagation();brShort=!brShort;barRoute=null;barRouteToggle()}}
-async function barRouteToggle(){if(barRoute){barRoute=null;barRouteShow();render();return}if(brBusy)return;brBusy=true;const b=$('#brNav');b.textContent='جارٍ حساب المسار…';
-  try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;brCum(r);barRouteShow();status.textContent='مسار البر جاهز';navCard.classList.add('mini');try{navCloseGlyph()}catch(e){}syncNavCardSpace();if(view!=='follow'&&view!=='heading')try{fitNavigation()}catch(e){}render()}}
+async function barRouteToggle(){try{delete $('#brInfo').dataset.err}catch(e){}if(barRoute){barRoute=null;barRouteShow();render();return}if(brBusy)return;brBusy=true;const b=$('#brNav');b.textContent='جارٍ حساب المسار…';
+  try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;el.dataset.err='1';b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;brCum(r);barRouteShow();status.textContent='مسار البر جاهز';navCard.classList.add('mini');try{navCloseGlyph()}catch(e){}syncNavCardSpace();if(view!=='follow'&&view!=='heading')try{fitNavigation()}catch(e){}render()}}
   catch(e){console.log('barroute',e);status.textContent='تعذّر حساب المسار'}brBusy=false}
 function barRouteSvg(){if(!barRoute||!targetPoint)return'';const S=p=>{const w=world(p.lat,p.lng);return(w[0]+innerWidth/2-cx).toFixed(1)+','+(w[1]+innerHeight/2-cy).toFixed(1)};const r=barRoute,st=Math.max(1,Math.ceil(r.path.length/1500)),pts=r.path.filter((p,i)=>i%st===0||i===r.path.length-1).map(p=>S({lat:p[0],lng:p[1]})).join(' ');
   let o=`<polyline points="${pts}" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts}" fill="none" stroke="#1E6FD9" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
