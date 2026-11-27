@@ -34,7 +34,7 @@ def rdp(pts, eps):
     a, b = np.array(pts[0]), np.array(pts[-1]); P = np.array(pts)
     cl = math.cos(math.radians(a[0])); S = np.array([111320.0, 111320.0 * cl])
     A, B, Q = a * S, b * S, P * S; d = B - A; L = np.hypot(*d)
-    dist = np.hypot(*(Q - A).T) if L == 0 else np.abs(np.cross(d, Q - A)) / L
+    V = Q - A; dist = np.hypot(V[:, 0], V[:, 1]) if L == 0 else np.abs(d[0] * V[:, 1] - d[1] * V[:, 0]) / L
     i = int(np.argmax(dist))
     if dist[i] <= eps: return [pts[0], pts[-1]]
     return rdp(pts[:i + 1], eps)[:-1] + rdp(pts[i:], eps)
