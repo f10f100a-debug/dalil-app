@@ -1,7 +1,7 @@
 """«مسار البر» — 28 نوفمبر (أبو مالك: «ابدأ»): شبكة الطرق المعبدة والدروب الترابية من OpenStreetMap (ODbL) لملفات صغيرة
 مربعات 0.5° — كل ملف فيه الوصلات بين التقاطعات (رقم التقاطع عام لكل المملكة عشان الملفات تتصل ببعض).
 python3 tools/roads/build.py <roads.osm.pbf> <مجلد الناتج>
-الملف r/<lat>_<lng>.json = {"v":1,"e":[[a,b,طول_م,نوع(0 معبد/1 ترابي), lat0e5,lng0e5,dlat,dlng,...], ...]}"""
+الملف r/<lat>_<lng>.json = {"v":1,"e":[[a,b,طول_م,نوع(0 رئيسي/1 ترابي/2 صغير), lat0e5,lng0e5,dlat,dlng,...], ...]}"""
 import sys, os, json, math, array
 import numpy as np, osmium
 
@@ -14,7 +14,7 @@ def kind(t):
     if t.get("access") in ("private", "no") and h not in DIRT: return None
     if h in DIRT: return 1
     # 28 نوفمبر (أبو مالك: «ليش ما طلّعني من الإسفلت»): «unclassified» بدون surface = مسفلت (عرف OSM) — كانت تنحسب ترابي فيترك الإسفلت
-    if h in ("unclassified", "road"): return 1 if s in UNP else 0
+    if h in ("unclassified", "road"): return 1 if s in UNP else 2   # 2 = طريق صغير مسفلت (بين المزارع والقرى) — أبطأ من الرئيسي
     if h in PAVED: return 1 if s in UNP else 0
     return None
 

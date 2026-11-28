@@ -719,7 +719,7 @@ function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
   // المسافة على الوصلة من بدايتها لنقطة الالتقاء (نسبة من الطول الكامل)
   let acc=0,tot=0;for(let i=0;i+3<g.length;i+=2){const s=distanceMeters({lat:g[i],lng:g[i+1]},{lat:g[i+2],lng:g[i+3]});if(i<best.i)acc+=s;else if(i===best.i)acc+=s*best.t;tot+=s}
   const f=tot?acc/tot:0;return{ei:best.ei,i:best.i,lat:la,lng:lo,off:distanceMeters(p,{lat:la,lng:lo}),fa:f*e.len,fb:(1-f)*e.len}}
-const brSpeed=k=>k?25/3.6:70/3.6;let brShort=false;   // 28 نوفمبر (أبو مالك): الدرب 25 كم/س (رمل وطعوس) بدل 35 — يفضّل الإسفلت أكثر
+const brSpeed=k=>(k===1?25:k===2?40:80)/3.6;let brShort=false;   // 28 نوفمبر (أبو مالك): الرئيسي 80، الطرق الصغيرة بين المزارع 40، الدرب 25 (رمل وطعوس)
 const brCost=k=>brShort?1:brSpeed(k);   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
 async function barRouteCompute(){
   if(!gps||!targetPoint)return{err:'ننتظر موقعك…'};
@@ -741,12 +741,12 @@ async function barRouteCompute(){
   if(!found){let bd=Infinity;for(const n of done){const p=brNode(E,adj,n);if(!p)continue;const d=distanceMeters(p,targetPoint);if(d<bd){bd=d;endNode=n}}
     if(endNode==null||bd>straight-500)return{err:'ما فيه درب مرسوم يقرّبك من المكان — امشِ بالبوصلة'};tailFrom=brNode(E,adj,endNode)}
   // نرسم المسار: من نقطة الالتقاء → الوصلات → نقطة الهدف
-  const segs=[];let n=endNode,paved=0,dirt=0;
-  while(true){const v=prev.get(n);if(!v||v.start)break;const e=E[v.ei];const pts=brPts(e.g);segs.push(e.a===v.from?pts:pts.reverse());(e.k?(dirt+=e.len):(paved+=e.len));n=v.from}
-  segs.reverse();const v0=prev.get(n),first=brPart(se,S,v0&&v0.start);(se.k?(dirt+=v0.start==='a'?S.fa:S.fb):(paved+=v0.start==='a'?S.fa:S.fb));
+  const segs=[];let n=endNode,paved=0,dirt=0,ts=0;
+  while(true){const v=prev.get(n);if(!v||v.start)break;const e=E[v.ei];const pts=brPts(e.g);segs.push(e.a===v.from?pts:pts.reverse());(e.k===1?(dirt+=e.len):(paved+=e.len));ts+=e.len/brSpeed(e.k);n=v.from}
+  segs.reverse();const v0=prev.get(n),first=brPart(se,S,v0&&v0.start);(se.k===1?(dirt+=v0.start==='a'?S.fa:S.fb):(paved+=v0.start==='a'?S.fa:S.fb));ts+=(v0.start==='a'?S.fa:S.fb)/brSpeed(se.k);
   let path=first.concat(...segs);
-  if(found){const last=brPart(te,T,endNode===te.a?'a':'b').reverse();path=path.concat(last);(te.k?(dirt+=endNode===te.a?T.fa:T.fb):(paved+=endNode===te.a?T.fa:T.fb))}
-  const head=S.off,tail=found?T.off:distanceMeters(tailFrom,targetPoint),sec=paved/brSpeed(0)+dirt/brSpeed(1)+(head+tail)/(15/3.6);
+  if(found){const last=brPart(te,T,endNode===te.a?'a':'b').reverse();path=path.concat(last);(te.k===1?(dirt+=endNode===te.a?T.fa:T.fb):(paved+=endNode===te.a?T.fa:T.fb));ts+=(endNode===te.a?T.fa:T.fb)/brSpeed(te.k)}
+  const head=S.off,tail=found?T.off:distanceMeters(tailFrom,targetPoint),sec=ts+(head+tail)/(15/3.6);
   return{path,head,tail,paved,dirt,sec,from:{lat:gps.lat,lng:gps.lng},partial:!found,tgt:{lat:targetPoint.lat,lng:targetPoint.lng}}}
 function brPts(g){const o=[];for(let i=0;i<g.length;i+=2)o.push([g[i],g[i+1]]);return o}
 // من نقطة الالتقاء لطرف الوصلة (a أو b)
