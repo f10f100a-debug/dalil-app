@@ -32,7 +32,8 @@ OUT = os.environ.get("SPRING_OUT") or "data/spring"; os.makedirs(OUT, exist_ok=T
 SAT_MIN = int(os.environ.get("SPRING_SAT_MIN") or 5000)   # 22 نوفمبر: كان 20000 فطاحت قطع فياض كثيفة صغيرة (أم قليب) — الاختيار النهائي في spring_satpick
 _FS = json.load(open("data/fayd-sites.json"))
 FAYD_CH = {(math.floor(x[1] / .25), math.floor(x[2] / .25)) for x in _FS if x and x[0]}
-env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3")
+# 28 نوفمبر: جزء حائل علّق 4 ساعات (اتصال وقف بدون رد) — مهلة للاتصال والقراءة، والمحاولات تكمل
+env = lambda: rasterio.Env(GDAL_DISABLE_READDIR_ON_OPEN="EMPTY_DIR", GDAL_HTTP_MAX_RETRY="4", GDAL_HTTP_RETRY_DELAY="3", GDAL_HTTP_TIMEOUT="90", GDAL_HTTP_CONNECTTIMEOUT="20")
 Q = 5490   # ربع البلاطة بدقة 10 م (نقسمها 4 عشان الذاكرة)
 
 def read(it, qr, qc):
