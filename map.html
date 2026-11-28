@@ -719,7 +719,7 @@ function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
   // المسافة على الوصلة من بدايتها لنقطة الالتقاء (نسبة من الطول الكامل)
   let acc=0,tot=0;for(let i=0;i+3<g.length;i+=2){const s=distanceMeters({lat:g[i],lng:g[i+1]},{lat:g[i+2],lng:g[i+3]});if(i<best.i)acc+=s;else if(i===best.i)acc+=s*best.t;tot+=s}
   const f=tot?acc/tot:0;return{ei:best.ei,i:best.i,lat:la,lng:lo,off:distanceMeters(p,{lat:la,lng:lo}),fa:f*e.len,fb:(1-f)*e.len}}
-const brSpeed=k=>k?35/3.6:70/3.6;let brShort=false;const brCost=k=>brShort?1:brSpeed(k);   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
+const brSpeed=k=>k?25/3.6:70/3.6;   // 28 نوفمبر (أبو مالك): الدرب 25 كم/س (رمل وطعوس) بدل 35 — يفضّل الإسفلت أكثرlet brShort=false;const brCost=k=>brShort?1:brSpeed(k);   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
 async function barRouteCompute(){
   if(!gps||!targetPoint)return{err:'ننتظر موقعك…'};
   const straight=distanceMeters(gps,targetPoint);if(straight>300e3)return{err:'مسار البر للرحلات لين 300 كم — المكان يبعد '+fmtDistance(straight)};
