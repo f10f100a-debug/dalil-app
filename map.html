@@ -338,7 +338,7 @@ function updateNavigation(){
   setText(navEta,Number.isFinite(speed)&&speed>1.5&&d>50?'الوصول ≈ '+fmtDuration(d/speed)+' بسرعتك الحالية':(h===null?'السهم حسب أعلى الخريطة':'السهم حسب اتجاه جوالك'));
   const relative=h!==null?b-h:b-rot;
   navArrow.firstElementChild.style.transform=`rotate(${relative.toFixed(1)}deg)`;
-  try{if(barRoute&&barRoute.tgt&&distanceMeters(barRoute.tgt,targetPoint)>20){barRoute=null;brShort=false}barRouteShow();brMiniSet();const lf=brLeft();if(lf){setText(navInfo,'باقي '+fmtDistance(lf.left)+' على مسار البر'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''));if(Number.isFinite(speed)&&speed>1.5)setText(navEta,'الوصول ≈ '+fmtDuration(lf.left/speed)+' بسرعتك الحالية')}}catch(e){}
+  try{if(barRoute&&barRoute.tgt&&distanceMeters(barRoute.tgt,targetPoint)>20){barRoute=null;brMode='fast'}barRouteShow();brMiniSet();const lf=brLeft();if(lf){setText(navInfo,'باقي '+fmtDistance(lf.left)+' على مسار البر'+(lf.off>300?' · طلعت عنه '+fmtDistance(lf.off):''));if(Number.isFinite(speed)&&speed>1.5)setText(navEta,'الوصول ≈ '+fmtDuration(lf.left/speed)+' بسرعتك الحالية')}}catch(e){}
 }
 navCoords.onclick=async()=>{if(!targetPoint)return;const text=fmtCoords(targetPoint.lat,targetPoint.lng);try{await navigator.clipboard.writeText(text);status.textContent='تم نسخ الإحداثيات'}catch(e){status.textContent=text}};
 
@@ -719,8 +719,9 @@ function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
   // المسافة على الوصلة من بدايتها لنقطة الالتقاء (نسبة من الطول الكامل)
   let acc=0,tot=0;for(let i=0;i+3<g.length;i+=2){const s=distanceMeters({lat:g[i],lng:g[i+1]},{lat:g[i+2],lng:g[i+3]});if(i<best.i)acc+=s;else if(i===best.i)acc+=s*best.t;tot+=s}
   const f=tot?acc/tot:0;return{ei:best.ei,i:best.i,lat:la,lng:lo,off:distanceMeters(p,{lat:la,lng:lo}),fa:f*e.len,fb:(1-f)*e.len}}
-const brSpeed=k=>(k===1?25:k===2?40:80)/3.6;let brShort=false;   // 28 نوفمبر (أبو مالك): الرئيسي 80، الطرق الصغيرة بين المزارع 40، الدرب 25 (رمل وطعوس)
-const brCost=k=>brShort?1:brSpeed(k);   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
+const brSpeed=k=>(k===1?25:k===2?40:80)/3.6;let brShort=false,brMode='fast',brKeep=false;   // fast · paved (الإسفلت أولًا) · short (أقصر)
+   // 28 نوفمبر (أبو مالك): الرئيسي 80، الطرق الصغيرة بين المزارع 40، الدرب 25 (رمل وطعوس)
+const brCost=k=>brMode==='short'?1:brMode==='paved'&&k===1?brSpeed(1)/8:brSpeed(k);   // «الإسفلت أولًا»: الكيلو الترابي = 8 كيلو   // «أقصر طريق»: بالمسافة بس (دروب أكثر)
 async function barRouteCompute(){
   if(!gps||!targetPoint)return{err:'ننتظر موقعك…'};
   const straight=distanceMeters(gps,targetPoint);if(straight>300e3)return{err:'مسار البر للرحلات لين 300 كم — المكان يبعد '+fmtDistance(straight)};
@@ -736,7 +737,7 @@ async function barRouteCompute(){
   const te=E[T.ei],goal=new Set(T.off<=15000?[te.a,te.b]:[]);let found=null;const done=new Set();
   while(H.size){const[c,n]=H.pop();if(found&&c>found.c)break;if(done.has(n))continue;done.add(n);if(goal.has(n)){const other=n===te.a?T.fa:T.fb;const tot=c+other/brCost(te.k);if(!found||tot<found.c)found={n,c:tot}}
     const vin=prev.get(n),L=adj.get(n)||[],inB=vin&&vin.ei!=null&&L.length>2?brBear(E[vin.ei],n,false):null;
-    for(const ei of L){const e=E[ei],m=e.a===n?e.b:e.a;let pen=0;if(inB!=null&&!brShort&&ei!==vin.ei){const d=Math.abs(((brBear(e,n,true)-inB)%360+540)%360-180);if(d>45)pen=30}seed(m,c+e.len/brCost(e.k)+pen,{ei,from:n})}}
+    for(const ei of L){const e=E[ei],m=e.a===n?e.b:e.a;let pen=0;if(inB!=null&&brMode!=='short'&&ei!==vin.ei){const d=Math.abs(((brBear(e,n,true)-inB)%360+540)%360-180);if(d>45)pen=30}seed(m,c+e.len/brCost(e.k)+pen,{ei,from:n})}}
   // ما فيه درب يوصل الهدف: أقرب نقطة وصلنا لها على الدروب
   let endNode=found&&found.n,tailFrom=null;
   if(!found){let bd=Infinity;for(const n of done){const p=brNode(E,adj,n);if(!p)continue;const d=distanceMeters(p,targetPoint);if(d<bd){bd=d;endNode=n}}
@@ -763,17 +764,17 @@ let brLeftC=null;function brLeft(){const r=barRoute;if(!r||!r.cum||!gps)return n
 function brLeft0(r){let bi=0,bd=Infinity;const st=Math.max(1,Math.floor(r.path.length/3000));for(let i=0;i<r.path.length;i+=st){const d=distanceMeters(gps,{lat:r.path[i][0],lng:r.path[i][1]});if(d<bd){bd=d;bi=i}}
   return{left:r.cum[r.cum.length-1]-r.cum[bi]+r.tail,off:bd}}
 function brMiniSet(){const m=$('#brMini');if(!m)return;m.classList.toggle('on',!!barRoute&&!navigationActive);navCard.classList.toggle('has-br',!!barRoute&&!navigationActive);if(!barRoute)return;const r=barRoute,lf=brLeft();
-  const mt=$('#brMiniT'),tx='🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec)+'<small>'+(brShort?'الأقصر':'الأسرع')+' على الطرق والدروب'+(r.dirt>500?' (ترابي '+(r.dirt/1000).toFixed(0)+' كم)':'')+'</small>';if(mt.innerHTML!==tx)mt.innerHTML=tx;
+  const mt=$('#brMiniT'),tx='🛣️ '+((r.paved+r.dirt+r.head+r.tail)/1000).toFixed(0)+' كم · ≈ '+brFmtTime(r.sec)+'<small>'+({fast:'الأسرع',paved:'الإسفلت أولًا',short:'الأقصر'}[brMode])+' على الطرق والدروب'+(r.dirt>500?' (ترابي '+(r.dirt/1000).toFixed(0)+' كم)':'')+'</small>';if(mt.innerHTML!==tx)mt.innerHTML=tx;
   const bg=$('#brGo');if(bg.hidden!==navigationActive)bg.hidden=navigationActive}
 function brFmtTime(s){const m=Math.round(s/60),h=Math.floor(m/60);return h?h+' س '+(m%60)+' د':m+' د'}
 function barRouteShow(){const b=$('#brNav'),el=$('#brInfo');if(!b||!el)return;try{brMiniSet()}catch(e){}b.hidden=!BR_ON||!targetPoint;if(!targetPoint)barRoute=null;
   if(!barRoute){if(!el.dataset.err)el.hidden=true;el.dataset.k='';if(b.textContent!=='🛣️ مسار البر (الطرق والدروب)'&&!brBusy)b.textContent='🛣️ مسار البر (الطرق والدروب)';return}
-  if(b.textContent!=='✕ إخفاء مسار البر')b.textContent='✕ إخفاء مسار البر';if(el.dataset.k===String(barRoute.sec)+brShort&&!el.hidden)return;el.dataset.k=String(barRoute.sec)+brShort;const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
+  if(b.textContent!=='✕ إخفاء مسار البر')b.textContent='✕ إخفاء مسار البر';if(el.dataset.k===String(barRoute.sec)+brMode&&!el.hidden)return;el.dataset.k=String(barRoute.sec)+brMode;const r=barRoute,km=x=>(x/1000).toFixed(x>=10e3?0:1);
   const tot=r.paved+r.dirt+r.head+r.tail,parts=[];if(r.paved>200)parts.push('معبد '+km(r.paved)+' كم');if(r.dirt>200)parts.push('ترابي '+km(r.dirt)+' كم');
   const off=[];if(r.head>300)off.push('أول '+km(r.head)+' كم');if(r.tail>300)off.push('آخر '+km(r.tail)+' كم');
-  el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<br><button type="button" id="brAlt" style="display:block;width:100%;margin-top:8px;border:1px solid rgba(30,111,217,.35);background:#fff;border-radius:10px;padding:6px 10px;font:inherit;font-size:13px;font-weight:700;color:#1E5BB0">'+(brShort?'🚗 الأسرع (يفضّل المعبد)':'↔️ أقصر طريق (دروب أكثر)')+'</button><br><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false;const alt=$('#brAlt');if(alt)alt.onclick=e=>{e.stopPropagation();brShort=!brShort;barRoute=null;barRouteToggle()}}
+  el.innerHTML='<b>🛣️ مسار البر: '+km(tot)+' كم · ≈ '+brFmtTime(r.sec)+'</b>'+(parts.length?'<br>'+parts.join(' · '):'')+(off.length?'<br>⚠️ '+off.join(' و')+' بدون درب (خط متقطع)':'')+(r.partial?'<br>ما فيه درب مرسوم يوصل المكان نفسه — نوصلك لأقرب نقطة وبعدها مستقيم':'')+'<div id="brModes" style="display:flex;gap:6px;margin-top:8px">'+[['fast','🚗 الأسرع'],['paved','🛣️ الإسفلت أولًا'],['short','↔️ أقصر']].map(m=>'<button type="button" data-brm="'+m[0]+'" style="flex:1;white-space:nowrap;border:1px solid '+(brMode===m[0]?'#1E6FD9':'rgba(30,111,217,.3)')+';background:'+(brMode===m[0]?'#1E6FD9':'#fff')+';color:'+(brMode===m[0]?'#fff':'#1E5BB0')+';border-radius:10px;padding:7px 4px;font:inherit;font-size:12.5px;font-weight:800">'+m[1]+'</button>').join('')+'</div><small>الدروب من OpenStreetMap — بعضها ممكن اندفن أو تغيّر، احكم بعينك</small>';el.hidden=false;el.querySelectorAll('[data-brm]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(brMode===b.dataset.brm)return;brMode=b.dataset.brm;barRoute=null;brKeep=true;barRouteToggle()})}
 async function barRouteToggle(){try{delete $('#brInfo').dataset.err}catch(e){}if(barRoute){barRoute=null;barRouteShow();render();return}if(brBusy)return;brBusy=true;const b=$('#brNav');b.textContent='جارٍ حساب المسار…';
-  try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;el.dataset.err='1';b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;brCum(r);barRouteShow();status.textContent='مسار البر جاهز';navCard.classList.add('mini');try{navCloseGlyph()}catch(e){}syncNavCardSpace();if(view!=='follow'&&view!=='heading')try{fitNavigation()}catch(e){}render()}}
+  try{const r=await barRouteCompute();if(r.err){status.textContent=r.err;const el=$('#brInfo');el.innerHTML='🛣️ '+r.err;el.hidden=false;el.dataset.err='1';b.textContent='🛣️ مسار البر (الطرق والدروب)'}else{barRoute=r;brCum(r);barRouteShow();status.textContent='مسار البر جاهز';if(!brKeep)navCard.classList.add('mini');brKeep=false;try{navCloseGlyph()}catch(e){}syncNavCardSpace();if(view!=='follow'&&view!=='heading')try{fitNavigation()}catch(e){}render()}}
   catch(e){console.log('barroute',e);status.textContent='تعذّر حساب المسار'}brBusy=false}
 function barRouteSvg(){if(!barRoute||!targetPoint)return'';const S=p=>{const w=world(p.lat,p.lng);return(w[0]+innerWidth/2-cx).toFixed(1)+','+(w[1]+innerHeight/2-cy).toFixed(1)};const r=barRoute,st=Math.max(1,Math.ceil(r.path.length/1500)),pts=r.path.filter((p,i)=>i%st===0||i===r.path.length-1).map(p=>S({lat:p[0],lng:p[1]})).join(' ');
   let o=`<polyline points="${pts}" fill="none" stroke="#fff" stroke-opacity=".95" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts}" fill="none" stroke="#1E6FD9" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>`;
