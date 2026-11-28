@@ -84,6 +84,6 @@ for (la, lo), L in tiles.items():
     s = json.dumps({"v": 1, "e": L}, separators=(",", ":"))
     open(f"{OUT}/r/{name}.json", "w").write(s); idx[name] = [len(L), len(s)]
 tot = sum(v[1] for v in idx.values())
-json.dump({"v": 1, "tile": 0.5, "src": "OpenStreetMap (ODbL)", "asof": os.environ.get("ASOF", ""), "tiles": idx}, open(f"{OUT}/index.json", "w"), separators=(",", ":"))
+json.dump({"v": 1, "tile": 0.5, "src": "OpenStreetMap (ODbL)", "asof": os.environ.get("ASOF", ""), "built": __import__("time").strftime("%Y%m%d%H%M"), "tiles": idx}, open(f"{OUT}/index.json", "w"), separators=(",", ":"))
 big = sorted(idx.items(), key=lambda x: -x[1][1])[:5]
 print(f"::notice::roads: {e.n} edges · {len(idx)} tiles · {tot/1e6:.1f} MB · biggest " + ", ".join(f"{k} {v[1]/1e6:.1f}MB" for k, v in big), flush=True)

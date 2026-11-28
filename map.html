@@ -704,13 +704,13 @@ function drawTarget(){if(!targetPoint){targetMarker.style.display='none';return}
 const BR_ON=(()=>{try{return localStorage.getItem('dalil_lab_barroute')==='1'}catch(e){return false}})();
 const BR_URL='https://raw.githubusercontent.com/f10f100a-debug/dalil-app/roads-data/',BR_CACHE='dalil-roads-v1';
 let barRoute=null,brBusy=false,brIndex=null;
-async function brGet(path){const url=BR_URL+path;let c=null;try{c=await caches.open(BR_CACHE);const hit=await c.match(url);if(hit){if(navigator.onLine&&path==='index.json'&&Date.now()-(+hit.headers.get('x-at')||0)>7*864e5)brFetch(url,c).catch(()=>{});return hit.json()}}catch(e){}
+async function brGet(path){const url=BR_URL+path;let c=null;try{c=await caches.open(BR_CACHE);if(path==='index.json'&&navigator.onLine){const f=await Promise.race([brFetch(url,c).catch(()=>null),new Promise(r=>setTimeout(()=>r(null),4000))]);if(f)return f}const hit=await c.match(url);if(hit)return hit.json()}catch(e){}
   if(!navigator.onLine)return null;return brFetch(url,c)}
 async function brFetch(url,c){const r=await fetch(url);if(!r.ok)return null;const t=await r.text();try{c&&await c.put(url,new Response(t,{headers:{'content-type':'application/json','x-at':String(Date.now())}}))}catch(e){}return JSON.parse(t)}
 const brName=(la,lo)=>(Math.floor(la*2)/2).toFixed(1)+'_'+(Math.floor(lo*2)/2).toFixed(1);
 function brTiles(a,b,m){const s=Math.min(a.lat,b.lat)-m,n=Math.max(a.lat,b.lat)+m,w=Math.min(a.lng,b.lng)-m,e=Math.max(a.lng,b.lng)+m,o=[];for(let la=Math.floor(s*2)/2;la<n;la+=.5)for(let lo=Math.floor(w*2)/2;lo<e;lo+=.5)o.push(brName(la+.01,lo+.01));return o}
 // يحفظ دروب منطقتك (حوالي 75 كم حولك) وأنت عندك نت — عشان تشتغل بالبر بدون شبكة
-async function brPrefetch(){if(!BR_ON||!gps||!navigator.onLine)return;try{brIndex=brIndex||await brGet('index.json');if(!brIndex)return;for(const t of brTiles(gps,gps,.7))if(brIndex.tiles[t])await brGet('r/'+t+'.json')}catch(e){}}
+async function brPrefetch(){if(!BR_ON||!gps||!navigator.onLine)return;try{brIndex=brIndex||await brGet('index.json');if(!brIndex)return;if(brIndex.built)caches.open(BR_CACHE).then(c=>c.keys().then(ks=>ks.forEach(k=>{if(/\/r\//.test(k.url)&&!k.url.endsWith('?v='+brIndex.built))c.delete(k)}))).catch(()=>{});for(const t of brTiles(gps,gps,.7))if(brIndex.tiles[t])await brGet('r/'+t+'.json?v='+(brIndex.built||''))}catch(e){}}
 function brHeap(){const k=[],v=[];return{push(key,val){k.push(key);v.push(val);let i=k.length-1;while(i>0){const p=(i-1)>>1;if(k[p]<=k[i])break;[k[p],k[i]]=[k[i],k[p]];[v[p],v[i]]=[v[i],v[p]];i=p}},
   pop(){const top=v[0],tk=k[0],lk=k.pop(),lv=v.pop();if(k.length){k[0]=lk;v[0]=lv;let i=0;for(;;){const l=2*i+1,r=l+1;let m=i;if(l<k.length&&k[l]<k[m])m=l;if(r<k.length&&k[r]<k[m])m=r;if(m===i)break;[k[m],k[i]]=[k[i],k[m]];[v[m],v[i]]=[v[i],v[m]];i=m}}return[tk,top]},get size(){return k.length}}}
 function brSnap(E,p){const cl=Math.cos(p.lat*Math.PI/180);let best={d:Infinity};
@@ -726,7 +726,7 @@ async function barRouteCompute(){
   const straight=distanceMeters(gps,targetPoint);if(straight>300e3)return{err:'مسار البر للرحلات لين 300 كم — المكان يبعد '+fmtDistance(straight)};
   brIndex=brIndex||await brGet('index.json');if(!brIndex)return{err:navigator.onLine?'تعذّر تحميل الدروب — حاول بعد شوي':'الدروب ما انحفظت بجوالك لهذي المنطقة — افتحها مرة وعندك نت'};
   const names=brTiles(gps,targetPoint,Math.max(.25,Math.min(.6,straight/111e3*.3))).filter(t=>brIndex.tiles[t]);
-  const E=[],miss=[];for(const t of names){const j=await brGet('r/'+t+'.json');if(!j){miss.push(t);continue}for(const r of j.e){const g=new Float64Array(r.length-4);let la=r[4],lo=r[5];g[0]=la/1e5;g[1]=lo/1e5;for(let i=6;i<r.length;i+=2){la+=r[i];lo+=r[i+1];g[i-4]=la/1e5;g[i-3]=lo/1e5}E.push({a:r[0],b:r[1],len:r[2],k:r[3],g})}}
+  const E=[],miss=[];for(const t of names){const j=await brGet('r/'+t+'.json?v='+(brIndex.built||''));if(!j){miss.push(t);continue}for(const r of j.e){const g=new Float64Array(r.length-4);let la=r[4],lo=r[5];g[0]=la/1e5;g[1]=lo/1e5;for(let i=6;i<r.length;i+=2){la+=r[i];lo+=r[i+1];g[i-4]=la/1e5;g[i-3]=lo/1e5}E.push({a:r[0],b:r[1],len:r[2],k:r[3],g})}}
   if(!E.length)return{err:miss.length?'الدروب ما انحفظت بجوالك لهذي المنطقة — افتحها مرة وعندك نت':'ما فيه دروب مرسومة بهذي المنطقة'};
   const S=brSnap(E,gps),T=brSnap(E,targetPoint);if(!S||S.off>5000)return{err:'أقرب درب لك يبعد '+(S?fmtDistance(S.off):'أكثر من 5 كم')+' — امشِ بالبوصلة'};
   const adj=new Map(),add=(n,ei)=>{let l=adj.get(n);if(!l)adj.set(n,l=[]);l.push(ei)};E.forEach((e,i)=>{add(e.a,i);add(e.b,i)});
