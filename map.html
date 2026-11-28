@@ -735,7 +735,8 @@ async function barRouteCompute(){
   seed(se.a,S.fa/brCost(se.k),{start:'a'});seed(se.b,S.fb/brCost(se.k),{start:'b'});
   const te=E[T.ei],goal=new Set(T.off<=15000?[te.a,te.b]:[]);let found=null;const done=new Set();
   while(H.size){const[c,n]=H.pop();if(found&&c>found.c)break;if(done.has(n))continue;done.add(n);if(goal.has(n)){const other=n===te.a?T.fa:T.fb;const tot=c+other/brCost(te.k);if(!found||tot<found.c)found={n,c:tot}}
-    for(const ei of adj.get(n)||[]){const e=E[ei],m=e.a===n?e.b:e.a;seed(m,c+e.len/brCost(e.k),{ei,from:n})}}
+    const vin=prev.get(n),L=adj.get(n)||[],inB=vin&&vin.ei!=null&&L.length>2?brBear(E[vin.ei],n,false):null;
+    for(const ei of L){const e=E[ei],m=e.a===n?e.b:e.a;let pen=0;if(inB!=null&&!brShort&&ei!==vin.ei){const d=Math.abs(((brBear(e,n,true)-inB)%360+540)%360-180);if(d>45)pen=30}seed(m,c+e.len/brCost(e.k)+pen,{ei,from:n})}}
   // ما فيه درب يوصل الهدف: أقرب نقطة وصلنا لها على الدروب
   let endNode=found&&found.n,tailFrom=null;
   if(!found){let bd=Infinity;for(const n of done){const p=brNode(E,adj,n);if(!p)continue;const d=distanceMeters(p,targetPoint);if(d<bd){bd=d;endNode=n}}
@@ -748,6 +749,10 @@ async function barRouteCompute(){
   if(found){const last=brPart(te,T,endNode===te.a?'a':'b').reverse();path=path.concat(last);(te.k===1?(dirt+=endNode===te.a?T.fa:T.fb):(paved+=endNode===te.a?T.fa:T.fb));ts+=(endNode===te.a?T.fa:T.fb)/brSpeed(te.k)}
   const head=S.off,tail=found?T.off:distanceMeters(tailFrom,targetPoint),sec=ts+(head+tail)/(15/3.6);
   return{path,head,tail,paved,dirt,sec,from:{lat:gps.lat,lng:gps.lng},partial:!found,tgt:{lat:targetPoint.lat,lng:targetPoint.lng}}}
+// 28 نوفمبر (أبو مالك: «يتعرج بين المزارع»): كل لفّة حادة (> 45°) عند تقاطع = نص دقيقة — يفضّل الطريق المستقيم
+// اتجاه الوصلة عند العقدة n: out=true طالع منها، false داخل لها
+function brBear(e,n,out){const g=e.g,k=g.length;let a,b;if(e.a===n){a=[g[0],g[1]];b=[g[2],g[3]];if(!out)[a,b]=[b,a]}else{a=[g[k-2],g[k-1]];b=[g[k-4],g[k-3]];if(!out)[a,b]=[b,a]}
+  return Math.atan2((b[1]-a[1])*Math.cos(a[0]*Math.PI/180),b[0]-a[0])*180/Math.PI}
 function brPts(g){const o=[];for(let i=0;i<g.length;i+=2)o.push([g[i],g[i+1]]);return o}
 // من نقطة الالتقاء لطرف الوصلة (a أو b)
 function brPart(e,s,end){const g=brPts(e.g),p=[s.lat,s.lng],vi=s.i/2;return end==='a'?[p,...g.slice(0,vi+1).reverse()]:[p,...g.slice(vi+1)]}
